@@ -4842,11 +4842,12 @@ function completeOnboarding(){
 let _selfRegSelectedIds = [];
 
 function genCodiceSocietaSuggested(){
-  // Es. "POLIS-K3F9" — leggibile, no caratteri ambigui (no 0/O/I/1/L)
+  // Es. "XYZW-A3B9" — leggibile, no caratteri ambigui (no 0/O/I/1/L)
   const ch = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let suff = '';
-  for (let i=0;i<4;i++) suff += ch[Math.floor(Math.random()*ch.length)];
-  return 'POLIS-' + suff;
+  let a = '', b = '';
+  for (let i=0;i<4;i++) a += ch[Math.floor(Math.random()*ch.length)];
+  for (let i=0;i<4;i++) b += ch[Math.floor(Math.random()*ch.length)];
+  return a + '-' + b;
 }
 
 function genCodiceSocietaUI(){
@@ -4899,7 +4900,7 @@ function refreshCodiceStatoUI(){
 function openSelfReg(){
   _selfRegSelectedIds = [];
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN) { const _srSoc = saSocieties.find(x => x.id === currentSocietaId); _srSN.textContent = _srSoc ? _srSoc.nome.toUpperCase() : 'FieldOS'; }
+  if (_srSN) _srSN.textContent = 'FieldOS'; // aggiornato dopo validazione codice
   document.getElementById('srCodice').value = '';
   document.getElementById('srNome').value = '';
   document.getElementById('srCogn').value = '';
@@ -4931,13 +4932,37 @@ function srShowStep(n){
 function srBackStep(n){ srShowStep(n); }
 
 function srNextStep1(){
-  if (!codiceSocieta) {
-    toast('⛔ La registrazione autonoma è disattivata. Contatta la società.');
-    return;
-  }
   const v = (document.getElementById('srCodice').value || '').trim().toUpperCase();
   if (!v) { toast('⚠️ Inserisci il codice società'); return; }
-  if (v !== codiceSocieta.toUpperCase()) { toast('⛔ Codice non corretto'); return; }
+
+  // Cerca il codice su tutte le società attive
+  saLoadState();
+  let foundSocId = null;
+  for (const soc of saSocieties) {
+    if (soc.stato !== 'attivo') continue;
+    const key = societyStorageKey(soc.id);
+    let socCodice = '';
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try { socCodice = (JSON.parse(raw).codiceSocieta || '').toUpperCase(); } catch(e) {}
+    } else if (soc.id === 0) {
+      socCodice = (codiceSocieta || '').toUpperCase();
+    }
+    if (socCodice && v === socCodice) { foundSocId = soc.id; break; }
+  }
+
+  if (foundSocId === null) { toast('⛔ Codice non corretto o non attivo'); return; }
+
+  // Carica il contesto della società trovata
+  currentSocietaId = foundSocId;
+  if (typeof window.__fieldosSetSocietaKey === 'function') {
+    window.__fieldosSetSocietaKey(societyStorageKey(foundSocId));
+  }
+  // Aggiorna nome società nel modal e applica branding
+  const foundSoc = saSocieties.find(x => x.id === foundSocId);
+  const _srSN = document.getElementById('srSocNome');
+  if (_srSN && foundSoc) _srSN.textContent = foundSoc.nome.toUpperCase();
+  if (foundSoc && typeof applyBranding === 'function') applyBranding(foundSoc.nome, foundSoc.colori);
   srShowStep(2);
 }
 
