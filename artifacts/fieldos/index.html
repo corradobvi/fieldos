@@ -387,9 +387,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- ══════ LOGIN ══════ -->
 <div id="loginScreen">
   <div class="ll">
-    <div class="ll-logo"><span>PA</span></div>
-    <div class="ll-club">POLIS ASD</div>
-    <div class="ll-sub">Scuola Calcio · Genova</div>
+    <div class="ll-logo"><span>F</span></div>
+    <div class="ll-club">FieldOS</div>
+    <div class="ll-sub">Piattaforma per società sportive</div>
     <div id="roleCards">
       <div class="rc" data-role="admin"     onclick="selRole(this)"><div class="rc-ic">🛡️</div><div><div class="rcn">Amministratore</div><div class="rcd">Gestione completa società</div></div></div>
       <div class="rc" data-role="allenatore" onclick="selRole(this)"><div class="rc-ic">⚽</div><div><div class="rcn">Allenatore / Staff</div><div class="rcd">Rosa, presenze, convocazioni</div></div></div>
@@ -403,7 +403,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="lf-title">Accedi a FieldOS</div>
       <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
       <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="email@polis.it"></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"></div>
       <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
       <button class="btn-login" onclick="doLogin()">Accedi →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
@@ -1360,13 +1360,12 @@ function logout() {
   document.getElementById('lEmail').value = '';
   document.getElementById('lPass').value  = '';
   document.querySelectorAll('.rc').forEach(r => r.classList.remove('sel'));
-  // Ricarica il contesto della società 0 (Polis) e resetta il branding
+  // Resetta al contesto generico FieldOS
   currentSocietaId = 0;
   if (typeof window.__fieldosSetSocietaKey === 'function') {
     window.__fieldosSetSocietaKey(societyStorageKey(0));
   }
-  const pSoc = saSocieties.find(x => x.id === 0);
-  applyBranding(pSoc ? pSoc.nome : 'Polis ASD', pSoc ? pSoc.colori : '#1a3f8f');
+  applyBranding('FieldOS', '#1a3f8f');
 }
 
 // ═══════════════════════════════════
