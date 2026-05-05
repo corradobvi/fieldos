@@ -773,7 +773,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">👨‍👩‍👦 Figli/e in rosa (puoi selezionarne più di uno)</label>
         <div id="uFigliBox" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);min-height:40px;max-height:140px;overflow:auto;"></div>
       </div>
-      <div style="font-size:.72rem;color:var(--text2);margin-top:-8px;margin-bottom:10px;">Il genitore vedrà le info di tutti i giocatori selezionati. Ideale per fratelli/sorelle nella stessa società.</div>
+      <div id="uGenitoreHint" style="font-size:.72rem;color:var(--text2);margin-top:-8px;margin-bottom:10px;">Il genitore vedrà le info di tutti i giocatori selezionati. Ideale per fratelli/sorelle nella stessa società.</div>
     </div>
     <div id="uGiocBlock" style="display:none;">
       <div class="fg"><label class="fl">Anno di nascita</label><input class="fi" id="uAnno" type="number" placeholder="Es. 2011" oninput="checkAge()"></div>
@@ -2070,7 +2070,7 @@ let currentPresDate = null; // 'YYYY-MM-DD'
 
 // Permessi:
 function canEditPresenze(){ return me && me.role === 'allenatore'; }
-function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'giocatore'); }
+function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Genera le date degli allenamenti per la leva corrente espandendo le ricorrenze.
 // Range: ultimi 90 giorni + prossimi 30. Restituisce array di 'YYYY-MM-DD' ordinato desc (più recenti prima).
@@ -2752,7 +2752,7 @@ function saveAvvisoAssenza(){
 // ═══════════════════════════════════
 
 function canCreateConvocazione(){ return me && (me.role === 'admin' || me.role === 'allenatore'); }
-function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'giocatore'); }
+function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
 // - genitore: i suoi figli
@@ -2923,7 +2923,7 @@ function recipientsForPlayer(p) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.role === 'giocatore' && u.nome === p.nome && u.cogn === p.cogn) ids.add(u.id);
-    if (u.role === 'genitore') {
+    if (u.role === 'genitore' || u.role === 'dirigente') {
       const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
       if (figli.includes(fullName)) ids.add(u.id);
     }
@@ -4290,7 +4290,7 @@ function openUserModal(id) {
     document.getElementById('uPassHint').textContent = "Compila solo se vuoi cambiare la password. Verrà mostrata una sola volta.";
     document.getElementById('btnSaveUser').textContent = '💾 Salva modifiche';
     onUtenteRuolo();
-    if (u.role === 'genitore') {
+    if (u.role === 'genitore' || u.role === 'dirigente') {
       populateFigliBox(getFigliOf(u));
     }
   }
@@ -4345,10 +4345,15 @@ function copyCredsBoth() {
 
 function onUtenteRuolo() {
   const r = document.getElementById('uRuolo').value;
-  document.getElementById('uGenitoreBlock').style.display = r === 'genitore'  ? 'block' : 'none';
+  const showFigli = r === 'genitore' || r === 'dirigente';
+  document.getElementById('uGenitoreBlock').style.display = showFigli   ? 'block' : 'none';
   document.getElementById('uGiocBlock').style.display     = r === 'giocatore' ? 'block' : 'none';
-  if (r === 'genitore') populateFigliBox();
+  if (showFigli) populateFigliBox();
   if (r === 'giocatore') checkAge();
+  const hint = document.getElementById('uGenitoreHint');
+  if (hint) hint.textContent = r === 'dirigente'
+    ? 'Opzionale: abbina il dirigente al/ai proprio/i figlio/i in rosa per ricevere notifiche convocazioni e avvisare assenze.'
+    : 'Il genitore vedrà le info di tutti i giocatori selezionati. Ideale per fratelli/sorelle nella stessa società.';
 }
 
 function checkAge() {
@@ -4435,7 +4440,7 @@ function saveUser() {
   } else {
     if (pass && pass.length < 4) { toast('⚠️ La nuova password deve avere almeno 4 caratteri'); return; }
   }
-  const figli = role === 'genitore'
+  const figli = (role === 'genitore' || role === 'dirigente')
     ? Array.from(document.querySelectorAll('#uFigliBox .lp.on')).map(c => c.dataset.figlio)
     : [];
   const anno   = role === 'giocatore' ? parseInt(document.getElementById('uAnno').value) : null;
@@ -4449,6 +4454,7 @@ function saveUser() {
     }
   }
   if (role === 'genitore' && figli.length === 0) { toast('⚠️ Seleziona almeno un figlio/a in rosa'); return; }
+  // dirigente: figli opzionale, nessuna validazione obbligatoria
   // Email univoca
   const dupe = USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== editingUserId);
   if (dupe) { toast('⛔ Email già usata da un altro utente'); return; }
@@ -8166,17 +8172,19 @@ function getChatsForUser(user) {
 
   // 2. Chat Leva Famiglie — genitori + dirigenti (NO admin, NO allenatori)
   leve.forEach(lv => {
-    const dirigentiInLeva = USERS_DB.filter(u => u.role === 'dirigente' && staffLeve(u).includes(lv)).map(u => u.id);
-    const genitoriInLeva = USERS_DB.filter(u => {
-      if (u.role !== 'genitore') return false;
+    const hasFigliInLeva = u => {
       const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
       return figli.some(f => {
         const p = players.find(pl => (pl.nome + ' ' + pl.cogn).toLowerCase() === String(f).toLowerCase());
         return p && p.leva === lv;
       });
-    }).map(u => u.id);
-    const members = [...new Set([...dirigentiInLeva, ...genitoriInLeva])];
-    const belongs = (user.role === 'dirigente' && dirigentiInLeva.includes(user.id))
+    };
+    const dirigentiInLeva = USERS_DB.filter(u => u.role === 'dirigente' && staffLeve(u).includes(lv)).map(u => u.id);
+    // Dirigenti che hanno un figlio in questa leva entrano anche come genitori
+    const dirigentiGenitoriInLeva = USERS_DB.filter(u => u.role === 'dirigente' && hasFigliInLeva(u)).map(u => u.id);
+    const genitoriInLeva = USERS_DB.filter(u => u.role === 'genitore' && hasFigliInLeva(u)).map(u => u.id);
+    const members = [...new Set([...dirigentiInLeva, ...dirigentiGenitoriInLeva, ...genitoriInLeva])];
+    const belongs = (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
       || (user.role === 'genitore' && genitoriInLeva.includes(user.id));
     if (belongs && members.length > 0) {
       out.push({ id: 'leva_' + lv, name: '👨‍👧 Genitori ' + lv, avatar: lv.slice(0,3), color: '#047857', members, kind: 'leva-famiglie', leva: lv });
