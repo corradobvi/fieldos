@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FieldOS</title>
+<title>MyVivaio</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -387,8 +387,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- ══════ LOGIN ══════ -->
 <div id="loginScreen">
   <div class="ll">
-    <div class="ll-logo"><span>F</span></div>
-    <div class="ll-club">FieldOS</div>
+    <div class="ll-logo"><span>MV</span></div>
+    <div class="ll-club">MyVivaio</div>
     <div class="ll-sub">Piattaforma per società sportive</div>
     <div id="roleCards">
       <div class="rc" data-role="admin"     onclick="selRole(this)"><div class="rc-ic">🛡️</div><div><div class="rcn">Amministratore</div><div class="rcd">Gestione completa società</div></div></div>
@@ -400,7 +400,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
   <div class="lr">
     <div class="lf">
-      <div class="lf-title">Accedi a FieldOS</div>
+      <div class="lf-title">Accedi a MyVivaio</div>
       <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
       <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"></div>
@@ -432,7 +432,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <header class="topbar">
     <button class="ham" onclick="toggleSb()">☰</button>
     <div class="tb-crest" id="tbCrest">PA</div>
-    <div><div class="tb-club" id="tbClub">Polis ASD</div><div class="tb-app">FieldOS</div></div>
+    <div><div class="tb-club" id="tbClub">Polis ASD</div><div class="tb-app">MyVivaio</div></div>
     <div class="tb-sep"></div>
     <div class="tb-leva" id="tbLeva">U12</div>
     <div class="tb-right">
@@ -1034,7 +1034,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- Onboarding registrazione genitore (da link invito) -->
 <div class="ov" id="mOnboard">
   <div class="modal" style="max-width:520px;">
-    <div class="mh"><div class="mt" id="onbTitle">👋 Benvenuto in FieldOS</div></div>
+    <div class="mh"><div class="mt" id="onbTitle">👋 Benvenuto in MyVivaio</div></div>
     <div id="onbHero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:white;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
       <div id="onbSocNome" style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">FieldOS</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;line-height:1.1;" id="onbHeroTitle">Registrati come genitore</div>
@@ -1365,7 +1365,7 @@ function logout() {
   if (typeof window.__fieldosSetSocietaKey === 'function') {
     window.__fieldosSetSocietaKey(societyStorageKey(0));
   }
-  applyBranding('FieldOS', '#047857');
+  applyBranding('MyVivaio', '#047857');
 }
 
 // ═══════════════════════════════════
@@ -4641,7 +4641,7 @@ function _invitoMessageBody(){
   const url = buildInvitoUrl(inv.token);
   const dest = inv.nome ? `Ciao ${inv.nome.split(' ')[0]},` : 'Ciao,';
   const _invSoc = saSocieties.find(x=>x.id===currentSocietaId);
-  let msg = `${dest}\n\nti invito su FieldOS — ${_invSoc ? _invSoc.nome : nomeSocieta} per ricevere comunicazioni e convocazioni della squadra.`;
+  let msg = `${dest}\n\nti invito su MyVivaio — ${_invSoc ? _invSoc.nome : nomeSocieta} per ricevere comunicazioni e convocazioni della squadra.`;
   if (inv.nota) msg += `\n\n${inv.nota}`;
   msg += `\n\nRegistrati qui:\n${url}\n\nA presto,\n${inv.byName}`;
   return msg;
@@ -4650,7 +4650,7 @@ function _invitoMessageBody(){
 function shareInvitoEmail(){
   const inv = findInvitoByToken(_currentInvitoToken);
   if (!inv) return;
-  const subj = 'Invito FieldOS — ' + ((saSocieties.find(x=>x.id===currentSocietaId)||{nome:nomeSocieta}).nome);
+  const subj = 'Invito MyVivaio — ' + ((saSocieties.find(x=>x.id===currentSocietaId)||{nome:nomeSocieta}).nome);
   const body = _invitoMessageBody();
   const to = inv.email ? encodeURIComponent(inv.email) : '';
   const href = `mailto:${to}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
@@ -4906,7 +4906,7 @@ function refreshCodiceStatoUI(){
 function openSelfReg(){
   _selfRegSelectedIds = [];
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN) _srSN.textContent = 'FieldOS'; // aggiornato dopo validazione codice
+  if (_srSN) _srSN.textContent = 'MyVivaio'; // aggiornato dopo validazione codice
   document.getElementById('srCodice').value = '';
   document.getElementById('srNome').value = '';
   document.getElementById('srCogn').value = '';
@@ -9517,7 +9517,7 @@ function saveNewPassword() {
 <div id="saPanel" style="display:none;">
   <!-- Topbar -->
   <div class="sa-topbar">
-    <div class="sa-logo">Field<span>OS</span></div>
+    <div class="sa-logo">My<span>Vivaio</span></div>
     <div class="sa-badge">SUPER ADMIN</div>
     <div class="sa-spacer"></div>
     <span class="sa-topbar-email">superadmin@fieldos.it</span>
