@@ -36,10 +36,7 @@ router.put("/state/:key", async (req, res) => {
     await db
       .insert(societyState)
       .values({ key: req.params.key, stateJson, updatedAt: now })
-      .onConflictDoUpdate({
-        target: societyState.key,
-        set: { stateJson, updatedAt: now },
-      });
+      .onDuplicateKeyUpdate({ set: { stateJson, updatedAt: now } });
     return res.json({ key: req.params.key, updatedAt: now.toISOString() });
   } catch (e) {
     return res.status(500).json({ error: "db error" });

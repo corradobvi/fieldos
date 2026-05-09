@@ -26,21 +26,18 @@ function startListening() {
   });
 }
 
-// Ensure the society_state table exists (idempotent — safe to run on every start)
+// Ensure the society_state table exists (idempotent — safe to run on every start).
+// Uses MySQL syntax: VARCHAR(255) primary key, DATETIME instead of TIMESTAMPTZ.
 async function ensureSchema() {
-  const client = await pool.connect();
-  try {
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS society_state (
-        key        TEXT PRIMARY KEY,
-        state_json TEXT NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-    logger.info("DB schema ready");
-  } finally {
-    client.release();
-  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS society_state (
+      \`key\`        VARCHAR(255) NOT NULL,
+      state_json  LONGTEXT     NOT NULL,
+      updated_at  DATETIME     NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (\`key\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+  logger.info("DB schema ready");
 }
 
 if (process.env.DATABASE_URL) {
@@ -55,7 +52,7 @@ if (process.env.DATABASE_URL) {
 } else {
   // No DATABASE_URL — start immediately; API state endpoints will return 500
   logger.warn(
-    "DATABASE_URL not set — cross-device sync disabled, set it in Railway Variables",
+    "DATABASE_URL not set — cross-device sync disabled, set the MySQL URL in environment variables",
   );
   startListening();
 }
