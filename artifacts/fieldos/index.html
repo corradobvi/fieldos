@@ -768,6 +768,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div class="ch"><div class="ct">🏷️ Gestione leve</div><button class="btn btn-p btn-sm" onclick="openAddLeva()">+ Aggiungi leva</button></div>
             <div id="leveImpostList"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="campiCard">
+            <div class="ch"><div class="ct">🏟️ Campi di gioco</div><button class="btn btn-p btn-sm" onclick="openCampoModal(null)">+ Aggiungi campo</button></div>
+            <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">I campi configurati qui sono selezionabili nella creazione di qualsiasi evento (allenamenti, partite, tornei).</div>
+            <div id="campiListBox"></div>
+          </div>
         </div>
       </div>
 
@@ -992,7 +997,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="fr">
       <div class="fg"><label class="fl">Tipo</label>
         <div style="display:flex;gap:6px;">
-          <select class="fs" id="evTipo" style="flex:1;"></select>
+          <select class="fs" id="evTipo" style="flex:1;" onchange="onEvTipoChange()"></select>
           <button class="btn btn-g btn-sm" type="button" onclick="openTipoManager()" title="Gestisci tipi evento">⚙️</button>
         </div>
       </div>
@@ -1005,9 +1010,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Ora inizio</label><input class="fi" id="evOraInizio" type="time"></div>
       <div class="fg"><label class="fl">Ora fine</label><input class="fi" id="evOraFine" type="time"></div>
     </div>
-    <div class="fg"><label class="fl">Luogo</label><input class="fi" id="evLuogo" placeholder="Campo / indirizzo"></div>
+    <!-- Luogo: select campo + input manuale -->
+    <div class="fg">
+      <label class="fl">Luogo</label>
+      <select class="fs" id="evLuogoSel" onchange="onLuogoSelectChange()"></select>
+      <input class="fi" id="evLuogo" placeholder="Es. Via Roma 1, Milano" style="margin-top:6px;display:none;">
+    </div>
     <div class="fg"><label class="fl">Note</label><textarea class="fta" id="evNote" style="min-height:55px;" placeholder="Divisa, ritrovo, dettagli..."></textarea></div>
-    <div class="fr">
+    <!-- Ricorrenza semplice (non allenamenti) -->
+    <div class="fr" id="evRecurSimpleBox">
       <div class="fg"><label class="fl">Ricorrenza</label>
         <select class="fs" id="evRecur" onchange="onRecurChange()">
           <option value="none">Nessuna (evento singolo)</option>
@@ -1018,7 +1029,29 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </div>
       <div class="fg" id="evRecurUntilWrap" style="display:none;"><label class="fl">Ripeti fino al</label><input class="fi" id="evRecurUntil" type="date"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+    <!-- Ricorrenza avanzata: solo allenamenti -->
+    <div id="evRicorrenzaBox" style="display:none;border:1.5px solid var(--border);border-radius:10px;padding:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-weight:700;font-size:.85rem;">🔁 Serie di allenamenti</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);">
+          <input type="checkbox" id="evRicorrenzaAttiva" onchange="onRicorrenzaChange()" style="accent-color:var(--cp);width:16px;height:16px;cursor:pointer;">
+          Crea serie ricorrente
+        </label>
+      </div>
+      <div id="evRicorrenzaFields" style="display:none;">
+        <div class="fg" style="margin-bottom:4px;">
+          <label class="fl">Giorni della settimana</label>
+          <div id="evGiorniBox" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;"></div>
+        </div>
+        <div class="fr" style="margin-top:0;">
+          <div class="fg"><label class="fl">Da</label><input class="fi" type="date" id="evRicInizio" oninput="aggiornaPrevRic()"></div>
+          <div class="fg"><label class="fl">A</label><input class="fi" type="date" id="evRicFine" oninput="aggiornaPrevRic()"></div>
+        </div>
+        <div id="evRicPreview" style="font-size:.78rem;padding:6px 10px;background:var(--bg);border-radius:6px;margin-top:4px;color:var(--text2);min-height:28px;"></div>
+        <button class="btn btn-p" style="width:100%;margin-top:10px;" onclick="creaAllenamentiRicorrenti()">🔁 Crea allenamenti</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
       <button class="btn btn-p" style="flex:1;min-width:120px;" onclick="saveEvento()">💾 Salva</button>
       <button class="btn" id="btnOpenPres" onclick="openPresenzeFromEvento()" style="display:none;background:var(--green);color:white;border-color:var(--green);">✅ Apri presenze</button>
       <button class="btn btn-r" id="btnDelEv" onclick="deleteCurrentEvento()" style="display:none;">🗑 Elimina</button>
@@ -1050,6 +1083,47 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <button class="btn btn-p btn-sm" onclick="addTipoEvento()">+ Aggiungi tipo</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:14px;"><button class="btn btn-g" style="flex:1;" onclick="closeM('mTipoManager')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- Crea / modifica campo -->
+<div class="ov" id="mCampo">
+  <div class="modal" style="max-width:480px;">
+    <div class="mh"><div class="mt" id="mCampoTitle">🏟️ Nuovo campo</div><button class="mx" onclick="closeM('mCampo')">✕</button></div>
+    <input type="hidden" id="campoId">
+    <div class="fg"><label class="fl">Nome campo *</label><input class="fi" id="campoNome" placeholder="Es. Campo Polis"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Tipo</label>
+        <select class="fs" id="campoTipo">
+          <option value="5">Campo a 5</option>
+          <option value="7">Campo a 7</option>
+          <option value="11">Campo a 11</option>
+          <option value="stadio">Stadio</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Indirizzo</label><input class="fi" id="campoIndirizzo" placeholder="Via Roma 1, Milano"></div>
+    <div class="fg"><label class="fl">Note</label><textarea class="fta" id="campoNote" style="min-height:50px;" placeholder="Accesso, parcheggio, spogliatoi..."></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+      <button class="btn btn-p" style="flex:1;" onclick="saveCampo()">💾 Salva</button>
+      <button class="btn btn-r" id="btnDelCampo" onclick="deleteCurrentCampo()" style="display:none;">🗑 Elimina</button>
+      <button class="btn btn-g" onclick="closeM('mCampo')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scelta eliminazione allenamento ricorrente -->
+<div class="ov" id="mDeleteChoice">
+  <div class="modal" style="max-width:400px;">
+    <div class="mh"><div class="mt">🗑️ Elimina allenamento</div><button class="mx" onclick="closeM('mDeleteChoice')">✕</button></div>
+    <div style="font-size:.88rem;font-weight:700;margin-bottom:4px;" id="mDelChoiceDate"></div>
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:16px;" id="mDelChoiceFut"></div>
+    <div style="font-size:.82rem;color:var(--text2);margin-bottom:14px;">Questo allenamento fa parte di una serie ricorrente. Cosa vuoi eliminare?</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-r" onclick="deleteEventoSolo()">🗑 Elimina solo questo</button>
+      <button class="btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;" onclick="deleteEventoFuturi()">🗑 Elimina questo e tutti i futuri</button>
+      <button class="btn btn-g" onclick="closeM('mDeleteChoice')">Annulla</button>
+    </div>
   </div>
 </div>
 
@@ -1607,7 +1681,7 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
-    renderUsersTable(); renderLeveImpostazioni();
+    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings();
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -6620,9 +6694,13 @@ let eventTypes = [
 ];
 let nextEventTypeId = 100;
 
-// Eventi: { id, title, type, leve:[], date:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM', luogo, note, recur, recurUntil }
+// Eventi: { id, title, type, leve:[], date:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM', luogo, campoId, note, recur, recurUntil, recurGroupId }
 let events = [];
 let nextEventId = 1;
+
+// Campi di gioco: { id, nome, tipo, indirizzo, note, usageCount }
+let campi = [];
+let nextCampoId = 1;
 
 // Convocazioni: { id, eventId, leva, ritrovo, divisa, note, playerIds:[], createdBy, createdAt, sentAt }
 let convocazioni = [];
@@ -6902,7 +6980,7 @@ function openEventoModal(eventId, prefillDate){
   const sT = document.getElementById('evTipo');
   sT.innerHTML = eventTypes.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
   sT.value = ev ? ev.type : (eventTypes[0]?.id || '');
-  // Leve box (multi-selezione tra le leve consentite)
+  // Leve box
   const allowed = userLeve();
   const box = document.getElementById('evLeveBox'); box.innerHTML = '';
   const selectedLeve = new Set(ev ? (ev.leve || []) : (me.role === 'allenatore' ? allowed : []));
@@ -6913,34 +6991,53 @@ function openEventoModal(eventId, prefillDate){
     chip.style.cursor = 'pointer';
     chip.textContent = l;
     chip.dataset.leva = l;
-    chip.onclick = () => {
-      if (chip.classList.contains('on')) chip.classList.remove('on');
-      else chip.classList.add('on');
-    };
+    chip.onclick = () => { chip.classList.toggle('on'); };
     box.appendChild(chip);
   });
   // Date / orari
   document.getElementById('evData').value = ev ? ev.date : (prefillDate || ymd(new Date()));
   document.getElementById('evOraInizio').value = ev ? (ev.start || '') : '';
   document.getElementById('evOraFine').value = ev ? (ev.end || '') : '';
-  document.getElementById('evLuogo').value = ev ? (ev.luogo || '') : '';
+  // Luogo select
+  updateLuogoSelect();
+  const luogoSel = document.getElementById('evLuogoSel');
+  const luogoMan = document.getElementById('evLuogo');
+  if (ev && ev.campoId && campi.find(x => x.id === ev.campoId)) {
+    luogoSel.value = String(ev.campoId);
+    luogoMan.style.display = 'none'; luogoMan.value = '';
+  } else if (ev && ev.luogo) {
+    luogoSel.value = '__manuale';
+    luogoMan.style.display = ''; luogoMan.value = ev.luogo;
+  } else {
+    luogoSel.value = ''; luogoMan.style.display = 'none'; luogoMan.value = '';
+  }
   document.getElementById('evNote').value = ev ? (ev.note || '') : '';
+  // Ricorrenza semplice
   document.getElementById('evRecur').value = ev ? (ev.recur || 'none') : 'none';
   document.getElementById('evRecurUntil').value = ev ? (ev.recurUntil || '') : '';
   onRecurChange();
-  // Pulsante elimina solo per modifica + permessi
-  const delBtn = document.getElementById('btnDelEv');
-  delBtn.style.display = (ev && canEditEvent(ev)) ? '' : 'none';
-  // Pulsante "Apri presenze" solo per allenamenti già esistenti, visibile a chi può editare le presenze
+  // Ricorrenza avanzata: reset
+  document.getElementById('evRicorrenzaAttiva').checked = false;
+  document.getElementById('evRicorrenzaFields').style.display = 'none';
+  document.getElementById('evGiorniBox').innerHTML = '';
+  document.getElementById('evRicPreview').textContent = '';
+  // Sezioni per tipo
+  onEvTipoChange();
+  // Pulsanti
+  document.getElementById('btnDelEv').style.display = (ev && canEditEvent(ev)) ? '' : 'none';
   const openPresBtn = document.getElementById('btnOpenPres');
-  if (openPresBtn) {
-    openPresBtn.style.display = (ev && ev.type === 'allenamento' && canEditPresenze()) ? '' : 'none';
-  }
+  if (openPresBtn) openPresBtn.style.display = (ev && ev.type === 'allenamento' && canEditPresenze()) ? '' : 'none';
   openM('mEvento');
 }
 function onRecurChange(){
   const v = document.getElementById('evRecur').value;
   document.getElementById('evRecurUntilWrap').style.display = (v === 'none') ? 'none' : '';
+}
+function onEvTipoChange(){
+  const tipo = document.getElementById('evTipo').value;
+  const isAll = tipo === 'allenamento';
+  document.getElementById('evRecurSimpleBox').style.display = isAll ? 'none' : '';
+  document.getElementById('evRicorrenzaBox').style.display = isAll ? '' : 'none';
 }
 function saveEvento(){
   const id = document.getElementById('evId').value;
@@ -6949,11 +7046,15 @@ function saveEvento(){
   const date = document.getElementById('evData').value;
   const start = document.getElementById('evOraInizio').value;
   const end = document.getElementById('evOraFine').value;
-  const luogo = document.getElementById('evLuogo').value.trim();
+  // Luogo da select o manuale
+  const luogoSelVal = document.getElementById('evLuogoSel').value;
+  const campoIdSel = luogoSelVal && luogoSelVal !== '__manuale' ? parseInt(luogoSelVal) : null;
+  const luogo = campoIdSel
+    ? (() => { const c = campi.find(x => x.id === campoIdSel); return c ? (c.nome + (c.indirizzo ? ' — ' + c.indirizzo : '')) : ''; })()
+    : document.getElementById('evLuogo').value.trim();
   const note = document.getElementById('evNote').value.trim();
-  const recur = document.getElementById('evRecur').value;
-  const recurUntil = document.getElementById('evRecurUntil').value || null;
-  // Leve selezionate
+  const recur = type === 'allenamento' ? 'none' : document.getElementById('evRecur').value;
+  const recurUntil = type === 'allenamento' ? null : (document.getElementById('evRecurUntil').value || null);
   const box = document.getElementById('evLeveBox');
   const leveSel = Array.from(box.querySelectorAll('.lp.on')).map(c => c.dataset.leva);
   if (!title) { toast('⚠️ Inserisci il titolo'); return; }
@@ -6962,33 +7063,223 @@ function saveEvento(){
   if (recur !== 'none' && !recurUntil) { toast('⚠️ Indica fino a quando ripetere'); return; }
   if (me.role === 'allenatore') {
     const allowed = userLeve();
-    const bad = leveSel.filter(l => !allowed.includes(l));
-    if (bad.length) { toast('⛔ Non puoi assegnare leve non tue'); return; }
+    if (leveSel.filter(l => !allowed.includes(l)).length) { toast('⛔ Non puoi assegnare leve non tue'); return; }
     if (leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva'); return; }
   }
   if (id) {
     const ev = events.find(e => e.id === Number(id));
     if (!ev || !canEditEvent(ev)) { toast('⛔ Non puoi modificare questo evento'); return; }
-    Object.assign(ev, { title, type, date, start, end, luogo, note, recur, recurUntil, leve: leveSel });
+    if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
+    Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel });
     toast('✅ Evento aggiornato');
   } else {
-    events.push({ id: nextEventId++, title, type, date, start, end, luogo, note, recur, recurUntil, leve: leveSel, createdBy: me.email });
+    if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
+    events.push({ id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email });
     toast('✅ Evento creato');
   }
   closeM('mEvento');
   renderCal();
 }
+let _deleteTargetId = null;
 function deleteCurrentEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
   if (!ev) return;
   if (!canEditEvent(ev)) { toast('⛔ Non puoi eliminare questo evento'); return; }
-  if (!confirm('Eliminare l\'evento "' + ev.title + '"?\nSe è ricorrente, verrà eliminata l\'intera serie.')) return;
+  if (ev.recurGroupId) {
+    _deleteTargetId = id;
+    document.getElementById('mDelChoiceDate').textContent = escapeHtml(ev.title) + ' — ' + ev.date;
+    const fut = events.filter(e => e.recurGroupId === ev.recurGroupId && e.date >= ev.date).length;
+    document.getElementById('mDelChoiceFut').textContent = fut + ' allenament' + (fut===1?'o':'i') + ' da questa data in poi';
+    closeM('mEvento'); openM('mDeleteChoice');
+    return;
+  }
+  if (!confirm('Eliminare l\'evento "' + ev.title + '"?')) return;
   purgeEventRefs(id);
   events = events.filter(e => e.id !== id);
-  closeM('mEvento');
-  renderCal();
+  closeM('mEvento'); renderCal();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('🗑 Evento eliminato');
+}
+function deleteEventoSolo(){
+  if (!_deleteTargetId) return;
+  purgeEventRefs(_deleteTargetId);
+  events = events.filter(e => e.id !== _deleteTargetId);
+  _deleteTargetId = null;
+  closeM('mDeleteChoice'); renderCal();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('🗑 Allenamento eliminato');
+}
+function deleteEventoFuturi(){
+  if (!_deleteTargetId) return;
+  const ev = events.find(e => e.id === _deleteTargetId);
+  if (!ev) { _deleteTargetId = null; closeM('mDeleteChoice'); return; }
+  const groupId = ev.recurGroupId, fromDate = ev.date;
+  const toDelete = events.filter(e => e.recurGroupId === groupId && e.date >= fromDate).map(e => e.id);
+  toDelete.forEach(id => purgeEventRefs(id));
+  events = events.filter(e => !toDelete.includes(e.id));
+  _deleteTargetId = null;
+  closeM('mDeleteChoice'); renderCal();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('🗑 Eliminati ' + toDelete.length + ' allenament' + (toDelete.length===1?'o':'i'));
+}
+
+// ── Luogo / campo select ─────────────────────────
+const CAMPO_TIPO_LABEL = { '5':'Campo a 5', '7':'Campo a 7', '11':'Campo a 11', 'stadio':'Stadio' };
+function updateLuogoSelect(){
+  const sel = document.getElementById('evLuogoSel'); if (!sel) return;
+  const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
+  sel.innerHTML = '<option value="">— Nessun luogo —</option>' +
+    sorted.map(c => `<option value="${c.id}">🏟️ ${escapeHtml(c.nome)} (${CAMPO_TIPO_LABEL[c.tipo]||c.tipo})</option>`).join('') +
+    '<option value="__manuale">📍 Fuori casa — inserisci manualmente</option>';
+}
+function onLuogoSelectChange(){
+  const v = document.getElementById('evLuogoSel').value;
+  const man = document.getElementById('evLuogo');
+  man.style.display = (v === '__manuale') ? '' : 'none';
+  if (v !== '__manuale') man.value = '';
+}
+
+// ── Allenamenti ricorrenti ────────────────────────
+const GIORNI_WEEK = [{label:'Lun',wd:1},{label:'Mar',wd:2},{label:'Mer',wd:3},{label:'Gio',wd:4},{label:'Ven',wd:5},{label:'Sab',wd:6},{label:'Dom',wd:0}];
+function onRicorrenzaChange(){
+  const on = document.getElementById('evRicorrenzaAttiva').checked;
+  document.getElementById('evRicorrenzaFields').style.display = on ? '' : 'none';
+  if (on && document.getElementById('evGiorniBox').children.length === 0) renderGiorniBox();
+  if (on) aggiornaPrevRic();
+}
+function renderGiorniBox(){
+  const box = document.getElementById('evGiorniBox'); if (!box) return;
+  GIORNI_WEEK.forEach(g => {
+    const chip = document.createElement('span');
+    chip.dataset.wd = g.wd;
+    chip.textContent = g.label;
+    chip.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:40px;height:34px;border-radius:7px;border:1.5px solid var(--border);font-size:.8rem;font-weight:700;cursor:pointer;user-select:none;transition:all .12s;background:var(--white);color:var(--text2);';
+    chip.onclick = () => {
+      chip.classList.toggle('on');
+      if (chip.classList.contains('on')) { chip.style.background='var(--cp)'; chip.style.color='white'; chip.style.borderColor='var(--cp)'; }
+      else { chip.style.background='var(--white)'; chip.style.color='var(--text2)'; chip.style.borderColor='var(--border)'; }
+      aggiornaPrevRic();
+    };
+    box.appendChild(chip);
+  });
+}
+function aggiornaPrevRic(){
+  const prev = document.getElementById('evRicPreview'); if (!prev) return;
+  const giorni = Array.from(document.querySelectorAll('#evGiorniBox .on')).map(c => parseInt(c.dataset.wd));
+  const da = document.getElementById('evRicInizio').value;
+  const a  = document.getElementById('evRicFine').value;
+  if (!giorni.length || !da || !a) { prev.textContent = 'Seleziona giorni e periodo.'; return; }
+  if (a < da) { prev.textContent = '⚠️ La data di fine deve essere dopo quella di inizio.'; return; }
+  const cur = parseYmd(da), fin = parseYmd(a);
+  let count = 0;
+  while (cur <= fin && count <= 201) { if (giorni.includes(cur.getDay())) count++; cur.setDate(cur.getDate()+1); }
+  prev.textContent = count > 200 ? '⚠️ Troppi allenamenti (max 200). Riduci il periodo.'
+    : '📅 Verranno creati ' + count + ' allenament' + (count===1?'o':'i') + '.';
+}
+function creaAllenamentiRicorrenti(){
+  const title = document.getElementById('evTitolo').value.trim();
+  const type  = document.getElementById('evTipo').value;
+  const start = document.getElementById('evOraInizio').value;
+  const end   = document.getElementById('evOraFine').value;
+  const note  = document.getElementById('evNote').value.trim();
+  const leveSel = Array.from(document.querySelectorAll('#evLeveBox .lp.on')).map(c => c.dataset.leva);
+  const giorni  = Array.from(document.querySelectorAll('#evGiorniBox .on')).map(c => parseInt(c.dataset.wd));
+  const da = document.getElementById('evRicInizio').value;
+  const a  = document.getElementById('evRicFine').value;
+  const luogoSelVal = document.getElementById('evLuogoSel').value;
+  const campoIdSel  = luogoSelVal && luogoSelVal !== '__manuale' ? parseInt(luogoSelVal) : null;
+  const luogo = campoIdSel
+    ? (() => { const c = campi.find(x=>x.id===campoIdSel); return c?(c.nome+(c.indirizzo?' — '+c.indirizzo:'')):''})()
+    : document.getElementById('evLuogo').value.trim();
+  if (!title)  { toast('⚠️ Inserisci il titolo'); return; }
+  if (me.role === 'allenatore' && leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva'); return; }
+  if (!giorni.length) { toast('⚠️ Seleziona almeno un giorno della settimana'); return; }
+  if (!da || !a)      { toast('⚠️ Imposta data inizio e fine'); return; }
+  if (a < da)         { toast('⚠️ La data di fine deve essere dopo quella di inizio'); return; }
+  const groupId = Date.now();
+  const cur = parseYmd(da), fin = parseYmd(a);
+  const dates = [];
+  while (cur <= fin) { if (giorni.includes(cur.getDay())) dates.push(ymd(new Date(cur))); cur.setDate(cur.getDate()+1); }
+  if (!dates.length) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
+  if (dates.length > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
+  dates.forEach(d => events.push({ id:nextEventId++, title, type, date:d, start, end, luogo, campoId:campoIdSel||undefined, note, recur:'none', recurUntil:null, leve:leveSel.slice(), createdBy:me.email, recurGroupId:groupId }));
+  if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+dates.length; }
+  closeM('mEvento'); renderCal();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('✅ Creati ' + dates.length + ' allenament' + (dates.length===1?'o':'i'));
+}
+
+// ── Gestione campi ───────────────────────────────
+function renderCampiSettings(){
+  const el = document.getElementById('campiListBox'); if (!el) return;
+  if (!campi.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:.83rem;">Nessun campo configurato. Clicca "+ Aggiungi campo" per iniziare.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  [...campi].sort((a,b)=>(b.usageCount||0)-(a.usageCount||0)).forEach(c => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;';
+    row.innerHTML = `<div style="font-size:1.4rem;flex-shrink:0;">🏟️</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:.88rem;">${escapeHtml(c.nome)}</div>
+        <div style="font-size:.75rem;color:var(--text2);">${CAMPO_TIPO_LABEL[c.tipo]||c.tipo}${c.indirizzo?' · '+escapeHtml(c.indirizzo):''}</div>
+        ${c.note?`<div style="font-size:.72rem;color:var(--text3);margin-top:1px;">${escapeHtml(c.note)}</div>`:''}
+      </div>
+      <div style="font-size:.7rem;color:var(--text3);flex-shrink:0;">${c.usageCount||0} usi</div>
+      <button class="btn btn-g btn-sm" onclick="openCampoModal(${c.id})">✏️</button>
+      <button class="btn btn-r btn-sm" onclick="deleteCampo(${c.id})">🗑</button>`;
+    el.appendChild(row);
+  });
+}
+function openCampoModal(id){
+  if (me.role !== 'admin' && me.role !== 'dirigente') { toast('⛔ Solo admin e dirigenti possono gestire i campi'); return; }
+  const c = id ? campi.find(x => x.id === id) : null;
+  document.getElementById('mCampoTitle').textContent = c ? '✏️ Modifica campo' : '🏟️ Nuovo campo';
+  document.getElementById('campoId').value    = c ? c.id : '';
+  document.getElementById('campoNome').value  = c ? c.nome : '';
+  document.getElementById('campoTipo').value  = c ? c.tipo : '11';
+  document.getElementById('campoIndirizzo').value = c ? (c.indirizzo||'') : '';
+  document.getElementById('campoNote').value  = c ? (c.note||'') : '';
+  document.getElementById('btnDelCampo').style.display = c ? '' : 'none';
+  openM('mCampo');
+}
+function saveCampo(){
+  const idRaw = document.getElementById('campoId').value;
+  const nome  = document.getElementById('campoNome').value.trim();
+  const tipo  = document.getElementById('campoTipo').value;
+  const indirizzo = document.getElementById('campoIndirizzo').value.trim();
+  const note  = document.getElementById('campoNote').value.trim();
+  if (!nome) { toast('⚠️ Inserisci il nome del campo'); return; }
+  if (idRaw) {
+    const c = campi.find(x => x.id === parseInt(idRaw));
+    if (c) { c.nome=nome; c.tipo=tipo; c.indirizzo=indirizzo; c.note=note; }
+  } else {
+    campi.push({ id: nextCampoId++, nome, tipo, indirizzo, note, usageCount: 0 });
+  }
+  closeM('mCampo'); renderCampiSettings();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('✅ Campo salvato');
+}
+function deleteCurrentCampo(){
+  const id = parseInt(document.getElementById('campoId').value);
+  const c = campi.find(x => x.id === id); if (!c) return;
+  const inUse = events.filter(e => e.campoId === id).length;
+  if (!confirm(`Eliminare il campo "${c.nome}"?${inUse?' Usato in '+inUse+' eventi.':''}`)) return;
+  campi = campi.filter(x => x.id !== id);
+  closeM('mCampo'); renderCampiSettings();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('🗑 Campo eliminato');
+}
+function deleteCampo(id){
+  const c = campi.find(x => x.id === id); if (!c) return;
+  const inUse = events.filter(e => e.campoId === id).length;
+  if (!confirm(`Eliminare il campo "${c.nome}"?${inUse?'\n\nUsato in '+inUse+' eventi.':''}`)) return;
+  campi = campi.filter(x => x.id !== id);
+  renderCampiSettings();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('🗑 Campo eliminato');
 }
 
 // ── Gestione tipi evento
@@ -8947,7 +9238,8 @@ function saFinishCreate() {
     tornei:[], nextTorneoId:1, nextFaseId:1, nextTornMatchId:1,
     comunicazioni:[], nextComunicazioneId:1, nextCommentoId:1,
     mediaItems:[], nextMediaId:1,
-    playerPhotos:{}, squadFotos:{}
+    playerPhotos:{}, squadFotos:{},
+    campi:[], nextCampoId:1
   };
   localStorage.setItem('fieldos_state_soc_'+socId, JSON.stringify(initialState));
 
@@ -9169,7 +9461,9 @@ function saveNewPassword() {
       nextQuoteId:   nextQuoteId,
       quoteSettings: quoteSettings,
       documenti:     documenti,
-      nextDocId:     nextDocId
+      nextDocId:     nextDocId,
+      campi:         campi,
+      nextCampoId:   nextCampoId
     };
   }
 
@@ -9266,6 +9560,8 @@ function saveNewPassword() {
       if (s.quoteSettings && typeof s.quoteSettings === 'object') quoteSettings = s.quoteSettings;
       if (Array.isArray(s.documenti)) documenti = s.documenti;
       if (typeof s.nextDocId === 'number') nextDocId = s.nextDocId;
+      if (Array.isArray(s.campi)) campi = s.campi;
+      if (typeof s.nextCampoId === 'number') nextCampoId = s.nextCampoId;
       lastSnap = raw;
     } catch (e) {
       console.error('FieldOS: ripristino fallito', e);
