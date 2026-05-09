@@ -21,10 +21,10 @@ router.get("/state/:key", async (req, res) => {
       stateJson: row.stateJson,
       updatedAt: row.updatedAt,
     });
-  } catch (e) {
+  } catch (e: any) {
     logger.error({ err: e }, "state GET failed");
-    const msg = e instanceof Error ? e.message : String(e);
-    return res.status(500).json({ error: msg });
+    const code = e?.code ?? e?.errno ?? "db_error";
+    return res.status(500).json({ error: String(code) });
   }
 });
 
