@@ -1408,6 +1408,8 @@ let selectedRole = null;
 const SA_EMAIL = 'superadmin@fieldos.it';
 const SA_PASS  = 'super123';
 const SA_KEY   = 'fieldos_sa_v1';
+// In locale punta al server di sviluppo, in produzione usa percorso relativo
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
 let saViewMode = false;
 let saSocieties = [];
 let saNextSocId = 1;
@@ -9676,7 +9678,7 @@ function saLoadState() {
       }
     }
     // Async: pull più aggiornato dal server e ricarica il pannello SA se aperto
-    fetch('/api/state/' + encodeURIComponent(SA_KEY))
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY))
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data || !data.stateJson) return;
@@ -9714,7 +9716,7 @@ function saSaveState() {
     const data = JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId });
     localStorage.setItem(SA_KEY, data);
     // Background sync to server
-    fetch('/api/state/' + encodeURIComponent(SA_KEY), {
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stateJson: data }),
@@ -10188,7 +10190,7 @@ function saveNewPassword() {
   // ── API sync helpers ─────────────────────────────────────
   function apiPush(key, json) {
     // Fire-and-forget: persist state blob to the server in the background
-    fetch('/api/state/' + encodeURIComponent(key), {
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stateJson: json }),
@@ -10201,7 +10203,7 @@ function saveNewPassword() {
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 2000);
-      const resp = await fetch('/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
+      const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
       clearTimeout(tid);
       if (!resp.ok) return null;
       const data = await resp.json();
@@ -10370,7 +10372,7 @@ function saveNewPassword() {
     const data = JSON.stringify(snapshot());
     localStorage.setItem(KEY, data);
     lastSnap = data;
-    return fetch('/api/state/' + encodeURIComponent(KEY), {
+    return fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stateJson: data })
