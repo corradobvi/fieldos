@@ -9599,6 +9599,21 @@ function saLoadState() {
         saSaveState();
       }
     }
+    // Async: pull più aggiornato dal server e ricarica il pannello SA se aperto
+    fetch('/api/state/' + encodeURIComponent(SA_KEY))
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || !data.stateJson) return;
+        const s = JSON.parse(data.stateJson);
+        if (Array.isArray(s.saSocieties)) saSocieties = s.saSocieties;
+        if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;
+        if (Array.isArray(s.saActionLog)) saActionLog = s.saActionLog;
+        if (typeof s.saNextLogId === 'number') saNextLogId = s.saNextLogId;
+        localStorage.setItem(SA_KEY, data.stateJson);
+        const saPanel = document.getElementById('saDashboard');
+        if (saPanel && saPanel.style.display !== 'none' && typeof renderSaDashboard === 'function') renderSaDashboard();
+      })
+      .catch(() => {});
     // Migrazione: assicura nomeSocieta e coloriPrimari in fieldos_state_v1
     const pRaw = localStorage.getItem('fieldos_state_v1');
     if (pRaw) {
@@ -9620,7 +9635,15 @@ function saLoadState() {
 
 function saSaveState() {
   try {
-    localStorage.setItem(SA_KEY, JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId }));
+    const data = JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId });
+    localStorage.setItem(SA_KEY, data);
+    // Background sync to server
+    fetch('/api/state/' + encodeURIComponent(SA_KEY), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stateJson: data }),
+      keepalive: true
+    }).catch(() => {});
   } catch(e) { console.error('SA save error', e); }
 }
 
@@ -10086,12 +10109,40 @@ function saveNewPassword() {
     };
   }
 
+  // ── API sync helpers ─────────────────────────────────────
+  function apiPush(key, json) {
+    // Fire-and-forget: persist state blob to the server in the background
+    fetch('/api/state/' + encodeURIComponent(key), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stateJson: json }),
+      keepalive: true
+    }).catch(() => {}); // silently ignore network errors (offline/dev without API)
+  }
+
+  async function apiPull(key) {
+    // Returns the server's stateJson string, or null if not found / error
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 2000);
+      const resp = await fetch('/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return data.stateJson || null;
+    } catch (_) {
+      return null;
+    }
+  }
+  // ─────────────────────────────────────────────────────────
+
   function saveState() {
     try {
       const data = JSON.stringify(snapshot());
       if (data !== lastSnap) {
         localStorage.setItem(KEY, data);
         lastSnap = data;
+        apiPush(KEY, data); // background sync to server
       }
     } catch (e) {
       console.error('FieldOS: salvataggio fallito', e);
@@ -10199,12 +10250,25 @@ function saveNewPassword() {
   setTimeout(() => { try { if (typeof checkInvitoFromUrl === 'function') checkInvitoFromUrl(); } catch(e) { console.error(e); } }, 50);
 
   // Hook su bootApp: ricarica lo stato ad ogni login
-  // (utile se altri utenti hanno modificato i dati nel frattempo
-  // in altre schede o dispositivi sullo stesso browser)
+  // Prima usa localStorage (istantaneo), poi sincronizza dal server
   const _origBoot = bootApp;
   bootApp = function(user) {
-    restoreState();
-    return _origBoot(user);
+    restoreState(); // carica subito da localStorage
+    const result = _origBoot(user);
+    // Dopo l'avvio, prova a ottenere lo stato più aggiornato dal server
+    apiPull(KEY).then(serverJson => {
+      if (!serverJson) return;
+      // Usa il server come sorgente di verità: aggiorna localStorage e stato in memoria
+      localStorage.setItem(KEY, serverJson);
+      lastSnap = serverJson;
+      restoreState();
+      // Re-render pagina corrente
+      const activePg = document.querySelector('.page.on');
+      const pgId = activePg ? activePg.id.replace('pg-', '') : null;
+      if (pgId && typeof goTo === 'function') goTo(pgId);
+      console.log('%cFieldOS: stato sincronizzato dal server','color:#047857;font-size:11px;');
+    });
+    return result;
   };
 
   // Hook su logout: salva prima di uscire
@@ -10225,11 +10289,20 @@ function saveNewPassword() {
   window.__fieldosSaveState = saveState;
   window.__fieldosRestoreState = restoreState;
 
-  // Cambia la società attiva: aggiorna KEY e ricarica lo stato
+  // Cambia la società attiva: aggiorna KEY, ricarica stato, e poi sincronizza dal server
   window.__fieldosSetSocietaKey = function(newKey) {
     KEY = newKey;
     lastSnap = '';
     restoreState();
+    apiPull(KEY).then(serverJson => {
+      if (!serverJson) return;
+      localStorage.setItem(KEY, serverJson);
+      lastSnap = serverJson;
+      restoreState();
+      const activePg = document.querySelector('.page.on');
+      const pgId = activePg ? activePg.id.replace('pg-', '') : null;
+      if (pgId && typeof goTo === 'function') goTo(pgId);
+    });
   };
 
   // Helper di debug accessibile da console:
