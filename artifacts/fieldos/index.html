@@ -481,22 +481,57 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .sa-form-row{grid-template-columns:1fr!important;}
   .sa-modal-footer{flex-wrap:wrap;}
   .sa-modal-footer .sa-btn{flex:1;min-height:44px;}
+
+  /* Tabs (Comunicazioni, Partite) — scroll horizontally, no overflow */
+  .pt-tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .pt-tabs::-webkit-scrollbar{display:none;}
+  .pt-tab{flex-shrink:0;}
+
+  /* Card headers — allow action buttons to wrap to next line */
+  .ch{flex-wrap:wrap;row-gap:6px;}
+
+  /* Match cards — tighter on narrow screens */
+  .mc{padding:10px 11px;gap:8px;}
+  .mc-team{min-width:50px;}
+
+  /* Player cards */
+  .pc{padding:12px;}
+  .pc-num{font-size:1.4rem;}
+  .pc-btns{flex-wrap:wrap;}
 }
 
 /* ── Extra-small (≤390px) ── */
 @media(max-width:390px){
   .topbar{gap:6px;}
   .tb-crest{width:28px;height:28px;font-size:.72rem;}
-  .tb-leva{padding:3px 8px;font-size:.68rem;}
+  .tb-leva{padding:3px 8px;font-size:.68rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .btn-out{padding:5px 9px;font-size:.72rem;}
   .main{padding:12px 10px;}
   .card{padding:14px 12px;}
   .modal{padding:18px 14px 24px;}
+
+  /* Rosa — single column so player cards have room */
+  #rosaGrid{grid-template-columns:1fr;}
+
+  /* Tabs text */
+  .pt-tab{padding:7px 11px;font-size:.78rem;}
+
+  /* Match result input — tighter name column */
+  .ris-player-row .rpname{flex:0 0 80px;font-size:.74rem;}
+
   /* Calendar: even tighter */
   .cal-d{min-height:52px;padding:3px;}
   .cal-ev{font-size:.55rem;padding:1px 3px;}
+
   /* Rank: minimal */
   .rr{grid-template-columns:20px 1fr 22px 22px 40px;gap:3px;padding:6px 8px;font-size:.76rem;}
+
+  /* Statistiche scorers table */
+  .scorer-name{font-size:.78rem;}
+  .scorer-row{gap:7px;padding:7px 0;}
+
+  /* Section title */
+  .sec-t{font-size:1.2rem;}
 }
 </style>
 </head>
