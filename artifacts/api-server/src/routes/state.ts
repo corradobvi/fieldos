@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, societyState } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { logger } from "../lib/logger";
 
 const router = Router();
 
@@ -21,7 +22,9 @@ router.get("/state/:key", async (req, res) => {
       updatedAt: row.updatedAt,
     });
   } catch (e) {
-    return res.status(500).json({ error: "db error" });
+    logger.error({ err: e }, "state GET failed");
+    const msg = e instanceof Error ? e.message : String(e);
+    return res.status(500).json({ error: msg });
   }
 });
 
@@ -39,7 +42,9 @@ router.put("/state/:key", async (req, res) => {
       .onDuplicateKeyUpdate({ set: { stateJson, updatedAt: now } });
     return res.json({ key: req.params.key, updatedAt: now.toISOString() });
   } catch (e) {
-    return res.status(500).json({ error: "db error" });
+    logger.error({ err: e }, "state PUT failed");
+    const msg = e instanceof Error ? e.message : String(e);
+    return res.status(500).json({ error: msg });
   }
 });
 
