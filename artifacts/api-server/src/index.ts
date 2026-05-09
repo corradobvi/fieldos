@@ -16,6 +16,16 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+function startListening() {
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
+  });
+}
+
 // Ensure the society_state table exists (idempotent — safe to run on every start)
 async function ensureSchema() {
   const client = await pool.connect();
@@ -33,17 +43,19 @@ async function ensureSchema() {
   }
 }
 
-ensureSchema()
-  .then(() => {
-    app.listen(port, (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
-      logger.info({ port }, "Server listening");
+if (process.env.DATABASE_URL) {
+  // DB available — run schema migration then start
+  ensureSchema()
+    .then(startListening)
+    .catch((err) => {
+      // Log but still start the server so the frontend remains accessible
+      logger.error({ err }, "DB schema init failed — starting without DB");
+      startListening();
     });
-  })
-  .catch((err) => {
-    logger.error({ err }, "Failed to ensure DB schema");
-    process.exit(1);
-  });
+} else {
+  // No DATABASE_URL — start immediately; API state endpoints will return 500
+  logger.warn(
+    "DATABASE_URL not set — cross-device sync disabled, set it in Railway Variables",
+  );
+  startListening();
+}
