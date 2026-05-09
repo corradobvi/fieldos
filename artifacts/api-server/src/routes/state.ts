@@ -35,16 +35,16 @@ router.put("/state/:key", async (req, res) => {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
   try {
-    const now = new Date();
+    // Non passiamo updatedAt esplicitamente — MySQL lo gestisce via DEFAULT/ON UPDATE
     await db
       .insert(societyState)
-      .values({ key: req.params.key, stateJson, updatedAt: now })
-      .onDuplicateKeyUpdate({ set: { stateJson, updatedAt: now } });
-    return res.json({ key: req.params.key, updatedAt: now.toISOString() });
-  } catch (e) {
+      .values({ key: req.params.key, stateJson })
+      .onDuplicateKeyUpdate({ set: { stateJson } });
+    return res.json({ key: req.params.key, updatedAt: new Date().toISOString() });
+  } catch (e: any) {
     logger.error({ err: e }, "state PUT failed");
-    const msg = e instanceof Error ? e.message : String(e);
-    return res.status(500).json({ error: msg });
+    const detail = e?.sqlMessage ?? e?.code ?? e?.errno ?? "db_error";
+    return res.status(500).json({ error: String(detail) });
   }
 });
 

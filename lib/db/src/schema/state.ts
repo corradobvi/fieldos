@@ -4,7 +4,8 @@ export const societyState = mysqlTable("society_state", {
   key: varchar("key", { length: 255 }).primaryKey(),
   stateJson: longtext("state_json").notNull(),
   // TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  // defaultNow + onUpdateNow → MySQL gestisce il valore automaticamente
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
 export type SocietyState = typeof societyState.$inferSelect;
