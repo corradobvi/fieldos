@@ -683,11 +683,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="page" id="pg-statistiche">
         <div class="sec-h"><div class="sec-t">📊 Statistiche</div></div>
         <div id="statsTabs"></div>
+        <div id="statsSubTabs" style="margin-bottom:14px;"></div>
         <div class="g4" id="statsGrid"></div>
-        <div class="g2" style="margin-top:16px;">
+        <div class="g2" id="statsMainCards" style="margin-top:16px;">
           <div class="card"><div class="ch"><div class="ct">⚽ Marcatori stagione</div></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>#</th><th>Giocatore</th><th>Ruolo</th><th>Gol</th><th>Assist</th><th>%All.</th></tr></thead><tbody id="marcatoriBody"></tbody></table></div></div>
           <div class="card"><div class="ch"><div class="ct">📈 Andamento squadra</div></div><div id="squadraStats"></div></div>
         </div>
+        <div id="statsTorneiPanel" style="display:none;"></div>
       </div>
 
       <!-- CALENDARIO -->
@@ -2263,7 +2265,8 @@ function buildRosaSection() {
 // PRESENZE — Registro per allenamento
 // ═══════════════════════════════════
 
-let currentPresDate = null; // 'YYYY-MM-DD'
+let currentPresDate = null;      // 'YYYY-MM-DD'
+let currentPresMonthFilter = null; // 'YYYY-MM' filtro mese riepilogo
 
 // Permessi:
 function canEditPresenze(){ return me && me.role === 'allenatore'; }
@@ -2482,7 +2485,8 @@ function renderPresenzeAllenatore(cont) {
       </div>
     </div>
     <div class="card" style="margin-top:14px;">
-      <div class="ch"><div class="ct">📊 Riepilogo · ultime 8 sessioni</div></div>
+      <div class="ch"><div class="ct">📊 Riepilogo presenze</div></div>
+      <div id="presMonthTabs" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;"></div>
       <div style="overflow-x:auto;"><table class="tbl" id="presRecapTbl"><thead id="presRecapHead"></thead><tbody id="presRecapBody"></tbody></table></div>
     </div>`;
 
@@ -2623,6 +2627,7 @@ function renderPresenzeAllenatore(cont) {
     tbody.appendChild(tr);
   });
 
+  renderPresMonthTabs();
   renderPresRecap();
 }
 
@@ -2813,15 +2818,44 @@ function bulkSetPres(status){
   toast(status === 'p' ? '✅ Tutti segnati come presenti' : '↺ Presenze azzerate');
 }
 
+function renderPresMonthTabs(){
+  const el = document.getElementById('presMonthTabs'); if (!el) return;
+  const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  // Raccoglie tutti i mesi con dati (presenze + allenamenti programmati)
+  const allDates = new Set();
+  players.filter(p=>p.leva===currentLeva).forEach(p=>(p.presAll||[]).forEach(r=>{if(typeof r==='object'&&r.date)allDates.add(r.date);}));
+  getTrainingDatesForLeva(currentLeva).forEach(d=>allDates.add(d));
+  const months = Array.from(new Set(Array.from(allDates).map(d=>d.slice(0,7)))).sort((a,b)=>b.localeCompare(a));
+  if (!months.length) { el.innerHTML=''; return; }
+  const curM = ymd(new Date()).slice(0,7);
+  if (!currentPresMonthFilter || !months.includes(currentPresMonthFilter))
+    currentPresMonthFilter = months.includes(curM) ? curM : months[0];
+  el.innerHTML = months.map(m => {
+    const [y,mo] = m.split('-');
+    const lbl = MESI[parseInt(mo)-1]+' '+y;
+    return `<button type="button" class="lt${m===currentPresMonthFilter?' on':''}" onclick="presSetMonth('${m}')">${lbl}</button>`;
+  }).join('');
+}
+function presSetMonth(m){
+  currentPresMonthFilter = m;
+  renderPresMonthTabs();
+  renderPresRecap();
+}
 function renderPresRecap(){
   const head = document.getElementById('presRecapHead');
   const body = document.getElementById('presRecapBody');
   if (!head || !body) return;
   const list = players.filter(p => p.leva === currentLeva);
-  // Raccogli ultime 8 date distinte di presenze in questa leva (tra tutti i giocatori)
+  // Raccogli date (da presenze registrate)
   const allDates = new Set();
   list.forEach(p => (p.presAll||[]).forEach(r => { if (typeof r === 'object' && r.date) allDates.add(r.date); }));
-  const dates = Array.from(allDates).sort().slice(-8);
+  // Ordina più recente prima; filtra per mese selezionato
+  let dates = Array.from(allDates).sort((a,b) => b.localeCompare(a));
+  if (currentPresMonthFilter) {
+    dates = dates.filter(d => d.startsWith(currentPresMonthFilter));
+  } else {
+    dates = dates.slice(0, 8);
+  }
   if (list.length === 0) {
     head.innerHTML = '';
     body.innerHTML = `<tr><td style="text-align:center;padding:20px;color:var(--text3);">Nessun giocatore</td></tr>`;
@@ -2835,7 +2869,9 @@ function renderPresRecap(){
     }).join('');
     return;
   }
-  head.innerHTML = '<tr><th style="min-width:140px;">Giocatore</th>' + dates.map(d => `<th title="${d}" style="font-size:.7rem;">${fmtDateShort(d)}</th>`).join('') + '<th>%</th></tr>';
+  head.innerHTML = '<tr><th style="min-width:140px;">Giocatore</th>' +
+    dates.map(d => `<th title="${d}" style="font-size:.7rem;">${fmtDateShort(d)}</th>`).join('') +
+    '<th>%</th></tr>';
   body.innerHTML = list.map(p => {
     const s = calcStats(p);
     const cells = dates.map(d => {
@@ -4329,11 +4365,35 @@ function showUnreadConvToast() {
 // STATISTICHE
 // ═══════════════════════════════════
 
+let currentStatsTab = 'panoramica';
+function statsSetTab(tab){ currentStatsTab=tab; renderStats(); }
+
 function renderStats() {
   const g = document.getElementById('statsGrid');
   if (!g) return;
-  const list = players.filter(p => p.leva === currentLeva).sort(byCogn);
 
+  // Sub-tabs (solo allenatore)
+  const subTabsEl = document.getElementById('statsSubTabs');
+  const torneiPanel = document.getElementById('statsTorneiPanel');
+  const mainCards = document.getElementById('statsMainCards');
+  if (subTabsEl) {
+    if (me && me.role === 'allenatore') {
+      subTabsEl.innerHTML = `<div class="leva-tabs" style="flex-wrap:wrap;">
+        <button type="button" class="lt${currentStatsTab==='panoramica'?' on':''}" onclick="statsSetTab('panoramica')">📊 Panoramica</button>
+        <button type="button" class="lt${currentStatsTab==='tornei'?' on':''}" onclick="statsSetTab('tornei')">🏆 Tornei</button>
+      </div>`;
+    } else {
+      subTabsEl.innerHTML = '';
+      currentStatsTab = 'panoramica';
+    }
+  }
+  const showTornei = me && me.role === 'allenatore' && currentStatsTab === 'tornei';
+  if (torneiPanel) torneiPanel.style.display = showTornei ? '' : 'none';
+  if (g) g.style.display = showTornei ? 'none' : '';
+  if (mainCards) mainCards.style.display = showTornei ? 'none' : '';
+  if (showTornei) { renderStatsTornei(torneiPanel); return; }
+
+  const list = players.filter(p => p.leva === currentLeva).sort(byCogn);
   if (list.length === 0) {
     g.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-ic">📊</div><div class="empty-txt">Nessun giocatore nella leva ${currentLeva}</div></div>`;
     document.getElementById('marcatoriBody').innerHTML = '';
@@ -4392,6 +4452,122 @@ function renderStats() {
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--green);">${list.length}</span>
       </div>
     </div>`;
+}
+
+// ── Statistiche tornei (solo allenatore) ─────────────────────────
+function wasTorneoPlayer(torneo, playerId){
+  return (torneo.fasi||[]).some(f=>(f.partite||[]).some(m=>(m.stats||[]).some(s=>s.playerId===playerId&&((s.gol||0)+(s.assist||0)>0))));
+}
+function computeTorneoRisultato(t){
+  const polis = polisName(t.leva);
+  const partiteNostre = (t.fasi||[]).flatMap(f=>f.partite||[]).filter(m=>m.played&&(m.casa===polis||m.ospite===polis));
+  if (!partiteNostre.length) return {badge:'<span style="color:var(--text3);">—</span>',tipo:'nc'};
+  // Identifica la fase più avanzata raggiunta
+  const fasiNomi = (t.fasi||[]).map(f=>(f.nome||'').toLowerCase());
+  const hasFinale = fasiNomi.some(n=>n.includes('final'));
+  const hasSemi   = fasiNomi.some(n=>n.includes('semi'));
+  const hasQuarti = fasiNomi.some(n=>n.includes('quart'));
+  // Ultima partita giocata dal nostro team
+  const ultima = partiteNostre.reduce((best,m)=>(!best||(m.data||'')>=(best.data||''))?m:best, null);
+  if (hasFinale && ultima) {
+    const gF = ultima.casa===polis?ultima.golCasa:ultima.golOspiti;
+    const gC = ultima.casa===polis?ultima.golOspiti:ultima.golCasa;
+    if (gF!=null&&gC!=null) {
+      if (gF>gC) return {badge:'<span style="font-size:.95rem;">🏆 Vittoria</span>',tipo:'vittoria'};
+      return {badge:'<span style="font-size:.95rem;">🥈 2° posto</span>',tipo:'secondo'};
+    }
+  }
+  if (hasSemi)   return {badge:'<span>🥉 Semifinale</span>',tipo:'semi'};
+  if (hasQuarti) return {badge:'<span>⬡ Quarti</span>',tipo:'quarti'};
+  // Solo gironi: conta W/D/L
+  let v=0,p=0,s=0;
+  partiteNostre.forEach(m=>{
+    const gF=m.casa===polis?m.golCasa:m.golOspiti, gC=m.casa===polis?m.golOspiti:m.golCasa;
+    if(gF!=null&&gC!=null){if(gF>gC)v++;else if(gF===gC)p++;else s++;}
+  });
+  return {badge:`<span style="font-size:.78rem;">${v}V ${p}P ${s}S</span>`,tipo:'gironi'};
+}
+function renderStatsTornei(el){
+  if (!el) return;
+  const levaT = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const list  = players.filter(p=>p.leva===currentLeva).sort(byCogn);
+  if (!levaT.length){
+    el.innerHTML=`<div class="card"><div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo registrato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Crea tornei dalla sezione Partite & Tornei.</div></div></div>`;
+    return;
+  }
+  let html='';
+
+  // ── 1. Riepilogo tornei ──
+  html+=`<div class="card"><div class="ch"><div class="ct">🏆 Riepilogo tornei — ${escapeHtml(currentLeva)}</div></div>
+    <div style="overflow-x:auto;"><table class="tbl">
+    <thead><tr><th>Torneo</th><th>Data</th><th>Luogo</th><th>Squadre</th><th>Fasi</th><th>Risultato</th></tr></thead><tbody>`;
+  levaT.forEach(t=>{
+    const ris=computeTorneoRisultato(t);
+    const nSq=(t.squadrePartecipanti||[]).length;
+    const nF=(t.fasi||[]).length;
+    const dStr=t.dataInizio?(fmtMatchDate(t.dataInizio)+(t.dataFine&&t.dataFine!==t.dataInizio?' – '+fmtMatchDate(t.dataFine):'')):'—';
+    html+=`<tr><td><strong>${escapeHtml(t.nome)}</strong></td><td style="white-space:nowrap;font-size:.8rem;">${dStr}</td>
+      <td style="font-size:.8rem;">${escapeHtml(t.luogo||'—')}</td>
+      <td style="text-align:center;">${nSq||'—'}</td>
+      <td style="text-align:center;">${nF}</td>
+      <td>${ris.badge}</td></tr>`;
+  });
+  html+=`</tbody></table></div></div>`;
+
+  // ── 2. Presenze ai tornei ──
+  html+=`<div class="card" style="margin-top:14px;"><div class="ch"><div class="ct">📋 Presenze ai tornei</div>
+    <span style="font-size:.72rem;color:var(--text2);">✓ = statistiche registrate nel torneo</span></div>
+    <div style="overflow-x:auto;"><table class="tbl"><thead><tr><th style="min-width:140px;">Giocatore</th>`;
+  levaT.forEach(t=>{
+    const nome=t.nome.length>14?t.nome.slice(0,14)+'…':t.nome;
+    html+=`<th title="${escapeHtml(t.nome)}" style="font-size:.7rem;text-align:center;">${escapeHtml(nome)}</th>`;
+  });
+  html+=`<th style="text-align:center;">Tot.</th><th style="text-align:center;">%</th></tr></thead><tbody>`;
+  list.forEach(p=>{
+    let tot=0;
+    html+=`<tr><td><div style="display:flex;align-items:center;gap:6px;">${playerAv(p,24,'6px',false)}<span>${escapeHtml(p.nome+' '+p.cogn)}</span></div></td>`;
+    levaT.forEach(t=>{
+      const pres=wasTorneoPlayer(t,p.id);
+      if(pres)tot++;
+      html+=`<td style="text-align:center;"><span style="font-size:.9rem;font-weight:800;color:${pres?'var(--green)':'var(--text3)'};">${pres?'✓':'—'}</span></td>`;
+    });
+    const pct=levaT.length?Math.round(tot/levaT.length*100):0;
+    const pc=pct>=80?'var(--green)':pct>=50?'var(--gold)':'var(--red)';
+    html+=`<td style="font-weight:800;text-align:center;">${tot}</td><td style="font-weight:800;text-align:center;color:${pc};">${pct}%</td></tr>`;
+  });
+  html+=`</tbody></table></div></div>`;
+
+  // ── 3. Piazzamenti individuali per torneo ──
+  levaT.forEach(t=>{
+    const allPart=(t.fasi||[]).flatMap(f=>f.partite||[]);
+    const topS=computeTopScorers(allPart, currentLeva);
+    if(!topS.length) return;
+    const ris=computeTorneoRisultato(t);
+    const isTrofeo=ris.tipo==='vittoria';
+    const dStr=t.dataInizio?fmtMatchDate(t.dataInizio):'';
+    html+=`<div class="card" style="margin-top:14px;">
+      <div class="ch">
+        <div class="ct">${isTrofeo?'🏆 ':''}${escapeHtml(t.nome)}</div>
+        <span style="font-size:.75rem;color:var(--text2);">${dStr}${t.luogo?' · '+escapeHtml(t.luogo):''} ${ris.badge}</span>
+      </div>
+      <div style="overflow-x:auto;"><table class="tbl">
+      <thead><tr><th>#</th><th>Giocatore</th><th>Ruolo</th><th style="text-align:center;">Gol</th><th style="text-align:center;">Assist</th></tr></thead><tbody>`;
+    topS.slice(0,15).forEach((sc,i)=>{
+      const p=players.find(x=>x.id===sc.playerId); if(!p) return;
+      const rc=ruoloColor(p.ruolo);
+      html+=`<tr>
+        <td style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;color:${i===0?'var(--gold)':'var(--text2)'};">${i+1}</td>
+        <td><div style="display:flex;align-items:center;gap:6px;">${playerAv(p,26,'6px',false)}
+          <div><strong>${escapeHtml(p.nome+' '+p.cogn)}</strong>${isTrofeo?' <span style="font-size:.65rem;">🏆</span>':''}</div></div></td>
+        <td><span class="pill" style="background:${rc}22;color:${rc};">${p.ruolo.substring(0,3).toUpperCase()}</span></td>
+        <td style="text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;color:var(--cp);">${sc.gol}</td>
+        <td style="text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:700;color:var(--gold);">${sc.assist}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div></div>`;
+  });
+
+  el.innerHTML=html;
 }
 
 // ═══════════════════════════════════
