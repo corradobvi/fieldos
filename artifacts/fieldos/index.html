@@ -9625,18 +9625,24 @@ async function sincronizzaCloud() {
   if (status) { status.textContent = ''; status.style.color = ''; }
   try {
     const resp = await window.__fieldosSyncToCloud();
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (!resp.ok) {
+      let detail = 'HTTP ' + resp.status;
+      try { const j = await resp.json(); detail = j.error || detail; } catch(_) {}
+      throw new Error(detail);
+    }
     if (status) {
       status.textContent = '✅ Dati sincronizzati con successo!';
       status.style.color = 'var(--green)';
     }
     toast('☁️ Sincronizzazione completata!');
   } catch (e) {
+    const msg = (e && e.message) ? e.message : String(e);
     if (status) {
-      status.textContent = '❌ Errore: verifica che DATABASE_URL sia configurato su Railway.';
+      status.textContent = '❌ ' + msg;
       status.style.color = 'var(--red)';
     }
     toast('❌ Sincronizzazione fallita');
+    console.error('[sync]', e);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '☁️ Sincronizza dati sul cloud'; }
   }
