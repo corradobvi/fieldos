@@ -2286,7 +2286,7 @@ function getTrainingDatesForLeva(leva){
       if (eventOccursOn(ev, ds)) { set.add(ds); break; }
     }
   }
-  return Array.from(set).sort((a,b) => b.localeCompare(a));
+  return Array.from(set).sort().reverse(); // ISO date strings: sort ascending then reverse = newest first
 }
 
 // Trova/aggiorna lo status di un giocatore per una data specifica
@@ -2506,7 +2506,11 @@ function renderPresenzeAllenatore(cont) {
         dateSel.appendChild(opt);
       });
     }
-    if (!currentPresDate || !trainings.includes(currentPresDate)) currentPresDate = trainings[0] || '';
+    if (!currentPresDate || !trainings.includes(currentPresDate)) {
+      const todayStr = ymd(new Date());
+      // Start at the most recent past training (or today if training day), not a future date
+      currentPresDate = trainings.find(d => d <= todayStr) || trainings[0] || '';
+    }
     dateSel.value = currentPresDate;
   }
   const dateCustom = document.getElementById('presDateCustom');
@@ -2732,15 +2736,15 @@ function onPresCustomDate(){
 }
 function presGoToday(){
   const today = ymd(new Date());
-  const trainings = getTrainingDatesForLeva(currentLeva);
+  const trainings = getTrainingDatesForLeva(currentLeva); // descending: newest first
   if (trainings.includes(today)) {
     currentPresDate = today;
   } else {
-    // Trova la data più vicina (futura o passata)
-    const futures = trainings.filter(d => d >= today);
+    // trainings is descending: pasts[0] = most recent past, futures last element = nearest future
     const pasts = trainings.filter(d => d < today);
-    if (futures.length) currentPresDate = futures[0];
-    else if (pasts.length) currentPresDate = pasts[pasts.length - 1];
+    const futures = trainings.filter(d => d > today);
+    if (pasts.length) currentPresDate = pasts[0]; // most recent past training
+    else if (futures.length) currentPresDate = futures[futures.length - 1]; // nearest future training
     else { toast('Nessun allenamento programmato'); return; }
     toast('📍 Allenamento più vicino selezionato');
   }
