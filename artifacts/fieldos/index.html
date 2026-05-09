@@ -9721,7 +9721,7 @@ function saSaveState() {
   try {
     const data = JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId });
     localStorage.setItem(SA_KEY, data);
-    // Background sync to server
+    // Background sync to server (SA state non contiene immagini, no stripping necessario)
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -10196,10 +10196,11 @@ function saveNewPassword() {
   // ── API sync helpers ─────────────────────────────────────
   function apiPush(key, json) {
     // Fire-and-forget: persist state blob to the server in the background
+    const stripped = json.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
     fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stateJson: json }),
+      body: JSON.stringify({ stateJson: stripped }),
       keepalive: true
     }).catch(() => {}); // silently ignore network errors (offline/dev without API)
   }
@@ -10378,10 +10379,13 @@ function saveNewPassword() {
     const data = JSON.stringify(snapshot());
     localStorage.setItem(KEY, data);
     lastSnap = data;
+    // Rimuove le immagini base64 prima di inviare al server (restano nel localStorage)
+    // evita di superare max_allowed_packet di MySQL
+    const stripped = data.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
     return fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stateJson: data })
+      body: JSON.stringify({ stateJson: stripped })
     });
   };
 
