@@ -27,15 +27,14 @@ function startListening() {
 }
 
 // Ensure the society_state table exists (idempotent — safe to run on every start).
-// Uses MySQL syntax: VARCHAR(255) primary key, DATETIME instead of TIMESTAMPTZ.
 async function ensureSchema() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS society_state (
-      \`key\`        VARCHAR(255) NOT NULL,
-      state_json  LONGTEXT     NOT NULL,
-      updated_at  DATETIME     NOT NULL DEFAULT NOW(),
+      \`key\`      VARCHAR(255) NOT NULL,
+      state_json LONGTEXT     NOT NULL,
+      updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (\`key\`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `);
   logger.info("DB schema ready");
 }

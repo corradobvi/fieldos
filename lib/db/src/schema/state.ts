@@ -1,14 +1,10 @@
-import { mysqlTable, varchar, text, datetime } from "drizzle-orm/mysql-core";
-import { sql } from "drizzle-orm";
+import { mysqlTable, varchar, longtext, timestamp } from "drizzle-orm/mysql-core";
 
 export const societyState = mysqlTable("society_state", {
-  // MySQL cannot use TEXT as a primary key — use VARCHAR(255) instead
   key: varchar("key", { length: 255 }).primaryKey(),
-  stateJson: text("state_json").notNull(),
-  // MySQL has no TIMESTAMPTZ — use DATETIME and store UTC values
-  updatedAt: datetime("updated_at")
-    .notNull()
-    .default(sql`NOW()`),
+  stateJson: longtext("state_json").notNull(),
+  // TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
 });
 
 export type SocietyState = typeof societyState.$inferSelect;
