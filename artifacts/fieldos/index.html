@@ -503,7 +503,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="ll-sub">Piattaforma per società sportive</div>
     <div id="roleCards">
       <div class="rc" data-role="admin"     onclick="selRole(this)"><div class="rc-ic">🛡️</div><div><div class="rcn">Amministratore</div><div class="rcd">Gestione completa società</div></div></div>
-      <div class="rc" data-role="allenatore" onclick="selRole(this)"><div class="rc-ic">⚽</div><div><div class="rcn">Allenatore / Staff</div><div class="rcd">Rosa, presenze, convocazioni</div></div></div>
+      <div class="rc" data-role="allenatore" onclick="selRole(this)"><div class="rc-ic">⚽</div><div><div class="rcn">Mister / Staff</div><div class="rcd">Rosa, presenze, convocazioni</div></div></div>
       <div class="rc" data-role="dirigente" onclick="selRole(this)"><div class="rc-ic">📋</div><div><div class="rcn">Dirigente</div><div class="rcd">Logistica squadra e inviti famiglie</div></div></div>
       <div class="rc" data-role="genitore"  onclick="selRole(this)"><div class="rc-ic">👨‍👧</div><div><div class="rcn">Genitore</div><div class="rcd">Aggiornamenti e comunicazioni</div></div></div>
       <div class="rc" data-role="giocatore" onclick="selRole(this)"><div class="rc-ic">🏃</div><div><div class="rcn">Giocatore</div><div class="rcd">Il mio profilo e i miei progressi</div></div></div>
@@ -527,7 +527,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <strong>🎮 Demo rapida:</strong>
         <div class="demo-row">
           <button class="db" onclick="quick('admin','marco.admin@polis.it','admin123')">🛡️ Admin</button>
-          <button class="db" onclick="quick('allenatore','mister@polis.it','coach123')">⚽ Allenatore</button>
+          <button class="db" onclick="quick('allenatore','mister@polis.it','coach123')">⚽ Mister</button>
           <button class="db" onclick="quick('dirigente','dirigente@polis.it','dir123')">📋 Dirigente</button>
           <button class="db" onclick="quick('genitore','genitore@polis.it','parent123')">👨‍👧 Genitore</button>
           <button class="db" onclick="quick('giocatore','luca@polis.it','player123')">🏃 Giocatore</button>
@@ -833,7 +833,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <textarea class="fi" id="avvisaMotivo" rows="3" placeholder="Es. influenza, impegno scolastico..." style="resize:vertical;"></textarea>
     </div>
     <div style="background:var(--cl);border-radius:8px;padding:10px;font-size:.75rem;color:var(--text2);margin-bottom:10px;">
-      L'allenatore vedrà subito l'avviso nel registro presenze del giorno scelto.
+      Il Mister vedrà subito l'avviso nel registro presenze del giorno scelto.
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveAvvisoAssenza()">📩 Invia avviso</button>
@@ -878,7 +878,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <select class="fs" id="uRuolo" onchange="onUtenteRuolo()">
           <option value="">— Seleziona —</option>
           <option value="admin">Amministratore</option>
-          <option value="allenatore">Allenatore</option>
+          <option value="allenatore">Mister</option>
           <option value="dirigente">Dirigente</option>
           <option value="genitore">Genitore</option>
           <option value="giocatore">Giocatore</option>
@@ -943,7 +943,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <div class="ov" id="mComm">
   <div class="modal">
     <div class="mh"><div class="mt">📣 Nuovo avviso</div><button class="mx" onclick="closeM('mComm')">✕</button></div>
-    <div class="fg"><label class="fl">Destinatari</label><select class="fs"><option>Tutti (genitori + staff)</option><option>Solo genitori</option><option>Solo allenatori</option></select></div>
+    <div class="fg"><label class="fl">Destinatari</label><select class="fs"><option>Tutti (genitori + staff)</option><option>Solo genitori</option><option>Solo Mister</option></select></div>
     <div class="fg"><label class="fl">Tipo</label><select class="fs"><option>📢 Comunicazione</option><option>🚨 Urgente</option><option>🎉 Evento</option><option>💰 Pagamento</option></select></div>
     <div class="fg"><label class="fl">Oggetto</label><input class="fi" placeholder="Oggetto..."></div>
     <div class="fg"><label class="fl">Messaggio</label><textarea class="fta" placeholder="Testo..."></textarea></div>
@@ -1363,7 +1363,7 @@ const ROLE_CFG = {
     ], leve:true
   },
   allenatore: {
-    label:'⚽ Allenatore', color:'#0b7a3e', bg:'#e8f9f1',
+    label:'⚽ Mister', color:'#0b7a3e', bg:'#e8f9f1',
     nav:[
       {s:'Società'},{id:'panoramica',ic:'🏟️',lb:'Panoramica'},
       {s:'Squadra'},{id:'dashboard',ic:'🏠',lb:'Dashboard'},
@@ -2641,7 +2641,7 @@ function renderPresenzePersonale(cont, figliPlayers) {
     cont.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text2);">
       <div style="font-size:2.5rem;margin-bottom:10px;">👤</div>
       <div style="font-weight:700;margin-bottom:4px;">Profilo non collegato</div>
-      <div style="font-size:.85rem;">Chiedi all'allenatore di collegare il tuo profilo.</div>
+      <div style="font-size:.85rem;">Chiedi al Mister di collegare il tuo profilo.</div>
     </div>`; return;
   }
   let html = '';
@@ -3194,7 +3194,7 @@ function renderConvocazioni() {
     c.innerHTML = `<div class="card" style="text-align:center;padding:36px 18px;color:var(--text2);">
       <div style="font-size:2rem;margin-bottom:8px;">📋</div>
       <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Nessuna partita o torneo programmato</div>
-      <div style="font-size:.83rem;">${canCreateConvocazione() ? 'Crea un evento di tipo Partita o Torneo dal Calendario per iniziare.' : 'L\'allenatore deve ancora programmare la prossima partita.'}</div>
+      <div style="font-size:.83rem;">${canCreateConvocazione() ? 'Crea un evento di tipo Partita o Torneo dal Calendario per iniziare.' : 'Il Mister deve ancora programmare la prossima partita.'}</div>
     </div>`;
     return;
   }
@@ -4580,7 +4580,7 @@ function renderStatsTornei(el){
 
 let editingUserId = null;
 
-const ROLE_LABELS = {admin:'Admin', allenatore:'Allenatore', dirigente:'Dirigente', genitore:'Genitore', giocatore:'Giocatore'};
+const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', giocatore:'Giocatore'};
 const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', giocatore:'pill-g'};
 
 function renderUsersTable() {
@@ -4928,7 +4928,7 @@ function buildInvitoUrl(token){
 
 function openInvitaGenitore(){
   if (!me || !(me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente')) {
-    toast('⛔ Solo admin, allenatori e dirigenti possono inviare inviti');
+    toast('⛔ Solo admin, Mister e dirigenti possono inviare inviti');
     return;
   }
   // Reset form
@@ -5119,7 +5119,7 @@ function renderOnbRoster(){
   if (q) list = list.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
   list.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
   if (!list.length) {
-    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:8px;text-align:center;">Nessun giocatore trovato. Chiedi all\'allenatore di aggiungere tuo figlio in rosa.</div>';
+    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:8px;text-align:center;">Nessun giocatore trovato. Chiedi al Mister di aggiungere tuo figlio in rosa.</div>';
   } else {
     host.innerHTML = list.map(p => {
       const sel = _onboardSelectedIds.includes(p.id);
@@ -6169,7 +6169,7 @@ function buildDashboard(role) {
       c.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2);">
         <div style="font-size:3rem;margin-bottom:12px;">⚽</div>
         <div style="font-size:1.1rem;font-weight:700;margin-bottom:6px;">Profilo non collegato</div>
-        <div style="font-size:.85rem;">Chiedi all'allenatore di collegare il tuo profilo giocatore.</div>
+        <div style="font-size:.85rem;">Chiedi al Mister di collegare il tuo profilo giocatore.</div>
       </div>`; return;
     }
     const lv = myPlayer.leva;
@@ -6272,7 +6272,7 @@ function buildCommForm(role) {
       aEl.appendChild(btn);
     }
     el.innerHTML = `<div class="card"><div class="ch"><div class="ct">✉️ Nuovo avviso</div></div>
-      <div class="fg"><label class="fl">Destinatari</label><select class="fs"><option>Tutti</option><option>Solo genitori</option><option>Solo allenatori</option></select></div>
+      <div class="fg"><label class="fl">Destinatari</label><select class="fs"><option>Tutti</option><option>Solo genitori</option><option>Solo Mister</option></select></div>
       <div class="fg"><label class="fl">Tipo</label><select class="fs"><option>📢 Comunicazione</option><option>🚨 Urgente</option><option>🎉 Evento</option><option>💰 Pagamento</option></select></div>
       <div class="fg"><label class="fl">Oggetto</label><input class="fi" placeholder="Oggetto..."></div>
       <div class="fg"><label class="fl">Messaggio</label><textarea class="fta" placeholder="Testo..."></textarea></div>
@@ -7465,7 +7465,7 @@ function deleteCampo(id){
 
 // ── Gestione tipi evento
 function openTipoManager(){
-  if (!canEditCalendar()) { toast('⛔ Solo admin e allenatori possono gestire i tipi'); return; }
+  if (!canEditCalendar()) { toast('⛔ Solo admin e Mister possono gestire i tipi'); return; }
   renderTipoList();
   openM('mTipoManager');
 }
