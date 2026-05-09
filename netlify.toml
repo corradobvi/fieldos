@@ -1,0 +1,16 @@
+[build]
+  command = "pnpm run build"
+  publish = "artifacts/fieldos/dist/public"
+
+# Proxy: tutte le chiamate /api/* vengono inoltrate al server Railway
+[[redirects]]
+  from = "/api/*"
+  to = "https://workspacefieldos-production.up.railway.app/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback: tutte le altre rotte servono index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
