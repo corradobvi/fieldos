@@ -775,6 +775,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">I campi configurati qui sono selezionabili nella creazione di qualsiasi evento (allenamenti, partite, tornei).</div>
             <div id="campiListBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="convVisibCard">
+            <div class="ch"><div class="ct">👁️ Visibilità convocazioni (default per leva)</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
+              Imposta i giorni predefiniti per la visibilità delle convocazioni ai genitori. Questi valori si applicano automaticamente a ogni nuova convocazione creata.<br>
+              <strong>Fase 1</strong> = genitori vedono solo tipo evento, data e orario. &nbsp;<strong>Fase 2</strong> = genitori vedono tutto (avversario, luogo, convocati, note).
+            </div>
+            <div id="convVisibSettingsBox"></div>
+          </div>
         </div>
       </div>
 
@@ -962,7 +970,26 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Divisa</label><input class="fi" id="convDivisa" placeholder="Es. Casa / Trasferta"></div>
     </div>
     <div class="fg"><label class="fl">Note</label><textarea class="fta" id="convNote" style="min-height:55px;" placeholder="Indicazioni aggiuntive..."></textarea></div>
-    <div class="fl" style="margin-top:6px;">Giocatori da convocare <span id="convCounter" style="color:var(--text2);font-weight:500;"></span></div>
+    <!-- Visibilità a due fasi per i genitori -->
+    <div style="border:1.5px solid var(--border);border-radius:9px;padding:12px;margin-top:10px;background:var(--bg);">
+      <div style="font-weight:700;font-size:.82rem;margin-bottom:8px;color:var(--text);">👁️ Visibilità per genitori</div>
+      <div class="fr" style="margin-bottom:8px;">
+        <div class="fg" style="margin-bottom:0;">
+          <label class="fl">Fase 1 (data/ora) — giorni prima</label>
+          <input class="fi" type="number" id="convFase1Days" min="0" max="365" placeholder="es. 14" style="max-width:100px;">
+        </div>
+        <div class="fg" style="margin-bottom:0;">
+          <label class="fl">Fase 2 (dettagli+convocati) — giorni prima</label>
+          <input class="fi" type="number" id="convFase2Days" min="0" max="365" placeholder="es. 3" style="max-width:100px;">
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" id="btnConvFase1" onclick="toggleConvFase(1)" style="font-size:.75rem;"></button>
+        <button class="btn btn-sm" id="btnConvFase2" onclick="toggleConvFase(2)" style="font-size:.75rem;"></button>
+      </div>
+      <div id="convFaseStatus" style="font-size:.72rem;color:var(--text2);margin-top:6px;"></div>
+    </div>
+    <div class="fl" style="margin-top:10px;">Giocatori da convocare <span id="convCounter" style="color:var(--text2);font-weight:500;"></span></div>
     <div id="convRoster" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto;border:1.5px solid var(--border);border-radius:9px;padding:8px;margin-top:6px;background:var(--white);"></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveConvocazione()">📤 Salva e notifica</button>
@@ -987,6 +1014,26 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="fg" id="disponMotivoWrap" style="display:none;"><label class="fl">Motivo (opzionale)</label><input class="fi" id="disponMotivo" placeholder="Es. impegno familiare, malato..."></div>
     <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;" onclick="saveDisponibilita()">💾 Salva</button><button class="btn btn-g" onclick="closeM('mDispon')">Annulla</button></div>
+  </div>
+</div>
+
+<!-- Indisponibilità genitore/giocatore (periodo) -->
+<div class="ov" id="mIndisp">
+  <div class="modal">
+    <div class="mh"><div class="mt" id="mIndispTitle">🗓️ Indisponibilità</div><button class="mx" onclick="closeM('mIndisp')">✕</button></div>
+    <input type="hidden" id="indispId">
+    <input type="hidden" id="indispPlayerId">
+    <div id="mIndispPlayerInfo" style="background:var(--cl);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:.83rem;font-weight:600;"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Dal giorno</label><input class="fi" type="date" id="indispDataI"></div>
+      <div class="fg"><label class="fl">Al giorno</label><input class="fi" type="date" id="indispDataF"></div>
+    </div>
+    <div class="fg"><label class="fl">Motivo <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="indispMotivo" placeholder="Es. vacanza, visita medica, impegno scolastico..."></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" onclick="saveIndisp()">💾 Salva</button>
+      <button class="btn btn-r" id="btnDelIndisp" style="display:none;" onclick="deleteIndisp()">🗑 Elimina</button>
+      <button class="btn btn-g" onclick="closeM('mIndisp')">Annulla</button>
+    </div>
   </div>
 </div>
 
@@ -1683,7 +1730,9 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
-    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings();
+    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
+    const _convVisibCardEl = document.getElementById('convVisibCard');
+    if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -3188,18 +3237,56 @@ function renderConvocazioni() {
   if (acts) acts.innerHTML = '';
 
   const leveFilter = userLeve();
-  const list = upcomingPartiteEvents(leveFilter);
+  const allList = upcomingPartiteEvents(leveFilter);
+
+  // Per genitori/giocatori: filtra per fase visibilità
+  const isParent = !canCreateConvocazione();
+  const list = isParent
+    ? allList.filter(ev => { const conv = getConvocazione(ev.id); return getConvFase(conv, ev) !== 'none'; })
+    : allList;
+
+  let html = '';
+
+  // Sezione indisponibilità per genitori/giocatori
+  if (isParent) {
+    const myPlayers = getMyPlayers();
+    if (myPlayers.length) {
+      const myIndisp = indisponibilita.filter(i => myPlayers.some(p => p.id === i.playerId))
+        .sort((a,b) => a.dataInizio.localeCompare(b.dataInizio));
+      const today = ymd(new Date());
+      const future = myIndisp.filter(i => i.dataFine >= today);
+      html += `<div class="card" style="margin-bottom:14px;">
+        <div class="ch">
+          <div class="ct">🗓️ Le mie indisponibilità</div>
+          ${myPlayers.map(p=>`<button class="btn btn-p btn-sm" onclick="openIndispModal(${p.id},null)">+ ${escapeHtml(p.nome)}</button>`).join('')}
+        </div>
+        ${future.length ? future.map(i => {
+          const p = players.find(x=>x.id===i.playerId);
+          const label = i.dataInizio===i.dataFine ? fmtDateShort(i.dataInizio)+'/'+i.dataInizio.split('-')[0]
+            : fmtDateShort(i.dataInizio)+' – '+fmtDateShort(i.dataFine);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg);border-radius:7px;margin-bottom:5px;">
+            <span style="font-weight:700;font-size:.82rem;">${escapeHtml(p?p.nome+' '+p.cogn:'?')}</span>
+            <span style="font-size:.78rem;color:var(--text2);">📅 ${label}</span>
+            ${i.motivo?`<span style="font-size:.75rem;color:var(--text2);">${escapeHtml(i.motivo)}</span>`:''}
+            <button class="btn btn-g btn-sm" style="margin-left:auto;" onclick="openIndispModal(${i.playerId},${i.id})">✏️</button>
+          </div>`;
+        }).join('') : '<div style="font-size:.78rem;color:var(--text3);padding:8px 0;">Nessuna indisponibilità segnalata.</div>'}
+      </div>`;
+    }
+  }
 
   if (!list.length) {
-    c.innerHTML = `<div class="card" style="text-align:center;padding:36px 18px;color:var(--text2);">
+    html += `<div class="card" style="text-align:center;padding:36px 18px;color:var(--text2);">
       <div style="font-size:2rem;margin-bottom:8px;">📋</div>
-      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Nessuna partita o torneo programmato</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">${isParent ? 'Nessun evento visibile al momento' : 'Nessuna partita o torneo programmato'}</div>
       <div style="font-size:.83rem;">${canCreateConvocazione() ? 'Crea un evento di tipo Partita o Torneo dal Calendario per iniziare.' : 'Il Mister deve ancora programmare la prossima partita.'}</div>
     </div>`;
+    c.innerHTML = html;
     return;
   }
 
-  c.innerHTML = list.map(renderConvocazioneCard).join('');
+  html += list.map(renderConvocazioneCard).join('');
+  c.innerHTML = html;
 }
 
 function renderConvocazioneCard(ev) {
@@ -3218,8 +3305,25 @@ function renderConvocazioneCard(ev) {
   let body = '';
 
   if (canCreateConvocazione()) {
-    // Vista allenatore/admin
+    // Vista Mister/admin
     const convocatiCount = conv ? conv.playerIds.length : 0;
+
+    // Fase status badge
+    const fase = getConvFase(conv, ev);
+    const faseBadge = !conv ? '' :
+      fase === 'fase2' ? `<span class="pill pill-g" style="font-size:.7rem;">👁 Fase 2 attiva</span>` :
+      fase === 'fase1' ? `<span class="pill pill-b" style="font-size:.7rem;">👁 Fase 1 attiva</span>` :
+      `<span class="pill" style="background:var(--cl);color:var(--text2);font-size:.7rem;">👁 Non visibile</span>`;
+
+    // Indisponibilità da calendario per i giocatori convocati/disponibili
+    const indispWarnings = bucket.disp.concat(bucket.senza).filter(p => playerIndispOnDate(p.id, ev.date));
+    const indispWarnHtml = indispWarnings.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:.78rem;">
+      <strong style="color:#c2410c;">⚠️ Indisponibili (segnalato dai genitori):</strong> ${indispWarnings.map(p => {
+        const i = playerIndispOnDate(p.id, ev.date);
+        return escapeHtml(p.nome+' '+p.cogn) + (i && i.motivo ? ` <span style="color:var(--text2);">(${escapeHtml(i.motivo)})</span>` : '');
+      }).join(', ')}
+    </div>` : '';
+
     body = `
       <div class="g3" style="margin-bottom:11px;">
         <div style="background:var(--gbg);border-radius:8px;padding:8px 10px;">
@@ -3242,10 +3346,15 @@ function renderConvocazioneCard(ev) {
       </div>`;
     }
 
+    body += indispWarnHtml;
+
     if (conv) {
       const names = conv.playerIds.map(pid => {
         const p = players.find(x => x.id === pid);
-        return p ? escapeHtml(p.soprannome || (p.nome + ' ' + p.cogn)) : '?';
+        if (!p) return '?';
+        const indispW = playerIndispOnDate(p.id, ev.date);
+        const warn = indispW ? ' <span style="color:var(--red);font-size:.72rem;" title="Indisponibile secondo genitori">⚠️</span>' : '';
+        return escapeHtml(p.soprannome || (p.nome + ' ' + p.cogn)) + warn;
       });
       body += `<div style="background:var(--gbg);border:1px solid rgba(14,168,96,.3);border-radius:8px;padding:9px 12px;margin-bottom:10px;">
         <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--green);margin-bottom:5px;">📋 Convocati (${convocatiCount})</div>
@@ -3253,13 +3362,68 @@ function renderConvocazioneCard(ev) {
       </div>`;
     }
 
-    body += `<div style="display:flex;gap:7px;flex-wrap:wrap;">
+    body += `<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-p btn-sm" onclick="openConvocazioneModal(${evIdJs})">${conv ? '✏️ Modifica convocazione' : '📋 Crea convocazione'}</button>
       ${conv ? `<button class="btn btn-g btn-sm" onclick="resendConvocazione(${evIdJs})">📤 Reinvia notifica</button>` : ''}
+      ${faseBadge}
     </div>`;
+
+    return `<div style="border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:14px;background:white;">
+      <div style="background:${tipoColor};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;color:white;letter-spacing:.5px;">${tipoLabel.toUpperCase()} — ${escapeHtml(ev.title || '')}</div>
+          <div style="font-size:.76rem;color:rgba(255,255,255,.85);">${dStr}${oraStr ? ' · '+oraStr : ''}${ev.leve && ev.leve.length ? ' · '+ev.leve.join(', ') : ''}</div>
+        </div>
+        ${conv ? '<span class="pill pill-g">Convocazione attiva</span>' : '<span class="pill" style="background:rgba(255,255,255,.25);color:white;">Da preparare</span>'}
+      </div>
+      <div style="padding:14px 16px;">
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:11px;">📍 <strong style="color:var(--text);">${escapeHtml(luogoStr)}</strong>${ritrovoTxt}${divisaTxt}</div>
+        ${body}
+      </div>
+    </div>`;
+
   } else {
-    // Vista genitore/giocatore
+    // Vista genitore/giocatore — due fasi
+    const fase = getConvFase(conv, ev);
     const myPlayers = getMyPlayers().filter(p => (ev.leve || []).includes(p.leva));
+
+    if (fase === 'fase1') {
+      // Solo tipo, data, ora — niente dettagli
+      body = myPlayers.map(p => {
+        const d = getDispon(ev.id, p.id);
+        const dispBadge = !d
+          ? `<span class="pill" style="background:var(--cl);color:var(--text2);">? Da indicare</span>`
+          : d.status === 'disponibile'
+            ? `<span class="pill pill-g">✓ Disponibile</span>`
+            : `<span class="pill pill-r">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
+        return `<div style="background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✓ Disponibile</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">✗ Indisponibile…</button>
+          </div>
+        </div>`;
+      }).join('') || `<div style="font-size:.83rem;color:var(--text2);">Questo evento non riguarda nessuno dei tuoi giocatori.</div>`;
+
+      return `<div style="border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:14px;background:white;">
+        <div style="background:${tipoColor};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;color:white;letter-spacing:.5px;">${tipoLabel.toUpperCase()}</div>
+            <div style="font-size:.76rem;color:rgba(255,255,255,.85);">${dStr}${oraStr ? ' · '+oraStr : ''}</div>
+          </div>
+          <span class="pill" style="background:rgba(255,255,255,.25);color:white;font-size:.7rem;">📅 Dettagli in arrivo</span>
+        </div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:.78rem;color:var(--text2);margin-bottom:11px;font-style:italic;">Le informazioni complete saranno disponibili più avanti.</div>
+          ${body}
+        </div>
+      </div>`;
+    }
+
+    // Fase 2: vista completa
     if (!myPlayers.length) {
       body = `<div style="font-size:.83rem;color:var(--text2);">Questo evento non riguarda nessuno dei tuoi giocatori.</div>`;
     } else {
@@ -3272,9 +3436,11 @@ function renderConvocazioneCard(ev) {
             ? `<span class="pill pill-g">✓ Disponibile</span>`
             : `<span class="pill pill-r">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
         const convBadge = conv
-          ? (isConv ? `<span class="pill pill-g">📋 Convocato</span>` : `<span class="pill" style="background:var(--cl);color:var(--text2);">Non convocato</span>`)
+          ? (isConv
+              ? `<span class="pill pill-g" style="font-weight:800;">📋 CONVOCATO</span>`
+              : `<span class="pill" style="background:var(--cl);color:var(--text2);">Non convocato</span>`)
           : `<span class="pill pill-b">In attesa convocazione</span>`;
-        return `<div style="background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:8px;">
+        return `<div style="background:${isConv ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border:${isConv ? '1.5px solid rgba(14,168,96,.35)' : '1px solid transparent'};border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge} ${convBadge}</div>
@@ -3286,21 +3452,21 @@ function renderConvocazioneCard(ev) {
         </div>`;
       }).join('');
     }
-  }
 
-  return `<div style="border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:14px;background:white;">
-    <div style="background:${tipoColor};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-      <div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;color:white;letter-spacing:.5px;">${tipoLabel.toUpperCase()} — ${escapeHtml(ev.title || '')}</div>
-        <div style="font-size:.76rem;color:rgba(255,255,255,.85);">${dStr}${oraStr ? ' · '+oraStr : ''}${ev.leve && ev.leve.length ? ' · '+ev.leve.join(', ') : ''}</div>
+    return `<div style="border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:14px;background:white;">
+      <div style="background:${tipoColor};padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;color:white;letter-spacing:.5px;">${tipoLabel.toUpperCase()} — ${escapeHtml(ev.title || '')}</div>
+          <div style="font-size:.76rem;color:rgba(255,255,255,.85);">${dStr}${oraStr ? ' · '+oraStr : ''}${ev.leve && ev.leve.length ? ' · '+ev.leve.join(', ') : ''}</div>
+        </div>
+        ${conv ? '<span class="pill pill-g">Convocazione attiva</span>' : '<span class="pill" style="background:rgba(255,255,255,.25);color:white;">Da preparare</span>'}
       </div>
-      ${conv ? '<span class="pill pill-g">Convocazione attiva</span>' : '<span class="pill" style="background:rgba(255,255,255,.25);color:white;">Da preparare</span>'}
-    </div>
-    <div style="padding:14px 16px;">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:11px;">📍 <strong style="color:var(--text);">${escapeHtml(luogoStr)}</strong>${ritrovoTxt}${divisaTxt}</div>
-      ${body}
-    </div>
-  </div>`;
+      <div style="padding:14px 16px;">
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:11px;">📍 <strong style="color:var(--text);">${escapeHtml(luogoStr)}</strong>${ritrovoTxt}${divisaTxt}</div>
+        ${body}
+      </div>
+    </div>`;
+  }
 }
 
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -3321,6 +3487,14 @@ function openConvocazioneModal(eventId) {
   document.getElementById('convDivisa').value  = conv ? (conv.divisa  || '') : '';
   document.getElementById('convNote').value    = conv ? (conv.note    || '') : '';
   document.getElementById('btnDelConv').style.display = conv ? '' : 'none';
+  // Fase visibility
+  const lv = (ev.leve||[])[0] || '';
+  const def = levaConvSettings[lv] || {};
+  const f1d = conv ? conv.fase1Days : (def.fase1Days != null ? def.fase1Days : '');
+  const f2d = conv ? conv.fase2Days : (def.fase2Days != null ? def.fase2Days : '');
+  document.getElementById('convFase1Days').value = f1d != null ? f1d : '';
+  document.getElementById('convFase2Days').value = f2d != null ? f2d : '';
+  updateConvFaseButtons(conv);
 
   const roster = rosterForEvent(ev);
   const selected = new Set(conv ? conv.playerIds : []);
@@ -3336,12 +3510,14 @@ function openConvocazioneModal(eventId) {
       const motivoHtml = indisp ? `<span style="font-size:.72rem;color:var(--red);">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>` :
                          (d && d.status === 'disponibile') ? `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>` :
                          `<span style="font-size:.72rem;color:var(--text3);">? Nessuna risposta</span>`;
-      return `<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${indisp?'#fef0f0':'var(--bg)'};opacity:${indisp?'0.55':'1'};cursor:${indisp?'not-allowed':'pointer'};">
+      const calIndisp = playerIndispOnDate(p.id, ev.date);
+      const calIndispHtml = calIndisp ? `<span style="font-size:.72rem;color:var(--red);margin-left:4px;">⚠️ Genitori: indisponibile${calIndisp.motivo ? ' ('+escapeHtml(calIndisp.motivo)+')' : ''}</span>` : '';
+      return `<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${indisp?'#fef0f0':calIndisp?'#fff7ed':'var(--bg)'};opacity:${indisp?'0.55':'1'};cursor:${indisp?'not-allowed':'pointer'};">
         <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:17px;height:17px;accent-color:var(--cp);">
         ${playerAv(p, 28, '50%', false)}
         <div style="flex:1;">
           <div style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="color:var(--text3);font-style:italic;font-weight:400;">"${escapeHtml(p.soprannome)}"</span>` : ''} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
-          <div>${motivoHtml}</div>
+          <div>${motivoHtml}${calIndispHtml}</div>
         </div>
       </label>`;
     }).join('');
@@ -3367,18 +3543,29 @@ function saveConvocazione() {
   const playerIds = [...document.querySelectorAll('#convRoster input[type=checkbox]:checked')]
     .map(el => parseInt(el.dataset.pid));
 
+  const fase1DaysRaw = document.getElementById('convFase1Days')?.value;
+  const fase2DaysRaw = document.getElementById('convFase2Days')?.value;
+  const fase1Days = fase1DaysRaw !== '' && fase1DaysRaw != null ? parseInt(fase1DaysRaw) : null;
+  const fase2Days = fase2DaysRaw !== '' && fase2DaysRaw != null ? parseInt(fase2DaysRaw) : null;
+
   let conv = getConvocazione(eventId);
   const isNew = !conv;
   if (isNew) {
+    const lv = (ev.leve||[])[0] || '';
+    const def = levaConvSettings[lv] || {};
     conv = {
       id: nextConvocazioneId++, eventId, leva: (ev.leve||[]).join(','),
       ritrovo, divisa, note, playerIds,
+      fase1Days: fase1Days != null ? fase1Days : (def.fase1Days != null ? def.fase1Days : null),
+      fase2Days: fase2Days != null ? fase2Days : (def.fase2Days != null ? def.fase2Days : null),
+      fase1Active: false, fase2Active: false,
       createdBy: me.id, createdAt: Date.now(), sentAt: Date.now()
     };
     convocazioni.push(conv);
   } else {
     conv.ritrovo = ritrovo; conv.divisa = divisa; conv.note = note;
     conv.playerIds = playerIds; conv.sentAt = Date.now();
+    conv.fase1Days = fase1Days; conv.fase2Days = fase2Days;
   }
 
   // Notifica i destinatari (giocatore + genitori) per ciascun convocato
@@ -3426,6 +3613,144 @@ function notifyConvocazione(ev, conv) {
       });
     });
   });
+}
+
+// ─── VISIBILITÀ A DUE FASI ────────────────────────────
+
+function getConvFase(conv, ev) {
+  if (!conv) return 'none';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const evDate = parseYmd(ev.date);
+  const daysUntil = Math.floor((evDate - today) / (86400000));
+  if (conv.fase2Active || (conv.fase2Days != null && !isNaN(conv.fase2Days) && daysUntil <= conv.fase2Days)) return 'fase2';
+  if (conv.fase1Active || (conv.fase1Days != null && !isNaN(conv.fase1Days) && daysUntil <= conv.fase1Days)) return 'fase1';
+  return 'none';
+}
+
+function updateConvFaseButtons(conv) {
+  const b1 = document.getElementById('btnConvFase1');
+  const b2 = document.getElementById('btnConvFase2');
+  const st = document.getElementById('convFaseStatus');
+  if (!b1 || !b2) return;
+  const f1 = conv && conv.fase1Active;
+  const f2 = conv && conv.fase2Active;
+  b1.textContent = f1 ? '👁️ Fase 1 attiva (disattiva)' : '👁️ Attiva Fase 1 manualmente';
+  b1.style.cssText = f1 ? 'background:#fef3c7;color:#92400e;border-color:#f59e0b;' : '';
+  b2.textContent = f2 ? '👁️‍🗨️ Fase 2 attiva (disattiva)' : '👁️‍🗨️ Attiva Fase 2 manualmente';
+  b2.style.cssText = f2 ? 'background:#dcfce7;color:#166534;border-color:var(--green);' : '';
+  if (st) {
+    if (!conv) { st.textContent = 'Salva prima la convocazione per attivare le fasi.'; return; }
+    const fase = getConvFase(conv, getEventById(conv.eventId) || {date:'9999-99-99'});
+    const labels = {none:'🔒 Nascosto ai genitori', fase1:'🟡 Fase 1 — visibile (info base)', fase2:'🟢 Fase 2 — visibile (dettagli completi)'};
+    st.textContent = labels[fase] || '';
+  }
+}
+
+function toggleConvFase(n) {
+  const rawId = document.getElementById('convEventId')?.value;
+  const eventId = rawId && /^\d+$/.test(rawId) ? parseInt(rawId) : rawId;
+  const conv = getConvocazione(eventId);
+  if (!conv) { toast('⚠️ Salva prima la convocazione'); return; }
+  if (n === 1) conv.fase1Active = !conv.fase1Active;
+  else conv.fase2Active = !conv.fase2Active;
+  updateConvFaseButtons(conv);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderConvocazioni();
+  toast(n === 1 ? (conv.fase1Active ? '👁️ Fase 1 attivata' : 'Fase 1 disattivata') : (conv.fase2Active ? '👁️‍🗨️ Fase 2 attivata' : 'Fase 2 disattivata'));
+}
+
+// ─── INDISPONIBILITÀ GENITORI (periodo) ───────────────
+
+function playerIndispOnDate(playerId, dateStr) {
+  return indisponibilita.find(i => i.playerId === playerId && i.dataInizio <= dateStr && i.dataFine >= dateStr) || null;
+}
+
+function playerIndispInRange(playerId, dataI, dataF) {
+  return indisponibilita.filter(i => i.playerId === playerId && i.dataInizio <= dataF && i.dataFine >= dataI);
+}
+
+function openIndispModal(playerId, indispId) {
+  const p = players.find(x => x.id === playerId);
+  if (!p && !indispId) return;
+  const existing = indispId ? indisponibilita.find(i => i.id === indispId) : null;
+  document.getElementById('indispId').value = indispId || '';
+  document.getElementById('indispPlayerId').value = playerId || (existing ? existing.playerId : '');
+  document.getElementById('mIndispTitle').textContent = existing ? '✏️ Modifica indisponibilità' : '🗓️ Nuova indisponibilità';
+  const pid = playerId || existing?.playerId;
+  const pp = players.find(x => x.id === pid);
+  document.getElementById('mIndispPlayerInfo').textContent = pp ? `👤 ${pp.nome} ${pp.cogn} — ${pp.leva}` : '';
+  const today = ymd(new Date());
+  document.getElementById('indispDataI').value = existing ? existing.dataInizio : today;
+  document.getElementById('indispDataF').value = existing ? existing.dataFine : today;
+  document.getElementById('indispMotivo').value = existing ? (existing.motivo || '') : '';
+  document.getElementById('btnDelIndisp').style.display = existing ? '' : 'none';
+  openM('mIndisp');
+}
+
+function saveIndisp() {
+  const rawPid = document.getElementById('indispPlayerId').value;
+  const playerId = parseInt(rawPid);
+  const dataI = document.getElementById('indispDataI').value;
+  const dataF = document.getElementById('indispDataF').value;
+  const motivo = document.getElementById('indispMotivo').value.trim();
+  if (!dataI || !dataF) { toast('⚠️ Inserisci le date'); return; }
+  if (dataF < dataI) { toast('⚠️ La data fine deve essere uguale o successiva alla data inizio'); return; }
+  const rawId = document.getElementById('indispId').value;
+  if (rawId) {
+    const i = indisponibilita.find(x => x.id === parseInt(rawId));
+    if (i) { i.dataInizio = dataI; i.dataFine = dataF; i.motivo = motivo; }
+  } else {
+    indisponibilita.push({ id: nextIndispId++, playerId, dataInizio: dataI, dataFine: dataF, motivo, byUserId: me.id, createdAt: Date.now() });
+  }
+  closeM('mIndisp');
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('✅ Indisponibilità salvata');
+}
+
+function deleteIndisp() {
+  const rawId = document.getElementById('indispId').value;
+  if (!rawId) return;
+  indisponibilita = indisponibilita.filter(i => i.id !== parseInt(rawId));
+  closeM('mIndisp');
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('🗑 Indisponibilità rimossa');
+}
+
+// ─── IMPOSTAZIONI VISIBILITÀ CONV PER LEVA ────────────
+
+function renderConvVisibSettings() {
+  const el = document.getElementById('convVisibSettingsBox'); if (!el) return;
+  if (!leve.length) { el.innerHTML = '<div style="color:var(--text2);font-size:.78rem;">Nessuna leva configurata.</div>'; return; }
+  el.innerHTML = leve.map(lv => {
+    const s = levaConvSettings[lv] || {};
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <div style="font-weight:700;min-width:44px;font-size:.88rem;">${escapeHtml(lv)}</div>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;">
+        <label style="font-size:.78rem;color:var(--text2);">Fase 1 da</label>
+        <input type="number" min="0" max="365" value="${s.fase1Days != null ? s.fase1Days : ''}" placeholder="—"
+          style="width:60px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;"
+          id="cvs_f1_${lv}" onchange="saveConvVisibLeva('${lv}')">
+        <label style="font-size:.78rem;color:var(--text2);">giorni prima &nbsp;·&nbsp; Fase 2 da</label>
+        <input type="number" min="0" max="365" value="${s.fase2Days != null ? s.fase2Days : ''}" placeholder="—"
+          style="width:60px;padding:4px 7px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;"
+          id="cvs_f2_${lv}" onchange="saveConvVisibLeva('${lv}')">
+        <label style="font-size:.78rem;color:var(--text2);">giorni prima</label>
+        <button class="btn btn-p btn-sm" onclick="saveConvVisibLeva('${lv}')">💾</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveConvVisibLeva(lv) {
+  const f1Raw = document.getElementById('cvs_f1_'+lv)?.value;
+  const f2Raw = document.getElementById('cvs_f2_'+lv)?.value;
+  if (!levaConvSettings[lv]) levaConvSettings[lv] = {};
+  levaConvSettings[lv].fase1Days = f1Raw !== '' ? parseInt(f1Raw) : null;
+  levaConvSettings[lv].fase2Days = f2Raw !== '' ? parseInt(f2Raw) : null;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast(`✅ Impostazioni ${lv} salvate`);
 }
 
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
@@ -6890,6 +7215,13 @@ let nextConvocazioneId = 1;
 let disponibilita = [];
 let nextDisponibilitaId = 1;
 
+// Indisponibilità genitori per periodo: { id, playerId, dataInizio, dataFine, motivo, byUserId, createdAt }
+let indisponibilita = [];
+let nextIndispId = 1;
+
+// Impostazioni visibilità convocazioni per leva: { 'U12': { fase1Days: 14, fase2Days: 3 } }
+let levaConvSettings = {};
+
 // Notifiche per utente: { id, userId, type, title, body, eventId, convocazioneId, ts, read }
 let notifiche = [];
 let nextNotificaId = 1;
@@ -9644,7 +9976,10 @@ function saveNewPassword() {
       documenti:     documenti,
       nextDocId:     nextDocId,
       campi:         campi,
-      nextCampoId:   nextCampoId
+      nextCampoId:   nextCampoId,
+      indisponibilita: indisponibilita,
+      nextIndispId:    nextIndispId,
+      levaConvSettings: levaConvSettings
     };
   }
 
@@ -9743,6 +10078,9 @@ function saveNewPassword() {
       if (typeof s.nextDocId === 'number') nextDocId = s.nextDocId;
       if (Array.isArray(s.campi)) campi = s.campi;
       if (typeof s.nextCampoId === 'number') nextCampoId = s.nextCampoId;
+      if (Array.isArray(s.indisponibilita)) indisponibilita = s.indisponibilita;
+      if (typeof s.nextIndispId === 'number') nextIndispId = s.nextIndispId;
+      if (s.levaConvSettings && typeof s.levaConvSettings === 'object') levaConvSettings = s.levaConvSettings;
       lastSnap = raw;
     } catch (e) {
       console.error('FieldOS: ripristino fallito', e);
