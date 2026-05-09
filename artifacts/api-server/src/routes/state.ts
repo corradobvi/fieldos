@@ -23,8 +23,8 @@ router.get("/state/:key", async (req, res) => {
     });
   } catch (e: any) {
     logger.error({ err: e }, "state GET failed");
-    const code = e?.code ?? e?.errno ?? "db_error";
-    return res.status(500).json({ error: String(code) });
+    const detail = e?.sqlMessage ?? e?.code ?? e?.errno ?? "db_error";
+    return res.status(500).json({ error: String(detail) });
   }
 });
 
