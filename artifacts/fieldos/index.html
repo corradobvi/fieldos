@@ -1409,7 +1409,7 @@ const SA_EMAIL = 'superadmin@fieldos.it';
 const SA_PASS  = 'super123';
 const SA_KEY   = 'fieldos_sa_v1';
 // In locale punta al server di sviluppo, in produzione usa percorso relativo
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3001' : '';
 let saViewMode = false;
 let saSocieties = [];
 let saNextSocId = 1;
