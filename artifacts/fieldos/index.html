@@ -6976,7 +6976,8 @@ function eventsForDay(dateStr){
   return events.filter(ev => {
     if (!canSeeEvent(ev)) return false;
     if (calFilterLeva !== '__all'){
-      if (!ev.leve || !ev.leve.includes(calFilterLeva)) return false;
+      // Events with no leva restriction are visible for everyone (even when a filter is active)
+      if (ev.leve && ev.leve.length > 0 && !ev.leve.includes(calFilterLeva)) return false;
     }
     if (calFilterTipo !== '__all' && ev.type !== calFilterTipo) return false;
     return eventOccursOn(ev, dateStr);
@@ -7159,7 +7160,7 @@ function openEventoModal(eventId, prefillDate){
   // Leve box
   const allowed = userLeve();
   const box = document.getElementById('evLeveBox'); box.innerHTML = '';
-  const selectedLeve = new Set(ev ? (ev.leve || []) : (me.role === 'allenatore' ? allowed : []));
+  const selectedLeve = new Set(ev ? (ev.leve || []) : ((me.role === 'allenatore' || me.role === 'admin') ? allowed : []));
   allowed.forEach(l => {
     const chip = document.createElement('span');
     const isOn = selectedLeve.has(l);
@@ -7240,8 +7241,8 @@ function saveEvento(){
   if (me.role === 'allenatore') {
     const allowed = userLeve();
     if (leveSel.filter(l => !allowed.includes(l)).length) { toast('⛔ Non puoi assegnare leve non tue'); return; }
-    if (leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva'); return; }
   }
+  if (type === 'allenamento' && leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva per l\'allenamento'); return; }
   if (id) {
     const ev = events.find(e => e.id === Number(id));
     if (!ev || !canEditEvent(ev)) { toast('⛔ Non puoi modificare questo evento'); return; }
@@ -7369,7 +7370,7 @@ function creaAllenamentiRicorrenti(){
     ? (() => { const c = campi.find(x=>x.id===campoIdSel); return c?(c.nome+(c.indirizzo?' — '+c.indirizzo:'')):''})()
     : document.getElementById('evLuogo').value.trim();
   if (!title)  { toast('⚠️ Inserisci il titolo'); return; }
-  if (me.role === 'allenatore' && leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva'); return; }
+  if (leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva per gli allenamenti'); return; }
   if (!giorni.length) { toast('⚠️ Seleziona almeno un giorno della settimana'); return; }
   if (!da || !a)      { toast('⚠️ Imposta data inizio e fine'); return; }
   if (a < da)         { toast('⚠️ La data di fine deve essere dopo quella di inizio'); return; }
