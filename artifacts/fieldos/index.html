@@ -838,6 +838,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">I campi configurati qui sono selezionabili nella creazione di qualsiasi evento (allenamenti, partite, tornei).</div>
             <div id="campiListBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="syncCloudCard">
+            <div class="ch"><div class="ct">☁️ Sincronizzazione cloud</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:14px;">
+              I dati inseriti su questo dispositivo non sono ancora sul server.<br>
+              Premi il pulsante per caricare tutto lo stato attuale sul database cloud. Dopo questa operazione la sincronizzazione automatica gestirà gli aggiornamenti futuri.
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <button class="btn btn-p" id="btnSyncCloud" onclick="sincronizzaCloud()">☁️ Sincronizza dati sul cloud</button>
+              <span id="syncCloudStatus" style="font-size:.83rem;"></span>
+            </div>
+          </div>
           <div class="card" style="grid-column:span 2;" id="convVisibCard">
             <div class="ch"><div class="ct">👁️ Visibilità convocazioni (default per leva)</div></div>
             <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
@@ -1821,6 +1832,8 @@ function goTo(pgId) {
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     const _convVisibCardEl = document.getElementById('convVisibCard');
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
+    const _syncCloudCardEl = document.getElementById('syncCloudCard');
+    if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -9599,6 +9612,34 @@ document.addEventListener('click', e => {
   if (e.target && e.target.id === 'btnOpenAddUser') openUserModal(null);
 });
 
+async function sincronizzaCloud() {
+  if (typeof window.__fieldosSyncToCloud !== 'function') {
+    toast('❌ Funzione non disponibile');
+    return;
+  }
+  const btn = document.getElementById('btnSyncCloud');
+  const status = document.getElementById('syncCloudStatus');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sincronizzazione…'; }
+  if (status) { status.textContent = ''; status.style.color = ''; }
+  try {
+    const resp = await window.__fieldosSyncToCloud();
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    if (status) {
+      status.textContent = '✅ Dati sincronizzati con successo!';
+      status.style.color = 'var(--green)';
+    }
+    toast('☁️ Sincronizzazione completata!');
+  } catch (e) {
+    if (status) {
+      status.textContent = '❌ Errore: verifica che DATABASE_URL sia configurato su Railway.';
+      status.style.color = 'var(--red)';
+    }
+    toast('❌ Sincronizzazione fallita');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '☁️ Sincronizza dati sul cloud'; }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SUPER ADMIN PANEL
 // Credenziali: superadmin@fieldos.it / super123
@@ -10323,6 +10364,18 @@ function saveNewPassword() {
   // Esposizione per chiamate da altre funzioni (es. completeOnboarding)
   window.__fieldosSaveState = saveState;
   window.__fieldosRestoreState = restoreState;
+
+  // Sincronizzazione manuale: cattura stato corrente e lo carica sul server
+  window.__fieldosSyncToCloud = function() {
+    const data = JSON.stringify(snapshot());
+    localStorage.setItem(KEY, data);
+    lastSnap = data;
+    return fetch('/api/state/' + encodeURIComponent(KEY), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stateJson: data })
+    });
+  };
 
   // Cambia la società attiva: aggiorna KEY, ricarica stato, e poi sincronizza dal server
   window.__fieldosSetSocietaKey = function(newKey) {
