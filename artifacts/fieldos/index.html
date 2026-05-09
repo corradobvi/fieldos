@@ -1848,6 +1848,8 @@ function renderLevaTabs(containerId, showAdd) {
 
 function switchLeva(l) {
   currentLeva = l;
+  currentPresDate = null;
+  currentPresNavMonth = null;
   document.getElementById('tbLeva').textContent = l;
   renderSbLeve();
   renderLevaTabs('rosaTabs',     true);
@@ -2373,6 +2375,7 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 let currentPresDate = null;      // 'YYYY-MM-DD'
+let currentPresNavMonth = null;  // 'YYYY-MM' mese selezionato nel navigatore in alto
 let currentPresMonthFilter = null; // 'YYYY-MM' filtro mese riepilogo
 
 // Permessi:
@@ -2559,22 +2562,14 @@ function renderPresenzeOverview(cont, leveList) {
 function renderPresenzeAllenatore(cont) {
   cont.innerHTML = `
     <div class="card" id="presRegistroCard">
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:10px;">
-        <div class="fg" style="margin-bottom:0;flex:1;min-width:200px;">
-          <label class="fl">📅 Data allenamento</label>
-          <select class="fs" id="presDateSel" onchange="onPresDateChange()"></select>
-        </div>
-        <div class="fg" style="margin-bottom:0;">
-          <label class="fl">Oppure scegli data</label>
-          <input class="fi" type="date" id="presDateCustom" onchange="onPresCustomDate()" style="width:160px;">
-        </div>
-        <button class="btn btn-g btn-sm" id="presOggiBtn" onclick="presGoToday()">📍 Oggi</button>
+      <!-- Selettore mese -->
+      <div id="presNavMonthRow" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);"></div>
+      <!-- Lista date del mese -->
+      <div id="presNavDateList" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;min-height:36px;"></div>
+      <!-- Azioni -->
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:14px;" id="presActionRow">
+        <button class="btn btn-g btn-sm" onclick="presGoToday()">📍 Oggi</button>
         <div id="presBulkActions" style="display:flex;gap:6px;"></div>
-      </div>
-      <div id="presQuickNav" style="display:flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
-        <button class="btn btn-g btn-xs" id="presPrevBtn" onclick="presStepDate(-1)" style="flex-shrink:0;">‹</button>
-        <div id="presDateChips" style="flex:1;display:flex;gap:5px;overflow-x:auto;scroll-behavior:smooth;padding:2px 0;"></div>
-        <button class="btn btn-g btn-xs" id="presNextBtn" onclick="presStepDate(1)" style="flex-shrink:0;">›</button>
       </div>
       <div id="presNoticesBox"></div>
       <div style="overflow-x:auto;"><table class="tbl"><thead><tr>
@@ -2597,42 +2592,23 @@ function renderPresenzeAllenatore(cont) {
       <div style="overflow-x:auto;"><table class="tbl" id="presRecapTbl"><thead id="presRecapHead"></thead><tbody id="presRecapBody"></tbody></table></div>
     </div>`;
 
-  // Populate date selector
-  const dateSel = document.getElementById('presDateSel');
-  const trainings = getTrainingDatesForLeva(currentLeva);
-  if (dateSel) {
-    dateSel.innerHTML = '';
-    if (!trainings.length) {
-      const opt = document.createElement('option');
-      opt.value = ''; opt.textContent = '— Nessun allenamento programmato —';
-      dateSel.appendChild(opt);
-    } else {
-      trainings.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d; opt.textContent = fmtDateLong(parseYmd(d));
-        dateSel.appendChild(opt);
-      });
-    }
-    if (!currentPresDate || !trainings.includes(currentPresDate)) {
-      const todayStr = ymd(new Date());
-      // Start at the most recent past training (or today if training day), not a future date
-      currentPresDate = trainings.find(d => d <= todayStr) || trainings[0] || '';
-    }
-    dateSel.value = currentPresDate;
-  }
-  const dateCustom = document.getElementById('presDateCustom');
-  if (dateCustom && currentPresDate) dateCustom.value = currentPresDate;
+  const trainings = getTrainingDatesForLeva(currentLeva); // descending
+  const todayStr = ymd(new Date());
 
-  // Quick chips & nav buttons
-  renderPresQuickChips();
-  const trainingsAll = getTrainingDatesForLeva(currentLeva);
-  const idxCur = trainingsAll.indexOf(currentPresDate);
-  const prevBtn = document.getElementById('presPrevBtn');
-  const nextBtn = document.getElementById('presNextBtn');
-  if (prevBtn) prevBtn.disabled = (idxCur <= 0);
-  if (nextBtn) nextBtn.disabled = (idxCur === -1 || idxCur >= trainingsAll.length - 1);
-  const oggiBtn = document.getElementById('presOggiBtn');
-  if (oggiBtn) oggiBtn.style.display = trainingsAll.length ? '' : 'none';
+  // Selezione data default: quella più vicina a oggi
+  if (!currentPresDate || !trainings.includes(currentPresDate)) {
+    const pasts = trainings.filter(d => d <= todayStr);
+    const futures = trainings.filter(d => d > todayStr);
+    currentPresDate = pasts.length ? pasts[0] : (futures.length ? futures[futures.length - 1] : '');
+  }
+
+  // Mese di default: quello della data selezionata, o mese corrente
+  if (!currentPresNavMonth) {
+    currentPresNavMonth = currentPresDate ? currentPresDate.slice(0,7) : todayStr.slice(0,7);
+  }
+
+  renderPresNavMonthRow(trainings);
+  renderPresNavDateList(trainings);
 
   // Bulk actions
   const bulk = document.getElementById('presBulkActions');
@@ -2833,77 +2809,108 @@ function presEditNote(playerId, dateStr, triggerEl) {
   toast('📝 Nota salvata');
 }
 
-function onPresDateChange(){
-  const v = document.getElementById('presDateSel').value;
-  if (v) { currentPresDate = v; renderPresenze(); }
-}
-function onPresCustomDate(){
-  const v = document.getElementById('presDateCustom').value;
-  if (v) { currentPresDate = v; renderPresenze(); }
-}
 function presGoToday(){
   const today = ymd(new Date());
-  const trainings = getTrainingDatesForLeva(currentLeva); // descending: newest first
-  if (trainings.includes(today)) {
-    currentPresDate = today;
-  } else {
-    // trainings is descending: pasts[0] = most recent past, futures last element = nearest future
-    const pasts = trainings.filter(d => d < today);
-    const futures = trainings.filter(d => d > today);
-    if (pasts.length) currentPresDate = pasts[0]; // most recent past training
-    else if (futures.length) currentPresDate = futures[futures.length - 1]; // nearest future training
-    else { toast('Nessun allenamento programmato'); return; }
-    toast('📍 Allenamento più vicino selezionato');
+  const trainings = getTrainingDatesForLeva(currentLeva);
+  const pasts = trainings.filter(d => d <= today);
+  const futures = trainings.filter(d => d > today);
+  if (pasts.length) currentPresDate = pasts[0];
+  else if (futures.length) currentPresDate = futures[futures.length - 1];
+  else { toast('Nessun allenamento programmato'); return; }
+  currentPresNavMonth = currentPresDate.slice(0, 7);
+  renderPresenze();
+  if (currentPresDate !== today) toast('📍 Allenamento più vicino selezionato');
+}
+
+function renderPresNavMonthRow(trainings) {
+  const el = document.getElementById('presNavMonthRow'); if (!el) return;
+  const MESI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const todayStr = ymd(new Date());
+  const curYear = new Date().getFullYear();
+  // Mostra tutti i 12 mesi dell'anno corrente più eventuale anno precedente/successivo se ci sono dati
+  const monthsWithData = new Set(trainings.map(d => d.slice(0,7)));
+  // Sempre mostra i 12 mesi dell'anno corrente
+  const months = [];
+  for (let m = 1; m <= 12; m++) {
+    months.push(`${curYear}-${String(m).padStart(2,'0')}`);
   }
-  renderPresenze();
+  // Aggiungi mesi con dati di altri anni
+  monthsWithData.forEach(ym => { if (!months.includes(ym)) months.push(ym); });
+  months.sort();
+
+  el.innerHTML = months.map(ym => {
+    const [y, mo] = ym.split('-');
+    const label = MESI[parseInt(mo) - 1];
+    const isSelected = ym === currentPresNavMonth;
+    const hasData = monthsWithData.has(ym);
+    const isCurrentMonth = ym === todayStr.slice(0, 7);
+    return `<button type="button" onclick="presNavSelectMonth('${ym}')"
+      style="padding:5px 11px;border-radius:20px;border:1.5px solid;font-size:.74rem;font-weight:700;cursor:pointer;transition:all .15s;${
+        isSelected
+          ? 'background:var(--cp);color:white;border-color:var(--cp);'
+          : hasData
+            ? 'background:var(--cl);color:var(--cp);border-color:rgba(var(--cp-rgb),.3);'
+            : isCurrentMonth
+              ? 'background:#fef3c7;color:#92400e;border-color:var(--gold);'
+              : 'background:var(--bg);color:var(--text3);border-color:var(--border);'
+      }">${label}${parseInt(y) !== curYear ? ' '+y : ''}</button>`;
+  }).join('');
 }
-function presStepDate(delta){
-  const trainings = getTrainingDatesForLeva(currentLeva);
-  if (!trainings.length) return;
-  const idx = trainings.indexOf(currentPresDate);
-  let next;
-  if (idx === -1) next = trainings[0];
-  else next = trainings[Math.max(0, Math.min(trainings.length - 1, idx + delta))];
-  if (next === currentPresDate) return;
-  currentPresDate = next;
-  renderPresenze();
-}
-function renderPresQuickChips(){
-  const cont = document.getElementById('presDateChips');
-  if (!cont) return;
-  const trainings = getTrainingDatesForLeva(currentLeva);
-  const today = ymd(new Date());
-  cont.innerHTML = '';
-  if (!trainings.length) {
-    cont.innerHTML = '<div style="color:var(--text3);font-size:.74rem;padding:4px 8px;">Nessun allenamento programmato — usa il selettore data per uno qualsiasi.</div>';
+
+function renderPresNavDateList(trainings) {
+  const el = document.getElementById('presNavDateList'); if (!el) return;
+  const todayStr = ymd(new Date());
+  const DOW = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const MESI_SHORT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+  const monthDates = trainings
+    .filter(d => d.startsWith(currentPresNavMonth))
+    .sort(); // ascending within the month
+
+  if (!monthDates.length) {
+    el.innerHTML = `<div style="color:var(--text3);font-size:.78rem;padding:6px 4px;font-style:italic;">Nessun allenamento programmato in questo mese.</div>`;
     return;
   }
-  // Mostra max 30 date intorno alla corrente (priorità alla settimana corrente)
-  trainings.forEach(d => {
-    const isCur = d === currentPresDate;
-    const isToday = d === today;
-    const isPast = d < today;
+
+  el.innerHTML = '';
+  monthDates.forEach(d => {
     const dt = parseYmd(d);
-    const dow = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'][dt.getDay()];
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'btn btn-xs';
-    chip.style.cssText = `flex-shrink:0;padding:5px 9px;font-weight:700;font-size:.72rem;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:48px;${
-      isCur ? 'background:var(--cp);color:white;border-color:var(--cp);' :
-      isToday ? 'background:#fef3c7;color:#92400e;border:1.5px solid var(--gold);' :
-      isPast ? 'background:#f3f4f6;color:var(--text2);border:1px solid var(--border);opacity:.85;' :
-      'background:var(--white);color:var(--text);border:1px solid var(--border);'
+    const dow = DOW[dt.getDay()];
+    const day = dt.getDate();
+    const mon = MESI_SHORT[dt.getMonth()];
+    const isSel = d === currentPresDate;
+    const isToday = d === todayStr;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = `display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 12px;border-radius:10px;border:1.5px solid;cursor:pointer;transition:all .15s;min-width:60px;font-family:inherit;${
+      isSel
+        ? 'background:var(--cp);color:white;border-color:var(--cp);box-shadow:0 2px 8px rgba(var(--cp-rgb),.25);'
+        : isToday
+          ? 'background:#fef3c7;color:#92400e;border-color:var(--gold);'
+          : d < todayStr
+            ? 'background:var(--bg);color:var(--text2);border-color:var(--border);'
+            : 'background:white;color:var(--text);border-color:var(--border);'
     }`;
-    chip.innerHTML = `<span style="font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;opacity:.85;">${dow}${isToday?' · oggi':''}</span><span>${dt.getDate()}/${String(dt.getMonth()+1).padStart(2,'0')}</span>`;
-    chip.title = fmtDateLong(dt);
-    chip.onclick = () => { currentPresDate = d; renderPresenze(); };
-    cont.appendChild(chip);
+    btn.innerHTML = `<span style="font-size:.6rem;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:${isSel?'1':'.7'};">${dow}</span><span style="font-size:1.05rem;font-weight:900;line-height:1;">${day}</span><span style="font-size:.65rem;font-weight:600;opacity:${isSel?'.9':'.65'};">${mon}</span>`;
+    btn.title = fmtDateLong(dt);
+    btn.onclick = () => { currentPresDate = d; renderPresenze(); };
+    el.appendChild(btn);
   });
-  // Scroll alla chip selezionata
-  setTimeout(() => {
-    const sel = cont.querySelector('button[style*="var(--cp)"]');
-    if (sel) sel.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
-  }, 30);
+}
+
+function presNavSelectMonth(ym) {
+  currentPresNavMonth = ym;
+  // Se la data corrente non è in questo mese, sposta alla data più vicina del mese
+  const trainings = getTrainingDatesForLeva(currentLeva);
+  const monthDates = trainings.filter(d => d.startsWith(ym)).sort();
+  if (monthDates.length && !monthDates.includes(currentPresDate)) {
+    const todayStr = ymd(new Date());
+    const closest = monthDates.reduce((best, d) =>
+      Math.abs(new Date(d) - new Date(todayStr)) < Math.abs(new Date(best) - new Date(todayStr)) ? d : best
+    , monthDates[0]);
+    currentPresDate = closest;
+  }
+  renderPresenze();
 }
 
 // Apri il registro presenze direttamente per l'evento allenamento aperto nel modale
@@ -2917,6 +2924,7 @@ function openPresenzeFromEvento(){
   const target = (ev.leve || []).find(l => allowed.includes(l)) || (ev.leve || [])[0];
   if (target) currentLeva = target;
   currentPresDate = ev.date;
+  currentPresNavMonth = ev.date.slice(0, 7);
   closeM('mEvento');
   goTo('presenze');
 }
