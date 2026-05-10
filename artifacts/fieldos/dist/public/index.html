@@ -67,6 +67,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .fl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);}
 .fi{padding:11px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;transition:border-color .15s,box-shadow .15s;width:100%;}
 .fi:focus{outline:none;border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
+.fi-wrap{display:flex;align-items:center;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);transition:border-color .15s,box-shadow .15s;}
+.fi-wrap:focus-within{border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
+.fi-wrap .fi{flex:1;border:none!important;box-shadow:none!important;background:transparent;width:auto;min-width:0;}
+.fi-eye{flex-shrink:0;background:none;border:none;cursor:pointer;padding:0 13px;color:var(--text2);display:flex;align-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:color .15s;}
+.fi-eye:hover,.fi-eye.on{color:var(--cp);}
 .btn-login{width:100%;padding:13px;background:var(--cp);color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .btn-login:hover{background:var(--cs);transform:translateY(-1px);box-shadow:var(--shm);}
 .btn-login:active{opacity:.8;transform:scale(.98);}
@@ -981,8 +986,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
       <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}"></div>
-      <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"></div>
+      <div class="fg"><label class="fl">Password</label><div class="fi-wrap"><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"><button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()" tabindex="-1" aria-label="Mostra/nascondi password"><svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
+      <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
       <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
         Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
@@ -1888,6 +1894,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <script>
 'use strict';
+// Mostra errori JS visivamente su mobile (sparisce al tap)
+window.onerror = function(msg, src, line) {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px 14px;z-index:99999;font-size:.78rem;font-family:monospace;word-break:break-all;cursor:pointer;';
+  b.innerHTML = '<strong>⚠️ Errore JS (riga ' + line + '):</strong><br>' + msg;
+  b.onclick = function(){ b.remove(); };
+  if (document.body) document.body.appendChild(b);
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  const msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#7f1d1d;color:#fff;padding:12px 14px;z-index:99999;font-size:.78rem;font-family:monospace;word-break:break-all;cursor:pointer;';
+  b.innerHTML = '<strong>⚠️ Promise rejection:</strong><br>' + msg;
+  b.onclick = function(){ b.remove(); };
+  if (document.body) document.body.appendChild(b);
+});
 
 // ═══════════════════════════════════
 // COSTANTI GLOBALI — dichiarate in cima per evitare TDZ su mobile
@@ -2202,9 +2225,31 @@ function quick(role, email, pass) {
 
 let _loginInProgress = false;
 
+function togglePassVis() {
+  const inp = document.getElementById('lPass');
+  const btn = document.getElementById('btnPassEye');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.querySelector('svg').innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+function _showLoginErr(msg) {
+  const el = document.getElementById('loginErrMsg');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+  toast('❌ ' + msg.replace(/^❌\s*/,'').slice(0, 60));
+}
+function _clearLoginErr() {
+  const el = document.getElementById('loginErrMsg');
+  if (el) { el.textContent = ''; el.style.display = 'none'; }
+}
+
 function doLoginSafe() {
   if (_loginInProgress) return;
   _loginInProgress = true;
+  _clearLoginErr();
   const btn = document.getElementById('btnLogin');
   if (btn) { btn.classList.add('loading'); btn.textContent = 'Accesso in corso…'; }
 
@@ -2214,7 +2259,7 @@ function doLoginSafe() {
       await doLogin();
     } catch(e) {
       console.error('[doLogin]', e);
-      toast('❌ Errore: ' + ((e && e.message) || String(e)));
+      _showLoginErr('Errore: ' + ((e && e.message) || String(e)));
     } finally {
       _loginInProgress = false;
       // Restore button only if still on login screen (login may have succeeded)
@@ -2497,7 +2542,8 @@ function buildSidebar(role) {
       d.textContent = item.s;
       nav.appendChild(d);
     } else {
-      const locked = isSectionLocked(item.id, _sbSoc);
+      let locked = false;
+      try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       const d = document.createElement('div');
       d.className = 'ni' + (locked ? ' ni-locked' : '');
       d.dataset.pg = item.id;
@@ -10702,11 +10748,12 @@ function canAddPlayer(soc, levaName) {
 
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
+  if (!soc) return false; // society not loaded yet → don't lock
   if (currentSocietaId === DEMO_STELLA_ID) return false;
   const status = getPianoStatus(soc);
   if (status === 'active_demo') return false;
   const lock = SECTION_LOCKS[sectionId];
-  const tier = pianoNorm(soc?.piano);
+  const tier = pianoNorm(soc.piano);
   const tierIdx = PIANO_TIERS.indexOf(tier);
   const minIdx = PIANO_TIERS.indexOf(lock.pianoMin);
   return tierIdx < minIdx;
@@ -11622,6 +11669,10 @@ function saLoadState() {
         localStorage.setItem(SA_KEY, data.stateJson);
         const saPanel = document.getElementById('saDashboard');
         if (saPanel && saPanel.style.display !== 'none' && typeof renderSaDashboard === 'function') renderSaDashboard();
+        // Rebuild sidebar so plan locks reflect real society data (async arrival)
+        if (me && me.role && typeof buildSidebar === 'function') {
+          try { buildSidebar(me.role); } catch(_e) {}
+        }
       })
       .catch(() => {});
     // Migrazione: assicura nomeSocieta e coloriPrimari in fieldos_state_v1
@@ -11772,6 +11823,13 @@ function saExtendDemo(id) {
 }
 
 function renderSaPanel() {
+  try { _renderSaPanelInner(); } catch(e) {
+    console.error('[renderSaPanel]', e);
+    const el = document.getElementById('saContent');
+    if (el) el.innerHTML = `<div style="color:#f87171;padding:24px;font-family:monospace;font-size:.82rem;">⚠️ Errore rendering: ${escapeHtml(String(e))}</div>`;
+  }
+}
+function _renderSaPanelInner() {
   const total = saSocieties.length;
   const active = saSocieties.filter(s => s.stato === 'attivo').length;
   const planCount = (p) => saSocieties.filter(s => pianoNorm(s.piano) === p).length;
@@ -11839,9 +11897,9 @@ function renderSaPanel() {
     ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:#64748b;">Nessuna società registrata. Aggiungi la prima con "＋ Nuova società".</td></tr>`
     : '';
 
+  const _safeFmt = (ts) => { try { const d=new Date(ts); return isNaN(d)?'—':d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} };
   const logHtml = saActionLog.slice(0,50).map(l => {
-    const d = new Date(l.ts);
-    const ts = d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    const ts = _safeFmt(l.ts);
     return `<div class="sa-log-row"><span class="sa-log-ts">${ts}</span> <span class="sa-log-act">${escapeHtml(l.action)}</span>${l.detail?` <span class="sa-log-det">— ${escapeHtml(l.detail)}</span>`:''}  </div>`;
   }).join('') || '<div style="color:#64748b;padding:12px;">Nessuna azione registrata.</div>';
 
@@ -11882,7 +11940,7 @@ function renderSaPanel() {
         <div class="faq-row" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
           <div style="flex:1;">
             <div style="font-weight:600;color:#e2e8f0;font-size:.82rem;">${escapeHtml(f.question)}</div>
-            <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml(f.answer.replace(/<[^>]+>/g,'').slice(0,120))}…</div>
+            <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml((f.answer||'').replace(/<[^>]+>/g,'').slice(0,120))}…</div>
             <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span style="font-size:.69rem;color:${f.count>=3?'#4ade80':'#f59e0b'};">chiesta ${f.count}x${f.count>=3?' — pronta per approvazione':''}</span>
               ${f.section ? `<span style="font-size:.69rem;color:#64748b;">sezione: ${escapeHtml(f.section)}</span>` : ''}
@@ -12091,12 +12149,11 @@ function saEditSociety(id) {
   document.getElementById('saSocNote').value = s.note || '';
   document.getElementById('saSocPiano').value = pianoNorm(s.piano) || 'demo';
 
-  // Load admin fields from the society's localStorage state
+  // Load admin fields — try localStorage first, then server (fresh mobile device)
   const stKey = id === 0 ? 'fieldos_state_v1' : 'fieldos_state_soc_' + id;
-  const raw = localStorage.getItem(stKey);
-  if (raw) {
+  const loadAdminFields = (rawJson) => {
     try {
-      const st = JSON.parse(raw);
+      const st = JSON.parse(rawJson);
       const admin = (st.USERS_DB || []).find(u => u.role === 'admin');
       if (admin) {
         document.getElementById('saAdminNome').value = admin.nome || '';
@@ -12105,6 +12162,15 @@ function saEditSociety(id) {
         document.getElementById('saAdminPass').value = admin.pass || '';
       }
     } catch(e) {}
+  };
+  const raw = localStorage.getItem(stKey);
+  if (raw) {
+    loadAdminFields(raw);
+  } else {
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(stKey))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.stateJson) loadAdminFields(d.stateJson); })
+      .catch(() => {});
   }
 
   saNewSocStep = 'edit';
@@ -12133,7 +12199,7 @@ function saSaveSociety() {
   renderSaPanel();
 }
 
-function saSaveEditFull() {
+async function saSaveEditFull() {
   const idRaw = document.getElementById('saSocId').value;
   const nome  = document.getElementById('saSocNome').value.trim();
   const citta = document.getElementById('saSocCitta').value.trim();
@@ -12160,9 +12226,18 @@ function saSaveEditFull() {
     if (piano === 'demo' && !s.scadenzaDemo) s.scadenzaDemo = Date.now() + DEMO_GIORNI * 86400000;
   }
 
-  // Update admin + society name/color in the society's localStorage state
+  // Update admin + society name/color in the society state
   const stKey = socId === 0 ? 'fieldos_state_v1' : 'fieldos_state_soc_' + socId;
-  const raw = localStorage.getItem(stKey);
+  let raw = localStorage.getItem(stKey);
+
+  // On fresh device localStorage is empty: fetch from server
+  if (!raw) {
+    try {
+      const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(stKey));
+      if (r.ok) { const d = await r.json(); if (d && d.stateJson) raw = d.stateJson; }
+    } catch(_) {}
+  }
+
   if (raw) {
     try {
       const st = JSON.parse(raw);
@@ -12170,8 +12245,21 @@ function saSaveEditFull() {
       st.coloriPrimari = colori;
       const admin = (st.USERS_DB || []).find(u => u.role === 'admin');
       if (admin) { admin.nome=aNome; admin.cogn=aCogn; admin.email=aEmail; admin.pass=aPass; }
-      localStorage.setItem(stKey, JSON.stringify(st));
-    } catch(e) {}
+      else {
+        // Admin non trovato: crea utente admin con i dati forniti
+        const newId = Math.max(0, ...(st.USERS_DB||[]).map(u=>u.id||0)) + 1;
+        (st.USERS_DB = st.USERS_DB || []).push({ id:newId, nome:aNome, cogn:aCogn, email:aEmail, pass:aPass, role:'admin', leva:'Tutte', stato:'attivo', figlio:null, figli:[], anno:null, societaId:socId });
+      }
+      const stJson = JSON.stringify(st);
+      localStorage.setItem(stKey, stJson);
+      // Persist to server
+      try {
+        await fetch(API_BASE + '/api/state/' + encodeURIComponent(stKey), {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stateJson: stJson })
+        });
+      } catch(_) {}
+    } catch(e) { console.warn('[saSaveEditFull]', e); }
   }
 
   saLog('Società modificata', nome);
@@ -12871,11 +12959,12 @@ function saveNewPassword() {
 <style>
 #saPanel {
   position:fixed;inset:0;background:linear-gradient(145deg,#080f1e 0%,#0f1f3d 55%,#0d1b35 100%);
-  z-index:99999;flex-direction:column;overflow:hidden;font-family:inherit;
+  z-index:99999;font-family:inherit;
 }
 .sa-topbar {
-  display:flex;align-items:center;gap:14px;padding:0 24px;height:58px;
-  background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;
+  position:absolute;top:0;left:0;right:0;height:58px;
+  display:flex;align-items:center;gap:14px;padding:0 24px;
+  background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);
 }
 .sa-logo { font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-.5px; }
 .sa-logo span { color:#3b82f6; }
@@ -12884,7 +12973,7 @@ function saveNewPassword() {
 .sa-topbar-email { color:#64748b;font-size:.82rem; }
 .sa-logout-btn { background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:6px;padding:6px 14px;font-size:.82rem;cursor:pointer;transition:.15s; }
 .sa-logout-btn:hover { background:rgba(239,68,68,.25); }
-.sa-body { flex:1;overflow-y:auto;padding:24px 28px 40px; }
+.sa-body { position:absolute;top:58px;left:0;right:0;bottom:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:24px 28px 40px; }
 .sa-kpi-bar { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:24px; }
 .sa-kpi { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px; }
 .sa-kpi-val { font-size:1.7rem;font-weight:800;color:#fff;line-height:1; }
