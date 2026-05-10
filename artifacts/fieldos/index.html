@@ -2006,6 +2006,49 @@ let nomeSocieta = 'Polis';
 let coloriPrimari = '#047857';
 let coloriAccento = '#FFD93D';
 
+// ═══════════════════════════════════════════════════════════
+// VARIABILI GLOBALI — tutte dichiarate in cima per evitare TDZ
+// In strict mode, un crash prima di una dichiarazione let/const
+// lascia quella variabile in TDZ: qualsiasi accesso successivo
+// (es. saLoadState durante il login) lancia ReferenceError.
+// ═══════════════════════════════════════════════════════════
+// Competizioni
+let amichevoli = [];
+let nextAmichevoleId = 1;
+let campionato = {};
+let nextCampId = 1;
+let tornei = [];
+let nextTorneoId = 1;
+let nextFaseId = 1;
+let nextTornMatchId = 1;
+let ptCurrentTab = 'campionato';
+// UI Gestione Competizioni
+let gcCurrentTab = 'campionato';
+let _gcCampSquadre = [];
+let _gcTorneoSquadre = [];
+let _gcTorneoFasiUI = [];
+const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
+// Setup campionato
+let _campSetupSquadre = [];
+let _campSetupMatches = [];
+// Modal risultato
+let _risCtx = null;
+// Chat interna
+let chatMessaggi = [];
+let nextChatMsgId = 1;
+let chatLastSeen = {};
+let currentChatId = null;
+let torneoChats = {};
+// Assistente AI / Chatbot
+let _chatOpen = false;
+let _chatMsgs = [];
+let _chatMsgId = 0;
+let _chatTyping = false;
+let _chatLastQ = '';
+let _chatSugList = [];
+let faqLearned = [];
+let faqLearnedNextId = 1;
+
 function applyBranding(nome, hex, accento) {
   // ── Primary color ──
   const h = /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : '#047857';
@@ -9007,26 +9050,11 @@ function deleteTipoEvento(tipoId){
   toast('🗑 Tipo eliminato');
 }
 
-renderCal();
+try { renderCal(); } catch(e) { console.warn('[init] renderCal error:', e); }
 
 // ═══════════════════════════════════
 // PARTITE & TORNEI
 // ═══════════════════════════════════
-
-// --- State ---
-// Amichevoli: {id, leva, data, avversario, luogo, golCasa, golOspiti, played, stats:[]}
-let amichevoli = [];
-let nextAmichevoleId = 1;
-// Campionato per leva: { [leva]: {squadre:[], partite:[{id,giornata,data,casa,ospite,golCasa,golOspiti,played,stats:[]}]} }
-let campionato = {};
-let nextCampId = 1;
-// Tornei: {id, nome, leva, luogo, dataInizio, dataFine, fasi:[{id,nome,tipo,squadre:[],partite:[]}]}
-let tornei = [];
-let nextTorneoId = 1;
-let nextFaseId = 1;
-let nextTornMatchId = 1;
-
-let ptCurrentTab = 'campionato'; // campionato | tornei | amichevoli
 
 // --- Helpers ---
 function levaNum(lv) { const m = String(lv).match(/\d+/); return m ? parseInt(m[0]) : 99; }
@@ -9367,11 +9395,6 @@ function renderPtTornei() {
 // ═══════════════════════════════════
 // GESTIONE COMPETIZIONI
 // ═══════════════════════════════════
-let gcCurrentTab = 'campionato';
-let _gcCampSquadre = []; // [{nome, colori, citta}]
-let _gcTorneoSquadre = [];
-let _gcTorneoFasiUI = []; // [{id, nome, tipo, squadre, partite}]
-
 function renderGestComp() {
   const pg = document.getElementById('pg-gestcomp');
   if (!pg || !pg.classList.contains('on')) return;
@@ -9691,7 +9714,6 @@ function deleteTorneo(torneoId) {
 }
 
 // ─── Torneo: modal ───
-const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
 function openGcTorneoEdit(id) {
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('mGcTorneoTitle').textContent = id ? '✏️ Modifica torneo' : '🏆 Nuovo torneo';
@@ -9924,8 +9946,6 @@ function savePtAmich() {
 }
 
 // ─── MODALI CAMPIONATO ───
-let _campSetupSquadre = [];
-let _campSetupMatches = [];
 function openCampSetup() {
   const leva = currentLeva;
   document.getElementById('campSetupLeva').textContent = leva;
@@ -10080,7 +10100,6 @@ function savePtFaseMatch() {
 }
 
 // ─── MODAL RISULTATO (condiviso) ───
-let _risCtx = null; // {tipo, match, leva}
 function openRisultato(tipo, ref) {
   let match, leva;
   if (tipo === 'amichevole') {
@@ -10220,12 +10239,6 @@ function renderPMatchStats(p) {
 // ═══════════════════════════════════
 // CHAT — gruppi automatici per leva + staff allenatori
 // ═══════════════════════════════════
-let chatMessaggi = [];     // [{id, chatId, userId, text, ts}]
-let nextChatMsgId = 1;
-let chatLastSeen = {};     // { [userId]: { [chatId]: ts } }
-let currentChatId = null;
-let torneoChats = {}; // { [torneoId]: { genitoriScrivono: false } }
-
 function isSeniorLeva(lv) {
   const m = String(lv).match(/[uU](\d+)/);
   return m ? parseInt(m[1], 10) >= 14 : false;
@@ -11352,15 +11365,6 @@ const CHAT_SUGS = {
   calendario:   ['Come aggiungo un evento?','Come creo un allenamento ricorrente?'],
   impostazioni: ['Come aggiungo un utente?','Come aggiungo una leva?','Come cambio i colori?'],
 };
-
-let _chatOpen = false;
-let _chatMsgs = []; // {id, role:'user'|'bot', html}
-let _chatMsgId = 0;
-let _chatTyping = false;
-let _chatLastQ = ''; // ultima domanda per escalate
-let _chatSugList = []; // lista suggerimenti correnti (evita quoting bug in innerHTML)
-let faqLearned = [];
-let faqLearnedNextId = 1;
 
 // ── Apertura / chiusura ──────────────────────
 function chatToggle() {
