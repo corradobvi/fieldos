@@ -2022,12 +2022,12 @@ let nomeSocieta = 'Polis';
 let coloriPrimari = '#047857';
 let coloriAccento = '#FFD93D';
 
-// ═══════════════════════════════════════════════════════════
-// VARIABILI GLOBALI — tutte dichiarate in cima per evitare TDZ
-// In strict mode, un crash prima di una dichiarazione let/const
-// lascia quella variabile in TDZ: qualsiasi accesso successivo
-// (es. saLoadState durante il login) lancia ReferenceError.
-// ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
+   VARIABILI GLOBALI — aggiungere SEMPRE qui
+   Non dichiarare variabili globali in altri punti del file.
+   In strict mode un crash prima di una dichiarazione let/const
+   lascia quella variabile in TDZ permanente per quel page load.
+   ═══════════════════════════════════════════════════════════ */
 // Competizioni
 let amichevoli = [];
 let nextAmichevoleId = 1;
@@ -2064,6 +2064,142 @@ let _chatLastQ = '';
 let _chatSugList = [];
 let faqLearned = [];
 let faqLearnedNextId = 1;
+// Login
+let _loginInProgress = false;
+// Rosa (giocatori)
+let editingPlayerId = null;
+// Presenze
+let currentPresDate = null;
+let currentPresNavMonth = null;
+let currentPresMonthFilter = null;
+// Comunicazioni
+let _commActiveTab = 'pubblica';
+let _commSearchQ = '';
+// Statistiche
+let currentStatsTab = 'panoramica';
+// Users (impostazioni)
+let editingUserId = null;
+// Inviti / registrazione genitore
+let codiceSocieta = '';
+let pendingUsers = [];
+let nextPendingUserId = 1;
+let inviti = [];
+let _currentInvitoToken = null;
+let _onboardSelectedIds = [];
+let _onboardCurrentInvito = null;
+let _selfRegSelectedIds = [];
+// Calendario & eventi
+const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO','LUGLIO','AGOSTO','SETTEMBRE','OTTOBRE','NOVEMBRE','DICEMBRE'];
+const DAYNAMES = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+const _today0 = new Date();
+let calY = _today0.getFullYear(), calM = _today0.getMonth();
+let eventTypes = [
+  { id:'partita',     label:'⚽ Partita',     color:'#0ea860' },
+  { id:'allenamento', label:'🏃 Allenamento', color:'#047857' },
+  { id:'evento',      label:'🎉 Evento',      color:'#f59e0b' },
+  { id:'riunione',    label:'👥 Riunione',    color:'#7c3aed' },
+  { id:'torneo',      label:'🏆 Torneo',      color:'#e03055' },
+];
+let nextEventTypeId = 100;
+let events = [];
+let nextEventId = 1;
+let campi = [];
+let nextCampoId = 1;
+let convocazioni = [];
+let nextConvocazioneId = 1;
+let disponibilita = [];
+let nextDisponibilitaId = 1;
+let indisponibilita = [];
+let nextIndispId = 1;
+let levaConvSettings = {};
+let notifiche = [];
+let nextNotificaId = 1;
+let comunicazioni = [];
+let nextComunicazioneId = 1;
+let nextCommentoId = 1;
+let mediaItems   = [];
+let nextMediaId  = 1;
+let playerPhotos = {};
+let squadFotos   = {};
+let _fvActiveTab = 'eventi';
+let _sondaggioFormOpen = false;
+let _sondOpCount = 2;
+let _commentiSheetCommId = null;
+let quotes = [];
+let nextQuoteId = 1;
+let quoteSettings = {};
+let documenti = [];
+let nextDocId = 1;
+let calFilterLeva = '__all';
+let calFilterTipo = '__all';
+let calWeekOffset = 0;
+let calWeekSelDay = null;
+let _dayModalDate = null;
+let _deleteTargetId = null;
+// Chatbot FAQ (dichiarate qui perché usate da renderCal e da handler pre-inizializzati)
+const FAQ_DB = [
+  // ROSA
+  {s:'rosa',q:'Come aggiungo un giocatore?',a:'Vai in <strong>Rosa</strong> → tasto <strong>+ Aggiungi giocatore</strong> → compila nome, cognome, ruolo, numero maglia → Salva.'},
+  {s:'rosa',q:'Come cambio il ruolo di un giocatore?',a:'Clicca sulla card del giocatore → tasto <strong>✏️ Modifica</strong> → cambia il ruolo → Salva.'},
+  {s:'rosa',q:'Come elimino un giocatore?',a:'Clicca <strong>✏️ Modifica</strong> sulla card del giocatore → tasto <strong>🗑 Elimina</strong> in fondo alla scheda.'},
+  {s:'rosa',q:'Come aggiungo una foto profilo?',a:'Clicca sul riquadro con le iniziali nella card del giocatore → seleziona una foto dal tuo telefono.'},
+  {s:'rosa',q:'Come aggiungo il soprannome?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Soprannome</strong> → Salva.'},
+  {s:'rosa',q:'Come cambio la leva a un giocatore?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Leva</strong> → seleziona la nuova leva → Salva.'},
+  // PRESENZE
+  {s:'presenze',q:'Come segno le presenze?',a:'Vai in <strong>Presenze</strong> → seleziona la data → clicca <strong>✓ Presente</strong>, <strong>✗ Assente</strong> o <strong>~ Giustificato</strong> per ogni giocatore.'},
+  {s:'presenze',q:'Come segno tutti presenti?',a:'Tasto verde <strong>Tutti presenti</strong> in cima alla pagina Presenze.'},
+  {s:'presenze',q:'Come aggiungo una nota su un\'assenza?',a:'Clicca sulla colonna <strong>Note</strong> accanto al giocatore assente.'},
+  {s:'presenze',q:'Come vedo le presenze del mese scorso?',a:'Seleziona il mese dal selettore in cima alla pagina Presenze.'},
+  {s:'presenze',q:'Come esporto le presenze?',a:'Tasto <strong>Export CSV</strong> in alto a destra nella pagina Presenze.'},
+  {s:'presenze',q:'Come avviso di un\'assenza?',a:'I genitori possono inviare avviso di assenza dal loro profilo nella sezione <strong>Presenze</strong>.'},
+  // CONVOCAZIONI
+  {s:'convocazioni',q:'Come creo una convocazione?',a:'<strong>Partite & Tornei</strong> → seleziona la partita → tasto <strong>Convocazioni</strong> → seleziona i giocatori → Invia.'},
+  {s:'convocazioni',q:'Come cambio i convocati?',a:'Apri la convocazione esistente → tasto <strong>Modifica</strong> → aggiungi o rimuovi giocatori.'},
+  {s:'convocazioni',q:'Come i genitori vedono la convocazione?',a:'I genitori vedono <strong>Fase 1</strong> (solo data/ora) e <strong>Fase 2</strong> (dettagli completi) in base ai giorni impostati dal Mister.'},
+  {s:'convocazioni',q:'Come imposto quando i genitori vedono i dettagli?',a:'Convocazioni → <strong>Impostazioni visibilità</strong> → giorni prima per Fase 1 e Fase 2.'},
+  // COMUNICAZIONI
+  {s:'comunicazioni',q:'Come scrivo un avviso?',a:'<strong>Comunicazioni</strong> → tasto <strong>+ Nuovo avviso</strong> → scegli bacheca (pubblica o leva) → compila e invia.'},
+  {s:'comunicazioni',q:'Chi vede i miei avvisi?',a:'Gli avvisi <strong>pubblici</strong> li vedono tutti. Quelli di <strong>leva</strong> solo gli utenti di quella leva.'},
+  {s:'comunicazioni',q:'Come creo un sondaggio?',a:'Nuovo avviso → tasto <strong>+ Aggiungi sondaggio</strong> → inserisci domanda e opzioni.'},
+  {s:'comunicazioni',q:'Come abilito i commenti?',a:'Nuovo avviso → spunta <strong>Abilita commenti</strong> prima di inviare.'},
+  // CHAT
+  {s:'chat',q:'Come scrivo in una chat?',a:'Clicca sulla conversazione → scrivi in fondo → premi <strong>Invia</strong>.'},
+  {s:'chat',q:'Come invio una foto in chat?',a:'Nella chat → icona <strong>📎</strong> → seleziona la foto dal telefono.'},
+  {s:'chat',q:'Perché non vedo certe chat?',a:'Le chat vengono create automaticamente in base al tuo <strong>ruolo</strong> e alla tua <strong>leva</strong>. Ogni ruolo vede le chat di sua competenza.'},
+  {s:'chat',q:'Chi c\'è nel gruppo genitori?',a:'Tutti i genitori della leva + i dirigenti. Mister e admin hanno un gruppo separato.'},
+  // PARTITE E TORNEI
+  {s:'partite',q:'Come creo un campionato?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo campionato</strong> → inserisci nome, leva, squadre del girone.'},
+  {s:'partite',q:'Come aggiungo una partita?',a:'Apri il campionato → <strong>+ Aggiungi partita</strong> → data, orario, avversario, luogo.'},
+  {s:'partite',q:'Come inserisco il risultato?',a:'<strong>Partite & Tornei</strong> → clicca sulla partita → <strong>Inserisci risultato</strong> → aggiungi gol e assist per ogni giocatore.'},
+  {s:'partite',q:'Come creo un torneo?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo torneo</strong> → nome, date, leva, squadre.'},
+  {s:'partite',q:'Come si aggiorna la classifica?',a:'La classifica si aggiorna <strong>automaticamente</strong> quando inserisci i risultati delle partite.'},
+  {s:'partite',q:'Come creo un\'amichevole?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuova amichevole</strong> → avversario, data, luogo.'},
+  // CALENDARIO
+  {s:'calendario',q:'Come aggiungo un evento?',a:'<strong>Calendario</strong> → tasto <strong>+ Evento</strong> → tipo, titolo, data, ora inizio e fine.'},
+  {s:'calendario',q:'Come creo un allenamento ricorrente?',a:'Nuovo evento → tipo <strong>Allenamento</strong> → attiva <strong>Evento ricorrente</strong> → seleziona giorni e periodo.'},
+  {s:'calendario',q:'Come elimino un singolo allenamento?',a:'Clicca sul giorno nel calendario → clicca sull\'evento → <strong>Elimina solo questo</strong>.'},
+  {s:'calendario',q:'Come filtro per leva nel calendario?',a:'Usa il <strong>filtro leva</strong> in cima al calendario.'},
+  // IMPOSTAZIONI
+  {s:'impostazioni',q:'Come aggiungo un utente?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → compila dati e ruolo → Salva e invia invito.'},
+  {s:'impostazioni',q:'Come aggiungo una leva?',a:'<strong>Impostazioni</strong> → Leve → <strong>+ Aggiungi leva</strong> → nome → Aggiungi.'},
+  {s:'impostazioni',q:'Come cambio i colori della società?',a:'<strong>Impostazioni</strong> → Personalizzazione → colore primario e accento → Salva.'},
+  {s:'impostazioni',q:'Come carico il logo?',a:'<strong>Impostazioni</strong> → Dati società → <strong>Logo società</strong> → carica immagine.'},
+  {s:'impostazioni',q:'Come cambio password?',a:'Clicca sul tuo avatar in alto → <strong>Profilo</strong> → Cambia password.'},
+  {s:'impostazioni',q:'Come invito un genitore?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → ruolo Genitore → associa al figlio → genera link invito.'},
+  // GENERALI
+  {s:'',q:'Come funziona la demo?',a:'Hai <strong>14 giorni</strong> con accesso completo a tutte le funzioni. I tuoi dati rimangono quando scegli un piano.'},
+  {s:'',q:'Quali sono i piani?',a:'<strong>Mister</strong> 9€/mese (1 leva, 25 giocatori) · <strong>Mister Pro</strong> 19€/mese (3 leve) · <strong>Società</strong> 49€/mese (leve e giocatori illimitati).'},
+];
+const CHAT_SUGS = {
+  rosa:         ['Come aggiungo un giocatore?','Come aggiungo una foto profilo?','Come cambio leva a un giocatore?'],
+  presenze:     ['Come segno le presenze?','Come segno tutti presenti?','Come esporto le presenze?'],
+  convocazioni: ['Come creo una convocazione?','Come cambio i convocati?','Come i genitori vedono la convocazione?'],
+  comunicazioni:['Come scrivo un avviso?','Come creo un sondaggio?','Chi vede i miei avvisi?'],
+  chat:         ['Come scrivo in una chat?','Chi c\'è nel gruppo genitori?'],
+  partite:      ['Come inserisco il risultato?','Come creo un campionato?','Come si aggiorna la classifica?'],
+  calendario:   ['Come aggiungo un evento?','Come creo un allenamento ricorrente?'],
+  impostazioni: ['Come aggiungo un utente?','Come aggiungo una leva?','Come cambio i colori?'],
+};
 
 function applyBranding(nome, hex, accento) {
   // ── Primary color ──
@@ -2281,8 +2417,6 @@ function quick(role, email, pass) {
   document.getElementById('lPass').value  = pass;
   setTimeout(doLoginSafe, 100);
 }
-
-let _loginInProgress = false;
 
 function togglePassVis() {
   const inp = document.getElementById('lPass');
@@ -3063,8 +3197,6 @@ function renderRosa() {
 }
 
 // Player modal — null = new, id = edit
-let editingPlayerId = null;
-
 function openPlayerModal(id) {
   editingPlayerId = id;
   if (id === null) {
@@ -3337,10 +3469,6 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 // PRESENZE — Registro per allenamento
 // ═══════════════════════════════════
-
-let currentPresDate = null;      // 'YYYY-MM-DD'
-let currentPresNavMonth = null;  // 'YYYY-MM' mese selezionato nel navigatore in alto
-let currentPresMonthFilter = null; // 'YYYY-MM' filtro mese riepilogo
 
 // Permessi:
 function canEditPresenze(){ return me && me.role === 'allenatore'; }
@@ -4863,9 +4991,6 @@ const COMM_TIPO = {
   urgente: {label:'🚨 Urgente', color:'#dc2626', bg:'#fff0f0', border:'rgba(220,38,38,.4)'},
   evento:  {label:'🎉 Evento',  color:'#d97706', bg:'#fffbeb', border:'rgba(217,119,6,.3)'},
 };
-let _commActiveTab = 'pubblica';
-let _commSearchQ = '';
-
 function commVisibleScopes() {
   if (!me) return [];
   const scopes = [{id:'pubblica', label:'🏠 Pubblica'}];
@@ -5757,7 +5882,6 @@ function showUnreadConvToast() {
 // STATISTICHE
 // ═══════════════════════════════════
 
-let currentStatsTab = 'panoramica';
 function statsSetTab(tab){ currentStatsTab=tab; renderStats(); }
 
 function renderStats() {
@@ -5965,8 +6089,6 @@ function renderStatsTornei(el){
 // ═══════════════════════════════════
 // USERS (impostazioni)
 // ═══════════════════════════════════
-
-let editingUserId = null;
 
 const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', giocatore:'Giocatore'};
 const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', giocatore:'pill-g'};
@@ -6268,19 +6390,7 @@ function deleteCurrentUser() {
 // INVITI GENITORE
 // ═══════════════════════════════════
 
-// Codice società per registrazione autonoma genitori (vuoto = disattivato)
-let codiceSocieta = '';
-
-// Richieste di iscrizione in attesa di approvazione admin
-// [{id, nome, cogn, email, pass, role:'genitore', figli:[nomi], richiestaTs}]
-let pendingUsers = [];
-let nextPendingUserId = 1;
-
-let inviti = [];                  // [{ token, nome, email, tel, figlioPlayerId, nota, byUserId, byName, byRole, ts, expiresAt, used, usedAt, registeredUserId }]
 const INVITO_TTL_DAYS = 30;
-let _currentInvitoToken = null;   // token attualmente mostrato in mInvita step2
-let _onboardSelectedIds = [];     // playerIds selezionati nello step2 onboarding
-let _onboardCurrentInvito = null; // invito attivo durante onboarding
 
 function genTokenInvito(){
   // 24 byte = 192 bit di entropia, encoding hex lossless (48 char)
@@ -6609,8 +6719,6 @@ function completeOnboarding(){
 // ═══════════════════════════════════
 // REGISTRAZIONE AUTONOMA GENITORE (codice società + approvazione admin)
 // ═══════════════════════════════════
-
-let _selfRegSelectedIds = [];
 
 function genCodiceSocietaSuggested(){
   // Es. "XYZW-A3B9" — leggibile, no caratteri ambigui (no 0/O/I/1/L)
@@ -8375,72 +8483,6 @@ function buildCalActions(role) {
 // ═══════════════════════════════════
 // CALENDAR
 // ═══════════════════════════════════
-const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO','LUGLIO','AGOSTO','SETTEMBRE','OTTOBRE','NOVEMBRE','DICEMBRE'];
-const DAYNAMES = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
-
-const _today0 = new Date();
-let calY = _today0.getFullYear(), calM = _today0.getMonth();
-
-// Tipi evento (di default + utente può aggiungere)
-let eventTypes = [
-  { id:'partita',     label:'⚽ Partita',     color:'#0ea860' },
-  { id:'allenamento', label:'🏃 Allenamento', color:'#047857' },
-  { id:'evento',      label:'🎉 Evento',      color:'#f59e0b' },
-  { id:'riunione',    label:'👥 Riunione',    color:'#7c3aed' },
-  { id:'torneo',      label:'🏆 Torneo',      color:'#e03055' },
-];
-let nextEventTypeId = 100;
-
-// Eventi: { id, title, type, leve:[], date:'YYYY-MM-DD', start:'HH:MM', end:'HH:MM', luogo, campoId, note, recur, recurUntil, recurGroupId }
-let events = [];
-let nextEventId = 1;
-
-// Campi di gioco: { id, nome, tipo, indirizzo, note, usageCount }
-let campi = [];
-let nextCampoId = 1;
-
-// Convocazioni: { id, eventId, leva, ritrovo, divisa, note, playerIds:[], createdBy, createdAt, sentAt }
-let convocazioni = [];
-let nextConvocazioneId = 1;
-
-// Disponibilità giocatori per evento: { id, eventId, playerId, status:'disponibile'|'indisponibile', motivo, byUserId, ts }
-let disponibilita = [];
-let nextDisponibilitaId = 1;
-
-// Indisponibilità genitori per periodo: { id, playerId, dataInizio, dataFine, motivo, byUserId, createdAt }
-let indisponibilita = [];
-let nextIndispId = 1;
-
-// Impostazioni visibilità convocazioni per leva: { 'U12': { fase1Days: 14, fase2Days: 3 } }
-let levaConvSettings = {};
-
-// Notifiche per utente: { id, userId, type, title, body, eventId, convocazioneId, ts, read }
-let notifiche = [];
-let nextNotificaId = 1;
-let comunicazioni = [];
-let nextComunicazioneId = 1;
-let nextCommentoId = 1;
-let mediaItems   = [];   // [{id, type, area, data, title, leva, eventRef, date, uploadedBy, uploadedAt, likes:[]}]
-let nextMediaId  = 1;
-let playerPhotos = {};   // { [playerId]: base64 }
-let squadFotos   = {};   // { [leva]: base64 }
-let _fvActiveTab = 'eventi';
-let _sondaggioFormOpen = false;
-let _sondOpCount = 2;
-let _commentiSheetCommId = null;
-
-// ── Quote e pagamenti
-let quotes = [];        // { id, playerId, parentUserId, leva, importo, scadenza, stato, pagatoAt, nota, createdBy, createdAt }
-let nextQuoteId = 1;
-let quoteSettings = {}; // { [leva]: { modo, totale, scadenze:[], reminderGiorni } }
-
-// ── Documenti giocatori
-let documenti = [];     // { id, playerId, tipo, tipoLabel, nomeFile, data, dataScadenza, uploadedBy, uploadedAt, fileType }
-let nextDocId = 1;
-
-// Filtri attivi
-let calFilterLeva = '__all';
-let calFilterTipo = '__all';
 
 // ── Helpers data
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -8557,9 +8599,6 @@ function renderLegend(){
 
 // ── Render calendario
 // ── Mobile week calendar ──────────────────
-let calWeekOffset = 0; // settimane dall'oggi
-let calWeekSelDay = null; // 'YYYY-MM-DD' selezionato
-
 function calWeekMove(dir) { calWeekOffset += dir; renderCalWeek(); }
 
 function renderCalWeek() {
@@ -8680,7 +8719,6 @@ function renderCal() {
 function chMon(dir) { calM += dir; if (calM > 11){calM=0;calY++;} if(calM<0){calM=11;calY--;} renderCal(); }
 
 // ── Modal: eventi del giorno
-let _dayModalDate = null;
 function openDayModal(dateStr){
   _dayModalDate = dateStr;
   const d = parseYmd(dateStr);
@@ -8859,7 +8897,6 @@ function saveEvento(){
   closeM('mEvento');
   renderCal();
 }
-let _deleteTargetId = null;
 function deleteCurrentEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
@@ -11368,72 +11405,7 @@ function checkDemoMode() {
 // ═══════════════════════════════════════════════════════════
 // ASSISTENTE — FAQ CHATBOT + CLAUDE FALLBACK
 // ═══════════════════════════════════════════════════════════
-
-const FAQ_DB = [
-  // ROSA
-  {s:'rosa',q:'Come aggiungo un giocatore?',a:'Vai in <strong>Rosa</strong> → tasto <strong>+ Aggiungi giocatore</strong> → compila nome, cognome, ruolo, numero maglia → Salva.'},
-  {s:'rosa',q:'Come cambio il ruolo di un giocatore?',a:'Clicca sulla card del giocatore → tasto <strong>✏️ Modifica</strong> → cambia il ruolo → Salva.'},
-  {s:'rosa',q:'Come elimino un giocatore?',a:'Clicca <strong>✏️ Modifica</strong> sulla card del giocatore → tasto <strong>🗑 Elimina</strong> in fondo alla scheda.'},
-  {s:'rosa',q:'Come aggiungo una foto profilo?',a:'Clicca sul riquadro con le iniziali nella card del giocatore → seleziona una foto dal tuo telefono.'},
-  {s:'rosa',q:'Come aggiungo il soprannome?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Soprannome</strong> → Salva.'},
-  {s:'rosa',q:'Come cambio la leva a un giocatore?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Leva</strong> → seleziona la nuova leva → Salva.'},
-  // PRESENZE
-  {s:'presenze',q:'Come segno le presenze?',a:'Vai in <strong>Presenze</strong> → seleziona la data → clicca <strong>✓ Presente</strong>, <strong>✗ Assente</strong> o <strong>~ Giustificato</strong> per ogni giocatore.'},
-  {s:'presenze',q:'Come segno tutti presenti?',a:'Tasto verde <strong>Tutti presenti</strong> in cima alla pagina Presenze.'},
-  {s:'presenze',q:'Come aggiungo una nota su un\'assenza?',a:'Clicca sulla colonna <strong>Note</strong> accanto al giocatore assente.'},
-  {s:'presenze',q:'Come vedo le presenze del mese scorso?',a:'Seleziona il mese dal selettore in cima alla pagina Presenze.'},
-  {s:'presenze',q:'Come esporto le presenze?',a:'Tasto <strong>Export CSV</strong> in alto a destra nella pagina Presenze.'},
-  {s:'presenze',q:'Come avviso di un\'assenza?',a:'I genitori possono inviare avviso di assenza dal loro profilo nella sezione <strong>Presenze</strong>.'},
-  // CONVOCAZIONI
-  {s:'convocazioni',q:'Come creo una convocazione?',a:'<strong>Partite & Tornei</strong> → seleziona la partita → tasto <strong>Convocazioni</strong> → seleziona i giocatori → Invia.'},
-  {s:'convocazioni',q:'Come cambio i convocati?',a:'Apri la convocazione esistente → tasto <strong>Modifica</strong> → aggiungi o rimuovi giocatori.'},
-  {s:'convocazioni',q:'Come i genitori vedono la convocazione?',a:'I genitori vedono <strong>Fase 1</strong> (solo data/ora) e <strong>Fase 2</strong> (dettagli completi) in base ai giorni impostati dal Mister.'},
-  {s:'convocazioni',q:'Come imposto quando i genitori vedono i dettagli?',a:'Convocazioni → <strong>Impostazioni visibilità</strong> → giorni prima per Fase 1 e Fase 2.'},
-  // COMUNICAZIONI
-  {s:'comunicazioni',q:'Come scrivo un avviso?',a:'<strong>Comunicazioni</strong> → tasto <strong>+ Nuovo avviso</strong> → scegli bacheca (pubblica o leva) → compila e invia.'},
-  {s:'comunicazioni',q:'Chi vede i miei avvisi?',a:'Gli avvisi <strong>pubblici</strong> li vedono tutti. Quelli di <strong>leva</strong> solo gli utenti di quella leva.'},
-  {s:'comunicazioni',q:'Come creo un sondaggio?',a:'Nuovo avviso → tasto <strong>+ Aggiungi sondaggio</strong> → inserisci domanda e opzioni.'},
-  {s:'comunicazioni',q:'Come abilito i commenti?',a:'Nuovo avviso → spunta <strong>Abilita commenti</strong> prima di inviare.'},
-  // CHAT
-  {s:'chat',q:'Come scrivo in una chat?',a:'Clicca sulla conversazione → scrivi in fondo → premi <strong>Invia</strong>.'},
-  {s:'chat',q:'Come invio una foto in chat?',a:'Nella chat → icona <strong>📎</strong> → seleziona la foto dal telefono.'},
-  {s:'chat',q:'Perché non vedo certe chat?',a:'Le chat vengono create automaticamente in base al tuo <strong>ruolo</strong> e alla tua <strong>leva</strong>. Ogni ruolo vede le chat di sua competenza.'},
-  {s:'chat',q:'Chi c\'è nel gruppo genitori?',a:'Tutti i genitori della leva + i dirigenti. Mister e admin hanno un gruppo separato.'},
-  // PARTITE E TORNEI
-  {s:'partite',q:'Come creo un campionato?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo campionato</strong> → inserisci nome, leva, squadre del girone.'},
-  {s:'partite',q:'Come aggiungo una partita?',a:'Apri il campionato → <strong>+ Aggiungi partita</strong> → data, orario, avversario, luogo.'},
-  {s:'partite',q:'Come inserisco il risultato?',a:'<strong>Partite & Tornei</strong> → clicca sulla partita → <strong>Inserisci risultato</strong> → aggiungi gol e assist per ogni giocatore.'},
-  {s:'partite',q:'Come creo un torneo?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo torneo</strong> → nome, date, leva, squadre.'},
-  {s:'partite',q:'Come si aggiorna la classifica?',a:'La classifica si aggiorna <strong>automaticamente</strong> quando inserisci i risultati delle partite.'},
-  {s:'partite',q:'Come creo un\'amichevole?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuova amichevole</strong> → avversario, data, luogo.'},
-  // CALENDARIO
-  {s:'calendario',q:'Come aggiungo un evento?',a:'<strong>Calendario</strong> → tasto <strong>+ Evento</strong> → tipo, titolo, data, ora inizio e fine.'},
-  {s:'calendario',q:'Come creo un allenamento ricorrente?',a:'Nuovo evento → tipo <strong>Allenamento</strong> → attiva <strong>Evento ricorrente</strong> → seleziona giorni e periodo.'},
-  {s:'calendario',q:'Come elimino un singolo allenamento?',a:'Clicca sul giorno nel calendario → clicca sull\'evento → <strong>Elimina solo questo</strong>.'},
-  {s:'calendario',q:'Come filtro per leva nel calendario?',a:'Usa il <strong>filtro leva</strong> in cima al calendario.'},
-  // IMPOSTAZIONI
-  {s:'impostazioni',q:'Come aggiungo un utente?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → compila dati e ruolo → Salva e invia invito.'},
-  {s:'impostazioni',q:'Come aggiungo una leva?',a:'<strong>Impostazioni</strong> → Leve → <strong>+ Aggiungi leva</strong> → nome → Aggiungi.'},
-  {s:'impostazioni',q:'Come cambio i colori della società?',a:'<strong>Impostazioni</strong> → Personalizzazione → colore primario e accento → Salva.'},
-  {s:'impostazioni',q:'Come carico il logo?',a:'<strong>Impostazioni</strong> → Dati società → <strong>Logo società</strong> → carica immagine.'},
-  {s:'impostazioni',q:'Come cambio password?',a:'Clicca sul tuo avatar in alto → <strong>Profilo</strong> → Cambia password.'},
-  {s:'impostazioni',q:'Come invito un genitore?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → ruolo Genitore → associa al figlio → genera link invito.'},
-  // GENERALI
-  {s:'',q:'Come funziona la demo?',a:'Hai <strong>14 giorni</strong> con accesso completo a tutte le funzioni. I tuoi dati rimangono quando scegli un piano.'},
-  {s:'',q:'Quali sono i piani?',a:'<strong>Mister</strong> 9€/mese (1 leva, 25 giocatori) · <strong>Mister Pro</strong> 19€/mese (3 leve) · <strong>Società</strong> 49€/mese (leve e giocatori illimitati).'},
-];
-
-// Suggerimenti rapidi per sezione
-const CHAT_SUGS = {
-  rosa:         ['Come aggiungo un giocatore?','Come aggiungo una foto profilo?','Come cambio leva a un giocatore?'],
-  presenze:     ['Come segno le presenze?','Come segno tutti presenti?','Come esporto le presenze?'],
-  convocazioni: ['Come creo una convocazione?','Come cambio i convocati?','Come i genitori vedono la convocazione?'],
-  comunicazioni:['Come scrivo un avviso?','Come creo un sondaggio?','Chi vede i miei avvisi?'],
-  chat:         ['Come scrivo in una chat?','Chi c\'è nel gruppo genitori?'],
-  partite:      ['Come inserisco il risultato?','Come creo un campionato?','Come si aggiorna la classifica?'],
-  calendario:   ['Come aggiungo un evento?','Come creo un allenamento ricorrente?'],
-  impostazioni: ['Come aggiungo un utente?','Come aggiungo una leva?','Come cambio i colori?'],
-};
+// (FAQ_DB e CHAT_SUGS sono in VARIABILI GLOBALI per evitare TDZ)
 
 // ── Apertura / chiusura ──────────────────────
 function chatToggle() {
