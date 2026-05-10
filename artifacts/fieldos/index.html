@@ -7146,7 +7146,7 @@ function buildMobDashboard(role, c) {
   const lv = currentLeva;
 
   // Prossimo evento
-  const allEv = getAllCalendarEvents();
+  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
   const nextEv = allEv.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date))[0];
   let nextEvHtml = '';
   if (nextEv) {
@@ -8465,7 +8465,7 @@ function renderCalWeek() {
   const DAYS_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 
-  const allEv = getAllCalendarEvents ? getAllCalendarEvents() : [];
+  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
 
   strip.innerHTML = '';
   let days = [];
