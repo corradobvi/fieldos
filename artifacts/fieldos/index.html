@@ -10377,6 +10377,8 @@ function saveNewPassword() {
         if (fresh) user = fresh;
       } else {
         restoreState(); // fallback: localStorage
+        // Server vuoto: carica subito i dati esistenti sul server
+        apiPush(KEY, localStorage.getItem(KEY) || '{}');
       }
       _origBoot(user);
       startSyncPoll();
