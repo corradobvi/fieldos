@@ -673,9 +673,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
    ═══════════════════════════════════════════ */
 #asstBtn{
   position:fixed;
-  /* sopra mob-nav (60px) + safe-area iPhone home indicator */
-  bottom:calc(70px + env(safe-area-inset-bottom,0px));
-  left:16px;z-index:2000;
+  /* mobile: sopra la barra di navigazione (60px) con margine di sicurezza */
+  bottom:80px;
+  right:16px;z-index:2000;
   width:52px;height:52px;border-radius:50%;
   background:linear-gradient(135deg,#047857,#059669);
   color:#fff;font-size:1.3rem;border:none;cursor:pointer;
@@ -686,8 +686,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 #asstBtn.visible{display:flex;}
 #asstBtn:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(4,120,87,.55);}
-/* Su desktop (niente mob-nav): destra in basso */
-@media(min-width:641px){#asstBtn{bottom:24px;left:auto;right:24px;}}
+/* Su desktop (niente mob-nav): destra in basso vicino al bordo */
+@media(min-width:641px){#asstBtn{bottom:24px;right:24px;}}
 #asstUnread{position:absolute;top:-3px;right:-3px;background:#ef4444;color:#fff;border-radius:50%;width:17px;height:17px;font-size:.6rem;display:none;align-items:center;justify-content:center;font-weight:700;}
 #asstPanel{position:fixed;bottom:0;right:0;z-index:2001;width:min(380px,100vw);height:min(540px,100dvh);background:var(--white);border-radius:18px 18px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
 #asstPanel.open{transform:translateY(0);}
