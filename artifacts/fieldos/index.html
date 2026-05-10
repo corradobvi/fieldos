@@ -621,13 +621,27 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   color:#fff;font-family:inherit;font-size:.93rem;font-weight:700;
   border:none;cursor:pointer;margin-top:10px;
   transition:all .16s;letter-spacing:.01em;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .btn-demo:hover{opacity:.9;transform:translateY(-1px);}
 /* Schermata registrazione autonoma */
-#registerScreen{display:none;min-height:100vh;background:var(--bg);align-items:center;justify-content:center;padding:16px;}
+#registerScreen{
+  display:none;min-height:100vh;background:var(--bg);
+  /* scroll verticale quando la tastiera è aperta */
+  overflow-y:auto;
+  align-items:flex-start;justify-content:center;
+  padding:24px 16px 40px;
+}
 #registerScreen.on{display:flex;}
 .rf{width:100%;max-width:440px;}
-.rf-back{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--cp);font-weight:600;cursor:pointer;margin-bottom:16px;border:none;background:none;padding:0;}
+.rf-back{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:.82rem;color:var(--cp);font-weight:600;cursor:pointer;
+  margin-bottom:16px;border:none;background:none;
+  /* tap target minimo 44px */
+  padding:12px 0;-webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
 .rf-title{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;color:var(--text);margin-bottom:2px;}
 .rf-sub{font-size:.82rem;color:var(--text2);margin-bottom:20px;}
 /* SA plan badges aggiornati */
@@ -639,9 +653,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* ═══════════════════════════════════════════
    ASSISTENTE CHAT
    ═══════════════════════════════════════════ */
-#asstBtn{position:fixed;bottom:78px;right:16px;z-index:2000;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#047857,#059669);color:#fff;font-size:1.3rem;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(4,120,87,.45);display:none;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+#asstBtn{
+  position:fixed;
+  /* sopra mob-nav (60px) + safe-area iPhone home indicator */
+  bottom:calc(70px + env(safe-area-inset-bottom,0px));
+  right:16px;z-index:2000;
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,#047857,#059669);
+  color:#fff;font-size:1.3rem;border:none;cursor:pointer;
+  box-shadow:0 4px 18px rgba(4,120,87,.45);
+  display:none;align-items:center;justify-content:center;
+  transition:transform .2s,box-shadow .2s;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
 #asstBtn.visible{display:flex;}
 #asstBtn:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(4,120,87,.55);}
+/* Su desktop (niente mob-nav) torna vicino al fondo */
+@media(min-width:641px){#asstBtn{bottom:24px;}}
 #asstUnread{position:absolute;top:-3px;right:-3px;background:#ef4444;color:#fff;border-radius:50%;width:17px;height:17px;font-size:.6rem;display:none;align-items:center;justify-content:center;font-weight:700;}
 #asstPanel{position:fixed;bottom:0;right:0;z-index:2001;width:min(380px,100vw);height:min(540px,100dvh);background:var(--white);border-radius:18px 18px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
 #asstPanel.open{transform:translateY(0);}
@@ -663,13 +691,37 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .chat-dot:nth-child(2){animation-delay:.2s;}
 .chat-dot:nth-child(3){animation-delay:.4s;}
 @keyframes chatDot{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-5px);}}
-.chat-sugs{padding:6px 12px 4px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;border-top:1px solid var(--border);}
-.chat-sug{padding:5px 11px;border-radius:12px;border:1.5px solid var(--cp);background:none;color:var(--cp);font-size:.69rem;cursor:pointer;white-space:nowrap;transition:all .14s;font-family:inherit;}
-.chat-sug:hover{background:var(--cp);color:#fff;}
+.chat-sugs{
+  padding:6px 12px 4px;
+  /* scroll orizzontale invece di andare a capo — più pulito su mobile */
+  display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;
+  flex-shrink:0;border-top:1px solid var(--border);
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; /* nasconde scrollbar */
+}
+.chat-sugs::-webkit-scrollbar{display:none;}
+.chat-sug{
+  padding:6px 12px;border-radius:12px;border:1.5px solid var(--cp);
+  background:none;color:var(--cp);font-size:.7rem;cursor:pointer;
+  white-space:nowrap;flex-shrink:0;
+  transition:all .14s;font-family:inherit;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  min-height:34px;display:flex;align-items:center;
+}
+.chat-sug:hover,.chat-sug:active{background:var(--cp);color:#fff;}
 .chat-inp-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
-.chat-inp{flex:1;border:1.5px solid var(--border2);border-radius:20px;padding:9px 14px;font-size:.81rem;font-family:inherit;outline:none;background:var(--bg);color:var(--text);}
+.chat-inp{
+  flex:1;border:1.5px solid var(--border2);border-radius:20px;
+  padding:9px 14px;font-size:16px; /* 16px previene zoom iOS */
+  font-family:inherit;outline:none;background:var(--bg);color:var(--text);
+}
 .chat-inp:focus{border-color:var(--cp);}
-.chat-send-btn{padding:9px 16px;border-radius:20px;background:var(--cp);color:#fff;border:none;cursor:pointer;font-size:.81rem;font-weight:700;white-space:nowrap;}
+.chat-send-btn{
+  padding:9px 16px;border-radius:20px;background:var(--cp);color:#fff;
+  border:none;cursor:pointer;font-size:.81rem;font-weight:700;
+  white-space:nowrap;min-height:42px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
 .chat-send-btn:hover{opacity:.9;}
 /* SA: FAQ apprese */
 .faq-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
