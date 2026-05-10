@@ -12959,11 +12959,12 @@ function saveNewPassword() {
 <style>
 #saPanel {
   position:fixed;inset:0;background:linear-gradient(145deg,#080f1e 0%,#0f1f3d 55%,#0d1b35 100%);
-  z-index:99999;flex-direction:column;overflow:hidden;font-family:inherit;
+  z-index:99999;font-family:inherit;
 }
 .sa-topbar {
-  display:flex;align-items:center;gap:14px;padding:0 24px;height:58px;
-  background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0;
+  position:absolute;top:0;left:0;right:0;height:58px;
+  display:flex;align-items:center;gap:14px;padding:0 24px;
+  background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08);
 }
 .sa-logo { font-size:1.15rem;font-weight:800;color:#fff;letter-spacing:-.5px; }
 .sa-logo span { color:#3b82f6; }
@@ -12972,7 +12973,7 @@ function saveNewPassword() {
 .sa-topbar-email { color:#64748b;font-size:.82rem; }
 .sa-logout-btn { background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:6px;padding:6px 14px;font-size:.82rem;cursor:pointer;transition:.15s; }
 .sa-logout-btn:hover { background:rgba(239,68,68,.25); }
-.sa-body { flex:1;height:0;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:24px 28px 40px; }
+.sa-body { position:absolute;top:58px;left:0;right:0;bottom:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:24px 28px 40px; }
 .sa-kpi-bar { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:24px; }
 .sa-kpi { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px; }
 .sa-kpi-val { font-size:1.7rem;font-weight:800;color:#fff;line-height:1; }
