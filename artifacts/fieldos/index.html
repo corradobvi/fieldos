@@ -10209,7 +10209,7 @@ function saveNewPassword() {
     // Returns the server's stateJson string, or null if not found / error
     try {
       const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 2000);
+      const tid = setTimeout(() => ctrl.abort(), 8000);
       const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
       clearTimeout(tid);
       if (!resp.ok) return null;
@@ -10331,34 +10331,59 @@ function saveNewPassword() {
   restoreState();
 
   // Se l'URL contiene ?invito=TOKEN, apri l'onboarding registrazione genitore
-  // (eseguito al primo paint, dopo che il DOM è pronto)
   setTimeout(() => { try { if (typeof checkInvitoFromUrl === 'function') checkInvitoFromUrl(); } catch(e) { console.error(e); } }, 50);
 
-  // Hook su bootApp: ricarica lo stato ad ogni login
-  // Prima usa localStorage (istantaneo), poi sincronizza dal server
+  let _syncPollTimer = null;
+
+  // Applica stato dal server preservando le foto locali (non inviate al server per risparmiare spazio)
+  function applyServerState(serverJson) {
+    const savedPhotos = Object.assign({}, playerPhotos);
+    const savedSquad  = Object.assign({}, squadFotos);
+    localStorage.setItem(KEY, serverJson);
+    lastSnap = serverJson;
+    restoreState();
+    if (Object.keys(savedPhotos).length) Object.assign(playerPhotos, savedPhotos);
+    if (Object.keys(savedSquad).length)  Object.assign(squadFotos,  savedSquad);
+    const activePg = document.querySelector('.page.on');
+    const pgId = activePg ? activePg.id.replace('pg-', '') : null;
+    if (pgId && typeof goTo === 'function') goTo(pgId);
+  }
+
+  // Poll server ogni 60s per ricevere modifiche da altri dispositivi
+  function startSyncPoll() {
+    clearInterval(_syncPollTimer);
+    _syncPollTimer = setInterval(() => {
+      if (document.hidden) return;
+      apiPull(KEY).then(serverJson => {
+        if (!serverJson) return;
+        // Confronta con la versione strippata (il server non ha foto base64)
+        const strippedSnap = lastSnap.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
+        if (serverJson === strippedSnap) return;
+        applyServerState(serverJson);
+        if (typeof toast === 'function') toast('🔄 Dati aggiornati dal cloud');
+      });
+    }, 60000);
+  }
+
+  // Hook su bootApp: al login carica subito da localStorage, poi dal server
   const _origBoot = bootApp;
   bootApp = function(user) {
-    restoreState(); // carica subito da localStorage
+    restoreState();
     const result = _origBoot(user);
-    // Dopo l'avvio, prova a ottenere lo stato più aggiornato dal server
     apiPull(KEY).then(serverJson => {
-      if (!serverJson) return;
-      // Usa il server come sorgente di verità: aggiorna localStorage e stato in memoria
-      localStorage.setItem(KEY, serverJson);
-      lastSnap = serverJson;
-      restoreState();
-      // Re-render pagina corrente
-      const activePg = document.querySelector('.page.on');
-      const pgId = activePg ? activePg.id.replace('pg-', '') : null;
-      if (pgId && typeof goTo === 'function') goTo(pgId);
-      console.log('%cFieldOS: stato sincronizzato dal server','color:#047857;font-size:11px;');
+      if (serverJson) {
+        applyServerState(serverJson);
+        if (typeof toast === 'function') toast('☁️ Dati caricati dal cloud');
+      }
     });
+    startSyncPoll();
     return result;
   };
 
-  // Hook su logout: salva prima di uscire
+  // Hook su logout: ferma il polling e salva prima di uscire
   const _origLogout = logout;
   logout = function() {
+    clearInterval(_syncPollTimer);
     saveState();
     return _origLogout();
   };
@@ -10366,21 +10391,17 @@ function saveNewPassword() {
   // Auto-save periodico (ogni 1.5s, solo se cambiato)
   setInterval(saveState, 1500);
 
-  // Salva alla chiusura della scheda
   window.addEventListener('beforeunload', saveState);
   window.addEventListener('pagehide', saveState);
 
-  // Esposizione per chiamate da altre funzioni (es. completeOnboarding)
   window.__fieldosSaveState = saveState;
   window.__fieldosRestoreState = restoreState;
 
-  // Sincronizzazione manuale: cattura stato corrente e lo carica sul server
+  // Sincronizzazione manuale esplicita
   window.__fieldosSyncToCloud = function() {
     const data = JSON.stringify(snapshot());
     localStorage.setItem(KEY, data);
     lastSnap = data;
-    // Rimuove le immagini base64 prima di inviare al server (restano nel localStorage)
-    // evita di superare max_allowed_packet di MySQL
     const stripped = data.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
     return fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
       method: 'PUT',
@@ -10389,24 +10410,17 @@ function saveNewPassword() {
     });
   };
 
-  // Cambia la società attiva: aggiorna KEY, ricarica stato, e poi sincronizza dal server
+  // Cambia società attiva: aggiorna KEY, ricarica stato dal server, riavvia poll
   window.__fieldosSetSocietaKey = function(newKey) {
     KEY = newKey;
     lastSnap = '';
     restoreState();
     apiPull(KEY).then(serverJson => {
-      if (!serverJson) return;
-      localStorage.setItem(KEY, serverJson);
-      lastSnap = serverJson;
-      restoreState();
-      const activePg = document.querySelector('.page.on');
-      const pgId = activePg ? activePg.id.replace('pg-', '') : null;
-      if (pgId && typeof goTo === 'function') goTo(pgId);
+      if (serverJson) applyServerState(serverJson);
     });
+    startSyncPoll();
   };
 
-  // Helper di debug accessibile da console:
-  // __fieldosResetState() per cancellare tutti i dati salvati
   window.__fieldosResetState = function() {
     if (confirm('Eliminare tutti i dati salvati e ripristinare lo stato iniziale?\nQuesta azione non può essere annullata.')) {
       localStorage.removeItem(KEY);
