@@ -67,6 +67,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .fl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);}
 .fi{padding:11px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;transition:border-color .15s,box-shadow .15s;width:100%;}
 .fi:focus{outline:none;border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
+.fi-wrap{position:relative;display:flex;align-items:center;}
+.fi-wrap .fi{padding-right:44px;}
+.fi-eye{position:absolute;right:10px;background:none;border:none;cursor:pointer;padding:4px;color:var(--text2);display:flex;align-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:color .15s;}
+.fi-eye:hover,.fi-eye.on{color:var(--cp);}
 .btn-login{width:100%;padding:13px;background:var(--cp);color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .btn-login:hover{background:var(--cs);transform:translateY(-1px);box-shadow:var(--shm);}
 .btn-login:active{opacity:.8;transform:scale(.98);}
@@ -981,7 +985,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
       <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}"></div>
-      <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"></div>
+      <div class="fg"><label class="fl">Password</label><div class="fi-wrap"><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"><button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()" tabindex="-1" aria-label="Mostra/nascondi password"><svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
       <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
@@ -2201,6 +2205,17 @@ function quick(role, email, pass) {
 }
 
 let _loginInProgress = false;
+
+function togglePassVis() {
+  const inp = document.getElementById('lPass');
+  const btn = document.getElementById('btnPassEye');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.querySelector('svg').innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
 
 function doLoginSafe() {
   if (_loginInProgress) return;
