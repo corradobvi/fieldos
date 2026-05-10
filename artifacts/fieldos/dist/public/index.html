@@ -9688,7 +9688,7 @@ function saLoadState() {
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY))
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data || !data.stateJson) return;
+        if (!data || !data.stateJson) { saSaveState(); return; } // server vuoto: spingi dati locali
         const s = JSON.parse(data.stateJson);
         if (Array.isArray(s.saSocieties)) saSocieties = s.saSocieties;
         if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;
