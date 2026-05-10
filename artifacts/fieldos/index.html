@@ -1663,6 +1663,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div id="evLeveBox" style="display:flex;flex-wrap:wrap;gap:6px;padding:7px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);min-height:38px;"></div>
       </div>
     </div>
+    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:9px 12px;font-size:.75rem;color:#0369a1;margin-bottom:4px;">
+      ℹ️ Le partite e i tornei si aggiungono dalla sezione <strong>Partite &amp; Tornei</strong> e appaiono automaticamente nel calendario.
+    </div>
     <div class="fr">
       <div class="fg"><label class="fl">Data</label><input class="fi" id="evData" type="date"></div>
       <div class="fg"><label class="fl">Ora inizio</label><input class="fi" id="evOraInizio" type="time"></div>
@@ -2096,11 +2099,14 @@ const DAYNAMES = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Vener
 const _today0 = new Date();
 let calY = _today0.getFullYear(), calM = _today0.getMonth();
 let eventTypes = [
-  { id:'partita',     label:'⚽ Partita',     color:'#0ea860' },
-  { id:'allenamento', label:'🏃 Allenamento', color:'#047857' },
-  { id:'evento',      label:'🎉 Evento',      color:'#f59e0b' },
-  { id:'riunione',    label:'👥 Riunione',    color:'#7c3aed' },
-  { id:'torneo',      label:'🏆 Torneo',      color:'#e03055' },
+  { id:'allenamento',          label:'🏃 Allenamento',          color:'#047857' },
+  { id:'allenamento_portieri', label:'🧤 Allenamento portieri',  color:'#0369a1' },
+  { id:'riunione',             label:'👥 Riunione genitori',     color:'#7c3aed' },
+  { id:'evento',               label:'🎉 Evento speciale',       color:'#f59e0b' },
+  { id:'personalizzato',       label:'📌 Tipo personalizzato',   color:'#6b7280' },
+  // Tipi competizione: creati da Partite & Tornei, non mostrati nel popup calendario
+  { id:'partita',              label:'⚽ Partita',               color:'#0ea860' },
+  { id:'torneo',               label:'🏆 Torneo',                color:'#e03055' },
 ];
 let nextEventTypeId = 100;
 let events = [];
@@ -3497,7 +3503,7 @@ function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role ===
 function getTrainingDatesForLeva(leva){
   const today = new Date(); today.setHours(0,0,0,0);
   const set = new Set();
-  const allenEvents = events.filter(ev => ev.type === 'allenamento'
+  const allenEvents = events.filter(ev => (ev.type === 'allenamento' || ev.type === 'allenamento_portieri')
     && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(leva)));
   for (let off = -90; off <= 30; off++){
     const d = new Date(today); d.setDate(today.getDate() + off);
@@ -4060,7 +4066,7 @@ function openPresenzeFromEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
   if (!ev) return;
-  if (ev.type !== 'allenamento') { toast('Disponibile solo per allenamenti'); return; }
+  if (ev.type !== 'allenamento' && ev.type !== 'allenamento_portieri') { toast('Disponibile solo per allenamenti'); return; }
   // Se l'evento ha più leve, scegli la prima tra quelle dell'utente
   const allowed = userLeve();
   const target = (ev.leve || []).find(l => allowed.includes(l)) || (ev.leve || [])[0];
@@ -6258,8 +6264,8 @@ function onUtenteRuolo() {
   if (hint) hint.textContent = r === 'dirigente'
     ? 'Opzionale: abbina il dirigente al/ai proprio/i figlio/i in rosa per ricevere notifiche convocazioni e avvisare assenze.'
     : r === 'nonno'
-    ? 'Il nonno/nonna vedrà le info del nipote/a selezionato. Ideale per seguire il nipote nella squadra.'
-    : 'Il genitore vedrà le info di tutti i giocatori selezionati. Ideale per fratelli/sorelle nella stessa società.';
+    ? 'Puoi associare più nonni/nonne allo stesso giocatore. Tutti vedono le stesse info del nipote/a e ricevono le stesse notifiche.'
+    : 'Puoi associare più genitori allo stesso giocatore (mamma, papà, ecc.). Tutti vedono le stesse info e ricevono le stesse notifiche.';
 }
 
 function checkAge() {
@@ -6323,7 +6329,9 @@ function populateFigliBox(preselect) {
     chip.className = 'lp' + (current.has(full) ? ' on' : '');
     chip.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;gap:4px;';
     chip.dataset.figlio = full;
-    chip.innerHTML = `<span style="font-size:.65rem;opacity:.65;">${p.leva||''}</span> #${p.num||'-'} ${p.nome} ${p.cogn}`;
+    const existingParents = USERS_DB ? USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && getFigliOf(u).includes(full) && u.id !== editingUserId).length : 0;
+    const parentBadge = existingParents > 0 ? `<span style="font-size:.6rem;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 4px;margin-left:2px;">${existingParents} fam.</span>` : '';
+    chip.innerHTML = `<span style="font-size:.65rem;opacity:.65;">${p.leva||''}</span> #${p.num||'-'} ${p.nome} ${p.cogn}${parentBadge}`;
     chip.onclick = () => chip.classList.toggle('on');
     box.appendChild(chip);
   });
@@ -7394,7 +7402,7 @@ function buildMobDashboard(role, c) {
     const diffDays = Math.round((d-today)/86400000);
     const colGrad = nextEv.type==='partita'||nextEv.type==='campionato'?'var(--cp),var(--cs)':nextEv.type==='torneo'?'#e03055,#f87171':'#7c3aed,#a78bfa';
     nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')">
-      <div class="mob-evt-tag">${nextEv.type==='allenamento'?'⚽ Prossimo allenamento':'📅 Prossimo evento'}</div>
+      <div class="mob-evt-tag">${(nextEv.type==='allenamento'||nextEv.type==='allenamento_portieri')?'⚽ Prossimo allenamento':'📅 Prossimo evento'}</div>
       <div class="mob-evt-title">${escapeHtml(nextEv.title||nextEv.type||'Evento')}</div>
       <div class="mob-evt-meta">${d.getDate()} ${MESI[d.getMonth()]}${nextEv.start?' · '+nextEv.start:''}${nextEv.luogo?' · '+escapeHtml(nextEv.luogo):''}</div>
       <div class="mob-evt-cd">
@@ -7653,8 +7661,9 @@ function buildDashboard(role) {
     const levaPlayers = players.filter(p=>p.leva===lv);
     const nextMatchEv = panoNextMatchForLeva(lv);
     const daysToMatch = nextMatchEv ? Math.max(0, Math.ceil((parseYmd(nextMatchEv.date).getTime() - new Date().setHours(0,0,0,0)) / 86400000)) : null;
-    const hasTodayTrain = events.some(ev=>ev.type==='allenamento'&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,todayStr));
-    const hasTomTrain = events.some(ev=>ev.type==='allenamento'&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,tomorrowStr));
+    const _isTraining = ev=>ev.type==='allenamento'||ev.type==='allenamento_portieri';
+    const hasTodayTrain = events.some(ev=>_isTraining(ev)&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,todayStr));
+    const hasTomTrain = events.some(ev=>_isTraining(ev)&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,tomorrowStr));
     const presentToday = hasTodayTrain ? levaPlayers.filter(p=>getPresenzaForDate(p,todayStr)==='p') : [];
     const absentToday = hasTodayTrain ? levaPlayers.filter(p=>{const s=getPresenzaForDate(p,todayStr);return s==='a'||s==='j';}) : [];
     const avvisatiOggi = hasTodayTrain ? levaPlayers.filter(p=>Array.isArray(p.assenzeAvvisate)&&p.assenzeAvvisate.some(av=>av.date===todayStr)) : [];
@@ -8400,7 +8409,7 @@ function renderAllenamenti() {
   // Allenamenti programmati (eventi di tipo 'allenamento' della leva corrente)
   const oggi = new Date();
   const soglia = new Date(oggi); soglia.setDate(oggi.getDate() - 30);
-  const futureAll = events.filter(ev => ev.type === 'allenamento' && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(currentLeva)));
+  const futureAll = events.filter(ev => (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(currentLeva)));
   if (!futureAll.length) {
     c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">
       <div style="font-size:1.5rem;margin-bottom:8px;">🏃</div>
@@ -8676,7 +8685,7 @@ function renderCalWeek() {
     } else {
       dayEvs.innerHTML = `<div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:12px 0 8px;">📅 ${selLabel}</div>`
         + dayEvList.map(ev=>{
-          const cls = ev.type==='allenamento'?'ev-a':ev.type==='partita'||ev.type==='campionato'?'ev-p':'ev-e';
+          const cls = (ev.type==='allenamento'||ev.type==='allenamento_portieri')?'ev-a':ev.type==='partita'||ev.type==='campionato'?'ev-p':'ev-e';
           return `<div class="cal-day-ev-item ${cls}" onclick="if(ev)openEditEvento&&openEditEvento(ev)">
             <div style="font-weight:700;font-size:.92rem;">${escapeHtml(ev.title||ev.type||'')}</div>
             <div style="font-size:.76rem;color:var(--text2);margin-top:3px;">${ev.start||''}${ev.luogo?' · '+escapeHtml(ev.luogo):''}</div>
@@ -8812,10 +8821,12 @@ function openEventoModal(eventId, prefillDate){
   document.getElementById('mEventoTitle').textContent = ev ? '✏️ Modifica evento' : '📅 Nuovo evento';
   document.getElementById('evId').value = ev ? ev.id : '';
   document.getElementById('evTitolo').value = ev ? ev.title : '';
-  // Tipi
+  // Tipi: escludi partita/torneo (si creano da Partite & Tornei)
+  const _compTypes = new Set(['partita','torneo']);
+  const _displayTypes = eventTypes.filter(t => !_compTypes.has(t.id) || (ev && ev.type === t.id));
   const sT = document.getElementById('evTipo');
-  sT.innerHTML = eventTypes.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
-  sT.value = ev ? ev.type : (eventTypes[0]?.id || '');
+  sT.innerHTML = _displayTypes.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+  sT.value = ev ? ev.type : (_displayTypes[0]?.id || '');
   // Leve box
   const allowed = userLeve();
   const box = document.getElementById('evLeveBox'); box.innerHTML = '';
@@ -8862,7 +8873,7 @@ function openEventoModal(eventId, prefillDate){
   // Pulsanti
   document.getElementById('btnDelEv').style.display = (ev && canEditEvent(ev)) ? '' : 'none';
   const openPresBtn = document.getElementById('btnOpenPres');
-  if (openPresBtn) openPresBtn.style.display = (ev && ev.type === 'allenamento' && canEditPresenze()) ? '' : 'none';
+  if (openPresBtn) openPresBtn.style.display = (ev && (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') && canEditPresenze()) ? '' : 'none';
   openM('mEvento');
 }
 function onRecurChange(){
@@ -8871,7 +8882,7 @@ function onRecurChange(){
 }
 function onEvTipoChange(){
   const tipo = document.getElementById('evTipo').value;
-  const isAll = tipo === 'allenamento';
+  const isAll = tipo === 'allenamento' || tipo === 'allenamento_portieri';
   document.getElementById('evRecurSimpleBox').style.display = isAll ? 'none' : '';
   document.getElementById('evRicorrenzaBox').style.display = isAll ? '' : 'none';
 }
@@ -8889,8 +8900,9 @@ function saveEvento(){
     ? (() => { const c = campi.find(x => x.id === campoIdSel); return c ? (c.nome + (c.indirizzo ? ' — ' + c.indirizzo : '')) : ''; })()
     : document.getElementById('evLuogo').value.trim();
   const note = document.getElementById('evNote').value.trim();
-  const recur = type === 'allenamento' ? 'none' : document.getElementById('evRecur').value;
-  const recurUntil = type === 'allenamento' ? null : (document.getElementById('evRecurUntil').value || null);
+  const _isTrainType = type === 'allenamento' || type === 'allenamento_portieri';
+  const recur = _isTrainType ? 'none' : document.getElementById('evRecur').value;
+  const recurUntil = _isTrainType ? null : (document.getElementById('evRecurUntil').value || null);
   const box = document.getElementById('evLeveBox');
   const leveSel = Array.from(box.querySelectorAll('.lp.on')).map(c => c.dataset.leva);
   if (!title) { toast('⚠️ Inserisci il titolo'); return; }
@@ -8901,7 +8913,7 @@ function saveEvento(){
     const allowed = userLeve();
     if (leveSel.filter(l => !allowed.includes(l)).length) { toast('⛔ Non puoi assegnare leve non tue'); return; }
   }
-  if (type === 'allenamento' && leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva per l\'allenamento'); return; }
+  if (_isTrainType && leveSel.length === 0) { toast('⚠️ Seleziona almeno una leva per l\'allenamento'); return; }
   if (id) {
     const ev = events.find(e => e.id === Number(id));
     if (!ev || !canEditEvent(ev)) { toast('⛔ Non puoi modificare questo evento'); return; }
