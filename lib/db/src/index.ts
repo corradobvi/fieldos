@@ -2,12 +2,22 @@ import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import * as schema from "./schema";
 
-// pool is created unconditionally — mysql2 pool is lazy and makes no connections
-// until a query is first executed, so this is safe even when DATABASE_URL is
-// undefined (the server still starts and serves the SPA).
-export const pool = mysql.createPool(
-  process.env.DATABASE_URL || "mysql://localhost/placeholder",
-);
+// Validate the URL before passing to mysql2 — Railway template strings like
+// ${{MySQL.DATABASE_URL}} that are not yet resolved will throw "Invalid URL"
+// and crash the server at startup. Fall back to placeholder so the server
+// starts even when the DB variable is misconfigured.
+function resolveDbUrl(): string {
+  const raw = process.env.DATABASE_URL || "";
+  if (!raw) return "mysql://localhost/placeholder";
+  try {
+    new URL(raw);
+    return raw;
+  } catch {
+    return "mysql://localhost/placeholder";
+  }
+}
+
+export const pool = mysql.createPool(resolveDbUrl());
 export const db = drizzle(pool, { schema, mode: "default" });
 
 export * from "./schema";
