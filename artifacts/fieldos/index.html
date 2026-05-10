@@ -508,6 +508,16 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .pc{padding:12px;}
   .pc-num{font-size:1.4rem;}
   .pc-btns{flex-wrap:wrap;}
+
+  /* Impostazioni — colonna singola, color picker full-width */
+  #pg-impostazioni .g2{grid-template-columns:1fr!important;}
+  #pg-impostazioni .g2>*{grid-column:auto!important;}
+  #pg-impostazioni input[type=color]{width:100%;height:52px;padding:4px;border-radius:8px;cursor:pointer;box-sizing:border-box;}
+  #pg-impostazioni .fr{display:flex;flex-direction:column;gap:12px;}
+  #pg-impostazioni .rr{grid-template-columns:1fr 1fr 44px!important;}
+  /* Gestione utenti: solo colonne essenziali */
+  #pg-impostazioni .tbl thead tr th:nth-child(2),
+  #pg-impostazioni .tbl tbody tr td:nth-child(2){display:none;}
 }
 
 /* ── Extra-small (≤390px) ── */
@@ -665,7 +675,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   position:fixed;
   /* sopra mob-nav (60px) + safe-area iPhone home indicator */
   bottom:calc(70px + env(safe-area-inset-bottom,0px));
-  right:16px;z-index:2000;
+  left:16px;z-index:2000;
   width:52px;height:52px;border-radius:50%;
   background:linear-gradient(135deg,#047857,#059669);
   color:#fff;font-size:1.3rem;border:none;cursor:pointer;
@@ -676,8 +686,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 #asstBtn.visible{display:flex;}
 #asstBtn:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(4,120,87,.55);}
-/* Su desktop (niente mob-nav) torna vicino al fondo */
-@media(min-width:641px){#asstBtn{bottom:24px;}}
+/* Su desktop (niente mob-nav): destra in basso */
+@media(min-width:641px){#asstBtn{bottom:24px;left:auto;right:24px;}}
 #asstUnread{position:absolute;top:-3px;right:-3px;background:#ef4444;color:#fff;border-radius:50%;width:17px;height:17px;font-size:.6rem;display:none;align-items:center;justify-content:center;font-weight:700;}
 #asstPanel{position:fixed;bottom:0;right:0;z-index:2001;width:min(380px,100vw);height:min(540px,100dvh);background:var(--white);border-radius:18px 18px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
 #asstPanel.open{transform:translateY(0);}
@@ -1083,7 +1093,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640)goTo('impostazioni')" title="Profilo">?</div>
+        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640){const _r=me&&me.role;goTo((_r==='genitore'||_r==='giocatore')?'profilo':'impostazioni');}" title="Profilo">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
       </div>
       <button class="btn-out" onclick="logout()">Esci</button>
@@ -1329,7 +1339,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="setCodiceStato" style="font-size:.75rem;margin-top:4px;"></div>
           </div>
-          <div class="card" style="grid-column:span 2;">
+          <div class="card" id="usersCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">👥 Gestione utenti</div><div style="display:flex;gap:6px;"><button class="btn btn-g btn-sm" onclick="openInvitaGenitore()">📧 Invita genitore</button><button class="btn btn-p btn-sm" onclick="openUserModal(null)">+ Aggiungi utente</button></div></div>
             <div id="pendingUsersBox" style="display:none;"></div>
             <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Utente</th><th>Email</th><th>Ruolo</th><th>Leva</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="usersBody"></tbody></table></div>
@@ -1346,7 +1356,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Risultati partite</span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
             </div>
           </div>
-          <div class="card" style="grid-column:span 2;">
+          <div class="card" id="leveCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">🏷️ Gestione leve</div><button class="btn btn-p btn-sm" onclick="openAddLeva()">+ Aggiungi leva</button></div>
             <div id="leveImpostList"></div>
           </div>
@@ -1375,6 +1385,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div id="convVisibSettingsBox"></div>
           </div>
         </div>
+      </div>
+
+      <!-- PROFILO UTENTE (genitore / giocatore) -->
+      <div class="page" id="pg-profilo">
+        <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
+        <div id="profiloContent"></div>
       </div>
 
     </main>
@@ -2543,10 +2559,28 @@ function buildMobNav(role) {
   const nav = document.getElementById('mobNav');
   if (!nav) return;
   nav.innerHTML = '';
-  // Per genitore/giocatore: usa dashboard come Home e presenze al posto di Calendario
-  const items = role === 'giocatore' || role === 'genitore'
-    ? [{id:'dashboard',ic:'🏠',lb:'Home'},{id:'chat',ic:'💬',lb:'Chat',badge:'mn-chat'},{id:'comunicazioni',ic:'📣',lb:'Avvisi',badge:'mn-comm'},{id:'presenze',ic:'✅',lb:'Presenze'},{id:'impostazioni',ic:'👤',lb:'Profilo'}]
-    : MOB_NAV_ITEMS;
+  let items;
+  if (role === 'giocatore' || role === 'genitore') {
+    // Genitore/Giocatore: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
+    items = [
+      {id:'dashboard',   ic:'🏠', lb:'Home'},
+      {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
+      {id:'comunicazioni',ic:'📣',lb:'Avvisi', badge:'mn-comm'},
+      {id:'calendario',  ic:'📅', lb:'Cal'},
+      {id:'profilo',     ic:'👤', lb:'Profilo'},
+    ];
+  } else if (role === 'allenatore') {
+    // Mister: Presenze nella barra in basso, resto dal menu hamburger
+    items = [
+      {id:'dashboard',    ic:'🏠', lb:'Home'},
+      {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
+      {id:'comunicazioni',ic:'📣', lb:'Avvisi', badge:'mn-comm'},
+      {id:'presenze',     ic:'✅', lb:'Presenze'},
+      {id:'impostazioni', ic:'👤', lb:'Profilo'},
+    ];
+  } else {
+    items = MOB_NAV_ITEMS;
+  }
   items.forEach(item => {
     const btn = document.createElement('button');
     btn.className = 'mob-ni';
@@ -2652,15 +2686,25 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
+    const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
+    // Sezioni visibili solo allo staff (admin/mister/dirigente)
+    ['codiceCard','quoteCard','convVisibCard','syncCloudCard','colorCard'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = '';
+    });
     const _convVisibCardEl = document.getElementById('convVisibCard');
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
     const _syncCloudCardEl = document.getElementById('syncCloudCard');
     if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
     const _quoteCardEl = document.getElementById('quoteCard');
-    if (_quoteCardEl) _quoteCardEl.style.display = me.role === 'allenatore' ? 'none' : '';
+    if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
-    if (_codiceCardEl) _codiceCardEl.style.display = me.role === 'allenatore' ? 'none' : '';
+    if (_codiceCardEl) _codiceCardEl.style.display = _isStaff && me.role !== 'allenatore' ? '' : 'none';
+    // Gestione utenti, leve e campi: solo staff
+    ['usersCard','leveCard','campiCard'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = _isStaff ? '' : 'none';
+    });
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -2687,6 +2731,31 @@ function goTo(pgId) {
   if (pgId === 'pagamenti') renderPagamenti();
   if (pgId === 'documenti') renderDocumenti();
   if (pgId === 'allenamenti') renderAllenamenti();
+  if (pgId === 'profilo') renderProfilo();
+}
+
+function renderProfilo() {
+  const el = document.getElementById('profiloContent');
+  if (!el || !me) return;
+  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',giocatore:'🎽'};
+  const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
+  const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
+  const leva = me.leva ? `<div style="font-size:.8rem;color:var(--text3);margin-top:4px;">Leva ${me.leva}</div>` : '';
+  el.innerHTML = `
+    <div class="card" style="text-align:center;padding:28px 20px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.6rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ini}</div>
+      <div style="font-size:1.15rem;font-weight:700;">${escapeHtml(me.nome||'')} ${escapeHtml(me.cogn||'')}</div>
+      <div style="font-size:.83rem;color:var(--text2);margin-top:4px;">${ROLE_IC2[me.role]||''} ${me.role||''}</div>
+      ${leva}${figli}
+      <div style="font-size:.77rem;color:var(--text3);margin-top:6px;">${escapeHtml(me.email||'')}</div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="ch"><div class="ct">🔑 Sicurezza</div></div>
+      <p style="font-size:.82rem;color:var(--text2);margin-bottom:12px;">Per cambiare la password contatta il tuo amministratore oppure usa "Hai dimenticato la password?" dalla schermata di login.</p>
+    </div>
+    <div style="margin-top:20px;text-align:center;">
+      <button class="btn btn-r" style="width:100%;max-width:300px;" onclick="logout()">🚪 Esci dall'app</button>
+    </div>`;
 }
 
 // ═══════════════════════════════════
