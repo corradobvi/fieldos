@@ -10642,12 +10642,84 @@ function saLog(action, detail) {
   saSaveState();
 }
 
+// ── SA Sync status ────────────────────────────────────────────────────────
+// 'ok' = esiste sul server | 'local_only' = solo in localStorage | 'none' = nessun dato
+const _syncStatus = {};
+
+async function saCheckAllSync() {
+  for (const soc of saSocieties) {
+    const key = soc.id === 0 ? 'fieldos_state_v1' : `fieldos_state_soc_${soc.id}`;
+    _syncStatus[soc.id] = 'checking';
+    renderSaPanel();
+    const hasLocal = !!localStorage.getItem(key);
+    try {
+      const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key));
+      _syncStatus[soc.id] = r.ok ? 'ok' : (hasLocal ? 'local_only' : 'none');
+    } catch {
+      _syncStatus[soc.id] = hasLocal ? 'local_only' : 'none';
+    }
+    renderSaPanel();
+  }
+}
+
+async function saForceSyncSociety(id) {
+  const soc = saSocieties.find(x => x.id === id);
+  const key = id === 0 ? 'fieldos_state_v1' : `fieldos_state_soc_${id}`;
+  const raw = localStorage.getItem(key);
+  if (!raw) { toast('⚠️ Dati non disponibili su questo dispositivo'); return; }
+  const stripped = raw.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
+  try {
+    const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stateJson: stripped })
+    });
+    if (r.ok) {
+      _syncStatus[id] = 'ok';
+      saLog('Dati sincronizzati', soc?.nome || String(id));
+      toast(`✅ ${soc?.nome || 'Società'} caricata sul server`);
+      renderSaPanel();
+    } else {
+      toast(`❌ Errore server: ${r.status}`);
+    }
+  } catch(e) {
+    toast(`❌ Rete non disponibile`);
+  }
+}
+
+async function saForceSyncAll() {
+  const btn = document.getElementById('saSyncAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sync…'; }
+  let ok = 0, skip = 0;
+  for (const soc of saSocieties) {
+    const key = soc.id === 0 ? 'fieldos_state_v1' : `fieldos_state_soc_${soc.id}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) { skip++; continue; }
+    const stripped = raw.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
+    try {
+      const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stateJson: stripped })
+      });
+      if (r.ok) { _syncStatus[soc.id] = 'ok'; ok++; }
+    } catch {}
+  }
+  toast(`✅ ${ok} societ${ok===1?'à':'à'} caricate${skip ? ` · ${skip} senza dati locali` : ''}`);
+  if (ok) saLog('Sync forzata', `${ok} società caricate sul server`);
+  renderSaPanel();
+  if (btn) { btn.disabled = false; btn.textContent = '↑ Sync tutte'; }
+}
+// ─────────────────────────────────────────────────────────────────────────
+
 function showSuperAdminPanel() {
   document.getElementById('loginScreen').classList.add('hide');
   setTimeout(() => { document.getElementById('loginScreen').style.display = 'none'; }, 380);
   const p = document.getElementById('saPanel');
   p.style.display = 'flex';
   renderSaPanel();
+  // Controlla stato sync di ogni società in background
+  setTimeout(saCheckAllSync, 300);
 }
 
 function hideSuperAdminPanel() {
@@ -10699,13 +10771,27 @@ function renderSaPanel() {
     ? '<span class="sa-stato-on">● Attivo</span>'
     : '<span class="sa-stato-off">● Disattivo</span>';
 
+  const syncBadge = (id) => {
+    const st = _syncStatus[id];
+    if (st === 'ok')         return '<span style="font-size:.68rem;color:#4ade80;white-space:nowrap;">● server</span>';
+    if (st === 'local_only') return '<span style="font-size:.68rem;color:#f59e0b;white-space:nowrap;">⚠ solo locale</span>';
+    if (st === 'none')       return '<span style="font-size:.68rem;color:#ef4444;white-space:nowrap;">✕ nessun dato</span>';
+    if (st === 'checking')   return '<span style="font-size:.68rem;color:#94a3b8;white-space:nowrap;">⏳ verifica…</span>';
+    return '<span style="font-size:.68rem;color:#475569;white-space:nowrap;">— ?</span>';
+  };
+
   const rows = saSocieties.map(s => {
     const created = s.createdAt ? new Date(s.createdAt).toLocaleDateString('it-IT') : '—';
     const lastAct = s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('it-IT') : '—';
     const pn = pianoNorm(s.piano);
     const isDemo = pn === 'demo';
+    const needsSync = _syncStatus[s.id] === 'local_only';
     return `<tr>
-      <td><strong>${escapeHtml(s.nome)}</strong><br><small style="color:#94a3b8;">${escapeHtml(s.citta||'')}${s.citta&&s.email?' · ':''} ${escapeHtml(s.email||'')}</small></td>
+      <td>
+        <strong>${escapeHtml(s.nome)}</strong>
+        <span style="margin-left:6px;">${syncBadge(s.id)}</span>
+        <br><small style="color:#94a3b8;">${escapeHtml(s.citta||'')}${s.citta&&s.email?' · ':''} ${escapeHtml(s.email||'')}</small>
+      </td>
       <td>${planBadge(s)}</td>
       <td>${statoBadge(s)}</td>
       <td style="color:#94a3b8;font-size:.82rem;">${escapeHtml(String(s.utenti||0))} utenti<br>${escapeHtml(String(s.giocatori||0))} gioc.</td>
@@ -10721,6 +10807,7 @@ function renderSaPanel() {
             <option value="societa"${pn==='societa'?' selected':''}>Società</option>
           </select>
           ${isDemo ? `<button class="sa-btn-sm sa-btn-ok" onclick="saExtendDemo(${s.id})" title="Estendi periodo demo">+gg</button>` : ''}
+          ${needsSync ? `<button class="sa-btn-sm" style="background:#f59e0b;color:#fff;border-color:#f59e0b;" onclick="saForceSyncSociety(${s.id})" title="Carica sul server">↑ Server</button>` : ''}
           <button class="sa-btn-sm ${s.stato==='attivo'?'sa-btn-warn':'sa-btn-ok'}" onclick="saToggleSociety(${s.id})">${s.stato==='attivo'?'⏸':'▶'}</button>
         </div>
       </td>
@@ -10748,7 +10835,11 @@ function renderSaPanel() {
 
     <div class="sa-section-hd">
       <span>🏢 Società registrate</span>
-      <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova società</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="saSyncAllBtn" class="sa-btn sa-btn-outline" onclick="saForceSyncAll()" title="Carica tutti i dati locali sul server">↑ Sync tutte</button>
+        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()" title="Verifica stato sincronizzazione">🔄 Verifica</button>
+        <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova società</button>
+      </div>
     </div>
     <div class="sa-table-wrap">
       <table class="sa-table">
