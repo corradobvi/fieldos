@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MyVivaio</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1A7A4A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MyVivaio">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128.png">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1088,9 +1099,99 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   -webkit-tap-highlight-color:transparent;
 }
 .cal-week-title{font-weight:800;font-size:.92rem;color:var(--text);}
+
+/* ═══════════════════════════════════════════
+   PWA — SPLASH + INSTALL BANNER
+   ═══════════════════════════════════════════ */
+#pwa-splash{
+  position:fixed;inset:0;z-index:9999;
+  background:#1A7A4A;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  transition:opacity .4s ease;
+}
+#pwa-splash.hide{opacity:0;pointer-events:none;}
+.pwa-splash-logo{
+  width:96px;height:96px;border-radius:22px;
+  background:rgba(255,255,255,.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:3.2rem;
+  box-shadow:0 8px 40px rgba(0,0,0,.25);
+}
+.pwa-splash-name{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:2.4rem;font-weight:900;color:#fff;letter-spacing:.5px;
+}
+.pwa-splash-sub{font-size:.85rem;color:rgba(255,255,255,.75);}
+.pwa-splash-spin{
+  width:32px;height:32px;border:3px solid rgba(255,255,255,.25);
+  border-top-color:#fff;border-radius:50%;
+  animation:pwaSpin .8s linear infinite;
+}
+@keyframes pwaSpin{to{transform:rotate(360deg);}}
+
+#pwa-install-banner{
+  position:fixed;bottom:0;left:0;right:0;z-index:3000;
+  background:#fff;border-top:1.5px solid #e2e8f0;
+  box-shadow:0 -4px 24px rgba(0,0,0,.12);
+  padding:14px 16px 20px;
+  transform:translateY(110%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  padding-bottom:max(20px, env(safe-area-inset-bottom));
+}
+#pwa-install-banner.show{transform:translateY(0);}
+.pwa-banner-row{display:flex;align-items:center;gap:12px;}
+.pwa-banner-ico{width:44px;height:44px;border-radius:12px;background:#1A7A4A;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.pwa-banner-body{flex:1;}
+.pwa-banner-title{font-weight:800;font-size:.96rem;color:#0d1a3a;}
+.pwa-banner-sub{font-size:.78rem;color:#4a5878;margin-top:2px;}
+.pwa-banner-btns{display:flex;gap:8px;margin-top:12px;}
+.pwa-btn-install{
+  flex:1;min-height:48px;border-radius:12px;
+  background:#1A7A4A;color:#fff;
+  border:none;cursor:pointer;font-size:.92rem;font-weight:700;
+  font-family:inherit;-webkit-tap-highlight-color:transparent;
+}
+.pwa-btn-later{
+  min-height:48px;padding:0 16px;border-radius:12px;
+  background:#f1f5f9;color:#4a5878;
+  border:none;cursor:pointer;font-size:.88rem;
+  font-family:inherit;-webkit-tap-highlight-color:transparent;
+}
+.pwa-ios-hint{
+  margin-top:12px;padding:10px 14px;background:#f0fdf4;
+  border-radius:10px;font-size:.8rem;color:#065f46;
+  display:flex;align-items:flex-start;gap:8px;
+}
 </style>
 </head>
 <body>
+
+<!-- ══════ PWA SPLASH SCREEN ══════ -->
+<div id="pwa-splash">
+  <div class="pwa-splash-logo">⚽</div>
+  <div class="pwa-splash-name">MyVivaio</div>
+  <div class="pwa-splash-sub">La tua squadra, sempre con te</div>
+  <div class="pwa-splash-spin"></div>
+</div>
+
+<!-- ══════ PWA INSTALL BANNER ══════ -->
+<div id="pwa-install-banner">
+  <div class="pwa-banner-row">
+    <div class="pwa-banner-ico">⚽</div>
+    <div class="pwa-banner-body">
+      <div class="pwa-banner-title">📱 Installa MyVivaio</div>
+      <div class="pwa-banner-sub">Ricevi notifiche push e accedi offline</div>
+    </div>
+  </div>
+  <div id="pwa-ios-hint" class="pwa-ios-hint" style="display:none;">
+    <span>💡</span>
+    <span>Tocca <strong>⬆ Condividi</strong> → <strong>Aggiungi a schermata Home</strong> per installare l'app.</span>
+  </div>
+  <div class="pwa-banner-btns">
+    <button class="pwa-btn-install" id="pwa-install-btn" onclick="pwaInstall()">⬇ Installa</button>
+    <button class="pwa-btn-later" onclick="pwaDismiss()">Non ora</button>
+  </div>
+</div>
 
 <!-- ══════ LOGIN ══════ -->
 <div id="loginScreen">
@@ -2815,6 +2916,10 @@ function bootApp(user) {
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
     if (_saRaw) { try { chatLoadLearned(JSON.parse(_saRaw)); } catch(e) {} }
+    // PWA: nascondi splash, richiedi push permission dopo 2s
+    if (typeof window._pwaSplashHide === 'function') window._pwaSplashHide();
+    const _sk = window._mvSocietaKey || null;
+    if (_sk && me) setTimeout(() => requestPushPermission(me.id, _sk), 2000);
   }, 380);
 }
 
@@ -11029,6 +11134,18 @@ function sendMsg() {
   renderChatMessages();
   renderChatList();
   refreshChatBadges();
+  // Push notification ai membri della chat (eccetto il mittente)
+  if (typeof sendPushNotification === 'function' && window._mvSocietaKey) {
+    const _senderName = me.nome + ' ' + me.cogn;
+    const _chatName = c.nome || 'Chat';
+    (c.members || []).filter(uid => uid !== me.id).forEach(uid => {
+      sendPushNotification(uid, window._mvSocietaKey, {
+        title: '💬 ' + _chatName,
+        body: _senderName + ': ' + txt.slice(0, 80),
+        type: 'chat', tag: 'chat_' + currentChatId, url: '/#chat'
+      });
+    });
+  }
 }
 
 function sendPhoto(input) {
@@ -13010,6 +13127,7 @@ function saveNewPassword() {
   // Cambia la chiave attiva — il pull dal server lo fa bootApp subito dopo
   window.__fieldosSetSocietaKey = function(newKey) {
     KEY = newKey;
+    window._mvSocietaKey = newKey;
     lastSnap = '';
     restoreState();
   };
@@ -13609,6 +13727,180 @@ function saveNewPassword() {
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
   </div>
 </div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PWA — Service Worker, Push Notifications, Install Banner
+   ═══════════════════════════════════════════════════════════ */
+'use strict';
+
+// ── Splash screen: hide after app loads (or max 2s)
+(function() {
+  const splash = document.getElementById('pwa-splash');
+  if (!splash) return;
+  const hideSplash = () => { splash.classList.add('hide'); setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 450); };
+  // Hide as soon as the main app JS signals readiness, or after timeout
+  window._pwaSplashHide = hideSplash;
+  setTimeout(hideSplash, 2000);
+})();
+
+// ── VAPID public key cache
+let _vapidPublicKey = null;
+async function getPushPublicKey() {
+  if (_vapidPublicKey) return _vapidPublicKey;
+  try {
+    const r = await fetch('/api/push/vapid-public');
+    if (!r.ok) return null;
+    const d = await r.json();
+    _vapidPublicKey = d.publicKey || null;
+    return _vapidPublicKey;
+  } catch { return null; }
+}
+
+// ── SW registration
+let _swReg = null;
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    _swReg = reg;
+    // Listen for SW push messages (navigate to section)
+    navigator.serviceWorker.addEventListener('message', evt => {
+      if (evt.data && evt.data.type === 'PUSH_NAVIGATE' && evt.data.url) {
+        // Extract section from URL hash
+        const hash = evt.data.url.replace(/^.*#/, '');
+        if (hash && typeof goTo === 'function') goTo(hash);
+      }
+    });
+    return reg;
+  } catch (e) {
+    console.warn('[PWA] SW registration failed:', e);
+    return null;
+  }
+}
+
+// ── Subscribe to push notifications for the current user
+async function subscribePush(userId, societyKey) {
+  if (!_swReg) return;
+  try {
+    const pubKey = await getPushPublicKey();
+    if (!pubKey) return;
+    let sub = await _swReg.pushManager.getSubscription();
+    if (!sub) {
+      const key = urlBase64ToUint8Array(pubKey);
+      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    }
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId, societyKey, subscription: sub.toJSON() })
+    });
+  } catch (e) {
+    console.warn('[PWA] Push subscribe failed:', e);
+  }
+}
+
+// ── Request push permission then subscribe
+async function requestPushPermission(userId, societyKey) {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  if (Notification.permission === 'granted') {
+    await subscribePush(userId, societyKey);
+    return;
+  }
+  if (Notification.permission === 'denied') return;
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') await subscribePush(userId, societyKey);
+}
+
+// ── Send push notification to a user via backend
+async function sendPushNotification(userId, societyKey, notification) {
+  try {
+    await fetch('/api/push/send', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ userId, societyKey, notification })
+    });
+  } catch { /* non-blocking */ }
+}
+
+// ── Intercept pushNotifica to also fire push for OTHER users
+const _origPushNotifica = typeof pushNotifica === 'function' ? pushNotifica : null;
+if (_origPushNotifica) {
+  window.pushNotifica = function(userId, n) {
+    _origPushNotifica(userId, n);
+    // Only send push to users different from the current user
+    if (!me || userId === me.id) return;
+    const sKey = window._mvSocietaKey || null;
+    if (!sKey) return;
+    // Map notification type to push payload
+    const typeMap = {
+      convocazione: { url: '/#convocazioni' },
+      comunicazione: { url: '/#comunicazioni' },
+      chat:          { url: '/#chat' },
+      quota:         { url: '/#pagamenti' },
+      doc:           { url: '/#documenti' },
+    };
+    const extra = typeMap[n.type] || { url: '/' };
+    sendPushNotification(userId, sKey, {
+      title: n.title || 'MyVivaio',
+      body:  (n.body || '').slice(0, 120),
+      type:  n.type || 'info',
+      tag:   n.type || 'info',
+      url:   extra.url,
+    });
+  };
+}
+
+// ── Install Banner
+let _deferredInstallPrompt = null;
+const _pwaInstallBanner = document.getElementById('pwa-install-banner');
+const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const _isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+const _PWA_DISMISSED_KEY = 'pwa_banner_dismissed';
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  if (!_isStandalone && !localStorage.getItem(_PWA_DISMISSED_KEY)) {
+    setTimeout(() => { if (_pwaInstallBanner) _pwaInstallBanner.classList.add('show'); }, 4000);
+  }
+});
+
+function pwaInstall() {
+  if (_deferredInstallPrompt) {
+    _deferredInstallPrompt.prompt();
+    _deferredInstallPrompt.userChoice.then(() => { _deferredInstallPrompt = null; pwaDismiss(); });
+  }
+}
+function pwaDismiss() {
+  if (_pwaInstallBanner) _pwaInstallBanner.classList.remove('show');
+  localStorage.setItem(_PWA_DISMISSED_KEY, '1');
+}
+
+// iOS install hint (show banner with instructions instead of native prompt)
+if (_isIOS && !_isStandalone && !localStorage.getItem(_PWA_DISMISSED_KEY) && window.innerWidth <= 640) {
+  setTimeout(() => {
+    const hint = document.getElementById('pwa-ios-hint');
+    const btn  = document.getElementById('pwa-install-btn');
+    if (hint) hint.style.display = 'flex';
+    if (btn)  btn.style.display = 'none';
+    if (_pwaInstallBanner) _pwaInstallBanner.classList.add('show');
+  }, 4000);
+}
+
+// ── Utility: base64url → Uint8Array (for VAPID key)
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+
+// ── Init PWA on page load
+document.addEventListener('DOMContentLoaded', () => {
+  registerSW();
+});
+</script>
 
 </body>
 </html>
