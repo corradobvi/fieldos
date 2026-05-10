@@ -103,8 +103,9 @@ async function buildAll() {
     ],
     sourcemap: "linked",
     plugins: [
-      // pino relies on workers to handle logging, instead of externalizing it we use a plugin to handle it
-      esbuildPluginPino({ transports: ["pino-pretty"] })
+      // pino-pretty è usato solo in dev locale (NODE_ENV=development), non su Railway
+      // Omettiamo pino-pretty dai transports per evitare path hardcoded nel bundle
+      esbuildPluginPino({ transports: [] })
     ],
     // Make sure packages that are cjs only (e.g. express) but are bundled continue to work in our esm output file
     banner: {
