@@ -38,21 +38,18 @@ async function ensureSchema() {
   logger.info("DB schema ready");
 }
 
+// Start immediately so Railway healthcheck passes
+startListening();
+
 if (process.env.DATABASE_URL) {
-  // DB available — run schema migration then start
-  ensureSchema()
-    .then(startListening)
-    .catch((err: any) => {
-      logger.error(
-        { code: err?.code, sqlMessage: err?.sqlMessage, message: err?.message },
-        "DB schema init failed — starting without DB"
-      );
-      startListening();
-    });
+  ensureSchema().catch((err: any) => {
+    logger.error(
+      { code: err?.code, sqlMessage: err?.sqlMessage, message: err?.message },
+      "DB schema init failed"
+    );
+  });
 } else {
-  // No DATABASE_URL — start immediately; API state endpoints will return 500
   logger.warn(
-    "DATABASE_URL not set — cross-device sync disabled, set the MySQL URL in environment variables",
+    "DATABASE_URL not set — cross-device sync disabled",
   );
-  startListening();
 }

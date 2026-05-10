@@ -2,8 +2,9 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copia solo il bundle pre-compilato — nessun build step su Railway
+# Bundle API server (pre-compilato) e frontend fieldos (pre-buildato)
 COPY artifacts/api-server/dist/ ./artifacts/api-server/dist/
+COPY artifacts/fieldos/dist/public/ ./artifacts/fieldos/dist/public/
 
 EXPOSE 3000
 

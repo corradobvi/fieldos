@@ -43984,6 +43984,7 @@ var import_express4 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
+import { existsSync } from "node:fs";
 
 // src/routes/index.ts
 var import_express3 = __toESM(require_express2(), 1);
@@ -54324,14 +54325,8 @@ app.use((0, import_cors.default)());
 app.use(import_express4.default.json({ limit: "10mb" }));
 app.use(import_express4.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
-if (process.env.NODE_ENV === "production") {
-  const staticDir = path.join(
-    process.cwd(),
-    "artifacts",
-    "fieldos",
-    "dist",
-    "public"
-  );
+var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
+if (existsSync(staticDir)) {
   app.use(import_express4.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));

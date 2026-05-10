@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "path";
+import { existsSync } from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -32,17 +33,10 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
 
-// In production, serve the static frontend build from the fieldos package
-if (process.env.NODE_ENV === "production") {
-  const staticDir = path.join(
-    process.cwd(),
-    "artifacts",
-    "fieldos",
-    "dist",
-    "public",
-  );
+// Serve the static frontend if the build exists (Railway production)
+const staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
+if (existsSync(staticDir)) {
   app.use(express.static(staticDir));
-  // SPA fallback — serve index.html for all non-API routes
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });

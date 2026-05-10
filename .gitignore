@@ -6,8 +6,10 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
-# Eccezione: il bundle api-server viene committato per il deploy su Railway
+# Eccezione: bundle api-server e frontend fieldos vengono committati per il deploy su Railway
 !artifacts/api-server/dist/
+!artifacts/fieldos/dist/
+!artifacts/fieldos/dist/public/
 
 # Environment
 .env

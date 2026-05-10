@@ -3,6 +3,8 @@ node_modules/
 dist/
 **/dist/
 !artifacts/api-server/dist/
+!artifacts/fieldos/dist/
+!artifacts/fieldos/dist/public/
 .git/
 *.log
 .env
