@@ -4,6 +4,14 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
+const CREATE_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS \`society_state\` (
+    \`key\`     VARCHAR(255) PRIMARY KEY,
+    state_json  LONGTEXT NOT NULL,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )
+`;
+
 // GET /state/:key — retrieve state blob
 router.get("/state/:key", async (req, res) => {
   try {
@@ -27,6 +35,8 @@ router.put("/state/:key", async (req, res) => {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
   try {
+    // Crea la tabella se non esiste (idempotente — sicuro da chiamare ad ogni request)
+    await pool.execute(CREATE_TABLE_SQL);
     await pool.execute(
       "INSERT INTO `society_state` (`key`, `state_json`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `state_json` = ?",
       [req.params.key, stateJson, stateJson]
