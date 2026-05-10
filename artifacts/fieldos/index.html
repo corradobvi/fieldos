@@ -2497,7 +2497,8 @@ function buildSidebar(role) {
       d.textContent = item.s;
       nav.appendChild(d);
     } else {
-      const locked = isSectionLocked(item.id, _sbSoc);
+      let locked = false;
+      try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       const d = document.createElement('div');
       d.className = 'ni' + (locked ? ' ni-locked' : '');
       d.dataset.pg = item.id;
@@ -10702,11 +10703,12 @@ function canAddPlayer(soc, levaName) {
 
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
+  if (!soc) return false; // society not loaded yet → don't lock
   if (currentSocietaId === DEMO_STELLA_ID) return false;
   const status = getPianoStatus(soc);
   if (status === 'active_demo') return false;
   const lock = SECTION_LOCKS[sectionId];
-  const tier = pianoNorm(soc?.piano);
+  const tier = pianoNorm(soc.piano);
   const tierIdx = PIANO_TIERS.indexOf(tier);
   const minIdx = PIANO_TIERS.indexOf(lock.pianoMin);
   return tierIdx < minIdx;
@@ -11622,6 +11624,10 @@ function saLoadState() {
         localStorage.setItem(SA_KEY, data.stateJson);
         const saPanel = document.getElementById('saDashboard');
         if (saPanel && saPanel.style.display !== 'none' && typeof renderSaDashboard === 'function') renderSaDashboard();
+        // Rebuild sidebar so plan locks reflect real society data (async arrival)
+        if (me && me.role && typeof buildSidebar === 'function') {
+          try { buildSidebar(me.role); } catch(_e) {}
+        }
       })
       .catch(() => {});
     // Migrazione: assicura nomeSocieta e coloriPrimari in fieldos_state_v1
