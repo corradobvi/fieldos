@@ -926,6 +926,122 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mob-qi-sub{font-size:.7rem;color:var(--text3);}
 
 /* ═══════════════════════════════════════════
+   MOBILE GENITORE / NONNO HOME
+   ═══════════════════════════════════════════ */
+.mob-fam-card{
+  background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
+  border-radius:20px;padding:20px 18px 18px;color:#fff;
+  margin-bottom:14px;position:relative;overflow:hidden;
+}
+.mob-fam-card::before{
+  content:'';position:absolute;right:-20px;top:-20px;
+  width:130px;height:130px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.mob-fam-av{
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;
+  flex-shrink:0;border:2px solid rgba(255,255,255,.35);
+}
+.mob-fam-name{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:900;line-height:1.1;}
+.mob-fam-sub{font-size:.77rem;opacity:.82;margin-top:2px;}
+.mob-fam-stats{display:flex;gap:22px;margin-top:14px;}
+.mob-fam-stat{text-align:center;}
+.mob-fam-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1;}
+.mob-fam-stat-l{font-size:.57rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;}
+.mob-fam-num{position:absolute;right:14px;bottom:6px;font-family:'Barlow Condensed',sans-serif;font-size:4.5rem;font-weight:900;opacity:.1;line-height:1;}
+.mob-impegno{
+  background:var(--white);border-radius:16px;padding:16px 14px;
+  border:1px solid var(--border);box-shadow:var(--sh);
+  margin-bottom:10px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-impegno-hd{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.mob-impegno-row{display:flex;align-items:center;gap:12px;}
+.mob-impegno-cd{width:50px;height:50px;border-radius:14px;background:var(--cl);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.mob-impegno-cd-n{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1;color:var(--cp);}
+.mob-impegno-cd-l{font-size:.52rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);font-weight:700;}
+.mob-impegno-info{flex:1;min-width:0;}
+.mob-impegno-title{font-size:1rem;font-weight:800;line-height:1.2;}
+.mob-impegno-meta{font-size:.76rem;color:var(--text2);margin-top:3px;}
+.mob-conv-badge{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px;}
+.mob-conv-badge.conv-si{background:#d1fae5;color:#065f46;}
+.mob-conv-badge.conv-no{background:#f3f4f6;color:var(--text3);}
+.mob-avviso-card{
+  background:var(--white);border-radius:16px;padding:14px;
+  border:1px solid var(--border);box-shadow:var(--sh);
+  margin-bottom:10px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.mob-avviso-ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.mob-avviso-body{flex:1;min-width:0;}
+.mob-avviso-title{font-size:.94rem;font-weight:700;line-height:1.3;}
+.mob-avviso-meta{font-size:.7rem;color:var(--text3);margin-top:3px;}
+.mob-quota-banner{
+  background:linear-gradient(135deg,#dc2626,#ef4444);
+  color:#fff;border-radius:16px;padding:14px 16px;
+  margin-bottom:10px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.mob-quota-ico{font-size:1.5rem;flex-shrink:0;}
+.mob-quota-body{flex:1;}
+.mob-quota-label{font-size:.85rem;font-weight:800;}
+.mob-quota-sub{font-size:.72rem;opacity:.85;margin-top:2px;}
+.mob-quota-amt{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;flex-shrink:0;}
+/* Figlio tab */
+.mob-figlio-hero{
+  background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
+  border-radius:20px;padding:24px 18px 20px;color:#fff;
+  margin-bottom:14px;text-align:center;position:relative;overflow:hidden;
+}
+.mob-figlio-hero::before{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:140px;height:140px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.mob-figlio-av{
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;
+  margin:0 auto 10px;border:3px solid rgba(255,255,255,.35);
+}
+.mob-figlio-name{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:900;line-height:1.1;}
+.mob-figlio-sub{font-size:.8rem;opacity:.82;margin-top:4px;}
+.mob-figlio-stats{display:flex;justify-content:center;gap:28px;margin-top:16px;}
+.mob-figlio-stat{text-align:center;}
+.mob-figlio-stat-n{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;line-height:1;}
+.mob-figlio-stat-l{font-size:.58rem;opacity:.75;text-transform:uppercase;letter-spacing:.8px;}
+.mob-pres-bars{background:var(--white);border-radius:16px;padding:14px;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:10px;}
+.mob-pres-bars-hd{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:10px;}
+.mob-pres-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.mob-pres-bar-lbl{font-size:.72rem;color:var(--text2);width:30px;flex-shrink:0;text-align:right;}
+.mob-pres-bar-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.mob-pres-bar-fill{height:100%;border-radius:4px;}
+.mob-pres-bar-val{font-size:.7rem;font-weight:700;color:var(--text2);width:16px;flex-shrink:0;text-align:center;}
+.mob-assenza-btn{
+  width:100%;min-height:56px;border-radius:16px;
+  background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;
+  border:none;cursor:pointer;font-size:1rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-bottom:10px;font-family:inherit;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+}
+.mob-assenza-btn:active{opacity:.88;}
+.mob-doc-card{background:var(--white);border-radius:16px;padding:14px;border:1px solid var(--border);box-shadow:var(--sh);margin-bottom:10px;}
+.mob-doc-card-hd{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);margin-bottom:10px;}
+.mob-doc-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.mob-doc-row:last-child{border-bottom:none;padding-bottom:0;}
+.mob-doc-ic{font-size:1.3rem;flex-shrink:0;}
+.mob-doc-body{flex:1;min-width:0;}
+.mob-doc-name{font-size:.9rem;font-weight:700;}
+.mob-doc-exp{font-size:.72rem;color:var(--text3);margin-top:2px;}
+.mob-doc-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:6px;flex-shrink:0;}
+
+/* ═══════════════════════════════════════════
    MOBILE WEEK CALENDAR
    ═══════════════════════════════════════════ */
 #calWeekView{display:none;}
@@ -2692,9 +2808,10 @@ function bootApp(user) {
     if (me && me.tempPassword) setTimeout(() => openM('mChangePass'), 600);
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
-    // Mostra pulsante assistente
+    // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
     const _cb = document.getElementById('asstBtn');
-    if (_cb) _cb.classList.add('visible');
+    const _isMobFam = window.innerWidth <= 640 && (me.role === 'genitore' || me.role === 'nonno');
+    if (_cb && !_isMobFam) _cb.classList.add('visible');
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
     if (_saRaw) { try { chatLoadLearned(JSON.parse(_saRaw)); } catch(e) {} }
@@ -2718,8 +2835,16 @@ function buildMobNav(role) {
   if (!nav) return;
   nav.innerHTML = '';
   let items;
-  if (role === 'giocatore' || role === 'genitore' || role === 'nonno') {
-    // Genitore/Giocatore/Nonno: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
+  if (role === 'genitore' || role === 'nonno') {
+    items = [
+      {id:'dashboard',    ic:'🏠', lb:'Home'},
+      {id:'chat',         ic:'💬', lb:'Chat',      badge:'mn-chat'},
+      {id:'comunicazioni',ic:'📣', lb:'Avvisi',    badge:'mn-comm'},
+      {id:'calendario',   ic:'📅', lb:'Calendario'},
+      {id:'profilo',      ic:'👤', lb:'Figlio'},
+    ];
+  } else if (role === 'giocatore') {
+    // Giocatore: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
@@ -2895,6 +3020,9 @@ function goTo(pgId) {
 function renderProfilo() {
   const el = document.getElementById('profiloContent');
   if (!el || !me) return;
+  if ((me.role === 'genitore' || me.role === 'nonno') && window.innerWidth <= 640) {
+    renderProfiloFiglio(el); return;
+  }
   const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
   const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
@@ -2913,6 +3041,98 @@ function renderProfilo() {
     </div>
     <div style="margin-top:20px;text-align:center;">
       <button class="btn btn-r" style="width:100%;max-width:300px;" onclick="logout()">🚪 Esci dall'app</button>
+    </div>`;
+}
+
+function renderProfiloFiglio(el) {
+  const figliNames = getFigliOf(me);
+  const figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
+  const p = figliPlayers[0];
+
+  if (!p) {
+    el.innerHTML = `<div class="mob-dash-card" style="text-align:center;padding:32px 20px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">👤</div>
+      <div style="font-size:1.05rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
+      <div style="font-size:.85rem;color:var(--text3);margin-top:6px;">Chiedi all'amministratore di collegare il profilo del tuo figlio/a.</div>
+    </div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
+    </div>`;
+    return;
+  }
+
+  const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
+  const s = calcStats(p);
+  const ms = playerMatchStats(p.id, p.leva);
+  const totalGol = ms.a.gol + ms.c.gol + ms.t.gol;
+  const totalAss = ms.a.assist + ms.c.assist + ms.t.assist;
+  const pcColor = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
+  const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+  // Ultime 6 presenze agli allenamenti
+  const trainDates = getTrainingDatesForLeva(p.leva).slice(0, 6).reverse();
+  const presBarHtml = trainDates.length ? `<div class="mob-pres-bars">
+    <div class="mob-pres-bars-hd">Ultime presenze</div>
+    ${trainDates.map(dateStr => {
+      const stato = getPresenzaForDate(p, dateStr);
+      const barColor = stato === 'p' ? 'var(--green)' : stato === 'a' ? 'var(--red)' : stato === 'j' ? 'var(--gold)' : 'var(--border2)';
+      const barW = stato ? '100%' : '15%';
+      const valLabel = stato === 'p' ? 'P' : stato === 'a' ? 'A' : stato === 'j' ? 'G' : '—';
+      const d = parseYmd(dateStr);
+      return `<div class="mob-pres-bar-row">
+        <div class="mob-pres-bar-lbl">${d.getDate()} ${MESI_S[d.getMonth()].toLowerCase()}</div>
+        <div class="mob-pres-bar-track"><div class="mob-pres-bar-fill" style="width:${barW};background:${barColor};"></div></div>
+        <div class="mob-pres-bar-val">${valLabel}</div>
+      </div>`;
+    }).join('')}
+  </div>` : '';
+
+  // Documenti del giocatore
+  const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
+  let docsHtml = '';
+  if (pDocs.length) {
+    const todayMs = Date.now();
+    docsHtml = `<div class="mob-doc-card">
+      <div class="mob-doc-card-hd">Documenti</div>
+      ${pDocs.map(doc => {
+        const expMs = doc.dataScadenza ? new Date(doc.dataScadenza).getTime() : null;
+        const daysLeft = expMs ? Math.round((expMs - todayMs) / 86400000) : null;
+        const isExpired = daysLeft !== null && daysLeft < 0;
+        const isWarn = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+        const badgeBg = isExpired ? '#fef2f2' : isWarn ? '#fffbeb' : '#f0fdf4';
+        const badgeColor = isExpired ? '#dc2626' : isWarn ? '#d97706' : '#16a34a';
+        const badgeLabel = isExpired ? 'Scaduto' : isWarn ? daysLeft + 'g' : 'OK';
+        const dt = DOC_TYPES ? (DOC_TYPES[doc.tipo] || { label: doc.tipoLabel || doc.tipo, icon: '📎' }) : { label: doc.tipoLabel || doc.tipo, icon: '📎' };
+        return `<div class="mob-doc-row">
+          <div class="mob-doc-ic">${dt.icon||'📄'}</div>
+          <div class="mob-doc-body">
+            <div class="mob-doc-name">${escapeHtml(dt.label||doc.tipoLabel||'Documento')}</div>
+            ${doc.dataScadenza ? `<div class="mob-doc-exp">Scadenza: ${doc.dataScadenza}</div>` : ''}
+          </div>
+          ${expMs !== null ? `<span class="mob-doc-badge" style="background:${badgeBg};color:${badgeColor};">${badgeLabel}</span>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="mob-figlio-hero">
+      <div class="mob-figlio-av">${ini}</div>
+      <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
+      <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
+      <div class="mob-figlio-stats">
+        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
+        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalAss}</div><div class="mob-figlio-stat-l">Assist</div></div>
+        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="mob-figlio-stat-l">Presenze</div></div>
+      </div>
+    </div>
+    ${presBarHtml}
+    <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
+    ${docsHtml}
+    <div class="mob-dash-card" style="margin-top:8px;">
+      <div class="mob-dash-card-hd">Il tuo account</div>
+      <div style="font-size:.84rem;color:var(--text2);margin-bottom:12px;">${escapeHtml(me.email||'')}</div>
+      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
     </div>`;
 }
 
@@ -7388,6 +7608,7 @@ function renderPanoramica() {
 }
 
 function buildMobDashboard(role, c) {
+  if (role === 'genitore' || role === 'nonno') { buildMobDashboardGenitore(c); return; }
   const todayStr = ymd(new Date());
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   const lv = currentLeva;
@@ -7471,6 +7692,139 @@ function buildMobDashboard(role, c) {
       <div class="mob-dash-card-hd">Avvisi recenti <a onclick="goTo('comunicazioni')">Vedi tutti →</a></div>
       ${avvisiHtml}
     </div>`;
+}
+
+function buildMobDashboardGenitore(c) {
+  const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const todayStr = ymd(new Date());
+
+  const figliNames = getFigliOf(me);
+  const figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
+  const p = figliPlayers[0];
+
+  // — Hero card figlio —
+  let heroHtml = '';
+  if (p) {
+    const ms = playerMatchStats(p.id, p.leva);
+    const totalGol = ms.a.gol + ms.c.gol + ms.t.gol;
+    const totalAss = ms.a.assist + ms.c.assist + ms.t.assist;
+    const s = calcStats(p);
+    const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
+    heroHtml = `<div class="mob-fam-card">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div class="mob-fam-av">${ini}</div>
+        <div style="flex:1;">
+          <div class="mob-fam-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
+          <div class="mob-fam-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
+        </div>
+      </div>
+      <div class="mob-fam-stats">
+        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalGol}</div><div class="mob-fam-stat-l">Gol</div></div>
+        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalAss}</div><div class="mob-fam-stat-l">Assist</div></div>
+        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${s.percAll}<span style="font-size:.85rem;">%</span></div><div class="mob-fam-stat-l">Presenze</div></div>
+      </div>
+      <div class="mob-fam-num">#${p.num||'—'}</div>
+    </div>`;
+  } else {
+    heroHtml = `<div class="mob-dash-card" style="text-align:center;padding:28px;">
+      <div style="font-size:2rem;margin-bottom:8px;">👤</div>
+      <div style="font-size:1rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
+      <div style="font-size:.82rem;color:var(--text3);margin-top:4px;">Chiedi all'amministratore di collegare il profilo.</div>
+    </div>`;
+  }
+
+  // — Quote da pagare —
+  let quotaHtml = '';
+  if (p) {
+    const myPlayers = getMyPlayers();
+    const myIds = myPlayers.map(x => x.id);
+    const pending = quotes.filter(q => myIds.includes(q.playerId) && q.stato !== 'pagato');
+    const totDovuto = pending.reduce((s, q) => s + (Number(q.importo) || 0), 0);
+    if (totDovuto > 0) {
+      quotaHtml = `<div class="mob-quota-banner" onclick="goTo('pagamenti')">
+        <div class="mob-quota-ico">💰</div>
+        <div class="mob-quota-body">
+          <div class="mob-quota-label">Quote da pagare</div>
+          <div class="mob-quota-sub">${pending.length} rata${pending.length !== 1 ? 'e' : ''} in sospeso</div>
+        </div>
+        <div class="mob-quota-amt">€${totDovuto}</div>
+      </div>`;
+    }
+  }
+
+  // — Prossimo impegno —
+  const childLeve = p ? [p.leva].filter(Boolean) : [];
+  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
+  const futureEv = allEv
+    .filter(e => e.date >= todayStr && (childLeve.length === 0 || childLeve.includes(e.leva) || !e.leva))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const nextEv = futureEv[0];
+
+  let impegnoHtml = '';
+  if (nextEv) {
+    const d = parseYmd(nextEv.date);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.round((d - today) / 86400000);
+    const isMatch = nextEv.type === 'partita' || nextEv.type === 'torneo';
+    let convBadge = '';
+    if (isMatch && p) {
+      const conv = getConvocazione(nextEv.id);
+      const isConv = conv && conv.playerIds && conv.playerIds.includes(p.id);
+      convBadge = conv ? (isConv ? `<span class="mob-conv-badge conv-si">✅ Convocato</span>` : `<span class="mob-conv-badge conv-no">Non convocato</span>`) : '';
+    }
+    const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
+    impegnoHtml = `<div class="mob-impegno" onclick="goTo('calendario')">
+      <div class="mob-impegno-hd">Prossimo impegno <span style="color:var(--cp);font-size:.65rem;">${MESI[d.getMonth()].toUpperCase()}</span></div>
+      <div class="mob-impegno-row">
+        <div class="mob-impegno-cd">
+          <div class="mob-impegno-cd-n">${d.getDate()}</div>
+          <div class="mob-impegno-cd-l">${MESI[d.getMonth()]}</div>
+        </div>
+        <div class="mob-impegno-info">
+          <div class="mob-impegno-title">${escapeHtml(nextEv.title || nextEv.type || 'Evento')}</div>
+          <div class="mob-impegno-meta">${nextEv.start ? nextEv.start : ''}${nextEv.luogo ? (nextEv.start ? ' · ' : '') + escapeHtml(nextEv.luogo) : ''}</div>
+          ${convBadge}
+        </div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);text-align:center;flex-shrink:0;background:var(--cl);border-radius:10px;padding:6px 10px;">${cdStr}</div>
+      </div>
+    </div>`;
+  } else {
+    impegnoHtml = `<div class="mob-impegno" onclick="goTo('calendario')">
+      <div class="mob-impegno-hd">Prossimo impegno</div>
+      <div style="font-size:.88rem;color:var(--text2);padding:4px 0;">Nessun impegno programmato</div>
+    </div>`;
+  }
+
+  // — Ultimo avviso non letto —
+  const myNotif = notifiche.filter(n => n.userId === me.id && !n.read).sort((a, b) => (b.ts||0) - (a.ts||0));
+  let avvisoHtml = '';
+  if (myNotif.length) {
+    const n = myNotif[0];
+    const isUrgent = n.tipo === 'urgente' || n.priority === 'high';
+    const isEvento = n.tipo === 'evento';
+    const icBg = isUrgent ? '#fef2f2' : isEvento ? '#fffbeb' : '#eff6ff';
+    const icColor = isUrgent ? '#dc2626' : isEvento ? '#d97706' : '#2563eb';
+    const ic = isUrgent ? '🚨' : isEvento ? '🎉' : '📣';
+    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
+      <div class="mob-avviso-ic" style="background:${icBg};color:${icColor};">${ic}</div>
+      <div class="mob-avviso-body">
+        <div class="mob-avviso-title">${escapeHtml((n.titolo||n.title||n.message||n.text||'').slice(0,60))}</div>
+        <div class="mob-avviso-meta">${panoFmtDateShort(n.date||n.createdAt||'')}${myNotif.length > 1 ? ' · ' + myNotif.length + ' non letti' : ''}</div>
+      </div>
+      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
+    </div>`;
+  } else {
+    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
+      <div class="mob-avviso-ic" style="background:#f0fdf4;color:#16a34a;">✓</div>
+      <div class="mob-avviso-body">
+        <div class="mob-avviso-title" style="color:var(--text2);">Nessun avviso non letto</div>
+        <div class="mob-avviso-meta">Tocca per vedere tutti gli avvisi</div>
+      </div>
+      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
+    </div>`;
+  }
+
+  c.innerHTML = heroHtml + quotaHtml + impegnoHtml + avvisoHtml;
 }
 
 function buildDashboard(role) {
