@@ -2219,6 +2219,34 @@ async function doLogin() {
     return;
   }
 
+  // ── 0. Demo Stella Azzurra — intercept prima del server ──
+  // Le credenziali Stella Azzurra non esistono sul server (demo locale).
+  // Le intercettiamo qui per far funzionare anche il form normale.
+  const _stellaEmails = new Set([
+    'demo.admin@stellaazzurra.it',
+    'demo.mister@stellaazzurra.it',
+    'mister.u14@stellaazzurra.it',
+    'demo.genitore@stellaazzurra.it',
+    'demo.giocatore@stellaazzurra.it'
+  ]);
+  if (_stellaEmails.has(email) && pass === DEMO_PASS) {
+    ensureDemoStellaState();
+    saLoadState();
+    if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
+      saSocieties.push({...STELLA_AZZ_SOC_DEF});
+    }
+    currentSocietaId = DEMO_STELLA_ID;
+    if (typeof window.__fieldosSetSocietaKey === 'function') {
+      window.__fieldosSetSocietaKey(DEMO_STELLA_KEY);
+    }
+    const _raw = localStorage.getItem(DEMO_STELLA_KEY);
+    const _state = _raw ? JSON.parse(_raw) : {};
+    me = (_state.USERS_DB || []).find(u => u.email === email);
+    if (!me) { toast('❌ Errore caricamento demo'); return; }
+    bootApp(me);
+    return;
+  }
+
   // ── 1. Super Admin (credenziali hardcoded, nessuna chiamata server) ──
   if (email === SA_EMAIL.toLowerCase() && pass === SA_PASS) {
     // Carica SA state dal server prima di mostrare il pannello
