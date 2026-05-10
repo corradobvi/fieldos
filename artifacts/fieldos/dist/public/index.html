@@ -1734,6 +1734,40 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 'use strict';
 
 // ═══════════════════════════════════
+// COSTANTI GLOBALI — dichiarate in cima per evitare TDZ su mobile
+// ═══════════════════════════════════
+const PIANI_DEF = {
+  demo:       { nome:'Demo',        leve:Infinity, giocatori:Infinity, prezzoMese:0,  prezzoAnno:0   },
+  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
+  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
+  societa:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
+  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
+  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
+  premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
+};
+const DEMO_SOC_ID    = 99;
+const DEMO_EMAIL     = 'demo@myvivaio.app';
+const DEMO_PASS      = 'Demo2025!';
+const DEMO_GIORNI    = 14;
+const DEMO_STELLA_ID  = 100;
+const DEMO_STELLA_KEY = 'fieldos_state_soc_100';
+const STELLA_AZZ_SOC_DEF = {
+  id:100, nome:'Stella Azzurra ASD', citta:'Milano',
+  colori:'#1a3f8f', coloriAccento:'#FFD700',
+  piano:'societa', stato:'attivo',
+  email:'demo.admin@stellaazzurra.it',
+  note:'Demo preconfigurata · dati realistici',
+  utenti:5, giocatori:28, createdAt:1700000000000, lastActivity:null
+};
+const POLIS_SOC = {
+  id:0, nome:'Polis ASD', citta:'Genova', colori:'#047857', leva:'U12',
+  piano:'premium', stato:'attivo', email:'marco.admin@polis.it',
+  note:'Società demo precaricata', utenti:6, giocatori:0,
+  createdAt: 1700000000000, lastActivity: null
+};
+const _syncStatus = {};
+
+// ═══════════════════════════════════
 // DATA
 // ═══════════════════════════════════
 
@@ -10363,22 +10397,7 @@ async function sincronizzaCloud() {
 // ═══════════════════════════════════════════════════════════
 // SISTEMA PIANI
 // ═══════════════════════════════════════════════════════════
-const PIANI_DEF = {
-  demo:       { nome:'Demo',        leve:Infinity, giocatori:Infinity, prezzoMese:0,  prezzoAnno:0   },
-  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
-  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
-  societa:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
-  // Backward-compat aliases
-  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
-  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
-  premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
-};
-const DEMO_SOC_ID    = 99;
-const DEMO_EMAIL     = 'demo@myvivaio.app';
-const DEMO_PASS      = 'Demo2025!';
-const DEMO_GIORNI    = 14;
-const DEMO_STELLA_ID  = 100;
-const DEMO_STELLA_KEY = 'fieldos_state_soc_100';
+// (PIANI_DEF, DEMO_SOC_ID, DEMO_EMAIL, DEMO_PASS, DEMO_GIORNI, DEMO_STELLA_ID, DEMO_STELLA_KEY → dichiarati in cima allo script)
 
 function pianoNorm(p) {
   // Normalizza valori legacy → nuovi
@@ -10571,14 +10590,7 @@ function loginDemo() {
 // ═══════════════════════════════════
 // DEMO STELLA AZZURRA ASD
 // ═══════════════════════════════════
-const STELLA_AZZ_SOC_DEF = {
-  id:100, nome:'Stella Azzurra ASD', citta:'Milano',
-  colori:'#1a3f8f', coloriAccento:'#FFD700',
-  piano:'societa', stato:'attivo',
-  email:'demo.admin@stellaazzurra.it',
-  note:'Demo preconfigurata · dati realistici',
-  utenti:5, giocatori:28, createdAt:1700000000000, lastActivity:null
-};
+// (STELLA_AZZ_SOC_DEF → dichiarata in cima allo script)
 
 function buildDemoStellaState() {
   function toYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -10825,12 +10837,7 @@ function checkPianoOnBoot(soc) {
   }
 }
 
-const POLIS_SOC = {
-  id:0, nome:'Polis ASD', citta:'Genova', colori:'#047857', leva:'U12',
-  piano:'premium', stato:'attivo', email:'marco.admin@polis.it',
-  note:'Società demo precaricata', utenti:6, giocatori:0,
-  createdAt: 1700000000000, lastActivity: null
-};
+// (POLIS_SOC → dichiarata in cima allo script)
 
 function saLoadState() {
   try {
@@ -10915,7 +10922,7 @@ function saLog(action, detail) {
 
 // ── SA Sync status ────────────────────────────────────────────────────────
 // 'ok' = esiste sul server | 'local_only' = solo in localStorage | 'none' = nessun dato
-const _syncStatus = {};
+// (_syncStatus → dichiarata in cima allo script)
 
 async function saCheckAllSync() {
   for (const soc of saSocieties) {
