@@ -12912,18 +12912,25 @@ function saveNewPassword() {
     }).catch(() => {}); // silently ignore network errors (offline/dev without API)
   }
 
+  // Sentinella: il server risponde esplicitamente "chiave non trovata" (DB vuoto per questa società)
+  const _PULL_EMPTY = '__EMPTY__';
+
   async function apiPull(key, timeout = 8000) {
-    // Returns the server's stateJson string, or null if not found / error
+    // Ritorna:
+    //   string        — il server ha dati (stateJson)
+    //   _PULL_EMPTY   — il server risponde 404: chiave non trovata, DB vuoto per questa società
+    //   null          — timeout, errore di rete, o qualsiasi errore: NON toccare il server
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), timeout);
       const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
       clearTimeout(tid);
-      if (!resp.ok) return null;
+      if (resp.status === 404) return _PULL_EMPTY; // server dice esplicitamente: chiave non esiste
+      if (!resp.ok) return null;                   // errore server → tratta come timeout
       const data = await resp.json();
-      return data.stateJson || null;
+      return data.stateJson || _PULL_EMPTY;        // risposta ok ma body vuoto = DB vuoto
     } catch (_) {
-      return null;
+      return null; // timeout (AbortError) o rete non disponibile → non fare nulla al server
     }
   }
   // ─────────────────────────────────────────────────────────
@@ -13079,15 +13086,34 @@ function saveNewPassword() {
   bootApp = function(user) {
     // Tenta il server prima (4s timeout): se risponde è fonte di verità
     apiPull(KEY, 4000).then(serverJson => {
-      if (serverJson) {
-        applyServerState(serverJson); // scrive su localStorage + carica in memoria
-        // Riaggiorna il riferimento utente con i dati freschi del server
+      if (serverJson && serverJson !== _PULL_EMPTY) {
+        // ── CASO 1: server ha dati → sono la fonte di verità, sempre ──
+        applyServerState(serverJson);
         const fresh = USERS_DB.find(u => u.email?.toLowerCase() === user.email?.toLowerCase());
         if (fresh) user = fresh;
+
+      } else if (serverJson === _PULL_EMPTY) {
+        // ── CASO 2: server risponde 404 (DB vuoto per questa chiave) ──
+        // Usa localStorage se ha dati reali, e sincronizzali al server
+        restoreState();
+        const localData = localStorage.getItem(KEY);
+        if (localData && localData !== '{}') {
+          try {
+            const parsed = JSON.parse(localData);
+            // Considera "dati reali" solo se ci sono giocatori OPPURE utenti creati dopo i default
+            const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
+            const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
+            if (hasRealPlayers || hasRealUsers) {
+              apiPush(KEY, localData); // primo upload: localStorage → server
+            }
+          } catch (_) {}
+        }
+
       } else {
-        restoreState(); // fallback: localStorage
-        // Server vuoto: carica subito i dati esistenti sul server
-        apiPush(KEY, localStorage.getItem(KEY) || '{}');
+        // ── CASO 3: null = timeout o errore di rete ──
+        // Usa localStorage come fallback, NON toccare il server
+        // (i dati sul server potrebbero essere integri — non sovrascrivere mai)
+        restoreState();
       }
       _origBoot(user);
       startSyncPoll();

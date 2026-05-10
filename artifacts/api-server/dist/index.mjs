@@ -60881,6 +60881,7 @@ var CREATE_TABLE_SQL = `
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
+var MIN_STATE_BYTES = 200;
 router2.get("/state/:key", async (req, res) => {
   try {
     const result = await pool.execute(
@@ -60899,6 +60900,28 @@ router2.put("/state/:key", async (req, res) => {
   const { stateJson } = req.body;
   if (typeof stateJson !== "string") {
     return res.status(400).json({ error: "stateJson must be a string" });
+  }
+  if (stateJson.length < MIN_STATE_BYTES) {
+    try {
+      await pool.execute(CREATE_TABLE_SQL);
+      const [existing] = await pool.execute(
+        "SELECT LENGTH(state_json) as sz FROM `society_state` WHERE `key` = ?",
+        [req.params.key]
+      );
+      if (existing.length && Number(existing[0].sz) >= MIN_STATE_BYTES) {
+        logger.warn(
+          { key: req.params.key, newSize: stateJson.length, existingSize: existing[0].sz },
+          "state PUT rejected: would overwrite real data with near-empty state"
+        );
+        return res.status(409).json({
+          error: "would_overwrite_real_data",
+          detail: "Il nuovo stato \xE8 troppo piccolo per sovrascrivere dati esistenti. Operazione annullata a protezione dei dati."
+        });
+      }
+    } catch (e) {
+      logger.error({ err: e }, "state PUT safety-check failed");
+      return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
+    }
   }
   try {
     await pool.execute(CREATE_TABLE_SQL);
