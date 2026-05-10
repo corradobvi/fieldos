@@ -11161,19 +11161,22 @@ const CHAT_SUGS = {
 };
 
 let _chatOpen = false;
-let _chatMsgs = []; // {role:'user'|'bot', html:string, id:number}
+let _chatMsgs = []; // {id, role:'user'|'bot', html}
 let _chatMsgId = 0;
-let _chatCurrentSection = '';
-let faqLearned = []; // salvate in SA state
+let _chatTyping = false;
+let _chatLastQ = ''; // ultima domanda per escalate
+let _chatSugList = []; // lista suggerimenti correnti (evita quoting bug in innerHTML)
+let faqLearned = [];
 let faqLearnedNextId = 1;
 
+// ── Apertura / chiusura ──────────────────────
 function chatToggle() {
   _chatOpen = !_chatOpen;
   const panel = document.getElementById('asstPanel');
   if (_chatOpen) {
     panel.classList.add('open');
     if (!_chatMsgs.length) {
-      _chatAddBot('Ciao! 👋 Sono l\'assistente di MyVivaio. Come posso aiutarti?');
+      _chatPushBot('Ciao! 👋 Sono l\'assistente di MyVivaio. Come posso aiutarti?');
     }
     _chatUpdateSugs();
     setTimeout(() => document.getElementById('asstInp')?.focus(), 300);
@@ -11189,107 +11192,78 @@ function _chatCurrentPage() {
   return pg ? pg.id.replace('pg-', '') : '';
 }
 
+// ── Suggerimenti contestuali ──────────────────
+// FIX: usa _chatSugList + indice numerico per evitare il bug di quoting
+// con JSON.stringify dentro onclick="..." (i doppi apici rompevano l'attributo HTML)
 function _chatUpdateSugs() {
   const pg = _chatCurrentPage();
-  const sugs = CHAT_SUGS[pg] || ['Come funziona la demo?','Quali sono i piani?','Come aggiungo un utente?'];
+  _chatSugList = CHAT_SUGS[pg] || ['Come funziona la demo?','Quali sono i piani?','Come aggiungo un utente?'];
   const el = document.getElementById('asstSugs');
   if (!el) return;
-  el.innerHTML = sugs.map(s =>
-    `<button class="chat-sug" onclick="chatAskSug(${JSON.stringify(s)})">${s}</button>`
+  el.innerHTML = _chatSugList.map((s, i) =>
+    `<button class="chat-sug" onclick="_chatClickSug(${i})">${escapeHtml(s)}</button>`
   ).join('');
 }
 
-function chatAskSug(q) {
-  document.getElementById('asstInp').value = q;
-  chatSend();
+function _chatClickSug(i) {
+  const q = _chatSugList[i];
+  if (!q) return;
+  _chatHandleQuestion(q);
 }
 
-function _chatAddBot(html, showFallback) {
-  const id = ++_chatMsgId;
-  const fb = showFallback
-    ? `<div class="chat-fb"><span>Non ho trovato quello che cercavo</span><button class="chat-not-found" onclick="_chatEscalate(${JSON.stringify(showFallback)})">→ Chiedi all\'AI</button></div>`
-    : '';
-  _chatMsgs.push({id, html: html + fb});
-  _chatRender();
-}
-
-function _chatRender() {
-  const el = document.getElementById('asstMsgs');
-  if (!el) return;
-  el.innerHTML = _chatMsgs.map(m =>
-    `<div class="chat-msg bot">${m.html}</div>`
-  ).join('') + (_chatTyping ? '<div class="chat-typing"><span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span></div>' : '');
-  el.scrollTop = el.scrollHeight;
-}
-
-let _chatTyping = false;
-
-function _chatShowTyping() {
-  _chatTyping = true; _chatRender();
-}
-function _chatHideTyping() {
-  _chatTyping = false; _chatRender();
-}
-
-// Matching FAQ: keywords semplici
-function _chatMatch(q) {
-  const norm = q.toLowerCase().replace(/[?!.,]/g,'');
-  // Prima controlla FAQ apprese (priorità alle promosse)
-  const promoted = faqLearned.filter(x => x.approved && x.count >= 3);
-  for (const f of promoted) {
-    const fq = f.question.toLowerCase().replace(/[?!.,]/g,'');
-    if (_simScore(norm, fq) > 0.45) return f.answer;
-  }
-  // Poi FAQ hardcoded
-  let best = null, bestScore = 0;
-  for (const faq of FAQ_DB) {
-    const fq = faq.q.toLowerCase().replace(/[?!.,]/g,'');
-    const sc = _simScore(norm, fq);
-    if (sc > bestScore) { bestScore = sc; best = faq; }
-  }
-  return bestScore > 0.35 ? best.a : null;
-}
-
-function _simScore(a, b) {
-  const wa = new Set(a.split(/\s+/).filter(x => x.length > 2));
-  const wb = new Set(b.split(/\s+/).filter(x => x.length > 2));
-  if (!wa.size || !wb.size) return 0;
-  let common = 0;
-  wa.forEach(w => { if (wb.has(w)) common++; });
-  return common / Math.max(wa.size, wb.size);
-}
-
-async function chatSend() {
+// ── Invio da input ──────────────────────────
+function chatSend() {
   const inp = document.getElementById('asstInp');
   const q = (inp?.value || '').trim();
   if (!q) return;
   inp.value = '';
+  _chatHandleQuestion(q);
+}
 
-  // Aggiungi messaggio utente
-  const uid = ++_chatMsgId;
-  _chatMsgs.push({id:uid, html:`<div class="chat-msg user">${escapeHtml(q)}</div>`});
-  _chatRender();
+// ── Flusso principale ───────────────────────
+function _chatHandleQuestion(q) {
+  _chatLastQ = q;
+  _chatPushUser(escapeHtml(q));
 
-  // Prova FAQ
   const faqAns = _chatMatch(q);
   if (faqAns) {
-    _chatAddBot(faqAns);
+    // Risposta FAQ trovata → mostra con 👍👎
+    const id = ++_chatMsgId;
+    _chatMsgs.push({id, role:'bot', html:
+      faqAns +
+      `<div class="chat-fb">` +
+        `<button onclick="_chatFaqFb(1,${id})" style="min-height:32px;">👍 Sì, risolto</button>` +
+        `<button onclick="_chatFaqFb(0,${id})" style="min-height:32px;">👎 Serve altro aiuto</button>` +
+      `</div>`
+    });
+    _chatRender();
     return;
   }
 
-  // Nessuna FAQ trovata → mostra messaggio con link escalate
-  _chatAddBot(
-    'Non ho trovato una risposta nelle FAQ per questa domanda.',
-    q
-  );
+  // Nessuna FAQ → escalate diretto all'AI
+  _chatPushBot('Non ho trovato una risposta nelle FAQ. Ti passo al nostro assistente AI… 🤖');
+  _chatDoEscalate(q);
 }
 
-async function _chatEscalate(q) {
-  // Rimuovi il messaggio "non trovato" e mostra typing
-  _chatMsgs.pop();
-  _chatShowTyping();
+// ── Feedback su risposta FAQ ────────────────
+function _chatFaqFb(positive, msgId) {
+  // Rimuovi i bottoni dalla risposta
+  const m = _chatMsgs.find(x => x.id === msgId);
+  if (m) { m.html = m.html.replace(/<div class="chat-fb">[\s\S]*?<\/div>/, ''); }
+  _chatRender();
 
-  // Aggiunge la domanda dell'utente di nuovo (era già stata mostrata)
+  if (positive) {
+    _chatPushBot('Ottimo! 😊 Se hai altre domande sono qui.');
+    _chatUpdateSugs();
+  } else {
+    _chatPushBot('Capito! Ti passo al nostro assistente AI… 🤖');
+    _chatDoEscalate(_chatLastQ);
+  }
+}
+
+// ── Chiamata Claude API ──────────────────────
+async function _chatDoEscalate(q) {
+  _chatShowTyping();
   const section = _chatCurrentPage();
   const role = (typeof me !== 'undefined' && me) ? me.role : '';
 
@@ -11302,35 +11276,90 @@ async function _chatEscalate(q) {
     _chatHideTyping();
 
     if (!resp.ok) {
-      _chatAddBot('⚠️ Il servizio AI non è momentaneamente disponibile. Riprova più tardi o contatta il supporto.');
+      _chatPushBot('⚠️ Il servizio AI non è disponibile ora.<br><a href="mailto:supporto@myvivaio.app" style="color:var(--cp);font-weight:600;">📧 Contatta il supporto →</a>');
       return;
     }
     const data = await resp.json();
     const answer = data.answer || 'Non ho trovato una risposta.';
-
-    // Salva nel sistema di apprendimento
     _chatLearnSave(q, answer, section);
 
-    // Mostra risposta con feedback
     const id = ++_chatMsgId;
-    _chatMsgs.push({id, html: answer + `<div class="chat-fb"><span>Questa risposta ti è stata utile?</span><button onclick="_chatFeedback(${id},1)">👍</button><button onclick="_chatFeedback(${id},0)">👎</button></div>`});
+    _chatMsgs.push({id, role:'bot', html:
+      answer +
+      `<div class="chat-fb">` +
+        `<span style="font-size:.7rem;">Questa risposta ti è stata utile?</span>` +
+        `<button onclick="_chatAiFb(1,${id})" style="min-height:32px;">👍</button>` +
+        `<button onclick="_chatAiFb(0,${id})" style="min-height:32px;">👎</button>` +
+      `</div>`
+    });
     _chatRender();
   } catch(e) {
     _chatHideTyping();
-    _chatAddBot('⚠️ Errore di connessione. Controlla la rete e riprova.');
+    _chatPushBot('⚠️ Errore di connessione. Controlla la rete e riprova.');
   }
 }
 
-function _chatFeedback(msgId, positive) {
+// ── Feedback su risposta AI ─────────────────
+function _chatAiFb(positive, msgId) {
   const m = _chatMsgs.find(x => x.id === msgId);
-  if (!m) return;
-  m.html = m.html.replace(/<div class="chat-fb">[\s\S]*?<\/div>/, '');
-  if (positive) {
-    m.html += '<div class="chat-fb" style="color:#4ade80;">✓ Grazie per il feedback!</div>';
-  } else {
-    m.html += '<div class="chat-fb" style="color:#f87171;">Ci dispiace. <a href="mailto:supporto@myvivaio.app" style="color:inherit;text-decoration:underline;">Contatta il supporto →</a></div>';
-  }
+  if (m) { m.html = m.html.replace(/<div class="chat-fb">[\s\S]*?<\/div>/, ''); }
   _chatRender();
+
+  if (positive) {
+    _chatPushBot('Ottimo! 😊 Sono qui se hai altre domande.');
+    _chatUpdateSugs();
+  } else {
+    _chatPushBot(
+      'Mi dispiace non aver potuto aiutarti. 😔<br>' +
+      '<a href="mailto:supporto@myvivaio.app" style="color:var(--cp);font-weight:600;">📧 Scrivi al supporto →</a>'
+    );
+  }
+}
+
+// ── Helpers render ───────────────────────────
+function _chatPushUser(html) {
+  _chatMsgs.push({id: ++_chatMsgId, role:'user', html});
+  _chatRender();
+}
+function _chatPushBot(html) {
+  _chatMsgs.push({id: ++_chatMsgId, role:'bot', html});
+  _chatRender();
+}
+function _chatRender() {
+  const el = document.getElementById('asstMsgs');
+  if (!el) return;
+  // FIX: usa m.role per applicare la classe corretta a ogni messaggio
+  el.innerHTML = _chatMsgs.map(m =>
+    `<div class="chat-msg ${m.role}">${m.html}</div>`
+  ).join('') + (_chatTyping ? '<div class="chat-typing"><span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span></div>' : '');
+  el.scrollTop = el.scrollHeight;
+}
+function _chatShowTyping() { _chatTyping = true;  _chatRender(); }
+function _chatHideTyping() { _chatTyping = false; _chatRender(); }
+
+// ── Matching FAQ ─────────────────────────────
+function _chatMatch(q) {
+  const norm = q.toLowerCase().replace(/[?!.,]/g,'');
+  const promoted = faqLearned.filter(x => x.approved && x.count >= 3);
+  for (const f of promoted) {
+    const fq = f.question.toLowerCase().replace(/[?!.,]/g,'');
+    if (_simScore(norm, fq) > 0.45) return f.answer;
+  }
+  let best = null, bestScore = 0;
+  for (const faq of FAQ_DB) {
+    const fq = faq.q.toLowerCase().replace(/[?!.,]/g,'');
+    const sc = _simScore(norm, fq);
+    if (sc > bestScore) { bestScore = sc; best = faq; }
+  }
+  return bestScore > 0.35 ? best.a : null;
+}
+function _simScore(a, b) {
+  const wa = new Set(a.split(/\s+/).filter(x => x.length > 2));
+  const wb = new Set(b.split(/\s+/).filter(x => x.length > 2));
+  if (!wa.size || !wb.size) return 0;
+  let common = 0;
+  wa.forEach(w => { if (wb.has(w)) common++; });
+  return common / Math.max(wa.size, wb.size);
 }
 
 function _chatLearnSave(question, answer, section) {
