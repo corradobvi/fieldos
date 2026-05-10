@@ -127,7 +127,7 @@ async function patchPinoPath() {
   const bundlePath = path.resolve(artifactDir, "dist/index.mjs");
   let src = await readFile(bundlePath, "utf8");
   src = src.replace(
-    /function pinoBundlerAbsolutePath\(p\)\s*\{[\s\S]*?^\s*\}/m,
+    /function pinoBundlerAbsolutePath\(p\)\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\}/g,
     "function pinoBundlerAbsolutePath(p) {\n      return new URL(p, import.meta.url).pathname;\n    }"
   );
   await writeFile(bundlePath, src, "utf8");
