@@ -1990,24 +1990,34 @@ function quick(role, email, pass) {
   setTimeout(doLoginSafe, 100);
 }
 
+let _loginInProgress = false;
+
 function doLoginSafe() {
+  if (_loginInProgress) return;
+  _loginInProgress = true;
   const btn = document.getElementById('btnLogin');
   if (btn) { btn.classList.add('loading'); btn.textContent = 'Accesso in corso…'; }
-  // Small delay so iOS has time to commit any pending autocomplete values
-  setTimeout(() => {
+
+  // 60ms delay: iOS needs time to commit autocomplete values before we read them
+  setTimeout(async () => {
     try {
-      doLogin();
+      await doLogin();
     } catch(e) {
       console.error('[doLogin]', e);
-      toast('❌ Errore interno: ' + (e.message || String(e)));
+      toast('❌ Errore: ' + ((e && e.message) || String(e)));
     } finally {
-      if (btn) { btn.classList.remove('loading'); btn.textContent = 'Accedi →'; }
+      _loginInProgress = false;
+      // Restore button only if still on login screen (login may have succeeded)
+      const ls = document.getElementById('loginScreen');
+      if (ls && ls.style.display !== 'none' && btn) {
+        btn.classList.remove('loading');
+        btn.textContent = 'Accedi →';
+      }
     }
   }, 60);
 }
 
-function doLogin() {
-  // Read value both ways — iOS Safari sometimes needs .value after blur
+async function doLogin() {
   const emailEl = document.getElementById('lEmail');
   const passEl  = document.getElementById('lPass');
   const email = (emailEl.value || '').trim().toLowerCase();
@@ -2018,25 +2028,83 @@ function doLogin() {
     return;
   }
 
-  // 1. Super Admin intercept (email already lowercased)
+  // ── 1. Super Admin (credenziali hardcoded, nessuna chiamata server) ──
   if (email === SA_EMAIL.toLowerCase() && pass === SA_PASS) {
-    saLoadState();
+    // Carica SA state dal server prima di mostrare il pannello
+    try {
+      const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY));
+      if (r.ok) {
+        const data = await r.json();
+        if (data && data.stateJson) {
+          const s = JSON.parse(data.stateJson);
+          if (Array.isArray(s.saSocieties)) saSocieties = s.saSocieties;
+          if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;
+          if (Array.isArray(s.saActionLog)) saActionLog = s.saActionLog;
+          if (typeof s.saNextLogId === 'number') saNextLogId = s.saNextLogId;
+          localStorage.setItem(SA_KEY, data.stateJson);
+        }
+      }
+    } catch(_) {}
+    // Fallback: se server non risponde, usa localStorage
+    if (!saSocieties.length) saLoadState();
     showSuperAdminPanel();
     return;
   }
 
-  // 2. Cerca in tutte le società registrate (inclusa Polis ASD, id 0)
+  // ── 2. Server login — fonte di verità principale ──
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 8000);
+    let resp;
+    try {
+      resp = await fetch(API_BASE + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+        signal: ctrl.signal
+      });
+    } finally {
+      clearTimeout(tid);
+    }
+
+    if (resp.status === 403) { toast('⛔ Account sospeso. Contatta la società.'); return; }
+
+    if (resp.ok) {
+      const data = await resp.json();
+      currentSocietaId = data.societyId;
+      // Carica SA state in background (per plan checks)
+      saLoadState();
+      if (typeof window.__fieldosSetSocietaKey === 'function') {
+        window.__fieldosSetSocietaKey(data.stateKey);
+      }
+      me = data.user;
+      bootApp(me);
+      return;
+    }
+
+    if (resp.status === 401) {
+      toast('❌ Credenziali non valide');
+      return;
+    }
+
+    // 5xx o altro — prova il fallback localStorage
+    console.warn('[doLogin] server error', resp.status);
+  } catch (networkErr) {
+    // Timeout o rete non disponibile — usa localStorage come offline fallback
+    console.warn('[doLogin] server unreachable, trying localStorage:', networkErr.message || networkErr);
+  }
+
+  // ── 3. Fallback offline: localStorage ──
   saLoadState();
   for (const soc of saSocieties) {
     if (soc.stato !== 'attivo') continue;
     const key = societyStorageKey(soc.id);
-    // Legge USERS_DB: da localStorage se disponibile, altrimenti usa la memoria (solo per Polis al primo avvio)
     let users;
     const raw = localStorage.getItem(key);
     if (raw) {
-      try { users = JSON.parse(raw).USERS_DB; } catch(e) { continue; }
+      try { users = JSON.parse(raw).USERS_DB; } catch(e2) { continue; }
     } else if (soc.id === 0) {
-      users = USERS_DB; // fallback primo avvio Polis
+      users = USERS_DB;
     } else { continue; }
 
     const found = (users || []).find(u =>
@@ -2047,15 +2115,13 @@ function doLogin() {
 
     currentSocietaId = soc.id;
     if (typeof window.__fieldosSetSocietaKey === 'function') {
-      window.__fieldosSetSocietaKey(key); // cambia KEY e chiama restoreState
+      window.__fieldosSetSocietaKey(key);
     }
-    // me punta all'oggetto ora in USERS_DB (dopo restoreState)
     me = USERS_DB.find(u => (u.email || '').toLowerCase() === email && u.pass === pass) || found;
     bootApp(me);
     return;
   }
 
-  // 3. Non trovato — controlla pendingUsers (Polis)
   const pend = pendingUsers.find(p => (p.email || '').toLowerCase() === email);
   if (pend) { toast('⏳ La tua richiesta è ancora in attesa di approvazione'); return; }
   toast('❌ Credenziali non valide');
@@ -10499,12 +10565,13 @@ function saLoadState() {
   try {
     const raw = localStorage.getItem(SA_KEY);
     if (!raw) {
-      // Primo avvio: registra Polis ASD come società 0
+      // Prima apertura su questo device: imposta default in memoria ma NON salvare ancora.
+      // Salvare qui sovrascriverebbe i dati reali sul server prima che arrivi la risposta async.
       saSocieties = [{ ...POLIS_SOC }];
       saNextSocId = 1;
       saActionLog = [];
       saNextLogId = 1;
-      saSaveState();
+      // Non chiamare saSaveState() — lo facciamo solo dopo aver verificato che il server sia vuoto
     } else {
       const s = JSON.parse(raw);
       if (Array.isArray(s.saSocieties)) saSocieties = s.saSocieties;
@@ -10521,7 +10588,11 @@ function saLoadState() {
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY))
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data || !data.stateJson) { saSaveState(); return; } // server vuoto: spingi dati locali
+        if (!data || !data.stateJson) {
+          // Server vuoto: ORA possiamo salvare il default (sappiamo che non sovrascriviamo nulla)
+          saSaveState();
+          return;
+        }
         const s = JSON.parse(data.stateJson);
         if (Array.isArray(s.saSocieties)) saSocieties = s.saSocieties;
         if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;

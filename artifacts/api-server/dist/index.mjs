@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router4;
+    module.exports = Router5;
     module.exports.Route = Route;
-    function Router4(options) {
-      if (!(this instanceof Router4)) {
-        return new Router4(options);
+    function Router5(options) {
+      if (!(this instanceof Router5)) {
+        return new Router5(options);
       }
       const opts = options || {};
-      function router4(req, res, next) {
-        router4.handle(req, res, next);
+      function router5(req, res, next) {
+        router5.handle(req, res, next);
       }
-      Object.setPrototypeOf(router4, this);
-      router4.caseSensitive = opts.caseSensitive;
-      router4.mergeParams = opts.mergeParams;
-      router4.params = {};
-      router4.strict = opts.strict;
-      router4.stack = [];
-      return router4;
+      Object.setPrototypeOf(router5, this);
+      router5.caseSensitive = opts.caseSensitive;
+      router5.mergeParams = opts.mergeParams;
+      router5.params = {};
+      router5.strict = opts.strict;
+      router5.stack = [];
+      return router5;
     }
-    Router4.prototype = function() {
+    Router5.prototype = function() {
     };
-    Router4.prototype.param = function param(name, fn) {
+    Router5.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router4.prototype.handle = function handle(req, res, callback) {
+    Router5.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router4.prototype.use = function use(handler) {
+    Router5.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router4.prototype.route = function route(path2) {
+    Router5.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router4.prototype[method] = function(path2) {
+      Router5.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router4 = require_router();
+    var Router5 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router4 = null;
+      var router5 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router4 === null) {
-            router4 = new Router4({
+          if (router5 === null) {
+            router5 = new Router5({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router4;
+          return router5;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router4 = this.router;
+      var router5 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router4.use(path2, fn2);
+          return router5.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router4.use(path2, function mounted_app(req, res, next) {
+        router5.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router4 = require_router();
+    var Router5 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router4.Route;
-    exports.Router = Router4;
+    exports.Route = Router5.Route;
+    exports.Router = Router5;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -27928,10 +27928,6 @@ var require_pino = __commonJS({
   "../../node_modules/.pnpm/pino@9.14.0/node_modules/pino/pino.js"(exports, module) {
     function pinoBundlerAbsolutePath(p) {
       return new URL(p, import.meta.url).pathname;
-    } catch (e) {
-        const f = new Function("p", "return new URL(p, import.meta.url).pathname");
-        return f(p);
-      }
     }
     globalThis.__bundlerPathsOverrides = { ...globalThis.__bundlerPathsOverrides || {}, "thread-stream-worker": pinoBundlerAbsolutePath("./thread-stream-worker.mjs"), "pino-worker": pinoBundlerAbsolutePath("./pino-worker.mjs"), "pino/file": pinoBundlerAbsolutePath("./pino-file.mjs") };
     var os = __require("node:os");
@@ -43977,14 +43973,14 @@ var require_mysql2 = __commonJS({
 });
 
 // src/app.ts
-var import_express4 = __toESM(require_express2(), 1);
+var import_express5 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express3 = __toESM(require_express2(), 1);
+var import_express4 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -47869,17 +47865,6 @@ var pipelineType = ZodPipeline.create;
 var HealthCheckResponse = objectType({
   status: stringType()
 });
-
-// src/routes/health.ts
-var router = (0, import_express.Router)();
-router.get("/healthz", (_req, res) => {
-  const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-10-v2" });
-});
-var health_default = router;
-
-// src/routes/state.ts
-var import_express2 = __toESM(require_express2(), 1);
 
 // ../../node_modules/.pnpm/drizzle-orm@0.45.2_mysql2@3.22.3_@types+node@25.3.5_/node_modules/drizzle-orm/mysql2/driver.js
 var import_mysql2 = __toESM(require_mysql2(), 1);
@@ -54226,10 +54211,47 @@ var societyState = mysqlTable("society_state", {
 });
 
 // ../../lib/db/src/index.ts
-var pool = import_promise.default.createPool(
-  process.env.DATABASE_URL || "mysql://localhost/placeholder"
-);
+function resolveDbUrl() {
+  const raw = process.env.DATABASE_URL || "";
+  if (!raw) return "mysql://localhost/placeholder";
+  try {
+    new URL(raw);
+    return raw;
+  } catch {
+    return "mysql://localhost/placeholder";
+  }
+}
+var pool = import_promise.default.createPool(resolveDbUrl());
 var db = drizzle(pool, { schema: schema_exports, mode: "default" });
+
+// src/routes/health.ts
+var router = (0, import_express.Router)();
+router.get("/healthz", (_req, res) => {
+  const data = HealthCheckResponse.parse({ status: "ok" });
+  res.json({ ...data, v: "2026-05-10-v3" });
+});
+router.get("/healthz/db", async (_req, res) => {
+  const raw = process.env["DATABASE_URL"] ?? "";
+  let host = "(not set)";
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      host = `${u.hostname}:${u.port || 3306}/${u.pathname.slice(1)}`;
+    } catch {
+      host = "(invalid URL)";
+    }
+  }
+  try {
+    await pool.execute("SELECT 1");
+    res.json({ db: "ok", host });
+  } catch (e) {
+    res.status(500).json({ db: "error", host, code: e?.code, message: e?.message?.slice(0, 120) });
+  }
+});
+var health_default = router;
+
+// src/routes/state.ts
+var import_express2 = __toESM(require_express2(), 1);
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -54291,14 +54313,77 @@ router2.put("/state/:key", async (req, res) => {
 });
 var state_default = router2;
 
-// src/routes/index.ts
+// src/routes/login.ts
+var import_express3 = __toESM(require_express2(), 1);
 var router3 = (0, import_express3.Router)();
-router3.use(health_default);
-router3.use(state_default);
-var routes_default = router3;
+var CREATE_TABLE_SQL2 = `
+  CREATE TABLE IF NOT EXISTS \`society_state\` (
+    \`key\`     VARCHAR(255) PRIMARY KEY,
+    state_json  LONGTEXT NOT NULL,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )
+`;
+router3.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (typeof email !== "string" || typeof password !== "string" || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const normalizedEmail = email.toLowerCase().trim();
+  try {
+    await pool.execute(CREATE_TABLE_SQL2);
+    const [saRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ?",
+      ["fieldos_sa_v1"]
+    );
+    let societies = [];
+    if (saRows.length) {
+      try {
+        const saState = JSON.parse(saRows[0].state_json);
+        societies = Array.isArray(saState.saSocieties) ? saState.saSocieties : [];
+      } catch {
+      }
+    }
+    for (const soc of societies) {
+      if (soc.stato !== "attivo") continue;
+      const stateKey = soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
+      const [stateRows] = await pool.execute(
+        "SELECT state_json FROM `society_state` WHERE `key` = ?",
+        [stateKey]
+      );
+      if (!stateRows.length) continue;
+      let state;
+      try {
+        state = JSON.parse(stateRows[0].state_json);
+      } catch {
+        continue;
+      }
+      const users = state.USERS_DB || [];
+      const user = users.find(
+        (u) => typeof u.email === "string" && u.email.toLowerCase() === normalizedEmail && u.pass === password
+      );
+      if (!user) continue;
+      if (user.stato === "sospeso") {
+        return res.status(403).json({ error: "suspended" });
+      }
+      return res.json({ societyId: soc.id, stateKey, user });
+    }
+    return res.status(401).json({ error: "invalid_credentials" });
+  } catch (e) {
+    logger.error({ err: e }, "login error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+var login_default = router3;
+
+// src/routes/index.ts
+var router4 = (0, import_express4.Router)();
+router4.use(health_default);
+router4.use(login_default);
+router4.use(state_default);
+var routes_default = router4;
 
 // src/app.ts
-var app = (0, import_express4.default)();
+var app = (0, import_express5.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -54319,12 +54404,12 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express4.default.json({ limit: "10mb" }));
-app.use(import_express4.default.urlencoded({ extended: true }));
+app.use(import_express5.default.json({ limit: "10mb" }));
+app.use(import_express5.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express4.default.static(staticDir));
+  app.use(import_express5.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
