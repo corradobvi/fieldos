@@ -10205,11 +10205,11 @@ function saveNewPassword() {
     }).catch(() => {}); // silently ignore network errors (offline/dev without API)
   }
 
-  async function apiPull(key) {
+  async function apiPull(key, timeout = 8000) {
     // Returns the server's stateJson string, or null if not found / error
     try {
       const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 8000);
+      const tid = setTimeout(() => ctrl.abort(), timeout);
       const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), { signal: ctrl.signal });
       clearTimeout(tid);
       if (!resp.ok) return null;
@@ -10365,19 +10365,22 @@ function saveNewPassword() {
     }, 60000);
   }
 
-  // Hook su bootApp: al login carica subito da localStorage, poi dal server
+  // Hook su bootApp: server-first (4s), localStorage come fallback
   const _origBoot = bootApp;
   bootApp = function(user) {
-    restoreState();
-    const result = _origBoot(user);
-    apiPull(KEY).then(serverJson => {
+    // Tenta il server prima (4s timeout): se risponde è fonte di verità
+    apiPull(KEY, 4000).then(serverJson => {
       if (serverJson) {
-        applyServerState(serverJson);
-        if (typeof toast === 'function') toast('☁️ Dati caricati dal cloud');
+        applyServerState(serverJson); // scrive su localStorage + carica in memoria
+        // Riaggiorna il riferimento utente con i dati freschi del server
+        const fresh = USERS_DB.find(u => u.email?.toLowerCase() === user.email?.toLowerCase());
+        if (fresh) user = fresh;
+      } else {
+        restoreState(); // fallback: localStorage
       }
+      _origBoot(user);
+      startSyncPoll();
     });
-    startSyncPoll();
-    return result;
   };
 
   // Hook su logout: ferma il polling e salva prima di uscire
@@ -10410,15 +10413,11 @@ function saveNewPassword() {
     });
   };
 
-  // Cambia società attiva: aggiorna KEY, ricarica stato dal server, riavvia poll
+  // Cambia la chiave attiva — il pull dal server lo fa bootApp subito dopo
   window.__fieldosSetSocietaKey = function(newKey) {
     KEY = newKey;
     lastSnap = '';
     restoreState();
-    apiPull(KEY).then(serverJson => {
-      if (serverJson) applyServerState(serverJson);
-    });
-    startSyncPoll();
   };
 
   window.__fieldosResetState = function() {
