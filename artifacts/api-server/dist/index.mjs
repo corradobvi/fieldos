@@ -27928,6 +27928,10 @@ var require_pino = __commonJS({
   "../../node_modules/.pnpm/pino@9.14.0/node_modules/pino/pino.js"(exports, module) {
     function pinoBundlerAbsolutePath(p) {
       return new URL(p, import.meta.url).pathname;
+    } catch (e) {
+        const f = new Function("p", "return new URL(p, import.meta.url).pathname");
+        return f(p);
+      }
     }
     globalThis.__bundlerPathsOverrides = { ...globalThis.__bundlerPathsOverrides || {}, "thread-stream-worker": pinoBundlerAbsolutePath("./thread-stream-worker.mjs"), "pino-worker": pinoBundlerAbsolutePath("./pino-worker.mjs"), "pino/file": pinoBundlerAbsolutePath("./pino-file.mjs") };
     var os = __require("node:os");
@@ -54223,7 +54227,7 @@ var societyState = mysqlTable("society_state", {
 
 // ../../lib/db/src/index.ts
 var pool = import_promise.default.createPool(
-  process.env.DATABASE_URL ?? "mysql://localhost/placeholder"
+  process.env.DATABASE_URL || "mysql://localhost/placeholder"
 );
 var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 
