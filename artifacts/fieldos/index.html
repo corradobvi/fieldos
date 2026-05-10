@@ -987,6 +987,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="rc" data-role="allenatore" onclick="selRole(this)"><div class="rc-ic">⚽</div><div><div class="rcn">Mister / Staff</div><div class="rcd">Rosa, presenze, convocazioni</div></div></div>
       <div class="rc" data-role="dirigente" onclick="selRole(this)"><div class="rc-ic">📋</div><div><div class="rcn">Dirigente</div><div class="rcd">Logistica squadra e inviti famiglie</div></div></div>
       <div class="rc" data-role="genitore"  onclick="selRole(this)"><div class="rc-ic">👨‍👧</div><div><div class="rcn">Genitore</div><div class="rcd">Aggiornamenti e comunicazioni</div></div></div>
+      <div class="rc" data-role="nonno"     onclick="selRole(this)"><div class="rc-ic">👴</div><div><div class="rcn">Nonno/Nonna</div><div class="rcd">Aggiornamenti del nipote/a</div></div></div>
       <div class="rc" data-role="giocatore" onclick="selRole(this)"><div class="rc-ic">🏃</div><div><div class="rcn">Giocatore</div><div class="rcd">Il mio profilo e i miei progressi</div></div></div>
     </div>
   </div>
@@ -1093,7 +1094,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640){const _r=me&&me.role;goTo((_r==='genitore'||_r==='giocatore')?'profilo':'impostazioni');}" title="Profilo">?</div>
+        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640){const _r=me&&me.role;goTo((_r==='genitore'||_r==='nonno'||_r==='giocatore')?'profilo':'impostazioni');}" title="Profilo">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
       </div>
       <button class="btn-out" onclick="logout()">Esci</button>
@@ -1496,6 +1497,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <option value="allenatore">Mister</option>
           <option value="dirigente">Dirigente</option>
           <option value="genitore">Genitore</option>
+          <option value="nonno">Nonno/Nonna</option>
           <option value="giocatore">Giocatore</option>
         </select>
       </div>
@@ -2333,6 +2335,22 @@ const ROLE_CFG = {
       {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true},
     ], leve:false
   },
+  nonno: {
+    label:'👴 Nonno/Nonna', color:'#0e7490', bg:'#ecfeff',
+    nav:[
+      {s:'Società'},{id:'panoramica',ic:'🏟️',lb:'Panoramica'},
+      {s:'Il tuo nipote/a'},{id:'dashboard',ic:'🏠',lb:'Home'},
+      {id:'presenze',ic:'✅',lb:'Presenze'},
+      {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
+      {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
+      {id:'chat',ic:'💬',lb:'Chat'},
+      {id:'calendario',ic:'📅',lb:'Calendario'},
+      {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'documenti',ic:'📄',lb:'Documenti'},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true},
+    ], leve:false
+  },
   giocatore: {
     label:'🏃 Giocatore', color:'#d4850a', bg:'#fef4e4',
     nav:[
@@ -2642,7 +2660,7 @@ function bootApp(user) {
   buildSidebar(user.role);
 
   // Per genitore/giocatore: imposta la leva di default sulla propria
-  if (user.role === 'genitore' || user.role === 'giocatore') {
+  if (user.role === 'genitore' || user.role === 'nonno' || user.role === 'giocatore') {
     const myLv = userLeve();
     if (myLv.length && !myLv.includes(currentLeva)) currentLeva = myLv[0];
   }
@@ -2694,8 +2712,8 @@ function buildMobNav(role) {
   if (!nav) return;
   nav.innerHTML = '';
   let items;
-  if (role === 'giocatore' || role === 'genitore') {
-    // Genitore/Giocatore: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
+  if (role === 'giocatore' || role === 'genitore' || role === 'nonno') {
+    // Genitore/Giocatore/Nonno: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
@@ -2871,7 +2889,7 @@ function goTo(pgId) {
 function renderProfilo() {
   const el = document.getElementById('profiloContent');
   if (!el || !me) return;
-  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',giocatore:'🎽'};
+  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
   const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
   const leva = me.leva ? `<div style="font-size:.8rem;color:var(--text3);margin-top:4px;">Leva ${me.leva}</div>` : '';
@@ -3472,7 +3490,7 @@ function buildRosaSection() {
 
 // Permessi:
 function canEditPresenze(){ return me && me.role === 'allenatore'; }
-function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
+function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Genera le date degli allenamenti per la leva corrente espandendo le ricorrenze.
 // Range: ultimi 90 giorni + prossimi 30. Restituisce array di 'YYYY-MM-DD' ordinato desc (più recenti prima).
@@ -3545,7 +3563,7 @@ function renderPresenze() {
     renderPresenzeOverview(cont, me.role === 'dirigente' ? userLeve() : leve);
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
-  } else if (me.role === 'genitore') {
+  } else if (me.role === 'genitore' || me.role === 'nonno') {
     const figliNames = getFigliOf(me);
     renderPresenzePersonale(cont, players.filter(p => figliNames.includes(p.nome+' '+p.cogn)));
   } else if (me.role === 'giocatore') {
@@ -4153,7 +4171,7 @@ function openAvvisaModal(){
   const figliSel = document.getElementById('avvisaFiglio');
   // Determina i giocatori coinvolti
   let candidates = [];
-  if (me.role === 'genitore') {
+  if (me.role === 'genitore' || me.role === 'nonno') {
     const figliNames = getFigliOf(me);
     candidates = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
   } else if (me.role === 'giocatore') {
@@ -4228,7 +4246,7 @@ function saveAvvisoAssenza(){
 // ═══════════════════════════════════
 
 function canCreateConvocazione(){ return me && (me.role === 'admin' || me.role === 'allenatore'); }
-function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
+function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
 // - genitore: i suoi figli
@@ -4236,7 +4254,7 @@ function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role 
 // - allenatore/admin: nessuno
 function getMyPlayers() {
   if (!me) return [];
-  if (me.role === 'genitore') {
+  if (me.role === 'genitore' || me.role === 'nonno') {
     const figli = (typeof getFigliOf === 'function') ? getFigliOf(me) : (me.figli || []);
     return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
   }
@@ -4399,7 +4417,7 @@ function recipientsForPlayer(p) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.role === 'giocatore' && u.nome === p.nome && u.cogn === p.cogn) ids.add(u.id);
-    if (u.role === 'genitore' || u.role === 'dirigente') {
+    if (u.role === 'genitore' || u.role === 'nonno' || u.role === 'dirigente') {
       const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
       if (figli.includes(fullName)) ids.add(u.id);
     }
@@ -5272,7 +5290,7 @@ function saveNuovaComunicazione() {
     if (!canSee && scopeLv) {
       const ul = (() => {
         if (u.role==='admin') return leve.slice();
-        if (u.role==='genitore') {
+        if (u.role==='genitore'||u.role==='nonno') {
           const figli=Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
           const ls=[...new Set(players.filter(p=>figli.includes(p.nome+' '+p.cogn)).map(p=>p.leva).filter(Boolean))];
           return ls.length?ls:[];
@@ -5395,7 +5413,7 @@ function renderCommentiSheet() {
   if (!cont) return;
   const commenti = Array.isArray(c.commenti) ? c.commenti : [];
   const canManageAll = me.role === 'admin' || c.mittenteId === me.id;
-  const ROLE_IC = {admin:'🔑',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',giocatore:'🎽'};
+  const ROLE_IC = {admin:'🔑',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
   const titleEl = document.getElementById('commentiSheetTitle');
   if (titleEl) titleEl.textContent = '💬 ' + escapeHtml(c.titolo);
   let html = '';
@@ -5464,7 +5482,7 @@ function fvVisibleLeve() {
 }
 
 function fvCanUpload() {
-  return me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'genitore');
+  return me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'genitore' || me.role === 'nonno');
 }
 
 function fvCanDelete(item) {
@@ -5481,11 +5499,10 @@ function fvCanUploadPlayerPhoto(player) {
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return userLeve().includes(player.leva);
-  if (me.role === 'genitore') {
+  if (me.role === 'genitore' || me.role === 'nonno') {
     return getMyPlayers().some(p => p.id === player.id);
   }
   if (me.role === 'giocatore') {
-    // giocatori hanno già almeno 13 anni per policy (under-13 non hanno account)
     return getMyPlayers().some(p => p.id === player.id);
   }
   return false;
@@ -6090,8 +6107,8 @@ function renderStatsTornei(el){
 // USERS (impostazioni)
 // ═══════════════════════════════════
 
-const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', giocatore:'Giocatore'};
-const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', giocatore:'pill-g'};
+const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', nonno:'Nonno/Nonna', giocatore:'Giocatore'};
+const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
 
 function renderUsersTable() {
   renderPendingUsersBox();
@@ -6102,7 +6119,7 @@ function renderUsersTable() {
   USERS_DB.forEach(u => {
     const tr = document.createElement('tr');
     const pillCls = ROLE_PILL[u.role] || '';
-    const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : '';
+    const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
     const statoHtml = u.stato === 'attivo'
       ? '<span class="pill pill-g">Attivo</span>'
       : '<span class="pill pill-r">Sospeso</span>';
@@ -6177,7 +6194,7 @@ function openUserModal(id) {
     document.getElementById('uPassHint').textContent = "Compila solo se vuoi cambiare la password. Verrà mostrata una sola volta.";
     document.getElementById('btnSaveUser').textContent = '💾 Salva modifiche';
     onUtenteRuolo();
-    if (u.role === 'genitore' || u.role === 'dirigente') {
+    if (u.role === 'genitore' || u.role === 'nonno' || u.role === 'dirigente') {
       populateFigliBox(getFigliOf(u));
     }
   }
@@ -6232,7 +6249,7 @@ function copyCredsBoth() {
 
 function onUtenteRuolo() {
   const r = document.getElementById('uRuolo').value;
-  const showFigli = r === 'genitore' || r === 'dirigente';
+  const showFigli = r === 'genitore' || r === 'nonno' || r === 'dirigente';
   document.getElementById('uGenitoreBlock').style.display = showFigli   ? 'block' : 'none';
   document.getElementById('uGiocBlock').style.display     = r === 'giocatore' ? 'block' : 'none';
   if (showFigli) populateFigliBox();
@@ -6240,6 +6257,8 @@ function onUtenteRuolo() {
   const hint = document.getElementById('uGenitoreHint');
   if (hint) hint.textContent = r === 'dirigente'
     ? 'Opzionale: abbina il dirigente al/ai proprio/i figlio/i in rosa per ricevere notifiche convocazioni e avvisare assenze.'
+    : r === 'nonno'
+    ? 'Il nonno/nonna vedrà le info del nipote/a selezionato. Ideale per seguire il nipote nella squadra.'
     : 'Il genitore vedrà le info di tutti i giocatori selezionati. Ideale per fratelli/sorelle nella stessa società.';
 }
 
@@ -6327,7 +6346,7 @@ function saveUser() {
   } else {
     if (pass && pass.length < 4) { toast('⚠️ La nuova password deve avere almeno 4 caratteri'); return; }
   }
-  const figli = (role === 'genitore' || role === 'dirigente')
+  const figli = (role === 'genitore' || role === 'nonno' || role === 'dirigente')
     ? Array.from(document.querySelectorAll('#uFigliBox .lp.on')).map(c => c.dataset.figlio)
     : [];
   const anno   = role === 'giocatore' ? parseInt(document.getElementById('uAnno').value) : null;
@@ -6340,16 +6359,16 @@ function saveUser() {
       return;
     }
   }
-  if (role === 'genitore' && figli.length === 0) { toast('⚠️ Seleziona almeno un figlio/a in rosa'); return; }
+  if ((role === 'genitore' || role === 'nonno') && figli.length === 0) { toast('⚠️ Seleziona almeno un nipote/figlio in rosa'); return; }
   // dirigente: figli opzionale, nessuna validazione obbligatoria
   // Email univoca
   const dupe = USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== editingUserId);
   if (dupe) { toast('⛔ Email già usata da un altro utente'); return; }
 
-  // Per il genitore, la "leva" è derivata: se i figli sono in una sola leva la usiamo,
+  // Per genitore/nonno, la "leva" è derivata: se i figli/nipoti sono in una sola leva la usiamo,
   // altrimenti 'Tutte' (significa: vede gli eventi di tutte le sue leve).
   let levaFinal = leva;
-  if (role === 'genitore') {
+  if (role === 'genitore' || role === 'nonno') {
     const figliPlayers = players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
     const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
     levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : leva);
@@ -7690,7 +7709,7 @@ function buildDashboard(role) {
         </div>
       </div>`;
 
-  } else if (role === 'genitore') {
+  } else if (role === 'genitore' || role === 'nonno') {
     const figliNames = getFigliOf(me);
     const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
     const childLeve = [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
@@ -7946,7 +7965,7 @@ function renderPagamenti() {
     }
   }
   if (quoteCanManage())          renderQuoteAdmin(c);
-  else if (me.role === 'genitore') renderQuoteGenitore(c);
+  else if (me.role === 'genitore' || me.role === 'nonno') renderQuoteGenitore(c);
   else c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">Le quote vengono gestite dall'amministrazione della società.</div>`;
 }
 
@@ -8050,7 +8069,7 @@ function renderQuoteGenitore(c) {
 
 function getMyPlayersFor(user) {
   if (!user) return [];
-  if (user.role === 'genitore') {
+  if (user.role === 'genitore' || user.role === 'nonno') {
     const figli = (typeof getFigliOf === 'function') ? getFigliOf(user) : (user.figli || []);
     return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
   }
@@ -8059,7 +8078,7 @@ function getMyPlayersFor(user) {
 }
 
 function parentUsersForPlayer(player) {
-  return USERS_DB.filter(u => u.role === 'genitore' && getMyPlayersFor(u).some(p => p.id === player.id));
+  return USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && getMyPlayersFor(u).some(p => p.id === player.id));
 }
 
 function openQuotaModal(qId) {
@@ -8098,7 +8117,7 @@ function quotaPlayerChanged() {
     info.innerHTML = parents.map(par => `<strong>${escapeHtml(par.nome + ' ' + par.cogn)}</strong> <span style="color:var(--text3);">${escapeHtml(par.email)}</span>`).join('<br>');
     info.style.color = 'var(--text)';
   } else {
-    info.textContent = 'Nessun genitore collegato';
+    info.textContent = 'Nessun genitore/nonno collegato';
     info.style.color = 'var(--text3)';
   }
   // Pre-fill amount from settings if empty
@@ -8173,7 +8192,7 @@ function sollecitaInsoluti() {
 function refreshQuotaBadge() {
   if (!me) return;
   let n = 0;
-  if (me.role === 'genitore') {
+  if (me.role === 'genitore' || me.role === 'nonno') {
     const myIds = getMyPlayers().map(p => p.id);
     n = quotes.filter(q => myIds.includes(q.playerId) && q.stato !== 'pagato').length;
   } else if (quoteCanManage()) {
@@ -8264,7 +8283,7 @@ function docCanManage(player) {
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return !player || userLeve().includes(player.leva);
-  if (me.role === 'genitore')  return !!player && getMyPlayers().some(p => p.id === player.id);
+  if (me.role === 'genitore' || me.role === 'nonno')  return !!player && getMyPlayers().some(p => p.id === player.id);
   return false;
 }
 
@@ -8494,8 +8513,8 @@ function fmtDateLong(d){ return DAYNAMES[d.getDay()] + ' ' + d.getDate() + ' ' +
 function userLeve(){
   if (!me) return [];
   if (me.role === 'admin') return leve.slice();
-  // Per il genitore: leve derivate dai figli (per gestire fratelli in leve diverse)
-  if (me.role === 'genitore') {
+  // Per genitore/nonno: leve derivate dai figli/nipoti
+  if (me.role === 'genitore' || me.role === 'nonno') {
     const figli = getFigliOf(me);
     if (figli.length) {
       const ls = [...new Set(players.filter(p => figli.includes(p.nome+' '+p.cogn))
@@ -10382,12 +10401,12 @@ function getChatsForUser(user) {
     const dirigentiInLeva = USERS_DB.filter(u => u.role === 'dirigente' && staffLeve(u).includes(lv)).map(u => u.id);
     // Dirigenti che hanno un figlio in questa leva entrano anche come genitori
     const dirigentiGenitoriInLeva = USERS_DB.filter(u => u.role === 'dirigente' && hasFigliInLeva(u)).map(u => u.id);
-    const genitoriInLeva = USERS_DB.filter(u => u.role === 'genitore' && hasFigliInLeva(u)).map(u => u.id);
+    const genitoriInLeva = USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && hasFigliInLeva(u)).map(u => u.id);
     const members = [...new Set([...dirigentiInLeva, ...dirigentiGenitoriInLeva, ...genitoriInLeva])];
     const belongs = (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
-      || (user.role === 'genitore' && genitoriInLeva.includes(user.id));
+      || ((user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id));
     if (belongs && members.length > 0) {
-      out.push({ id: 'leva_' + lv, name: '👨‍👧 Genitori ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
+      out.push({ id: 'leva_' + lv, name: '👨‍👧 Famiglie ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
     }
   });
 
@@ -10406,16 +10425,16 @@ function getChatsForUser(user) {
     }
   });
 
-  // 4. Chat Amministrativa — ogni genitore con admin + dirigenti
+  // 4. Chat Amministrativa — ogni genitore/nonno con admin + dirigenti
   if (user.role === 'admin' || user.role === 'dirigente') {
-    // admin/dirigente vedono una chat per ciascun genitore attivo
-    USERS_DB.filter(u => u.role === 'genitore' && u.stato === 'attivo').forEach(g => {
+    // admin/dirigente vedono una chat per ciascun genitore/nonno attivo
+    USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && u.stato === 'attivo').forEach(g => {
       const admins = USERS_DB.filter(u => u.role === 'admin').map(u => u.id);
       const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
       const members = [...new Set([g.id, ...admins, ...dirigenti])];
       out.push({ id: 'amm_' + g.id, name: '🔑 ' + g.nome + ' ' + g.cogn, avatar: '🔑', color: '#7c3aed', members, kind: 'amministrativa' });
     });
-  } else if (user.role === 'genitore') {
+  } else if (user.role === 'genitore' || user.role === 'nonno') {
     const admins = USERS_DB.filter(u => u.role === 'admin').map(u => u.id);
     const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
     const members = [...new Set([user.id, ...admins, ...dirigenti])];
@@ -10429,7 +10448,7 @@ function getChatsForUser(user) {
     tornei.forEach(t => {
       const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
       const genitoriInLeva = USERS_DB.filter(u => {
-        if (u.role !== 'genitore') return false;
+        if (u.role !== 'genitore' && u.role !== 'nonno') return false;
         const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
         return figli.some(f => {
           const p = players.find(pl => (pl.nome + ' ' + pl.cogn).toLowerCase() === String(f).toLowerCase());
@@ -10439,7 +10458,7 @@ function getChatsForUser(user) {
       const members = [...new Set([...dirigenti, ...genitoriInLeva])];
       const torneoState = (torneoChats && torneoChats[t.id]) || {};
       const genitoriScrivono = !!torneoState.genitoriScrivono;
-      const isGenit = user.role === 'genitore' && genitoriInLeva.includes(user.id);
+      const isGenit = (user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id);
       const isDirig = user.role === 'dirigente';
       if ((isGenit || isDirig) && members.length > 0) {
         out.push({
