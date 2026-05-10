@@ -1295,7 +1295,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               <button class="btn btn-g btn-sm" onclick="resetColori()">↩️ Default</button>
             </div>
           </div>
-          <div class="card" style="grid-column:span 2;">
+          <div class="card" id="codiceCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">🔑 Iscrizione genitori</div></div>
             <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:10px;">
               Quando il codice è attivo, i genitori possono <strong>iscriversi da soli</strong> dalla pagina di login (link "Sei un genitore?"). La loro richiesta arriva qui in attesa di approvazione.
@@ -1319,7 +1319,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div id="pendingUsersBox" style="display:none;"></div>
             <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Utente</th><th>Email</th><th>Ruolo</th><th>Leva</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="usersBody"></tbody></table></div>
           </div>
-          <div class="card" style="grid-column:span 2;">
+          <div class="card" id="quoteCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">💰 Impostazioni quote</div></div>
             <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">Configura modalità di pagamento, importi e scadenze per ogni leva. Gli importi per rata vengono calcolati automaticamente dal totale stagionale.</div>
             <div id="quoteSettingsBox"></div>
@@ -2061,6 +2061,7 @@ const ROLE_CFG = {
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
+      {s:'Gestione'},{id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
     ], leve:true
   },
   dirigente: {
@@ -2542,6 +2543,10 @@ function goTo(pgId) {
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
     const _syncCloudCardEl = document.getElementById('syncCloudCard');
     if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    const _quoteCardEl = document.getElementById('quoteCard');
+    if (_quoteCardEl) _quoteCardEl.style.display = me.role === 'allenatore' ? 'none' : '';
+    const _codiceCardEl = document.getElementById('codiceCard');
+    if (_codiceCardEl) _codiceCardEl.style.display = me.role === 'allenatore' ? 'none' : '';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
