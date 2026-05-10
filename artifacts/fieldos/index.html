@@ -109,6 +109,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ni .ico{font-size:.9rem;width:20px;text-align:center;flex-shrink:0;}
 .nb{margin-left:auto;background:var(--red);color:white;font-size:.58rem;font-weight:800;padding:2px 6px;border-radius:8px;}
 .nb.w{background:var(--gobg);color:var(--gold);border:1px solid rgba(212,133,10,.3);}
+.nb.lock{background:#f59e0b;color:#fff;}
+.ni-locked{opacity:.6;}
+.ni-locked:hover{background:rgba(245,158,11,.1)!important;color:#b45309!important;}
 
 /* LEVA SECTION IN SIDEBAR */
 .sb-leva{padding:12px;border-top:1px solid var(--border);margin-top:auto;}
@@ -1258,6 +1261,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div id="pagContent"></div>
       </div>
 
+      <!-- ALLENAMENTI -->
+      <div class="page" id="pg-allenamenti">
+        <div class="sec-h"><div class="sec-t">🏃 Allenamenti</div><div id="allenamentiActions"></div></div>
+        <div id="allenamentiContent"></div>
+      </div>
+
       <!-- DOCUMENTI -->
       <div class="page" id="pg-documenti">
         <div class="sec-h"><div class="sec-t">📄 Documenti</div><div id="docActions"></div></div>
@@ -1892,6 +1901,13 @@ const PIANI_DEF = {
   base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
   premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
 };
+const PIANO_TIERS = ['mister','mister_pro','societa'];
+const SECTION_LOCKS = {
+  allenamenti:{ pianoMin:'mister_pro', nomePiano:'Mister Pro', ic:'🏅', prezzo:19, prezzoAnno:159,
+    features:['Max 3 leve','Giocatori illimitati','Libreria allenamenti','Statistiche avanzate','Tutto di Piano Mister'] },
+  pagamenti:  { pianoMin:'societa',    nomePiano:'Società',    ic:'🏟️', prezzo:49, prezzoAnno:419,
+    features:['Leve illimitate','Gestione quote e pagamenti','Multi-staff','Campionato e tornei','Tutto di Mister Pro'] },
+};
 const DEMO_SOC_ID    = 99;
 const DEMO_EMAIL     = 'demo@myvivaio.app';
 const DEMO_PASS      = 'Demo2025!';
@@ -2057,10 +2073,12 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
+      {id:'pagamenti',ic:'💰',lb:'Quote'},
       {s:'Gestione'},{id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
     ], leve:true
   },
@@ -2471,6 +2489,7 @@ function buildSidebar(role) {
   const nav = document.getElementById('sbNav');
   nav.innerHTML = '';
   buildMobNav(role);
+  const _sbSoc = saSocieties.find(x => x.id === currentSocietaId);
   cfg.nav.forEach(item => {
     if (item.s) {
       const d = document.createElement('div');
@@ -2478,13 +2497,19 @@ function buildSidebar(role) {
       d.textContent = item.s;
       nav.appendChild(d);
     } else {
+      const locked = isSectionLocked(item.id, _sbSoc);
       const d = document.createElement('div');
-      d.className = 'ni';
+      d.className = 'ni' + (locked ? ' ni-locked' : '');
       d.dataset.pg = item.id;
       let h = `<span class="ico">${item.ic}</span>${item.lb}`;
-      if (item.badge) h += `<span class="nb${item.bw?' w':''}">${item.badge}</span>`;
+      if (locked) {
+        const lk = SECTION_LOCKS[item.id];
+        h += `<span class="nb lock">🔒 ${lk.nomePiano}</span>`;
+      } else if (item.badge) {
+        h += `<span class="nb${item.bw?' w':''}">${item.badge}</span>`;
+      }
       d.innerHTML = h;
-      d.onclick = () => { goTo(item.id); closeSb(); };
+      d.onclick = locked ? () => { openUpgradePopup(item.id); closeSb(); } : () => { goTo(item.id); closeSb(); };
       nav.appendChild(d);
     }
   });
@@ -2572,6 +2597,7 @@ function goTo(pgId) {
   if (pgId === 'fotovideo') renderFotoVideo();
   if (pgId === 'pagamenti') renderPagamenti();
   if (pgId === 'documenti') renderDocumenti();
+  if (pgId === 'allenamenti') renderAllenamenti();
 }
 
 // ═══════════════════════════════════
@@ -8073,6 +8099,47 @@ function renderDocumenti() {
   c.innerHTML = warnHtml + cards;
 }
 
+function renderAllenamenti() {
+  const c = document.getElementById('allenamentiContent');
+  if (!c) return;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  if (isSectionLocked('allenamenti', soc)) {
+    c.innerHTML = `<div class="card" style="text-align:center;padding:48px 24px;">
+      <div style="font-size:2.5rem;margin-bottom:10px;">🔒</div>
+      <div style="font-size:1.05rem;font-weight:700;margin-bottom:6px;">Sezione Allenamenti</div>
+      <div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">Disponibile nel Piano <strong>Mister Pro</strong> (19€/mese)</div>
+      <button class="btn btn-p" onclick="openUpgradePopup('allenamenti')">🚀 Scopri il Piano Mister Pro →</button>
+    </div>`;
+    return;
+  }
+  // Allenamenti programmati (eventi di tipo 'allenamento' della leva corrente)
+  const oggi = new Date();
+  const soglia = new Date(oggi); soglia.setDate(oggi.getDate() - 30);
+  const futureAll = events.filter(ev => ev.type === 'allenamento' && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(currentLeva)));
+  if (!futureAll.length) {
+    c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">
+      <div style="font-size:1.5rem;margin-bottom:8px;">🏃</div>
+      Nessun allenamento programmato per <strong>${escapeHtml(currentLeva)}</strong>.<br>
+      <span style="font-size:.82rem;">Aggiungili dal Calendario.</span>
+    </div>`;
+    return;
+  }
+  futureAll.sort((a,b) => (a.data||'').localeCompare(b.data||''));
+  const rows = futureAll.slice(0, 30).map(ev => {
+    const d = ev.data ? fmtDateFull(ev.data) : '—';
+    const ora = ev.ora ? `· ${ev.ora}` : '';
+    const luogo = ev.luogo ? `<span style="font-size:.74rem;color:var(--text3);">📍 ${escapeHtml(ev.luogo)}</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--cl);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;">🏃</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:.88rem;">${escapeHtml(ev.titolo||'Allenamento')}</div>
+        <div style="font-size:.77rem;color:var(--text2);">${d} ${ora} ${luogo}</div>
+      </div>
+    </div>`;
+  }).join('');
+  c.innerHTML = `<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti — ${escapeHtml(currentLeva)}</div></div>${rows}</div>`;
+}
+
 function openDocModal(playerId) {
   document.getElementById('docPlayerId').value = playerId;
   document.getElementById('docFile').value = '';
@@ -10631,6 +10698,52 @@ function canAddPlayer(soc, levaName) {
   const lim = getLimiti(soc);
   if (lim.giocatori === Infinity) return true;
   return players.filter(p=>p.leva===levaName).length < lim.giocatori;
+}
+
+function isSectionLocked(sectionId, soc) {
+  if (!SECTION_LOCKS[sectionId]) return false;
+  if (currentSocietaId === DEMO_STELLA_ID) return false;
+  const status = getPianoStatus(soc);
+  if (status === 'active_demo') return false;
+  const lock = SECTION_LOCKS[sectionId];
+  const tier = pianoNorm(soc?.piano);
+  const tierIdx = PIANO_TIERS.indexOf(tier);
+  const minIdx = PIANO_TIERS.indexOf(lock.pianoMin);
+  return tierIdx < minIdx;
+}
+
+function openUpgradePopup(sectionId) {
+  const lock = SECTION_LOCKS[sectionId];
+  if (!lock) return;
+  const secLabels = { pagamenti:'💰 Quote & Pagamenti', allenamenti:'🏃 Allenamenti' };
+  const secLabel = secLabels[sectionId] || sectionId;
+  const existing = document.getElementById('mUpgrade');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.className = 'ov';
+  overlay.id = 'mUpgrade';
+  overlay.style.zIndex = '9999';
+  overlay.innerHTML = `<div class="modal" style="max-width:440px;">
+    <div class="mh"><div class="mt">🔒 ${secLabel}</div><button class="mx" onclick="document.getElementById('mUpgrade').remove()">✕</button></div>
+    <div style="background:var(--cl);border-radius:9px;padding:11px 14px;margin-bottom:14px;font-size:.83rem;color:var(--text2);line-height:1.5;">
+      Questa sezione è disponibile a partire dal <strong>Piano ${lock.nomePiano}</strong>.
+    </div>
+    <div style="background:linear-gradient(135deg,var(--cl),#fff);border:2px solid var(--cp);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:1.05rem;font-weight:800;margin-bottom:2px;">${lock.ic} Piano ${lock.nomePiano}</div>
+      <div style="font-size:1.5rem;font-weight:900;color:var(--cp);">${lock.prezzo}<span style="font-size:.85rem;font-weight:600;">€/mese</span></div>
+      <div style="font-size:.73rem;color:var(--text3);margin-bottom:12px;">o ${lock.prezzoAnno}€/anno</div>
+      <ul style="margin:0;padding-left:16px;font-size:.82rem;color:var(--text);line-height:1.9;">
+        ${lock.features.map(f=>`<li>✅ ${f}</li>`).join('')}
+      </ul>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" onclick="document.getElementById('mUpgrade').remove();openPianoModal(false)">🚀 Scopri il Piano ${lock.nomePiano} →</button>
+      <button class="btn btn-g" onclick="document.getElementById('mUpgrade').remove()">Chiudi</button>
+    </div>
+  </div>`;
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('on'));
 }
 
 // Aggiorna il banner demo
