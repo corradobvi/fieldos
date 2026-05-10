@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { db, societyState } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
 
 const router = Router();
@@ -8,23 +7,16 @@ const router = Router();
 // GET /state/:key — retrieve state blob
 router.get("/state/:key", async (req, res) => {
   try {
-    const rows = await db
-      .select()
-      .from(societyState)
-      .where(eq(societyState.key, req.params.key));
-    if (!rows.length) {
-      return res.status(404).json({ error: "not found" });
-    }
-    const row = rows[0];
-    return res.json({
-      key: row.key,
-      stateJson: row.stateJson,
-      updatedAt: row.updatedAt,
-    });
+    const result = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ?",
+      [req.params.key]
+    ) as any[];
+    const rows = result[0] as any[];
+    if (!rows.length) return res.status(404).json({ error: "not found" });
+    return res.json({ key: req.params.key, stateJson: rows[0].state_json });
   } catch (e: any) {
     logger.error({ err: e }, "state GET failed");
-    const detail = e?.sqlMessage ?? e?.code ?? e?.errno ?? "db_error";
-    return res.status(500).json({ error: String(detail) });
+    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
   }
 });
 
@@ -35,16 +27,14 @@ router.put("/state/:key", async (req, res) => {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
   try {
-    // Non passiamo updatedAt esplicitamente — MySQL lo gestisce via DEFAULT/ON UPDATE
-    await db
-      .insert(societyState)
-      .values({ key: req.params.key, stateJson })
-      .onDuplicateKeyUpdate({ set: { stateJson } });
+    await pool.execute(
+      "INSERT INTO `society_state` (`key`, `state_json`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `state_json` = ?",
+      [req.params.key, stateJson, stateJson]
+    );
     return res.json({ key: req.params.key, updatedAt: new Date().toISOString() });
   } catch (e: any) {
     logger.error({ err: e }, "state PUT failed");
-    const detail = e?.sqlMessage ?? e?.code ?? e?.errno ?? "db_error";
-    return res.status(500).json({ error: String(detail) });
+    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
   }
 });
 
