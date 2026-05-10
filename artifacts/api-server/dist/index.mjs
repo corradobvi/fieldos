@@ -54369,19 +54369,18 @@ async function ensureSchema() {
   `);
   logger.info("DB schema ready");
 }
+startListening();
 if (process.env.DATABASE_URL) {
-  ensureSchema().then(startListening).catch((err) => {
+  ensureSchema().catch((err) => {
     logger.error(
       { code: err?.code, sqlMessage: err?.sqlMessage, message: err?.message },
-      "DB schema init failed \u2014 starting without DB"
+      "DB schema init failed"
     );
-    startListening();
   });
 } else {
   logger.warn(
-    "DATABASE_URL not set \u2014 cross-device sync disabled, set the MySQL URL in environment variables"
+    "DATABASE_URL not set \u2014 cross-device sync disabled"
   );
-  startListening();
 }
 /*! Bundled license information:
 
