@@ -614,15 +614,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 .frozen-card{opacity:.65;border:1px dashed #f59e0b!important;}
 .lp.frozen{opacity:.65;border-color:#f59e0b!important;}
-/* Demo login button */
+/* CTA "Inizia prova gratuita" */
 .btn-demo{
   display:block;width:100%;padding:13px;border-radius:10px;
-  background:linear-gradient(135deg,#d97706,#f59e0b);
-  color:#fff;font-family:inherit;font-size:.95rem;font-weight:700;
+  background:linear-gradient(135deg,#047857,#059669);
+  color:#fff;font-family:inherit;font-size:.93rem;font-weight:700;
   border:none;cursor:pointer;margin-top:10px;
-  transition:all .16s;
+  transition:all .16s;letter-spacing:.01em;
 }
 .btn-demo:hover{opacity:.9;transform:translateY(-1px);}
+/* Schermata registrazione autonoma */
+#registerScreen{display:none;min-height:100vh;background:var(--bg);align-items:center;justify-content:center;padding:16px;}
+#registerScreen.on{display:flex;}
+.rf{width:100%;max-width:440px;}
+.rf-back{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--cp);font-weight:600;cursor:pointer;margin-bottom:16px;border:none;background:none;padding:0;}
+.rf-title{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.rf-sub{font-size:.82rem;color:var(--text2);margin-bottom:20px;}
 /* SA plan badges aggiornati */
 .sa-plan-demo{background:#fef3c7;color:#92400e;}
 .sa-plan-mister{background:#dbeafe;color:#1e40af;}
@@ -881,34 +888,63 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}"></div>
       <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"></div>
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
-      <button class="btn-demo" onclick="loginDemo()" style="touch-action:manipulation;">🎮 Prova la demo gratuita — 14 giorni</button>
+      <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
         Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
       </div>
       <div style="text-align:center;margin-top:6px;font-size:.78rem;color:var(--text2);">
         Sei un genitore? <a href="#" onclick="event.preventDefault();openSelfReg()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il codice società →</a>
       </div>
-      <div class="lf-hint" style="border:1.5px solid #1a3f8f30;background:linear-gradient(135deg,#1a3f8f08,#2563eb05);margin-bottom:8px;">
-        <strong style="color:#1a3f8f;">⭐ Demo Stella Azzurra ASD — accesso rapido:</strong>
-        <div class="demo-row" style="margin-top:8px;gap:6px;">
-          <button class="db" onclick="loginDemoAs('admin')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🛡️ Admin</button>
-          <button class="db" onclick="loginDemoAs('allenatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">⚽ Mister U12</button>
-          <button class="db" onclick="loginDemoAs('genitore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">👨‍👧 Genitore</button>
-          <button class="db" onclick="loginDemoAs('giocatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🏃 Giocatore U14</button>
+      <!-- Demo interna: visibile solo con ?demo=true nell'URL -->
+      <div id="demoQuickPanel" style="display:none;margin-top:14px;">
+        <div class="lf-hint" style="border:1.5px solid #1a3f8f30;background:linear-gradient(135deg,#1a3f8f08,#2563eb05);margin-bottom:8px;">
+          <strong style="color:#1a3f8f;">⭐ Demo Stella Azzurra ASD — accesso rapido:</strong>
+          <div class="demo-row" style="margin-top:8px;gap:6px;">
+            <button class="db" onclick="loginDemoAs('admin')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🛡️ Admin</button>
+            <button class="db" onclick="loginDemoAs('allenatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">⚽ Mister U12</button>
+            <button class="db" onclick="loginDemoAs('genitore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">👨‍👧 Genitore</button>
+            <button class="db" onclick="loginDemoAs('giocatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🏃 Giocatore U14</button>
+          </div>
+          <div style="font-size:.69rem;color:#64748b;margin-top:6px;">18 giocatori U12 · Campionato in corso · Chat attive · Dati resettati ogni 24h</div>
         </div>
-        <div style="font-size:.69rem;color:#64748b;margin-top:6px;">18 giocatori U12 · Campionato in corso · Chat attive · Dati resettati ogni 24h</div>
-      </div>
-      <div class="lf-hint">
-        <strong>🎮 Demo rapida (Polis ASD):</strong>
-        <div class="demo-row">
-          <button class="db" onclick="quick('admin','marco.admin@polis.it','admin123')">🛡️ Admin</button>
-          <button class="db" onclick="quick('allenatore','mister@polis.it','coach123')">⚽ Mister</button>
-          <button class="db" onclick="quick('dirigente','dirigente@polis.it','dir123')">📋 Dirigente</button>
-          <button class="db" onclick="quick('genitore','genitore@polis.it','parent123')">👨‍👧 Genitore</button>
-          <button class="db" onclick="quick('giocatore','luca@polis.it','player123')">🏃 Giocatore</button>
-          <button class="db" onclick="quick('superadmin','superadmin@fieldos.it','super123')" style="background:#1e3a5f;color:#60a5fa;border-color:#2563eb;">⚙️ Super Admin</button>
+        <div class="lf-hint">
+          <strong>🎮 Demo rapida (Polis ASD):</strong>
+          <div class="demo-row">
+            <button class="db" onclick="quick('admin','marco.admin@polis.it','admin123')">🛡️ Admin</button>
+            <button class="db" onclick="quick('allenatore','mister@polis.it','coach123')">⚽ Mister</button>
+            <button class="db" onclick="quick('dirigente','dirigente@polis.it','dir123')">📋 Dirigente</button>
+            <button class="db" onclick="quick('genitore','genitore@polis.it','parent123')">👨‍👧 Genitore</button>
+            <button class="db" onclick="quick('giocatore','luca@polis.it','player123')">🏃 Giocatore</button>
+            <button class="db" onclick="quick('superadmin','superadmin@fieldos.it','super123')" style="background:#1e3a5f;color:#60a5fa;border-color:#2563eb;">⚙️ Super Admin</button>
+          </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ REGISTRAZIONE AUTONOMA ══════ -->
+<div id="registerScreen">
+  <div class="rf">
+    <button class="rf-back" onclick="closeRegisterScreen()">← Torna al login</button>
+    <div class="rf-title">Inizia la tua prova gratuita</div>
+    <div class="rf-sub">14 giorni gratis · nessuna carta di credito richiesta · i tuoi dati restano per sempre.</div>
+    <div class="fg"><label class="fl">Nome e cognome *</label><input class="fi" type="text" id="rNomeCogn" placeholder="Mario Rossi" autocomplete="name" autocapitalize="words"></div>
+    <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Almeno 6 caratteri" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Nome società *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
+    <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
+    <div class="fg">
+      <label class="fl">Ruolo principale *</label>
+      <select class="fi" id="rRuolo" style="appearance:auto;-webkit-appearance:auto;">
+        <option value="admin">Admin società</option>
+        <option value="allenatore">Mister / Allenatore</option>
+        <option value="dirigente">Dirigente</option>
+      </select>
+    </div>
+    <button class="btn-login" style="margin-top:8px;" onclick="doSelfRegister()">Inizia 14 giorni gratuiti →</button>
+    <div style="text-align:center;margin-top:12px;font-size:.71rem;color:var(--text2);line-height:1.5;">
+      Registrandoti accetti i termini di servizio.<br>I dati inseriti durante la prova restano tuoi per sempre.
     </div>
   </div>
 </div>
@@ -10828,6 +10864,115 @@ async function loginDemoAs(role) {
   bootApp(me);
 }
 
+// ═══════════════════════════════════
+// REGISTRAZIONE AUTONOMA
+// ═══════════════════════════════════
+
+function openRegisterScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('registerScreen').classList.add('on');
+}
+
+function closeRegisterScreen() {
+  document.getElementById('registerScreen').classList.remove('on');
+  document.getElementById('loginScreen').style.display = '';
+}
+
+async function doSelfRegister() {
+  const nomeCogn = (document.getElementById('rNomeCogn').value || '').trim();
+  const email    = (document.getElementById('rEmail').value || '').trim().toLowerCase();
+  const pass     = document.getElementById('rPass').value || '';
+  const societa  = (document.getElementById('rSocieta').value || '').trim();
+  const citta    = (document.getElementById('rCitta').value || '').trim();
+  const ruolo    = document.getElementById('rRuolo').value;
+
+  if (!nomeCogn)                  { toast('⚠️ Inserisci nome e cognome'); return; }
+  if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
+  if (pass.length < 6)            { toast('⚠️ Password troppo corta (min. 6 caratteri)'); return; }
+  if (!societa)                   { toast('⚠️ Inserisci il nome della società'); return; }
+
+  const parts = nomeCogn.split(' ');
+  const nome  = parts[0];
+  const cogn  = parts.slice(1).join(' ') || '';
+
+  saLoadState();
+
+  // Controlla duplicato email
+  for (const soc of saSocieties) {
+    const raw = localStorage.getItem(societyStorageKey(soc.id));
+    if (!raw) continue;
+    try {
+      const s = JSON.parse(raw);
+      if ((s.USERS_DB || []).some(u => u.email && u.email.toLowerCase() === email)) {
+        toast('⚠️ Email già registrata — accedi con le tue credenziali');
+        return;
+      }
+    } catch(e) {}
+  }
+
+  const socId = saNextSocId++;
+  const adminUser = {
+    id:1, nome, cogn, email, pass,
+    role:ruolo, leva:'Tutte', stato:'attivo',
+    figlio:null, figli:[], anno:null, societaId:socId
+  };
+  const stateKey = societyStorageKey(socId);
+  const initialState = {
+    nomeSocieta:societa, coloriPrimari:'#047857', coloriAccento:'#FFD93D',
+    USERS_DB:[adminUser], nextUserId:2,
+    players:[], nextPlayerId:1, leve:['U12'], currentLeva:'U12',
+    events:[], eventTypes:[
+      {id:'partita',label:'⚽ Partita',color:'#0ea860'},
+      {id:'allenamento',label:'🏃 Allenamento',color:'#047857'},
+      {id:'evento',label:'🎉 Evento',color:'#f59e0b'},
+      {id:'riunione',label:'👥 Riunione',color:'#7c3aed'},
+      {id:'torneo',label:'🏆 Torneo',color:'#e03055'}
+    ],
+    nextEventId:1, nextEventTypeId:100,
+    convocazioni:[], nextConvocazioneId:1,
+    disponibilita:[], nextDisponibilitaId:1, notifiche:[], nextNotificaId:1,
+    inviti:[], codiceSocieta:'', pendingUsers:[], nextPendingUserId:1,
+    chatMessaggi:[], nextChatMsgId:1, chatLastSeen:{}, torneoChats:{},
+    amichevoli:[], nextAmichevoleId:1, campionato:{}, nextCampId:1,
+    tornei:[], nextTorneoId:1, nextFaseId:1, nextTornMatchId:1,
+    comunicazioni:[], nextComunicazioneId:1, nextCommentoId:1,
+    mediaItems:[], nextMediaId:1, playerPhotos:{}, squadFotos:{},
+    campi:[], nextCampoId:1
+  };
+
+  localStorage.setItem(stateKey, JSON.stringify(initialState));
+  saSocieties.push({
+    id:socId, nome:societa, citta, colori:'#047857', leva:'U12', piano:'demo',
+    stato:'attivo', email, note:'', utenti:1, giocatori:0,
+    createdAt:Date.now(), lastActivity:null,
+    scadenzaDemo: Date.now() + DEMO_GIORNI * 86400000
+  });
+  saSaveState();
+
+  fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({stateJson: JSON.stringify(initialState)})
+  }).catch(()=>{});
+
+  currentSocietaId = socId;
+  if (typeof window.__fieldosSetSocietaKey === 'function') {
+    window.__fieldosSetSocietaKey(stateKey);
+  }
+  closeRegisterScreen();
+  bootApp(adminUser);
+}
+
+// Mostra demo rapidi solo se URL contiene ?demo=true
+function checkDemoMode() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === 'true') {
+      const panel = document.getElementById('demoQuickPanel');
+      if (panel) panel.style.display = '';
+    }
+  } catch(e) {}
+}
+
 // Controlla piano all'avvio e mostra banner/modal
 function checkPianoOnBoot(soc) {
   const status = getPianoStatus(soc);
@@ -11637,6 +11782,8 @@ function saveNewPassword() {
 
   // Se l'URL contiene ?invito=TOKEN, apri l'onboarding registrazione genitore
   setTimeout(() => { try { if (typeof checkInvitoFromUrl === 'function') checkInvitoFromUrl(); } catch(e) { console.error(e); } }, 50);
+  // Mostra demo rapidi solo se ?demo=true
+  setTimeout(() => { try { if (typeof checkDemoMode === 'function') checkDemoMode(); } catch(e) {} }, 60);
 
   let _syncPollTimer = null;
 
