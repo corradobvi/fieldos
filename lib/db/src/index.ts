@@ -6,7 +6,7 @@ import * as schema from "./schema";
 // until a query is first executed, so this is safe even when DATABASE_URL is
 // undefined (the server still starts and serves the SPA).
 export const pool = mysql.createPool(
-  process.env.DATABASE_URL ?? "mysql://localhost/placeholder",
+  process.env.DATABASE_URL || "mysql://localhost/placeholder",
 );
 export const db = drizzle(pool, { schema, mode: "default" });
 
