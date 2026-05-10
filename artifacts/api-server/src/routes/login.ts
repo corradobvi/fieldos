@@ -6,14 +6,15 @@ const router = Router();
 
 const CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
-    \`key\`     VARCHAR(255) PRIMARY KEY,
+    \`key\`      VARCHAR(255) PRIMARY KEY,
     state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
 
 // POST /api/login — cerca le credenziali in tutte le società attive nel DB
-// Restituisce { societyId, stateKey, user } oppure 401/403/400
+// Restituisce { societyId, stateKey, user, stateJson } oppure 401/403/400
 router.post("/login", async (req, res) => {
   const { email, password } = req.body as { email?: unknown; password?: unknown };
 
@@ -24,7 +25,6 @@ router.post("/login", async (req, res) => {
   const normalizedEmail = email.toLowerCase().trim();
 
   try {
-    // Crea la tabella se non esiste ancora
     await pool.execute(CREATE_TABLE_SQL);
 
     // 1. Legge l'elenco delle società dal SA state
@@ -41,26 +41,15 @@ router.post("/login", async (req, res) => {
       } catch {}
     }
 
-    // 2. Cerca l'utente in ogni società attiva
-    for (const soc of societies) {
-      if (soc.stato !== "attivo") continue;
-      const stateKey: string =
-        soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
-
+    // Helper: carica stateJson + cerca utente
+    async function searchKey(stateKey: string, societyId: number) {
       const [stateRows] = (await pool.execute(
         "SELECT state_json FROM `society_state` WHERE `key` = ?",
         [stateKey]
       )) as [any[], any];
-
-      if (!stateRows.length) continue;
-
+      if (!stateRows.length) return null;
       let state: any;
-      try {
-        state = JSON.parse(stateRows[0].state_json as string);
-      } catch {
-        continue;
-      }
-
+      try { state = JSON.parse(stateRows[0].state_json as string); } catch { return null; }
       const users: any[] = state.USERS_DB || [];
       const user = users.find(
         (u: any) =>
@@ -68,15 +57,58 @@ router.post("/login", async (req, res) => {
           u.email.toLowerCase() === normalizedEmail &&
           u.pass === password
       );
+      if (!user) return null;
+      return { state, stateKey, societyId, user, stateJson: stateRows[0].state_json as string };
+    }
 
-      if (!user) continue;
+    // 2. Cerca nelle società elencate nel SA state
+    const checkedKeys = new Set<string>();
+    for (const soc of societies) {
+      // Blocca accesso se società non attiva
+      const stato = soc.stato ?? "attivo";
+      const stateKey: string =
+        soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
+      checkedKeys.add(stateKey);
 
-      if (user.stato === "sospeso") {
+      const found = await searchKey(stateKey, soc.id as number);
+      if (!found) continue;
+
+      if (found.user.stato === "sospeso") {
         return res.status(403).json({ error: "suspended" });
       }
 
-      // Restituisce l'utente completo (incluso pass — l'app ne ha bisogno internamente)
-      return res.json({ societyId: soc.id as number, stateKey, user });
+      if (stato === "sospeso") {
+        return res.status(403).json({ error: "society_suspended", message: "La società è sospesa. Contatta il supporto." });
+      }
+      if (stato === "archiviato") {
+        return res.status(403).json({ error: "society_archived", message: "La società è archiviata. Contatta il supporto." });
+      }
+      if (stato === "eliminato") {
+        return res.status(403).json({ error: "society_deleted", message: "La società è stata eliminata." });
+      }
+
+      logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
+      return res.json({ societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson });
+    }
+
+    // 3. Fallback: scansiona chiavi orfane nel DB (non elencate nel SA state)
+    // Utile per recuperare dati di società mancanti dal SA state
+    const [allKeys] = (await pool.execute(
+      "SELECT `key` FROM `society_state` WHERE (`key` LIKE 'fieldos_state_soc_%' OR `key` = 'fieldos_state_v1') AND `key` NOT LIKE 'fieldos_demo%'"
+    )) as [any[], any];
+
+    for (const row of allKeys) {
+      const stateKey: string = row.key;
+      if (checkedKeys.has(stateKey)) continue; // già cercata sopra
+      const socIdMatch = stateKey.match(/fieldos_state_soc_(\d+)$/);
+      const societyId = socIdMatch ? parseInt(socIdMatch[1]) : 0;
+      const found = await searchKey(stateKey, societyId);
+      if (!found) continue;
+      if (found.user.stato === "sospeso") {
+        return res.status(403).json({ error: "suspended" });
+      }
+      logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
+      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson });
     }
 
     return res.status(401).json({ error: "invalid_credentials" });

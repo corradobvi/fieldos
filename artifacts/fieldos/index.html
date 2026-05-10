@@ -1308,6 +1308,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="tb-sep"></div>
     <div class="tb-leva" id="tbLeva">U12</div>
+    <div id="syncStatusBar" style="display:none;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">⏳ Salvataggio…</div>
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
       <div style="display:flex;align-items:center;gap:7px;">
@@ -2188,10 +2189,10 @@ const DEMO_SOC_ID    = 99;
 const DEMO_EMAIL     = 'demo@myvivaio.app';
 const DEMO_PASS      = 'Demo2025!';
 const DEMO_GIORNI    = 14;
-const DEMO_STELLA_ID  = 100;
-const DEMO_STELLA_KEY = 'fieldos_state_soc_100';
+const DEMO_STELLA_ID  = 99999; // riservato — mai assegnato a società reali
+const DEMO_STELLA_KEY = 'fieldos_demo_stella_v1'; // namespace separato — non collide con fieldos_state_soc_*
 const STELLA_AZZ_SOC_DEF = {
-  id:100, nome:'Stella Azzurra ASD', citta:'Milano',
+  id:99999, nome:'Stella Azzurra ASD', citta:'Milano',
   colori:'#1a3f8f', coloriAccento:'#FFD700',
   piano:'societa', stato:'attivo',
   email:'demo.admin@stellaazzurra.it',
@@ -2799,16 +2800,27 @@ async function doLogin() {
       clearTimeout(tid);
     }
 
-    if (resp.status === 403) { toast('⛔ Account sospeso. Contatta la società.'); return; }
+    if (resp.status === 403) {
+      const errData = await resp.json().catch(() => ({}));
+      if (errData.error === 'society_suspended') { toast('⛔ Società sospesa. Contatta il supporto.'); return; }
+      if (errData.error === 'society_archived')  { toast('📦 Società archiviata. Contatta il supporto.'); return; }
+      if (errData.error === 'society_deleted')   { toast('🗑️ Società eliminata.'); return; }
+      toast('⛔ Account sospeso. Contatta la società.'); return;
+    }
 
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
-      // Carica SA state in background (per plan checks)
-      saLoadState();
-      if (typeof window.__fieldosSetSocietaKey === 'function') {
+      // Pre-carica il DB state in localStorage — bootApp trova già i dati freschi (DB-first)
+      if (data.stateJson && typeof window.__fieldosSetSocietaKey === 'function') {
+        // Imposta la chiave PRIMA di scrivere in localStorage
+        window.__fieldosSetSocietaKey(data.stateKey);
+        localStorage.setItem(data.stateKey, data.stateJson);
+      } else if (typeof window.__fieldosSetSocietaKey === 'function') {
         window.__fieldosSetSocietaKey(data.stateKey);
       }
+      // Carica SA state in background (per plan checks)
+      saLoadState();
       me = data.user;
       bootApp(me);
       return;
@@ -2829,7 +2841,9 @@ async function doLogin() {
   // ── 3. Fallback offline: localStorage ──
   saLoadState();
   for (const soc of saSocieties) {
-    if (soc.stato !== 'attivo') continue;
+    if (soc.stato === 'sospeso')   { /* controlla comunque se le credenziali corrispondono per dare errore specifico */ }
+    if (soc.stato === 'archiviato' || soc.stato === 'eliminato') continue;
+    if (soc.stato !== 'attivo' && soc.stato !== 'sospeso') continue;
     const key = societyStorageKey(soc.id);
     let users;
     const raw = localStorage.getItem(key);
@@ -2844,12 +2858,13 @@ async function doLogin() {
     );
     if (!found) continue;
     if (found.stato === 'sospeso') { toast('⛔ Account sospeso. Contatta la società.'); return; }
+    if (soc.stato === 'sospeso') { toast('⛔ Società sospesa. Contatta il supporto.'); return; }
 
     currentSocietaId = soc.id;
     if (typeof window.__fieldosSetSocietaKey === 'function') {
       window.__fieldosSetSocietaKey(key);
     }
-    me = USERS_DB.find(u => (u.email || '').toLowerCase() === email && u.pass === pass) || found;
+    me = found;
     bootApp(me);
     return;
   }
@@ -12394,25 +12409,40 @@ function renderSaPanel() {
   }
 }
 function _renderSaPanelInner() {
-  const total = saSocieties.length;
-  const active = saSocieties.filter(s => s.stato === 'attivo').length;
-  const planCount = (p) => saSocieties.filter(s => pianoNorm(s.piano) === p).length;
+  const _now = Date.now();
+  const activeSocs    = saSocieties.filter(s => s.stato === 'attivo');
+  const sospeseSocs   = saSocieties.filter(s => s.stato === 'sospeso');
+  const archivSocs    = saSocieties.filter(s => s.stato === 'archiviato');
+  const eliminateSocs = saSocieties.filter(s => s.stato === 'eliminato');
+  const total  = activeSocs.length + sospeseSocs.length;
+  const active = activeSocs.length;
+  const planCount = (p) => saSocieties.filter(s => pianoNorm(s.piano) === p && s.stato === 'attivo').length;
+
+  // ── Piano + scadenza badge ──────────────────────────────────────────────
+  const expiryBadge = (s) => {
+    const scad = s.scadenzaDemo || s.scadenza;
+    if (!scad) return '';
+    const days = Math.ceil((scad - _now) / 86400000);
+    if (days > 30) return `<span style="font-size:.65rem;background:rgba(74,222,128,.15);color:#4ade80;border-radius:4px;padding:1px 5px;margin-left:4px;">${days}gg</span>`;
+    if (days > 7)  return `<span style="font-size:.65rem;background:rgba(251,191,36,.15);color:#fbbf24;border-radius:4px;padding:1px 5px;margin-left:4px;">${days}gg ⚠</span>`;
+    if (days > 0)  return `<span style="font-size:.65rem;background:rgba(248,113,113,.2);color:#f87171;border-radius:4px;padding:1px 5px;margin-left:4px;">${days}gg !</span>`;
+    return `<span style="font-size:.65rem;background:rgba(100,116,139,.2);color:#64748b;border-radius:4px;padding:1px 5px;margin-left:4px;">Scaduto</span>`;
+  };
 
   const planBadge = (s) => {
     const pn = pianoNorm(s.piano);
     const cls = { demo:'sa-plan-g', mister:'sa-plan-g', mister_pro:'sa-plan-b', societa:'sa-plan-p' }[pn] || 'sa-plan-g';
     const def = PIANI_DEF[pn] || PIANI_DEF.mister;
-    let lbl = def.nome;
-    if (pn === 'demo') {
-      const giorni = getDemoGiorni(s);
-      lbl += ` (${giorni}gg)`;
-    }
-    return `<span class="sa-plan-badge ${cls}">${lbl}</span>`;
+    return `<span class="sa-plan-badge ${cls}">${def.nome}</span>${expiryBadge(s)}`;
   };
 
-  const statoBadge = (s) => s.stato === 'attivo'
-    ? '<span class="sa-stato-on">● Attivo</span>'
-    : '<span class="sa-stato-off">● Disattivo</span>';
+  const statoBadge = (s) => {
+    if (s.stato === 'attivo')    return '<span class="sa-stato-on">🟢 Attiva</span>';
+    if (s.stato === 'sospeso')   return '<span style="color:#f59e0b;font-size:.76rem;font-weight:600;">⏸️ Sospesa</span>';
+    if (s.stato === 'archiviato') return '<span style="color:#64748b;font-size:.76rem;font-weight:600;">📦 Archiviata</span>';
+    if (s.stato === 'eliminato')  return '<span style="color:#f87171;font-size:.76rem;font-weight:600;">🗑️ Eliminata</span>';
+    return '<span class="sa-stato-off">● Disattiva</span>';
+  };
 
   const syncBadge = (id) => {
     const st = _syncStatus[id];
@@ -12423,47 +12453,85 @@ function _renderSaPanelInner() {
     return '<span style="font-size:.68rem;color:#475569;white-space:nowrap;">— ?</span>';
   };
 
-  const rows = saSocieties.map(s => {
-    const created = s.createdAt ? new Date(s.createdAt).toLocaleDateString('it-IT') : '—';
-    const lastAct = s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('it-IT') : '—';
+  const actionBtn = (s) => {
+    const id = s.id;
     const pn = pianoNorm(s.piano);
     const isDemo = pn === 'demo';
-    const needsSync = _syncStatus[s.id] === 'local_only';
-    return `<tr>
-      <td>
-        <strong>${escapeHtml(s.nome)}</strong>
-        <span style="margin-left:6px;">${syncBadge(s.id)}</span>
-        <br><small style="color:#94a3b8;">${escapeHtml(s.citta||'')}${s.citta&&s.email?' · ':''} ${escapeHtml(s.email||'')}</small>
-      </td>
+    const needsSync = _syncStatus[id] === 'local_only';
+    const stato = s.stato || 'attivo';
+    const parts = [`<button class="sa-btn-sm sa-btn-outline" onclick="saEditSociety(${id})" title="Modifica">✏️</button>`];
+    parts.push(`<select class="sa-sel-plan" onchange="saSetPlan(${id},this.value)" title="Piano">
+      <option value="demo"${pn==='demo'?' selected':''}>Demo</option>
+      <option value="mister"${pn==='mister'?' selected':''}>Mister</option>
+      <option value="mister_pro"${pn==='mister_pro'?' selected':''}>Mister Pro</option>
+      <option value="societa"${pn==='societa'?' selected':''}>Società</option>
+    </select>`);
+    if (isDemo) parts.push(`<button class="sa-btn-sm sa-btn-ok" onclick="saExtendDemo(${id})" title="Estendi demo">+gg</button>`);
+    if (needsSync) parts.push(`<button class="sa-btn-sm" style="background:#f59e0b;color:#fff;border-color:#f59e0b;" onclick="saForceSyncSociety(${id})" title="Carica sul server">↑ Srv</button>`);
+    if (stato === 'attivo')    parts.push(`<button class="sa-btn-sm sa-btn-warn" onclick="saSospendi(${id})" title="Sospendi">⏸️</button>`);
+    if (stato === 'attivo')    parts.push(`<button class="sa-btn-sm" style="background:#334155;color:#94a3b8;border-color:#475569;" onclick="saArchivia(${id})" title="Archivia">📦</button>`);
+    if (stato === 'sospeso')   parts.push(`<button class="sa-btn-sm sa-btn-ok" onclick="saRiattiva(${id})" title="Riattiva">▶</button>`);
+    if (stato === 'sospeso')   parts.push(`<button class="sa-btn-sm" style="background:#334155;color:#94a3b8;border-color:#475569;" onclick="saArchivia(${id})" title="Archivia">📦</button>`);
+    if (stato === 'archiviato') parts.push(`<button class="sa-btn-sm sa-btn-ok" onclick="saRiattiva(${id})" title="Riattiva">▶</button>`);
+    if (stato !== 'eliminato') parts.push(`<button class="sa-btn-sm sa-btn-warn" style="background:rgba(239,68,68,.15);color:#f87171;border-color:#f87171;" onclick="saElimina(${id})" title="Elimina">🗑️</button>`);
+    return `<div style="display:flex;gap:4px;flex-wrap:wrap;">${parts.join('')}</div>`;
+  };
+
+  // ── Righe società attive / sospese ──────────────────────────────────────
+  const activeRows = [...activeSocs, ...sospeseSocs].map(s => {
+    const created = s.createdAt ? new Date(s.createdAt).toLocaleDateString('it-IT') : '—';
+    const lastAct = s.lastActivity ? new Date(s.lastActivity).toLocaleDateString('it-IT') : '—';
+    const rowBg = s.stato === 'sospeso' ? 'background:rgba(245,158,11,.05);' : '';
+    return `<tr style="${rowBg}">
+      <td><strong>${escapeHtml(s.nome)}</strong> ${syncBadge(s.id)}<br>
+        <small style="color:#94a3b8;">${escapeHtml(s.citta||'')}${s.citta&&s.email?' · ':''}${escapeHtml(s.email||'')}</small></td>
       <td>${planBadge(s)}</td>
       <td>${statoBadge(s)}</td>
       <td style="color:#94a3b8;font-size:.82rem;">${escapeHtml(String(s.utenti||0))} utenti<br>${escapeHtml(String(s.giocatori||0))} gioc.</td>
       <td style="color:#94a3b8;font-size:.82rem;">${created}</td>
       <td style="color:#94a3b8;font-size:.82rem;">${lastAct}</td>
-      <td>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="sa-btn-sm sa-btn-outline" onclick="saEditSociety(${s.id})">✏️</button>
-          <select class="sa-sel-plan" onchange="saSetPlan(${s.id},this.value)" title="Piano">
-            <option value="demo"${pn==='demo'?' selected':''}>Demo</option>
-            <option value="mister"${pn==='mister'?' selected':''}>Mister</option>
-            <option value="mister_pro"${pn==='mister_pro'?' selected':''}>Mister Pro</option>
-            <option value="societa"${pn==='societa'?' selected':''}>Società</option>
-          </select>
-          ${isDemo ? `<button class="sa-btn-sm sa-btn-ok" onclick="saExtendDemo(${s.id})" title="Estendi periodo demo">+gg</button>` : ''}
-          ${needsSync ? `<button class="sa-btn-sm" style="background:#f59e0b;color:#fff;border-color:#f59e0b;" onclick="saForceSyncSociety(${s.id})" title="Carica sul server">↑ Server</button>` : ''}
-          <button class="sa-btn-sm ${s.stato==='attivo'?'sa-btn-warn':'sa-btn-ok'}" onclick="saToggleSociety(${s.id})">${s.stato==='attivo'?'⏸':'▶'}</button>
-        </div>
-      </td>
+      <td>${actionBtn(s)}</td>
     </tr>`;
   }).join('');
 
-  const emptyRows = !saSocieties.length
-    ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:#64748b;">Nessuna società registrata. Aggiungi la prima con "＋ Nuova società".</td></tr>`
-    : '';
+  const emptyRows = !activeSocs.length && !sospeseSocs.length
+    ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:#64748b;">Nessuna società attiva. Aggiungi la prima con "＋ Nuova società".</td></tr>` : '';
 
+  // ── Sezione archivio ────────────────────────────────────────────────────
+  const archivedSection = (archivSocs.length + eliminateSocs.length) > 0 ? `
+    <div class="sa-section-hd" style="margin-top:28px;">
+      <span>📦 Archivio (${archivSocs.length}) &nbsp;·&nbsp; 🗑️ In eliminazione (${eliminateSocs.length})</span>
+    </div>
+    <div class="sa-table-wrap">
+      <table class="sa-table">
+        <thead><tr><th>Società</th><th>Piano</th><th>Stato</th><th>Archiviata/Eliminata il</th><th>Eliminazione definitiva</th><th>Azioni</th></tr></thead>
+        <tbody>
+          ${[...archivSocs, ...eliminateSocs].map(s => {
+            const archDate = s.archiviatoAt ? new Date(s.archiviatoAt).toLocaleDateString('it-IT') : '—';
+            const elimDate = s.eliminatoAt  ? new Date(s.eliminatoAt + 90*86400000).toLocaleDateString('it-IT') : '—';
+            const daysLeft = s.eliminatoAt  ? Math.max(0, Math.ceil((s.eliminatoAt + 90*86400000 - _now)/86400000)) : null;
+            return `<tr style="opacity:.7;">
+              <td><strong>${escapeHtml(s.nome)}</strong><br><small style="color:#94a3b8;">${escapeHtml(s.citta||'')}</small></td>
+              <td>${planBadge(s)}</td>
+              <td>${statoBadge(s)}</td>
+              <td style="color:#94a3b8;font-size:.82rem;">${archDate}</td>
+              <td style="font-size:.82rem;">${s.stato==='eliminato'?`<span style="color:${daysLeft>30?'#4ade80':daysLeft>7?'#fbbf24':'#f87171'};">${daysLeft}gg rimanenti (${elimDate})</span>`:'—'}</td>
+              <td>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <button class="sa-btn-sm sa-btn-ok" onclick="saRiattiva(${s.id})" title="Riattiva">▶ Riattiva</button>
+                  ${s.stato==='eliminato'?`<button class="sa-btn-sm" style="background:rgba(239,68,68,.2);color:#f87171;border-color:#f87171;" onclick="saEliminaDefinitivo(${s.id})" title="Elimina definitivamente">🗑️ Definitivo</button>`:''}
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : '';
+
+  // ── Log ────────────────────────────────────────────────────────────────
   const _safeFmt = (ts) => { try { const d=new Date(ts); return isNaN(d)?'—':d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} };
-  const _dangerActions = new Set(['Demo reset','Backup ripristinato','Prima sincronizzazione cloud']);
-  const _warnActions  = new Set(['Backup manuale cloud']);
+  const _dangerActions = new Set(['Demo reset','Backup ripristinato','Prima sincronizzazione cloud','Società eliminata','Società sospesa']);
+  const _warnActions  = new Set(['Backup manuale cloud','Società archiviata','Società riattivata']);
   const logHtml = saActionLog.slice(0,100).map(l => {
     const ts = _safeFmt(l.ts);
     const isDanger = _dangerActions.has(l.action);
@@ -12475,31 +12543,34 @@ function _renderSaPanelInner() {
 
   document.getElementById('saContent').innerHTML = `
     <div class="sa-kpi-bar">
-      <div class="sa-kpi"><div class="sa-kpi-val">${total}</div><div class="sa-kpi-lbl">Società totali</div></div>
-      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#4ade80;">${active}</div><div class="sa-kpi-lbl">Attive</div></div>
-      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#f59e0b;">${planCount('societa')}</div><div class="sa-kpi-lbl">Società</div></div>
-      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#60a5fa;">${planCount('mister_pro')}</div><div class="sa-kpi-lbl">Mister Pro</div></div>
-      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#94a3b8;">${planCount('mister') + planCount('demo')}</div><div class="sa-kpi-lbl">Mister/Demo</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val">${total}</div><div class="sa-kpi-lbl">Totali</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#4ade80;">${active}</div><div class="sa-kpi-lbl">🟢 Attive</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#f59e0b;">${sospeseSocs.length}</div><div class="sa-kpi-lbl">⏸️ Sospese</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#64748b;">${archivSocs.length}</div><div class="sa-kpi-lbl">📦 Archiviate</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#60a5fa;">${planCount('societa')}</div><div class="sa-kpi-lbl">Piano Società</div></div>
+      <div class="sa-kpi"><div class="sa-kpi-val" style="color:#94a3b8;">${planCount('mister') + planCount('mister_pro') + planCount('demo')}</div><div class="sa-kpi-lbl">Mister/Demo</div></div>
     </div>
 
     <div class="sa-section-hd">
-      <span>🏢 Società registrate</span>
+      <span>🏢 Società attive e sospese</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="saSyncAllBtn" class="sa-btn sa-btn-outline" onclick="saForceSyncAll()" title="Carica tutti i dati locali sul server">↑ Sync tutte</button>
-        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()" title="Verifica stato sincronizzazione">🔄 Verifica</button>
-        <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova società</button>
+        <button id="saSyncAllBtn" class="sa-btn sa-btn-outline" onclick="saForceSyncAll()" title="Sync tutte">↑ Sync</button>
+        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()">🔄 Verifica</button>
+        <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova</button>
       </div>
     </div>
     <div class="sa-table-wrap">
       <table class="sa-table">
         <thead><tr><th>Società</th><th>Piano</th><th>Stato</th><th>Utenti</th><th>Creata</th><th>Ultima att.</th><th>Azioni</th></tr></thead>
-        <tbody>${rows}${emptyRows}</tbody>
+        <tbody>${activeRows}${emptyRows}</tbody>
       </table>
     </div>
 
+    ${archivedSection}
+
     <div class="sa-section-hd" style="margin-top:28px;">
       <span>📋 Log DB — reset e modifiche (ultimi 100)</span>
-      <small style="color:#94a3b8;font-size:.72rem;">🔴 eventi critici &nbsp;🟡 backup &nbsp;⚪ ordinari</small>
+      <small style="color:#94a3b8;font-size:.72rem;">🔴 critici &nbsp;🟡 avvisi &nbsp;⚪ ordinari</small>
     </div>
     <div class="sa-log-box">${logHtml}</div>
 
@@ -12515,27 +12586,96 @@ function _renderSaPanelInner() {
             <div style="font-weight:600;color:#e2e8f0;font-size:.82rem;">${escapeHtml(f.question)}</div>
             <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml((f.answer||'').replace(/<[^>]+>/g,'').slice(0,120))}…</div>
             <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span style="font-size:.69rem;color:${f.count>=3?'#4ade80':'#f59e0b'};">chiesta ${f.count}x${f.count>=3?' — pronta per approvazione':''}</span>
+              <span style="font-size:.69rem;color:${f.count>=3?'#4ade80':'#f59e0b'};">chiesta ${f.count}x${f.count>=3?' — pronta':''}</span>
               ${f.section ? `<span style="font-size:.69rem;color:#64748b;">sezione: ${escapeHtml(f.section)}</span>` : ''}
               ${f.approved ? '<span style="font-size:.69rem;color:#4ade80;font-weight:700;">✓ approvata</span>' : ''}
             </div>
           </div>
           <div style="display:flex;gap:6px;margin-left:10px;flex-shrink:0;">
-            ${!f.approved && f.count>=3 ? `<button class="sa-btn-sm sa-btn-ok" onclick="saFaqApprove(${f.id})" title="Approva come FAQ ufficiale">✓ Approva</button>` : ''}
-            <button class="sa-btn-sm sa-btn-warn" onclick="saFaqDelete(${f.id})" title="Elimina">🗑</button>
+            ${!f.approved && f.count>=3 ? `<button class="sa-btn-sm sa-btn-ok" onclick="saFaqApprove(${f.id})">✓</button>` : ''}
+            <button class="sa-btn-sm sa-btn-warn" onclick="saFaqDelete(${f.id})">🗑</button>
           </div>
         </div>`).join('')}
-    </div>` : `<div style="color:#64748b;padding:12px;font-size:.82rem;">Nessuna domanda appresa ancora. Le risposte AI vengono salvate automaticamente.</div>`}
+    </div>` : `<div style="color:#64748b;padding:12px;font-size:.82rem;">Nessuna domanda appresa ancora.</div>`}
   `;
 }
 
 function saToggleSociety(id) {
+  // mantenuto per compatibilità; ora usa saRiattiva/saSospendi
   const s = saSocieties.find(x => x.id === id);
   if (!s) return;
-  s.stato = s.stato === 'attivo' ? 'disattivo' : 'attivo';
-  saLog(s.stato === 'attivo' ? 'Società attivata' : 'Società disattivata', s.nome);
+  if (s.stato === 'attivo') saSospendi(id); else saRiattiva(id);
+}
+
+function saSospendi(id) {
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`Sospendere la società "${s.nome}"?\nI dati vengono conservati. Il login sarà bloccato fino alla riattivazione.`)) return;
+  s.stato = 'sospeso';
+  saLog('Società sospesa', s.nome + ' — login bloccato, dati conservati');
   saSaveState();
   renderSaPanel();
+  toast(`⏸️ "${s.nome}" sospesa`);
+}
+
+function saRiattiva(id) {
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  s.stato = 'attivo';
+  delete s.archiviatoAt;
+  delete s.eliminatoAt;
+  saLog('Società riattivata', s.nome);
+  saSaveState();
+  renderSaPanel();
+  toast(`✅ "${s.nome}" riattivata`);
+}
+
+function saArchivia(id) {
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`Archiviare la società "${s.nome}"?\nAccesso bloccato, dati conservati in sola lettura. Potrai riattivarla in futuro.`)) return;
+  s.stato = 'archiviato';
+  s.archiviatoAt = Date.now();
+  saLog('Società archiviata', s.nome);
+  saSaveState();
+  renderSaPanel();
+  toast(`📦 "${s.nome}" archiviata`);
+}
+
+function saElimina(id) {
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  const conf1 = confirm(`⚠️ ATTENZIONE: eliminare la società "${s.nome}"?\n\nI dati verranno CANCELLATI definitivamente dopo 90 giorni.\nPuoi ancora riattivarla entro quel termine.\n\nPrima conferma: continui?`);
+  if (!conf1) return;
+  const conf2 = confirm(`🗑️ SECONDA CONFERMA — eliminazione "${s.nome}"\n\nI dati saranno eliminati tra 90 giorni.\nSei assolutamente sicuro?`);
+  if (!conf2) return;
+  s.stato = 'eliminato';
+  s.eliminatoAt = Date.now();
+  saLog('Società eliminata', s.nome + ' — eliminazione definitiva tra 90gg');
+  saSaveState();
+  renderSaPanel();
+  toast(`🗑️ "${s.nome}" segnata per eliminazione (90gg)`);
+}
+
+function saEliminaDefinitivo(id) {
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  if (!confirm(`🔴 ELIMINAZIONE DEFINITIVA di "${s.nome}"\n\nI dati nel database verranno cancellati SUBITO.\nQuesta operazione è IRREVERSIBILE.\n\nConfermi?`)) return;
+  const stateKey = id === 0 ? 'fieldos_state_v1' : `fieldos_state_soc_${id}`;
+  // Rimuove dalla lista
+  const idx = saSocieties.findIndex(x => x.id === id);
+  if (idx >= 0) saSocieties.splice(idx, 1);
+  saLog('Eliminazione definitiva', s.nome + ' — dati rimossi');
+  saSaveState();
+  // Elimina dati dal DB (non c'è endpoint DELETE, sovrascriviamo con stringa vuota segnalando is_demo)
+  fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ stateJson: '{}', isDemo: true })
+  }).catch(()=>{});
+  localStorage.removeItem(stateKey);
+  renderSaPanel();
+  toast(`🗑️ "${s.nome}" eliminata definitivamente`);
 }
 
 function saSetPlan(id, piano) {
@@ -12927,15 +13067,36 @@ function saveNewPassword() {
   }
 
   // ── API sync helpers ─────────────────────────────────────
+  let _pendingPushes = 0;
+  function _updateSyncBar(pending) {
+    const bar = document.getElementById('syncStatusBar');
+    if (!bar) return;
+    if (pending > 0) {
+      bar.style.display = '';
+      bar.textContent = '⏳ Salvataggio in attesa…';
+    } else {
+      bar.style.display = 'none';
+    }
+  }
+
   function apiPush(key, json) {
-    // Fire-and-forget: persist state blob to the server in the background
     const stripped = json.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
+    _pendingPushes++;
+    _updateSyncBar(_pendingPushes);
     fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ stateJson: stripped }),
       keepalive: true
-    }).catch(() => {}); // silently ignore network errors (offline/dev without API)
+    }).then(r => {
+      _pendingPushes = Math.max(0, _pendingPushes - 1);
+      _updateSyncBar(_pendingPushes);
+      if (!r.ok && r.status !== 409) {
+        console.warn('[apiPush] server returned', r.status, 'for key', key);
+      }
+    }).catch(() => {
+      // Network error — badge stays until next successful save
+    });
   }
 
   // Sentinella: il server risponde esplicitamente "chiave non trovata" (DB vuoto per questa società)

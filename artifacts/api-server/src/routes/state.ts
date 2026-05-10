@@ -13,17 +13,35 @@ const CREATE_TABLE_SQL = `
   )
 `;
 
-// Dimensione minima in bytes per considerare uno stato "non vuoto".
 const MIN_STATE_BYTES = 200;
 
-// GET /state/:key — retrieve state blob
+// Returns true if the new state would remove real data present in the existing state.
+function wouldDowngrade(newJson: string, existingJson: string): boolean {
+  try {
+    const n = JSON.parse(newJson);
+    const e = JSON.parse(existingJson);
+    const existingHasRealData =
+      (Array.isArray(e.players) && e.players.length > 0) ||
+      (Array.isArray(e.USERS_DB) && e.USERS_DB.length > 6) ||
+      (typeof e.nextUserId === "number" && e.nextUserId > 7);
+    const newIsEmpty =
+      (!Array.isArray(n.players) || n.players.length === 0) &&
+      (!Array.isArray(n.USERS_DB) || n.USERS_DB.length <= 6) &&
+      (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
+    return existingHasRealData && newIsEmpty;
+  } catch {
+    return false;
+  }
+}
+
+// GET /state/:key
 router.get("/state/:key", async (req, res) => {
   try {
-    const result = await pool.execute(
+    await pool.execute(CREATE_TABLE_SQL);
+    const [rows] = (await pool.execute(
       "SELECT state_json, is_demo FROM `society_state` WHERE `key` = ?",
       [req.params.key]
-    ) as any[];
-    const rows = result[0] as any[];
+    )) as [any[], any];
     if (!rows.length) return res.status(404).json({ error: "not found" });
     return res.json({
       key: req.params.key,
@@ -45,58 +63,49 @@ router.put("/state/:key", async (req, res) => {
   const isDemoWrite = isDemo === true;
   const isDemoVal = isDemoWrite ? 1 : 0;
 
-  // ── Protezione 1: rifiuta stati quasi-vuoti che sovrascriverebbero dati reali ──
-  if (stateJson.length < MIN_STATE_BYTES) {
-    try {
-      await pool.execute(CREATE_TABLE_SQL);
-      const [existing] = (await pool.execute(
-        "SELECT LENGTH(state_json) as sz FROM `society_state` WHERE `key` = ?",
-        [req.params.key]
-      )) as [any[], any];
-      if (existing.length && Number(existing[0].sz) >= MIN_STATE_BYTES) {
-        logger.warn(
-          { key: req.params.key, newSize: stateJson.length, existingSize: existing[0].sz },
-          "state PUT rejected: would overwrite real data with near-empty state"
-        );
-        return res.status(409).json({
-          error: "would_overwrite_real_data",
-          detail: "Il nuovo stato è troppo piccolo per sovrascrivere dati esistenti. Operazione annullata a protezione dei dati."
-        });
-      }
-    } catch (e: any) {
-      logger.error({ err: e }, "state PUT safety-check failed");
-      return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
-    }
-  }
-
-  // ── Protezione 2: dati demo non possono sovrascrivere dati reali ──
-  if (isDemoWrite) {
-    try {
-      await pool.execute(CREATE_TABLE_SQL);
-      const [existing] = (await pool.execute(
-        "SELECT is_demo FROM `society_state` WHERE `key` = ?",
-        [req.params.key]
-      )) as [any[], any];
-      if (existing.length && existing[0].is_demo === 0) {
-        logger.warn(
-          { key: req.params.key },
-          "state PUT rejected: demo write attempted on real-data row"
-        );
-        return res.status(409).json({
-          error: "demo_cannot_overwrite_real",
-          detail: "Dati demo non possono sovrascrivere dati reali. Operazione annullata a protezione dei dati."
-        });
-      }
-    } catch (e: any) {
-      logger.error({ err: e }, "state PUT demo-check failed");
-      return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
-    }
-  }
-
   try {
     await pool.execute(CREATE_TABLE_SQL);
-    // is_demo: once a row is marked real (0), it stays real even if a demo write sneaks through.
-    // Formula: IF(existing is_demo = 0, keep 0, use new value)
+
+    // Single read for all protection checks
+    const [existing] = (await pool.execute(
+      "SELECT state_json, LENGTH(state_json) as sz, is_demo FROM `society_state` WHERE `key` = ?",
+      [req.params.key]
+    )) as [any[], any];
+
+    if (existing.length) {
+      const existingSz = Number(existing[0].sz);
+      const existingIsReal = existing[0].is_demo === 0;
+
+      // Protezione: stato quasi-vuoto non sovrascrive dati reali
+      if (stateJson.length < MIN_STATE_BYTES && existingSz >= MIN_STATE_BYTES) {
+        logger.warn({ key: req.params.key, newSize: stateJson.length, existingSize: existingSz },
+          "PUT rejected: near-empty would overwrite real data");
+        return res.status(409).json({
+          error: "would_overwrite_real_data",
+          detail: "Il nuovo stato è troppo piccolo per sovrascrivere dati esistenti."
+        });
+      }
+
+      // Protezione: scrittura demo non sovrascrive dati reali
+      if (isDemoWrite && existingIsReal) {
+        logger.warn({ key: req.params.key }, "PUT rejected: demo write on real-data row");
+        return res.status(409).json({
+          error: "demo_cannot_overwrite_real",
+          detail: "Dati demo non possono sovrascrivere dati reali."
+        });
+      }
+
+      // Protezione: downgrade (perde giocatori/utenti)
+      if (!isDemoWrite && existingIsReal && wouldDowngrade(stateJson, existing[0].state_json)) {
+        logger.warn({ key: req.params.key }, "PUT rejected: would downgrade data");
+        return res.status(409).json({
+          error: "would_downgrade_data",
+          detail: "Il nuovo stato ha meno dati di quelli esistenti. Operazione annullata."
+        });
+      }
+    }
+
+    // Upsert. is_demo stays 0 forever once marked as real data.
     await pool.execute(
       `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`) VALUES (?, ?, ?)
        ON DUPLICATE KEY UPDATE
