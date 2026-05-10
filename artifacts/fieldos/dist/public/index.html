@@ -2279,9 +2279,22 @@ let ptCurrentTab = 'campionato';
 // UI Gestione Competizioni
 let gcCurrentTab = 'campionato';
 let _gcCampSquadre = [];
+let _gcCampGiornateUI = [];
 let _gcTorneoSquadre = [];
 let _gcTorneoFasiUI = [];
+let _gcTorneoTipo = 1;
+let _gcTorneoGironiQUI = [];
+let _gcTorneoGironiFUI = [];
+let _gcTorneoGironiUI = [];
 const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
+const GC_SPAREGGIO_OPTIONS = [
+  {k:'scontro_diretto',label:'Scontro diretto'},
+  {k:'dr_generale',label:'DR generale'},
+  {k:'gf_generale',label:'GF generale'},
+  {k:'dr_scontro',label:'DR scontro diretto'},
+  {k:'gf_scontro',label:'GF scontro diretto'},
+  {k:'sorteggio',label:'Sorteggio'}
+];
 // Setup campionato
 let _campSetupSquadre = [];
 let _campSetupMatches = [];
@@ -9725,7 +9738,9 @@ function playerMatchStats(playerId, leva) {
   return {a, c, t};
 }
 
-function computeStandings(squadre, partite) {
+function computeStandings(squadre, partite, opts) {
+  const pV = opts?.puntiV??3, pN = opts?.puntiN??1, pP = opts?.puntiP??0;
+  const spareggio = opts?.spareggio || ['scontro_diretto','dr_generale','gf_generale'];
   const tbl = {};
   squadre.forEach(sq => { tbl[sq] = {nome:sq,g:0,v:0,n:0,p:0,gf:0,gs:0}; });
   (partite||[]).filter(m => m.played).forEach(m => {
@@ -9738,9 +9753,33 @@ function computeStandings(squadre, partite) {
     else if (m.golCasa < m.golOspiti)  { aw.v++; hm.p++; }
     else                               { hm.n++; aw.n++; }
   });
-  return Object.values(tbl)
-    .map(t => ({...t, dr: t.gf - t.gs, pts: t.v*3 + t.n}))
-    .sort((a,b) => b.pts - a.pts || b.dr - a.dr || b.gf - a.gf);
+  const rows = Object.values(tbl).map(t => ({...t, dr: t.gf - t.gs, pts: t.v*pV + t.n*pN + t.p*pP}));
+  const h2h = {};
+  (partite||[]).filter(m => m.played).forEach(m => {
+    if (!tbl[m.casa] || !tbl[m.ospite]) return;
+    const mk = (a,b) => { if(!h2h[a])h2h[a]={}; if(!h2h[a][b])h2h[a][b]={pts:0,dr:0,gf:0}; };
+    mk(m.casa,m.ospite); mk(m.ospite,m.casa);
+    const gc=m.golCasa, go=m.golOspiti;
+    if(gc>go){h2h[m.casa][m.ospite].pts+=pV;h2h[m.ospite][m.casa].pts+=pP;}
+    else if(gc<go){h2h[m.ospite][m.casa].pts+=pV;h2h[m.casa][m.ospite].pts+=pP;}
+    else{h2h[m.casa][m.ospite].pts+=pN;h2h[m.ospite][m.casa].pts+=pN;}
+    h2h[m.casa][m.ospite].dr+=gc-go; h2h[m.casa][m.ospite].gf+=gc;
+    h2h[m.ospite][m.casa].dr+=go-gc; h2h[m.ospite][m.casa].gf+=go;
+  });
+  rows.sort((a,b) => {
+    if(b.pts!==a.pts) return b.pts-a.pts;
+    for(const cr of spareggio){
+      let d=0;
+      if(cr==='scontro_diretto') d=(h2h[b.nome]?.[a.nome]?.pts??0)-(h2h[a.nome]?.[b.nome]?.pts??0);
+      else if(cr==='dr_generale') d=b.dr-a.dr;
+      else if(cr==='gf_generale') d=b.gf-a.gf;
+      else if(cr==='dr_scontro')  d=(h2h[b.nome]?.[a.nome]?.dr??0)-(h2h[a.nome]?.[b.nome]?.dr??0);
+      else if(cr==='gf_scontro')  d=(h2h[b.nome]?.[a.nome]?.gf??0)-(h2h[a.nome]?.[b.nome]?.gf??0);
+      if(d!==0) return d;
+    }
+    return 0;
+  });
+  return rows;
 }
 
 function computeTopScorers(partite, leva) {
@@ -10068,20 +10107,24 @@ function renderGcCampionato() {
   const c = document.getElementById('gcContent'); if (!c) return;
   const camp = campionato[currentLeva];
   if (!camp || !camp.squadre || !camp.squadre.length) {
-    c.innerHTML = `<div class="empty"><div class="empty-ic">🏅</div><div class="empty-txt">Nessun campionato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva) ? 'Clicca "Crea / Modifica campionato" per iniziare.' : 'Il campionato non è ancora stato configurato.'}</div></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ic">🏅</div><div class="empty-txt">Nessun campionato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "Crea / Modifica campionato" per iniziare.':'Il campionato non è ancora stato configurato.'}</div></div>`;
     return;
   }
   const polis = polisName(currentLeva);
+  const canEdit = canEditPt(currentLeva);
+  const pV = camp.puntiV??3, pN = camp.puntiN??1, pP = camp.puntiP??0;
   const isSenior = advStats(currentLeva);
-  // Meta pill row
+  const opts = {puntiV:pV, puntiN:pN, puntiP:pP, spareggio: camp.spareggio||['scontro_diretto','dr_generale','gf_generale']};
+  const puntiPill = (pV!==3||pN!==1||pP!==0) ? `<span class="pill" style="background:#fef3c7;color:#92400e;">⚙️ V:${pV} N:${pN} P:${pP}</span>` : '';
   const metaHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-    ${camp.nome ? `<span class="pill" style="background:var(--cl);color:var(--cp);">🏅 ${escapeHtml(camp.nome)}</span>` : ''}
-    ${camp.stagione ? `<span class="pill" style="background:#f1f5f9;color:var(--text2);">📅 ${escapeHtml(camp.stagione)}</span>` : ''}
-    ${camp.dataInizio ? `<span class="pill" style="background:#f1f5f9;color:var(--text2);">${fmtMatchDate(camp.dataInizio)} → ${fmtMatchDate(camp.dataFine||'?')}</span>` : ''}
+    ${camp.nome?`<span class="pill" style="background:var(--cl);color:var(--cp);">🏅 ${escapeHtml(camp.nome)}</span>`:''}
+    ${camp.stagione?`<span class="pill" style="background:#f1f5f9;color:var(--text2);">📅 ${escapeHtml(camp.stagione)}</span>`:''}
+    ${camp.categoria?`<span class="pill" style="background:#f0fdf4;color:#166534;">📋 ${escapeHtml(camp.categoria)}</span>`:''}
+    ${camp.dataInizio?`<span class="pill" style="background:#f1f5f9;color:var(--text2);">${fmtMatchDate(camp.dataInizio)} → ${fmtMatchDate(camp.dataFine||'?')}</span>`:''}
     <span class="pill" style="background:#f1f5f9;color:var(--text2);">${camp.squadre.length} squadre · ${(camp.partite||[]).length} partite</span>
+    ${puntiPill}
   </div>`;
-  // U14+ banner
-  const standings = computeStandings(camp.squadre, camp.partite||[]);
+  const standings = computeStandings(camp.squadre, camp.partite||[], opts);
   let seniorBanner = '';
   if (isSenior) {
     const pr = standings.find(t=>t.nome===polis);
@@ -10090,12 +10133,11 @@ function renderGcCampionato() {
       const med = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':`#${pos}`;
       const allPl = (camp.partite||[]).filter(m=>m.played&&(m.casa===polis||m.ospite===polis)).sort((a,b)=>b.data.localeCompare(a.data));
       const allSc = (camp.partite||[]).filter(m=>!m.played&&(m.casa===polis||m.ospite===polis)).sort((a,b)=>a.data.localeCompare(b.data));
-      const lb = allPl[0] ? (()=>{const m=allPl[0];const h=m.casa===polis;const gc=h?m.golCasa:m.golOspiti;const go=h?m.golOspiti:m.golCasa;const em=gc>go?'🟢':gc<go?'🔴':'🟡';return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Ultimo</div><div style="font-size:1.05rem;font-weight:900;">${em} ${gc}–${go}</div><div style="font-size:.6rem;opacity:.7;">vs ${escapeHtml(h?m.ospite:m.casa)} · G${m.giornata||'?'}</div></div>`;})() : `<div style="color:rgba(255,255,255,.4);font-size:.75rem;">Nessun risultato</div>`;
-      const nb = allSc[0] ? (()=>{const m=allSc[0];const avv=m.casa===polis?m.ospite:m.casa;return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Prossima</div><div style="font-size:.9rem;font-weight:800;">vs ${escapeHtml(avv)}</div><div style="font-size:.6rem;opacity:.7;">${fmtMatchDate(m.data)} · G${m.giornata||'?'}</div></div>`;})() : `<div style="color:rgba(255,255,255,.4);font-size:.75rem;">Nessuna</div>`;
-      seniorBanner = `<div style="background:${coloriPrimari};border-radius:14px;padding:14px 20px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;color:#fff;text-align:center;"><div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Posizione</div><div style="font-size:1.8rem;font-weight:900;line-height:1;">${med}</div><div style="font-size:.6rem;opacity:.7;">${pr.pts} pt · GD ${pr.dr>=0?'+'+pr.dr:pr.dr}</div></div>${lb}${nb}</div>`;
+      const lb = allPl[0]?(()=>{const m=allPl[0];const h=m.casa===polis;const gc=h?m.golCasa:m.golOspiti;const go=h?m.golOspiti:m.golCasa;const em=gc>go?'🟢':gc<go?'🔴':'🟡';return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Ultimo</div><div style="font-size:1.05rem;font-weight:900;">${em} ${gc}–${go}</div><div style="font-size:.6rem;opacity:.7;">vs ${escapeHtml(h?m.ospite:m.casa)} · G${m.giornata||'?'}</div></div>`;})():`<div style="color:rgba(255,255,255,.4);font-size:.75rem;">Nessun risultato</div>`;
+      const nb = allSc[0]?(()=>{const m=allSc[0];const avv=m.casa===polis?m.ospite:m.casa;return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Prossima</div><div style="font-size:.9rem;font-weight:800;">vs ${escapeHtml(avv)}</div><div style="font-size:.6rem;opacity:.7;">${fmtMatchDate(m.data)} · G${m.giornata||'?'}</div></div>`;})():`<div style="color:rgba(255,255,255,.4);font-size:.75rem;">Nessuna</div>`;
+      seniorBanner = `<div style="background:var(--cp);border-radius:14px;padding:14px 20px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;color:#fff;text-align:center;"><div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Posizione</div><div style="font-size:1.8rem;font-weight:900;line-height:1;">${med}</div><div style="font-size:.6rem;opacity:.7;">${pr.pts} pt · GD ${pr.dr>=0?'+'+pr.dr:pr.dr}</div></div>${lb}${nb}</div>`;
     }
   }
-  // Classifica
   const stRows = standings.map((t,i)=>{
     const ip=t.nome===polis; const dr=t.dr>=0?'+'+t.dr:String(t.dr);
     const info=camp.squadreInfo?.[t.nome];
@@ -10103,63 +10145,147 @@ function renderGcCampionato() {
     return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${dot}${escapeHtml(t.nome)}${ip?' ⭐':''}${info?.citta?`<span style="font-size:.6rem;color:var(--text3);margin-left:4px;">${escapeHtml(info.citta)}</span>`:''}</td><td>${t.g}</td><td>${t.v}</td><td>${t.n}</td><td>${t.p}</td><td>${t.gf}</td><td>${t.gs}</td><td style="color:${t.dr>0?'var(--green)':t.dr<0?'var(--red)':'inherit'};">${dr}</td><td class="pts">${t.pts}</td></tr>`;
   }).join('');
   const stHtml = `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>DR</th><th>Pt</th></tr></thead><tbody>${stRows}</tbody></table></div>`;
-  // Marcatori
   const scorers = computeTopScorers(camp.partite||[], currentLeva);
   const scHtml = scorers.length===0?'<div style="color:var(--text3);font-size:.8rem;padding:8px 0;">Nessun marcatore ancora.</div>':scorers.slice(0,10).map((s,i)=>{
     const p=players.find(x=>x.id===s.playerId);
     return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p?p.nome+' '+p.cogn:'#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
   }).join('');
-  // Partite Polis
-  const polPl = (camp.partite||[]).filter(m=>m.played&&(m.casa===polis||m.ospite===polis)).sort((a,b)=>b.data.localeCompare(a.data));
-  const polSc = (camp.partite||[]).filter(m=>!m.played&&(m.casa===polis||m.ospite===polis)).sort((a,b)=>a.data.localeCompare(b.data));
-  const canEdit = canEditPt(currentLeva);
+  // Calendario per giornata
+  const allPartite = [...(camp.partite||[])].sort((a,b)=>((a.giornata||999)-(b.giornata||999))||((a.data||'').localeCompare(b.data||'')));
+  const gioMap = {};
+  allPartite.forEach(m => { const g = m.giornata||0; if(!gioMap[g]) gioMap[g]=[]; gioMap[g].push(m); });
+  const gioNums = Object.keys(gioMap).map(Number).sort((a,b)=>a-b);
   const mkMc = (m) => {
     const isH=m.casa===polis; const tag=isH?'<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>':'<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
     const score=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-    const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
-    const luogoStr = m.luogo ? ` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>` : '';
-    const risBtn = canEdit ? `<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>` : '';
-    const delBtn = (!m.played && canEdit) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina partita">✕</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    const timeStr=m.orario?` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>`:'';
+    const luogoStr=m.luogo?` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>`:'';
+    const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
+    const delBtn=(!m.played&&canEdit)?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">✕</button>`:'';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   };
-  const scHtml2 = polSc.slice(0,10).map(m=>mkMc(m)).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:8px 0;">Nessuna programmata.</div>';
-  const plHtml  = polPl.slice(0,8).map(m=>mkMc(m)).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:8px 0;">Nessun risultato ancora.</div>';
-  const addBtn  = canEdit ? `<button class="btn btn-p btn-sm" onclick="openGcAddMatch()">+ Partita</button>` : '';
-  // Altri scontri
-  const altri = (camp.partite||[]).filter(m=>m.casa!==polis&&m.ospite!==polis).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const altriHtml = renderAltriScontri('campionato', altri, currentLeva, null, null);
-  const delCampBtn = canEditPt(currentLeva)
-    ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>`
-    : '';
-  c.innerHTML = `${metaHtml}${seniorBanner}<div class="g2" style="margin-bottom:14px;"><div class="card"><div class="ch"><div class="ct">🏅 Classifica</div></div>${stHtml}</div><div><div class="card" style="margin-bottom:12px;"><div class="ch"><div class="ct">📅 Prossime — Polis</div>${addBtn}</div>${scHtml2}</div><div class="card"><div class="ch"><div class="ct">⚽ Marcatori</div></div>${scHtml}</div></div></div><div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Risultati Polis</div></div>${plHtml}</div>${altriHtml}${delCampBtn}`;
+  const mkOther = (m) => {
+    const eC=`qrcc_${m.id}`,eO=`qrco_${m.id}`;
+    const score=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:(canEdit?`<span style="display:flex;align-items:center;gap:3px;"><input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><span style="color:var(--text3);font-size:.7rem;">–</span><input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><button class="btn btn-p btn-sm" onclick="saveQuickResult('campionato','${m.id}','${eC}','${eO}')">✓</button></span>`:`<span class="mc-score nd">Da giocare</span>`);
+    const editBtn=m.played&&canEdit?`<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id})">📊</button>`:'';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}</div></div>`;
+  };
+  const calHtml = gioNums.map(gn => {
+    const gDate = (camp.giornate||[]).find(g=>g.num===gn)?.data;
+    const label = gn===0 ? 'Senza giornata' : `Giornata ${gn}${gDate?' — '+fmtMatchDate(gDate):''}`;
+    const matches = gioMap[gn];
+    const html = matches.map(m=>(m.casa===polis||m.ospite===polis)?mkMc(m):mkOther(m)).join('');
+    return `<div class="fase-sep">${escapeHtml(label)}</div>${html}`;
+  }).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:10px 0;">Nessuna partita programmata.</div>';
+  const addBtn = canEdit?`<button class="btn btn-p btn-sm" onclick="openGcAddMatch()">+ Partita</button>`:'';
+  const gioBtn = canEdit?`<button class="btn btn-g btn-sm" onclick="openGcGiornate()">📋 Giornate</button>`:'';
+  const delCampBtn = canEdit?`<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>`:'';
+  c.innerHTML = `${metaHtml}${seniorBanner}<div class="g2" style="margin-bottom:14px;"><div class="card"><div class="ch"><div class="ct">🏅 Classifica</div></div>${stHtml}</div><div class="card"><div class="ch"><div class="ct">⚽ Marcatori</div></div>${scHtml}</div></div><div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Calendario</div><div style="display:flex;gap:6px;">${gioBtn}${addBtn}</div></div>${calHtml}</div>${delCampBtn}`;
 }
 
 // ─── GC: Tornei ───
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
   const list = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
-  const isAdmin = me && (me.role==='admin'||me.role==='dirigente');
   if (!list.length) {
-    c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${isAdmin?'Clicca "+ Nuovo torneo" per iniziare.':'Nessun torneo disponibile.'}</div></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "+ Nuovo torneo" per iniziare.':'Nessun torneo disponibile.'}</div></div>`;
     return;
   }
-  const polis = polisName(currentLeva);
   c.innerHTML = list.map(t => {
-    const dr = t.dataInizio?(t.dataFine&&t.dataFine!==t.dataInizio?`${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}`:fmtMatchDate(t.dataInizio)):'';
-    const editBtns = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina torneo">🗑</button>` : '';
-    const fasiHtml = (t.fasi||[]).map(f => {
-      const standings = computeStandings(f.squadre||[], f.partite||[]);
-      const stHtml = standings.length===0?'': `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>DR</th><th>Pt</th></tr></thead><tbody>`+standings.map((sq,i)=>{const ip=sq.nome===polis;const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('')+'</tbody></table></div>';
-      const sorted=(f.partite||[]).sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-      const pmHtml=sorted.filter(m=>m.casa===polis||m.ospite===polis).map(m=>{const rb=canEditPt(t.leva)?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}</div></div>`;}).join('');
-      const altriHtml=renderAltriScontri('torneo',sorted.filter(m=>m.casa!==polis&&m.ospite!==polis),t.leva,t.id,f.id);
-      const addBtn=canEditPt(t.leva)?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
-      return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'fase finale'})</span></div>${stHtml}${pmHtml}${altriHtml}${addBtn}`;
-    }).join('');
-    const scorers=computeTopScorers((t.fasi||[]).flatMap(f=>f.partite||[]),t.leva);
-    const scHtml=scorers.length===0?'':scorers.slice(0,8).map((s,i)=>{const p=players.find(x=>x.id===s.playerId);return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p?p.nome+' '+p.cogn:'#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;}).join('');
-    return `<div class="torneo-card" style="margin-bottom:16px;"><div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}</div></div><div style="display:flex;gap:6px;">${editBtns}</div></div><div class="torneo-body">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;">Nessuna fase. Clicca "+ Fase" per aggiungere gironi o fasi finali.</div>'}${scHtml?`<div class="fase-sep">⚽ Marcatori</div>${scHtml}`:''}</div></div>`;
+    const tipo = t.tipo || 1;
+    if (tipo === 2) return _gcRenderTorneoTipo2(t);
+    if (tipo === 3) return _gcRenderTorneoTipo3(t);
+    return _gcRenderTorneoTipo1(t);
   }).join('');
+}
+
+function _gcTorneoHd(t) {
+  const dr = t.dataInizio?(t.dataFine&&t.dataFine!==t.dataInizio?`${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}`:fmtMatchDate(t.dataInizio)):'';
+  const tipoLabel = t.tipo===2?'Doppio girone':t.tipo===3?'Gironi + Scontri diretti':'Girone unico';
+  const editBtns = canEditPt(t.leva)?`<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
+  return `<div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div></div><div style="display:flex;gap:6px;">${editBtns}</div></div>`;
+}
+
+function _gcFaseStanding(t, f) {
+  const opts = {spareggio: t.spareggio||['scontro_diretto','dr_generale','gf_generale']};
+  const standings = computeStandings(f.squadre||[], f.partite||[], opts);
+  if (!standings.length) return '';
+  const polis = polisName(t.leva);
+  const rows = standings.map((sq,i)=>{const ip=sq.nome===polis;const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${sq.gf}</td><td>${sq.gs}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('');
+  return `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>DR</th><th>Pt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function _gcFaseMatches(t, f) {
+  const polis = polisName(t.leva);
+  const canEdit = canEditPt(t.leva);
+  const sorted = [...(f.partite||[])].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+  const polisHtml = sorted.filter(m=>m.casa===polis||m.ospite===polis).map(m=>{
+    const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
+    const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}</div></div>`;
+  }).join('');
+  const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>m.casa!==polis&&m.ospite!==polis), t.leva, t.id, f.id);
+  const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
+  return polisHtml + altriHtml + addBtn;
+}
+
+function _gcTorneoScorers(t) {
+  const scorers = computeTopScorers((t.fasi||[]).flatMap(f=>f.partite||[]), t.leva);
+  if (!scorers.length) return '';
+  const html = scorers.slice(0,8).map((s,i)=>{const p=players.find(x=>x.id===s.playerId);return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p?p.nome+' '+p.cogn:'#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;}).join('');
+  return `<div class="fase-sep">⚽ Marcatori</div>${html}`;
+}
+
+function _gcRenderTorneoTipo1(t) {
+  const canEdit = canEditPt(t.leva);
+  const fasiHtml = (t.fasi||[]).map(f => {
+    const tipo_label = f.tipo==='girone'?'girone':'fase finale';
+    return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${tipo_label})</span></div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`;
+  }).join('');
+  const addFaseBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:8px;" onclick="openPtFase('${t.id}')">+ Fase/Girone</button>`:'';
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone. Aggiungi una fase per iniziare.</div>'}${addFaseBtn}${_gcTorneoScorers(t)}</div></div>`;
+}
+
+function _gcRenderTorneoTipo2(t) {
+  // Doppio girone: faseGruppo='Q' = qualificazione, faseGruppo='F' = finale
+  const canEdit = canEditPt(t.leva);
+  const fQ = (t.fasi||[]).filter(f=>f.faseGruppo==='Q');
+  const fF = (t.fasi||[]).filter(f=>f.faseGruppo==='F');
+  const fAlt = (t.fasi||[]).filter(f=>!f.faseGruppo);  // backward compat: ungrouped
+  const qList = fQ.length ? fQ : fAlt;
+  const qHtml = qList.length ? qList.map(f=>`<div class="fase-sep" style="background:var(--cl);color:var(--cp);">📋 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone di qualifica configurato.</div>';
+  const assegnaBtn = canEdit&&fF.length===0&&qList.some(f=>(f.partite||[]).some(m=>m.played)) ? `<button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openGcAssegnaFinali('${t.id}')">🏆 Assegna squadre ai gironi finali</button>` : '';
+  const fHtml = fF.length ? fF.map(f=>`<div class="fase-sep" style="background:#fef3c7;color:#92400e;">🏅 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Fasi finali non ancora iniziate.${canEdit?' Aggiungi tramite "Gestisci torneo" o assegna automaticamente.':''}</div>${assegnaBtn}`;
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body"><div class="fase-sep" style="color:var(--cp);">🔵 Fase a Gironi (Qualificazione)</div>${qHtml}<div class="fase-sep" style="color:#92400e;margin-top:4px;">🏆 Fasi Finali</div>${fHtml}${_gcTorneoScorers(t)}</div></div>`;
+}
+
+function _gcRenderTorneoTipo3(t) {
+  const canEdit = canEditPt(t.leva);
+  const polis = polisName(t.leva);
+  const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket');
+  const fBracket = (t.fasi||[]).find(f=>f.tipo==='bracket');
+  const gHtml = fGironi.length ? fGironi.map(f=>`<div class="fase-sep">${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone configurato.</div>';
+  let bHtml = '';
+  if (fBracket) {
+    const rounds = {};
+    (fBracket.partite||[]).forEach(m => { const r=m.bracketRound||'?'; if(!rounds[r])rounds[r]=[]; rounds[r].push(m); });
+    const rOrder = ['qf','sf','f','3p'], rLabels = {qf:'Quarti di Finale',sf:'Semifinale',f:'Finale','3p':'3° Posto'};
+    const bMatches = rOrder.filter(r=>rounds[r]).map(r => {
+      const mHtml = rounds[r].map(m => {
+        const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
+        const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+        const ip=m.casa===polis||m.ospite===polis;
+        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div><div class="mc-actions">${rb}</div></div>`;
+      }).join('');
+      return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
+    }).join('');
+    bHtml = bMatches || '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Tabellone non ancora iniziato.</div>';
+    if (canEdit) bHtml += `<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openGcBracketEdit('${t.id}','${fBracket.id}')">⚙️ Gestisci tabellone</button>`;
+  } else {
+    bHtml = `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Tabellone non configurato.</div>`;
+    if (canEdit) bHtml += `<button class="btn btn-g btn-sm" style="margin-top:4px;" onclick="openGcBracketEdit('${t.id}','')">+ Crea tabellone</button>`;
+  }
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body"><div class="fase-sep" style="color:var(--cp);">📋 Fase a Gironi</div>${gHtml}<div class="fase-sep" style="color:#0369a1;margin-top:4px;">🏆 Tabellone eliminazione diretta</div>${bHtml}${_gcTorneoScorers(t)}</div></div>`;
 }
 
 // ─── GC: Amichevoli ───
@@ -10179,14 +10305,187 @@ function renderGcAmichevoli() {
   }).join('');
 }
 
+// ─── Giornate campionato ───
+function openGcGiornate() {
+  const leva = currentLeva;
+  document.getElementById('gcGiornataLeva').value = leva;
+  const camp = campionato[leva];
+  _gcCampGiornateUI = camp?.giornate ? JSON.parse(JSON.stringify(camp.giornate)) : [];
+  _gcGiornateRender();
+  openM('mGcGiornate');
+}
+function _gcGiornateRender() {
+  const el = document.getElementById('gcGiornateList'); if (!el) return;
+  if (!_gcCampGiornateUI.length) { el.innerHTML = '<div style="color:var(--text3);font-size:.8rem;padding:8px 0;">Nessuna giornata configurata.</div>'; return; }
+  el.innerHTML = _gcCampGiornateUI.map((g,i) =>
+    `<div style="display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:7px;padding:5px 9px;">
+      <span style="font-size:.82rem;font-weight:700;min-width:60px;">G${g.num}</span>
+      <input type="date" value="${g.data||''}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;" oninput="_gcCampGiornateUI[${i}].data=this.value">
+      <button onclick="_gcCampGiornateUI.splice(${i},1);_gcGiornateRender()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:.78rem;">✕</button>
+    </div>`
+  ).join('');
+}
+function gcGiornataAdd() {
+  const nextNum = _gcCampGiornateUI.length ? Math.max(..._gcCampGiornateUI.map(g=>g.num)) + 1 : 1;
+  _gcCampGiornateUI.push({num: nextNum, data: ''});
+  _gcGiornateRender();
+}
+function gcGiornateGenera() {
+  const n = parseInt(document.getElementById('gcGenNGiornate').value) || 0;
+  const start = document.getElementById('gcGenStart').value;
+  const inter = parseInt(document.getElementById('gcGenInterval').value) || 7;
+  if (!n || n < 1) { toast('⚠️ Inserisci il numero di giornate'); return; }
+  _gcCampGiornateUI = [];
+  for (let i = 0; i < n; i++) {
+    let data = '';
+    if (start) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i * inter);
+      data = d.toISOString().slice(0, 10);
+    }
+    _gcCampGiornateUI.push({num: i+1, data});
+  }
+  _gcGiornateRender();
+}
+function saveGcGiornate() {
+  const leva = document.getElementById('gcGiornataLeva').value;
+  if (!campionato[leva]) campionato[leva] = {squadre:[], partite:[]};
+  campionato[leva].giornate = _gcCampGiornateUI.map(g=>({num:g.num,data:g.data||''}));
+  closeM('mGcGiornate');
+  window.__fieldosSaveState();
+  renderGestComp();
+  toast('✅ Giornate salvate!');
+}
+
+// ─── Assegna squadre alle fasi finali (tipo 2) ───
+function openGcAssegnaFinali(torneoId) {
+  const t = tornei.find(x=>x.id===torneoId); if (!t) return;
+  document.getElementById('gcAssegnaId').value = torneoId;
+  const opts = {spareggio: t.spareggio||['scontro_diretto','dr_generale','gf_generale']};
+  const fQ = (t.fasi||[]).filter(f=>f.faseGruppo==='Q'||!f.faseGruppo);
+  // Build ranked list from all qualifying groups
+  const ranked = fQ.flatMap(f => {
+    const st = computeStandings(f.squadre||[], f.partite||[], opts);
+    return st.map((s,i) => ({...s, girone: f.nome, pos: i+1}));
+  });
+  const qualN = t.qualPerGirone || 2;
+  const qualified = fQ.flatMap(f => {
+    const st = computeStandings(f.squadre||[], f.partite||[], opts);
+    return st.slice(0, qualN).map((s,i) => ({nome: s.nome, girone: f.nome, pos: i+1}));
+  });
+  const fF = (t.fasi||[]).filter(f=>f.faseGruppo==='F');
+  const el = document.getElementById('gcAssegnaBody');
+  if (!fF.length) { el.innerHTML = '<div style="color:var(--red);">Configura prima le fasi finali nel setup del torneo.</div>'; openM('mGcAssegnaFinali'); return; }
+  el.innerHTML = fF.map((f,fi) => {
+    const autoSq = qualified.slice(fi * Math.ceil(qualified.length/fF.length), (fi+1)*Math.ceil(qualified.length/fF.length)).map(s=>s.nome);
+    return `<div style="margin-bottom:12px;"><div class="fase-sep" style="background:#fef3c7;color:#92400e;">🏅 ${escapeHtml(f.nome)}</div>
+      <div style="font-size:.78rem;color:var(--text3);margin-bottom:5px;">Squadre qualificate suggerite:</div>
+      <div id="gcAssegnaF${fi}" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;">
+        ${autoSq.map(s=>`<span style="background:var(--cl);color:var(--cp);padding:3px 9px;border-radius:10px;font-size:.78rem;font-weight:700;">${escapeHtml(s)}</span>`).join('')}
+      </div>
+      <textarea id="gcAssegnaTa${fi}" class="fta" rows="2" placeholder="Oppure inserisci manualmente, una squadra per riga..." style="font-size:.82rem;">${autoSq.join('\n')}</textarea>
+    </div>`;
+  }).join('');
+  openM('mGcAssegnaFinali');
+}
+function saveGcAssegnaFinali() {
+  const tid = document.getElementById('gcAssegnaId').value;
+  const t = tornei.find(x=>x.id===tid); if (!t) return;
+  const fF = (t.fasi||[]).filter(f=>f.faseGruppo==='F');
+  fF.forEach((f, fi) => {
+    const ta = document.getElementById(`gcAssegnaTa${fi}`);
+    if (!ta) return;
+    const sq = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    if (sq.length) {
+      f.squadre = [...new Set([polisName(t.leva), ...sq].filter(s=>sq.includes(s)))];
+      if (sq.includes(polisName(t.leva))) f.squadre = [...new Set(sq)];
+      else f.squadre = sq;
+    }
+  });
+  closeM('mGcAssegnaFinali');
+  window.__fieldosSaveState();
+  renderGestComp();
+  toast('✅ Squadre assegnate!');
+}
+
+// ─── Bracket editor (tipo 3) ───
+function openGcBracketEdit(torneoId, bracketFaseId) {
+  const t = tornei.find(x=>x.id===torneoId); if (!t) return;
+  document.getElementById('gcBracketTorneoId').value = torneoId;
+  document.getElementById('gcBracketFaseId').value = bracketFaseId || '';
+  const fBracket = bracketFaseId ? (t.fasi||[]).find(f=>f.id===bracketFaseId) : null;
+  const allSq = t.squadrePartecipanti || [];
+  const opts = document.getElementById('gcBracketSqSel');
+  opts.innerHTML = ['TBD', ...allSq].map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  // Determine rounds from existing bracket or suggest
+  const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket');
+  const nTeams = fBracket ? (fBracket.partite||[]).filter(m=>m.bracketRound==='qf').length * 2 : Math.min(16, Math.max(4, (t.qualPerGirone||2) * fGironi.length));
+  const nQF = Math.min(nTeams/2, 4);
+  const hasSF = nQF >= 4;
+  const rConfig = [];
+  if (nQF >= 2) { for(let i=0;i<nQF;i++) rConfig.push({round:'qf',pos:i+1,label:`QF${i+1}`}); }
+  if (hasSF) { for(let i=0;i<nQF/2;i++) rConfig.push({round:'sf',pos:i+1,label:`SF${i+1}`}); }
+  rConfig.push({round:'f',pos:1,label:'Finale'});
+  rConfig.push({round:'3p',pos:1,label:'3° Posto'});
+  const bEl = document.getElementById('gcBracketMatchList');
+  bEl.innerHTML = rConfig.map(rc => {
+    const em = fBracket?.partite?.find(m=>m.bracketRound===rc.round&&m.bracketPos===rc.pos);
+    const sqSel = (field, val) => {
+      return `<select style="flex:1;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" data-round="${rc.round}" data-pos="${rc.pos}" data-field="${field}">${['TBD',...allSq].map(s=>`<option value="${escapeHtml(s)}"${(val||'TBD')===s?' selected':''}>${escapeHtml(s)}</option>`).join('')}</select>`;
+    };
+    return `<div style="background:var(--bg);border-radius:7px;padding:6px 9px;display:flex;align-items:center;gap:6px;">
+      <span style="font-size:.78rem;font-weight:700;min-width:48px;">${escapeHtml(rc.label)}</span>
+      ${sqSel('casa', em?.casa)} <span style="color:var(--text3);font-size:.7rem;">vs</span> ${sqSel('ospite', em?.ospite)}
+    </div>`;
+  }).join('');
+  openM('mGcBracketEdit');
+}
+function saveGcBracketEdit() {
+  const tid = document.getElementById('gcBracketTorneoId').value;
+  const fid = document.getElementById('gcBracketFaseId').value;
+  const t = tornei.find(x=>x.id===tid); if (!t) return;
+  let fBracket = fid ? (t.fasi||[]).find(f=>f.id===fid) : null;
+  if (!fBracket) {
+    fBracket = {id:'f'+nextFaseId++, nome:'Tabellone', tipo:'bracket', squadre:[], partite:[]};
+    if (!t.fasi) t.fasi = [];
+    t.fasi.push(fBracket);
+  }
+  // Collect selects
+  const rows = document.querySelectorAll('#gcBracketMatchList select[data-round]');
+  const slots = {};
+  rows.forEach(sel => {
+    const r = sel.dataset.round, p = sel.dataset.pos, f2 = sel.dataset.field;
+    const key = `${r}_${p}`;
+    if (!slots[key]) slots[key] = {bracketRound:r, bracketPos:parseInt(p), casa:'TBD', ospite:'TBD', played:false, golCasa:0, golOspiti:0, stats:[]};
+    slots[key][f2] = sel.value;
+  });
+  const newPartite = Object.values(slots);
+  // Preserve existing results
+  newPartite.forEach(nm => {
+    const ex = fBracket.partite.find(m=>m.bracketRound===nm.bracketRound&&m.bracketPos===nm.bracketPos);
+    if (ex && ex.played) { nm.id = ex.id; nm.played = ex.played; nm.golCasa = ex.golCasa; nm.golOspiti = ex.golOspiti; nm.stats = ex.stats; }
+    else nm.id = nm.id || 'bm'+nextTornMatchId++;
+  });
+  fBracket.partite = newPartite;
+  document.getElementById('gcBracketFaseId').value = fBracket.id;
+  closeM('mGcBracketEdit');
+  window.__fieldosSaveState();
+  renderGestComp();
+  toast('✅ Tabellone salvato!');
+}
+
 // ─── Campionato: modal ───
 function openGcCampEdit() {
   const leva = currentLeva;
   document.getElementById('mGcCampTitle').textContent = '⚙️ Campionato — ' + leva;
   document.getElementById('gcCampLeva').value = leva;
   const camp = campionato[leva] || {squadre:[], partite:[], squadreInfo:{}};
-  document.getElementById('gcCampNome').value     = camp.nome || '';
-  document.getElementById('gcCampStagione').value = camp.stagione || '2025/26';
+  document.getElementById('gcCampNome').value      = camp.nome || '';
+  document.getElementById('gcCampStagione').value  = camp.stagione || '2025/26';
+  document.getElementById('gcCampCategoria').value = camp.categoria || '';
+  document.getElementById('gcCampPuntiV').value    = camp.puntiV ?? 3;
+  document.getElementById('gcCampPuntiN').value    = camp.puntiN ?? 1;
+  document.getElementById('gcCampPuntiP').value    = camp.puntiP ?? 0;
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('gcCampDataI').value    = camp.dataInizio || today;
   document.getElementById('gcCampDataF').value    = camp.dataFine   || '';
@@ -10228,8 +10527,12 @@ function saveGcCamp() {
   if (_gcCampSquadre.length < 2) { toast('⚠️ Aggiungi almeno 2 squadre'); return; }
   if (!campionato[leva]) campionato[leva] = {squadre:[], partite:[]};
   const camp = campionato[leva];
-  camp.nome      = document.getElementById('gcCampNome').value.trim();
-  camp.stagione  = document.getElementById('gcCampStagione').value.trim();
+  camp.nome       = document.getElementById('gcCampNome').value.trim();
+  camp.stagione   = document.getElementById('gcCampStagione').value.trim();
+  camp.categoria  = document.getElementById('gcCampCategoria').value.trim();
+  camp.puntiV     = parseInt(document.getElementById('gcCampPuntiV').value) || 3;
+  camp.puntiN     = parseInt(document.getElementById('gcCampPuntiN').value) || 1;
+  camp.puntiP     = parseInt(document.getElementById('gcCampPuntiP').value) || 0;
   camp.dataInizio = document.getElementById('gcCampDataI').value;
   camp.dataFine   = document.getElementById('gcCampDataF').value;
   camp.squadre    = _gcCampSquadre.map(s=>s.nome);
@@ -10358,9 +10661,40 @@ function openGcTorneoEdit(id) {
   const leva = levSel.value;
   _gcTorneoSquadre = t?.squadrePartecipanti ? [...t.squadrePartecipanti] : [polisName(leva)];
   gcTorneoRenderSquadre();
-  _gcTorneoFasiUI = t ? (t.fasi||[]).map(f=>({id:f.id,nome:f.nome,tipo:f.tipo,squadre:[...(f.squadre||[])],partite:f.partite})) : [];
-  gcTorneoRenderFasi();
+  // Tipo
+  _gcTorneoTipo = t?.tipo || 1;
+  document.getElementById('gcTorneoTipo').value = String(_gcTorneoTipo);
+  gcTorneoOnTipoChange();
+  // Spareggio
+  const spArr = t?.spareggio || ['scontro_diretto','dr_generale','gf_generale'];
+  GC_SPAREGGIO_OPTIONS.forEach(o => {
+    const el = document.getElementById('gcSpar_'+o.k);
+    if (el) el.checked = spArr.includes(o.k);
+  });
+  // Tipo-specific config
+  if (_gcTorneoTipo === 1) {
+    _gcTorneoFasiUI = t ? (t.fasi||[]).map(f=>({id:f.id,nome:f.nome,tipo:f.tipo,faseGruppo:f.faseGruppo,squadre:[...(f.squadre||[])],partite:f.partite||[]})) : [];
+    gcTorneoRenderFasi();
+  } else if (_gcTorneoTipo === 2) {
+    const fQ = t ? (t.fasi||[]).filter(f=>f.faseGruppo==='Q'||(!f.faseGruppo&&(t.fasi||[]).filter(x=>x.faseGruppo==='F').length===0)) : [];
+    const fF = t ? (t.fasi||[]).filter(f=>f.faseGruppo==='F') : [];
+    _gcTorneoGironiQUI = fQ.length ? fQ.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Gruppo A',squadre:[],partite:[]}];
+    _gcTorneoGironiFUI = fF.length ? fF.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Platino',squadre:[],partite:[]},{id:null,nome:'Oro',squadre:[],partite:[]}];
+    document.getElementById('gcT2QualPerGirone').value = t?.qualPerGirone||2;
+    gcTorneoRenderGironi2Q(); gcTorneoRenderGironi2F();
+  } else if (_gcTorneoTipo === 3) {
+    const fG = t ? (t.fasi||[]).filter(f=>f.tipo!=='bracket') : [];
+    _gcTorneoGironiUI = fG.length ? fG.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Girone A',squadre:[],partite:[]}];
+    document.getElementById('gcT3BracketSize').value = t?.bracketSize||8;
+    gcTorneoRenderGironi3();
+  }
   openM('mGcTorneoEdit');
+}
+function gcTorneoOnTipoChange() {
+  _gcTorneoTipo = parseInt(document.getElementById('gcTorneoTipo').value) || 1;
+  document.getElementById('gcTorneoSecTipo1').style.display = _gcTorneoTipo===1?'':'none';
+  document.getElementById('gcTorneoSecTipo2').style.display = _gcTorneoTipo===2?'':'none';
+  document.getElementById('gcTorneoSecTipo3').style.display = _gcTorneoTipo===3?'':'none';
 }
 function gcTorneoOnLevaChange() {
   const leva = document.getElementById('gcTorneoLeva').value;
@@ -10387,6 +10721,7 @@ function gcTorneoRemoveSquadra(i) {
   if (_gcTorneoSquadre[i]===polis) return;
   _gcTorneoSquadre.splice(i,1); gcTorneoRenderSquadre();
 }
+// Tipo 1 fasi
 function gcTorneoRenderFasi() {
   const el = document.getElementById('gcTorneoFasiEdit'); if(!el) return;
   el.innerHTML = _gcTorneoFasiUI.map((f,i)=>{
@@ -10395,7 +10730,7 @@ function gcTorneoRenderFasi() {
       <input value="${escapeHtml(f.nome)}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoFasiUI[${i}].nome=this.value">
       <select style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" onchange="_gcTorneoFasiUI[${i}].tipo=this.value">
         <option value="girone"${f.tipo==='girone'?' selected':''}>Girone</option>
-        <option value="finale"${f.tipo!=='girone'?' selected':''}>Fase finale</option>
+        <option value="finale"${f.tipo==='finale'?' selected':''}>Fase finale</option>
       </select>${pi}
       <button onclick="_gcTorneoFasiUI.splice(${i},1);gcTorneoRenderFasi()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button>
     </div>`;
@@ -10404,9 +10739,43 @@ function gcTorneoRenderFasi() {
 function gcTorneoAddFase() {
   const used = _gcTorneoFasiUI.map(f=>f.nome);
   const name = GC_FASE_NAMES.find(n=>!used.includes(n)) || `Fase ${_gcTorneoFasiUI.length+1}`;
-  _gcTorneoFasiUI.push({id:null,nome:name,tipo:'girone',squadre:[],partite:[]});
+  _gcTorneoFasiUI.push({id:null,nome:name,tipo:'girone',faseGruppo:null,squadre:[],partite:[]});
   gcTorneoRenderFasi();
 }
+// Tipo 2 gironi Q
+function gcTorneoRenderGironi2Q() {
+  const el = document.getElementById('gcT2GironiQList'); if(!el) return;
+  el.innerHTML = _gcTorneoGironiQUI.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;background:var(--bg);border-radius:7px;padding:5px 9px;"><input value="${escapeHtml(g.nome)}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoGironiQUI[${i}].nome=this.value"><button onclick="_gcTorneoGironiQUI.splice(${i},1);gcTorneoRenderGironi2Q()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button></div>`).join('');
+}
+function gcTorneoAddGirone2Q() {
+  const names=['Gruppo A','Gruppo B','Gruppo C','Gruppo D','Gruppo E','Gruppo F','Gruppo G','Gruppo H'];
+  const used=_gcTorneoGironiQUI.map(g=>g.nome);
+  _gcTorneoGironiQUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Gruppo ${_gcTorneoGironiQUI.length+1}`,squadre:[],partite:[]});
+  gcTorneoRenderGironi2Q();
+}
+// Tipo 2 gironi F
+function gcTorneoRenderGironi2F() {
+  const el = document.getElementById('gcT2GironiFList'); if(!el) return;
+  el.innerHTML = _gcTorneoGironiFUI.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;background:var(--bg);border-radius:7px;padding:5px 9px;"><input value="${escapeHtml(g.nome)}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoGironiFUI[${i}].nome=this.value"><button onclick="_gcTorneoGironiFUI.splice(${i},1);gcTorneoRenderGironi2F()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button></div>`).join('');
+}
+function gcTorneoAddGirone2F() {
+  const names=['Platino','Oro','Argento','Bronzo','Diamante','Smeraldo'];
+  const used=_gcTorneoGironiFUI.map(g=>g.nome);
+  _gcTorneoGironiFUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Fase ${_gcTorneoGironiFUI.length+1}`,squadre:[],partite:[]});
+  gcTorneoRenderGironi2F();
+}
+// Tipo 3 gironi
+function gcTorneoRenderGironi3() {
+  const el = document.getElementById('gcT3GironiList'); if(!el) return;
+  el.innerHTML = _gcTorneoGironiUI.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;background:var(--bg);border-radius:7px;padding:5px 9px;"><input value="${escapeHtml(g.nome)}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoGironiUI[${i}].nome=this.value"><button onclick="_gcTorneoGironiUI.splice(${i},1);gcTorneoRenderGironi3()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button></div>`).join('');
+}
+function gcTorneoAddGirone3() {
+  const names=['Girone A','Girone B','Girone C','Girone D'];
+  const used=_gcTorneoGironiUI.map(g=>g.nome);
+  _gcTorneoGironiUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Girone ${_gcTorneoGironiUI.length+1}`,squadre:[],partite:[]});
+  gcTorneoRenderGironi3();
+}
+
 function saveGcTorneo() {
   const nome  = document.getElementById('gcTorneoNome').value.trim();
   const leva  = document.getElementById('gcTorneoLeva').value;
@@ -10414,24 +10783,53 @@ function saveGcTorneo() {
   const di    = document.getElementById('gcTorneoDataI').value;
   const df    = document.getElementById('gcTorneoDataF').value;
   if (!nome) { toast('⚠️ Inserisci il nome del torneo'); return; }
+  const tipo = _gcTorneoTipo;
+  const spareggio = GC_SPAREGGIO_OPTIONS.filter(o=>document.getElementById('gcSpar_'+o.k)?.checked).map(o=>o.k);
   const polis = polisName(leva);
   const id = document.getElementById('gcTorneoId').value;
   const allSq = [...new Set([polis, ..._gcTorneoSquadre])];
+
+  // Build fasi based on tipo
+  let newFasiDefs = [];
+  if (tipo === 1) {
+    newFasiDefs = _gcTorneoFasiUI.map(fu=>({id:fu.id,nome:fu.nome,tipo:fu.tipo,faseGruppo:null,squadre:allSq,partite:fu.partite||[]}));
+    if (!newFasiDefs.length) newFasiDefs = [{id:null,nome:'Fase a gironi',tipo:'girone',faseGruppo:null,squadre:allSq,partite:[]}];
+  } else if (tipo === 2) {
+    const qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
+    _gcTorneoGironiQUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:'Q',squadre:allSq,partite:g.partite||[]}));
+    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[],partite:g.partite||[]}));
+    // persist qualPerGirone on torneo object later
+  } else if (tipo === 3) {
+    _gcTorneoGironiUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:null,squadre:allSq,partite:g.partite||[]}));
+  }
+
+  const buildFase = (def, existingFasi) => {
+    if (def.id) {
+      const ex = existingFasi?.find(f=>f.id===def.id);
+      if (ex) { ex.nome=def.nome; ex.tipo=def.tipo; ex.faseGruppo=def.faseGruppo; if(def.squadre.length) ex.squadre=def.squadre; return ex; }
+    }
+    return {id:'f'+nextFaseId++, nome:def.nome, tipo:def.tipo, faseGruppo:def.faseGruppo||null, squadre:def.squadre, partite:def.partite||[]};
+  };
+
   if (id) {
     const t = tornei.find(x=>x.id===id);
     if (t) {
       t.nome=nome; t.leva=leva; t.luogo=luogo; t.dataInizio=di; t.dataFine=df;
+      t.tipo=tipo; t.spareggio=spareggio;
       t.squadrePartecipanti = [..._gcTorneoSquadre];
-      t.fasi = _gcTorneoFasiUI.map(fu => {
-        if (fu.id) { const ex=t.fasi.find(f=>f.id===fu.id); if(ex){ex.nome=fu.nome;ex.tipo=fu.tipo;return ex;} }
-        return {id:'f'+nextFaseId++,nome:fu.nome,tipo:fu.tipo,squadre:allSq,partite:fu.partite||[]};
-      });
+      if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
+      if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
+      const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
+      const bracketFase = (t.fasi||[]).find(f=>f.tipo==='bracket');
+      t.fasi = newFasiDefs.map(d=>buildFase(d, t.fasi));
+      if (bracketFase && tipo===3) t.fasi.push(bracketFase);
     }
   } else {
-    const fasi = _gcTorneoFasiUI.length
-      ? _gcTorneoFasiUI.map(fu=>({id:'f'+nextFaseId++,nome:fu.nome,tipo:fu.tipo,squadre:allSq,partite:[]}))
-      : [{id:'f'+nextFaseId++,nome:'Fase a gironi',tipo:'girone',squadre:allSq,partite:[]}];
-    tornei.push({id:'t'+nextTorneoId++,nome,leva,luogo,dataInizio:di,dataFine:df,squadrePartecipanti:[..._gcTorneoSquadre],fasi});
+    const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi};
+    if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
+    if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
+    tornei.push(newT);
   }
   closeM('mGcTorneoEdit');
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
@@ -13603,8 +14001,21 @@ function saveNewPassword() {
       <div class="fg"><label class="fl">Stagione</label><input class="fi" id="gcCampStagione" placeholder="es. 2025/26"></div>
     </div>
     <div class="g2">
+      <div class="fg"><label class="fl">Categoria</label><input class="fi" id="gcCampCategoria" placeholder="es. Giovanissimi Regionali"></div>
       <div class="fg"><label class="fl">Data inizio</label><input class="fi" id="gcCampDataI" type="date"></div>
+    </div>
+    <div class="g2">
       <div class="fg"><label class="fl">Data fine</label><input class="fi" id="gcCampDataF" type="date"></div>
+      <div class="fg">
+        <label class="fl">Punti V / N / P</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input class="fi" id="gcCampPuntiV" type="number" min="0" max="9" value="3" style="width:52px;text-align:center;" title="Vittoria">
+          <span style="color:var(--text3);font-size:.8rem;">/</span>
+          <input class="fi" id="gcCampPuntiN" type="number" min="0" max="9" value="1" style="width:52px;text-align:center;" title="Pareggio">
+          <span style="color:var(--text3);font-size:.8rem;">/</span>
+          <input class="fi" id="gcCampPuntiP" type="number" min="0" max="9" value="0" style="width:52px;text-align:center;" title="Sconfitta">
+        </div>
+      </div>
     </div>
     <div class="fg" style="margin-top:4px;">
       <label class="fl">Squadre del girone</label>
@@ -13619,6 +14030,61 @@ function saveNewPassword() {
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcCampEdit')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveGcCamp()">💾 Salva campionato</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Gestione Giornate Campionato ── -->
+<div class="ov" id="mGcGiornate">
+  <div class="modal" style="max-width:480px;width:94vw;">
+    <div class="mh"><div class="mt">📋 Gestione Giornate</div><button class="mx" onclick="closeM('mGcGiornate')">✕</button></div>
+    <input type="hidden" id="gcGiornataLeva">
+    <div id="gcGiornateList" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;max-height:260px;overflow-y:auto;"></div>
+    <button class="btn btn-g btn-sm" onclick="gcGiornataAdd()" style="margin-bottom:12px;">+ Aggiungi giornata</button>
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;">🗓 Genera tutte le giornate</div>
+      <div class="g2">
+        <div class="fg"><label class="fl">N. giornate</label><input class="fi" id="gcGenNGiornate" type="number" min="1" max="60" placeholder="es. 30"></div>
+        <div class="fg"><label class="fl">Data prima giornata</label><input class="fi" id="gcGenStart" type="date"></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Intervallo (giorni)</label><input class="fi" id="gcGenInterval" type="number" min="1" max="30" value="7"></div>
+        <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:2px;"><button class="btn btn-p btn-sm" onclick="gcGiornateGenera()">⚡ Genera</button></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcGiornate')">Annulla</button>
+      <button class="btn btn-p" style="flex:1;" onclick="saveGcGiornate()">💾 Salva giornate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Assegna squadre fasi finali (tipo 2) ── -->
+<div class="ov" id="mGcAssegnaFinali">
+  <div class="modal" style="max-width:520px;width:94vw;">
+    <div class="mh"><div class="mt">🏆 Assegna squadre alle fasi finali</div><button class="mx" onclick="closeM('mGcAssegnaFinali')">✕</button></div>
+    <input type="hidden" id="gcAssegnaId">
+    <div style="font-size:.8rem;color:var(--text3);margin-bottom:10px;">Le squadre qualificate sono pre-compilate in base alle classifiche dei gironi. Modifica se necessario.</div>
+    <div id="gcAssegnaBody" style="max-height:380px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcAssegnaFinali')">Annulla</button>
+      <button class="btn btn-p" style="flex:1;" onclick="saveGcAssegnaFinali()">💾 Assegna</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Bracket editor (tipo 3) ── -->
+<div class="ov" id="mGcBracketEdit">
+  <div class="modal" style="max-width:540px;width:94vw;">
+    <div class="mh"><div class="mt">🏆 Gestisci tabellone</div><button class="mx" onclick="closeM('mGcBracketEdit')">✕</button></div>
+    <input type="hidden" id="gcBracketTorneoId">
+    <input type="hidden" id="gcBracketFaseId">
+    <div style="font-size:.8rem;color:var(--text3);margin-bottom:10px;">Imposta le squadre per ogni incontro del tabellone. Usa "TBD" per slot ancora da determinare.</div>
+    <select class="fs" id="gcBracketSqSel" style="display:none;"></select>
+    <div id="gcBracketMatchList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcBracketEdit')">Annulla</button>
+      <button class="btn btn-p" style="flex:1;" onclick="saveGcBracketEdit()">💾 Salva tabellone</button>
     </div>
   </div>
 </div>
@@ -13650,10 +14116,10 @@ function saveNewPassword() {
   </div>
 </div>
 
-<!-- ── MODAL: Crea/Modifica Torneo (avanzato) ── -->
+<!-- ── MODAL: Crea/Modifica Torneo ── -->
 <div class="ov" id="mGcTorneoEdit">
-  <div class="modal" style="width:640px;max-width:96vw;">
-    <div class="mh"><div class="mt" id="mGcTorneoTitle">🏆 Nuovo torneo</div><button class="mx" onclick="closeM('mGcTorneoEdit')">✕</button></div>
+  <div class="modal" style="width:660px;max-width:96vw;max-height:92vh;overflow-y:auto;">
+    <div class="mh" style="position:sticky;top:0;background:var(--white);z-index:2;"><div class="mt" id="mGcTorneoTitle">🏆 Nuovo torneo</div><button class="mx" onclick="closeM('mGcTorneoEdit')">✕</button></div>
     <input type="hidden" id="gcTorneoId">
     <div class="g2">
       <div class="fg"><label class="fl">Nome torneo *</label><input class="fi" id="gcTorneoNome" placeholder="es. Torneo di Natale"></div>
@@ -13672,13 +14138,73 @@ function saveNewPassword() {
         <button class="btn btn-g btn-sm" onclick="gcTorneoAddSquadra()">+ Aggiungi</button>
       </div>
     </div>
-    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
-      <div style="font-weight:700;font-size:.85rem;margin-bottom:8px;color:var(--cp);">📋 Struttura fasi</div>
-      <div style="font-size:.72rem;color:var(--text3);margin-bottom:8px;">Personalizza le fasi del torneo (es. Fase a gironi → Platino, Oro, Argento...)</div>
+
+    <!-- Tipo torneo -->
+    <div class="fg" style="margin-top:10px;">
+      <label class="fl">Tipo torneo</label>
+      <select class="fs" id="gcTorneoTipo" onchange="gcTorneoOnTipoChange()">
+        <option value="1">🔄 Girone unico (tutti contro tutti)</option>
+        <option value="2">🏅 Doppio girone (qualificazione → fasi finali)</option>
+        <option value="3">🏆 Gironi + Scontri diretti (tabellone)</option>
+      </select>
+    </div>
+
+    <!-- Tipo 1: fasi libere -->
+    <div id="gcTorneoSecTipo1" style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">📋 Gironi / Fasi</div>
       <div id="gcTorneoFasiEdit" style="display:flex;flex-direction:column;gap:5px;"></div>
       <button class="btn btn-g btn-sm" style="margin-top:8px;" onclick="gcTorneoAddFase()">+ Aggiungi fase</button>
     </div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
+
+    <!-- Tipo 2: doppio girone -->
+    <div id="gcTorneoSecTipo2" style="display:none;margin-top:10px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">🔵 Gironi di qualifica</div>
+        <div id="gcT2GironiQList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;"></div>
+        <button class="btn btn-g btn-sm" onclick="gcTorneoAddGirone2Q()">+ Aggiungi girone</button>
+        <div class="fg" style="margin-top:10px;">
+          <label class="fl">Squadre qualificate per girone</label>
+          <input class="fi" id="gcT2QualPerGirone" type="number" min="1" max="8" value="2" style="width:80px;">
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:12px;">
+        <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:#92400e;">🏅 Fasi finali</div>
+        <div id="gcT2GironiFList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;"></div>
+        <button class="btn btn-g btn-sm" onclick="gcTorneoAddGirone2F()">+ Aggiungi fase finale</button>
+      </div>
+    </div>
+
+    <!-- Tipo 3: gironi + bracket -->
+    <div id="gcTorneoSecTipo3" style="display:none;margin-top:10px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">📋 Gironi</div>
+        <div id="gcT3GironiList" style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;"></div>
+        <button class="btn btn-g btn-sm" onclick="gcTorneoAddGirone3()">+ Aggiungi girone</button>
+      </div>
+      <div class="fg">
+        <label class="fl">Dimensione tabellone (n. squadre)</label>
+        <select class="fs" id="gcT3BracketSize">
+          <option value="4">4 squadre (SF + F)</option>
+          <option value="8" selected>8 squadre (QF + SF + F)</option>
+          <option value="16">16 squadre (Ottavi + QF + SF + F)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Spareggio -->
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">⚖️ Criteri spareggio (in ordine)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_scontro_diretto" checked style="accent-color:var(--cp);">Scontro diretto</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_dr_generale" checked style="accent-color:var(--cp);">DR generale</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_gf_generale" checked style="accent-color:var(--cp);">GF generale</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_dr_scontro" style="accent-color:var(--cp);">DR scontro diretto</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_gf_scontro" style="accent-color:var(--cp);">GF scontro diretto</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_sorteggio" style="accent-color:var(--cp);">Sorteggio</label>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:var(--white);padding-top:10px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcTorneoEdit')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveGcTorneo()">💾 Salva torneo</button>
     </div>
