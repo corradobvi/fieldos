@@ -888,8 +888,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div style="text-align:center;margin-top:6px;font-size:.78rem;color:var(--text2);">
         Sei un genitore? <a href="#" onclick="event.preventDefault();openSelfReg()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il codice società →</a>
       </div>
+      <div class="lf-hint" style="border:1.5px solid #1a3f8f30;background:linear-gradient(135deg,#1a3f8f08,#2563eb05);margin-bottom:8px;">
+        <strong style="color:#1a3f8f;">⭐ Demo Stella Azzurra ASD — accesso rapido:</strong>
+        <div class="demo-row" style="margin-top:8px;gap:6px;">
+          <button class="db" onclick="loginDemoAs('admin')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🛡️ Admin</button>
+          <button class="db" onclick="loginDemoAs('allenatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">⚽ Mister U12</button>
+          <button class="db" onclick="loginDemoAs('genitore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">👨‍👧 Genitore</button>
+          <button class="db" onclick="loginDemoAs('giocatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🏃 Giocatore U14</button>
+        </div>
+        <div style="font-size:.69rem;color:#64748b;margin-top:6px;">18 giocatori U12 · Campionato in corso · Chat attive · Dati resettati ogni 24h</div>
+      </div>
       <div class="lf-hint">
-        <strong>🎮 Demo rapida:</strong>
+        <strong>🎮 Demo rapida (Polis ASD):</strong>
         <div class="demo-row">
           <button class="db" onclick="quick('admin','marco.admin@polis.it','admin123')">🛡️ Admin</button>
           <button class="db" onclick="quick('allenatore','mister@polis.it','coach123')">⚽ Mister</button>
@@ -10363,10 +10373,12 @@ const PIANI_DEF = {
   base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
   premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
 };
-const DEMO_SOC_ID = 99;
-const DEMO_EMAIL  = 'demo@myvivaio.app';
-const DEMO_PASS   = 'Demo2025!';
-const DEMO_GIORNI = 14;
+const DEMO_SOC_ID    = 99;
+const DEMO_EMAIL     = 'demo@myvivaio.app';
+const DEMO_PASS      = 'Demo2025!';
+const DEMO_GIORNI    = 14;
+const DEMO_STELLA_ID  = 100;
+const DEMO_STELLA_KEY = 'fieldos_state_soc_100';
 
 function pianoNorm(p) {
   // Normalizza valori legacy → nuovi
@@ -10420,6 +10432,17 @@ function canAddPlayer(soc, levaName) {
 function refreshDemoBanner() {
   const banner = document.getElementById('demoBanner');
   if (!banner) return;
+  if (currentSocietaId === DEMO_STELLA_ID) {
+    banner.style.display = '';
+    banner.style.background = 'linear-gradient(90deg,#1a3f8f,#2563eb)';
+    banner.style.cursor = 'default';
+    banner.onclick = null;
+    banner.innerHTML = '⭐ <strong>Demo Stella Azzurra ASD</strong> — I dati si resettano ogni 24h &nbsp;·&nbsp; <span style="opacity:.8;font-weight:400;">Tutte le password: Demo2025!</span>';
+    return;
+  }
+  banner.style.background = '';
+  banner.style.cursor = '';
+  banner.onclick = () => openPianoModal();
   const soc = saSocieties.find(x => x.id === currentSocietaId);
   const status = getPianoStatus(soc);
   if (status === 'active_demo') {
@@ -10543,6 +10566,254 @@ function loginDemo() {
   document.getElementById('lEmail').value = DEMO_EMAIL;
   document.getElementById('lPass').value  = DEMO_PASS;
   setTimeout(doLoginSafe, 80);
+}
+
+// ═══════════════════════════════════
+// DEMO STELLA AZZURRA ASD
+// ═══════════════════════════════════
+const STELLA_AZZ_SOC_DEF = {
+  id:100, nome:'Stella Azzurra ASD', citta:'Milano',
+  colori:'#1a3f8f', coloriAccento:'#FFD700',
+  piano:'societa', stato:'attivo',
+  email:'demo.admin@stellaazzurra.it',
+  note:'Demo preconfigurata · dati realistici',
+  utenti:5, giocatori:28, createdAt:1700000000000, lastActivity:null
+};
+
+function buildDemoStellaState() {
+  function toYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function lastN(n,dow){const r=[],d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-1);while(r.length<n){if(d.getDay()===dow)r.unshift(toYmd(new Date(d)));d.setDate(d.getDate()-1);}return r;}
+  function nextDow(dow,after){const d=after?new Date(after):new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+1);while(d.getDay()!==dow)d.setDate(d.getDate()+1);return toYmd(d);}
+  function pr(s){let x=Math.sin(s+1)*10000;return x-Math.floor(x);}
+
+  const pastSat=lastN(9,6), tue=lastN(9,2), thu=lastN(9,4);
+  const trainDates=[...tue,...thu].sort();
+  const nxtTue=nextDow(2), nxtThu=nextDow(4), nxtSat=nextDow(6);
+  const nxtSat2=nextDow(6, new Date(nxtSat));
+  const nowMs=Date.now();
+
+  function mkPresAll(pid,n,prob){
+    return trainDates.slice(-n).map((date,i)=>{const r=pr(pid*100+i);return{date,status:r<prob?'p':r<prob+.06?'j':'a'};});
+  }
+  function mkPresPartite(pid,n){
+    return pastSat.slice(0,n).map((date,i)=>({date,status:pr(pid*200+i)<.88?'p':'a'}));
+  }
+
+  const mst={
+    14:{g:[1,0,2,0,1,1,0,0,1],a:[0,0,0,0,0,0,1,0,0]},
+    15:{g:[1,0,1,0,0,1,0,1,1],a:[0,1,0,0,0,0,0,0,0]},
+    16:{g:[1,1,1,1,0,1,0,0,1],a:[0,0,1,0,0,0,0,0,0]},
+    10:{g:[0,1,0,0,1,0,0,1,0],a:[1,0,1,0,1,1,0,0,1]},
+     8:{g:[0,0,0,0,0,0,1,0,0],a:[1,0,0,0,0,1,0,1,1]},
+     9:{g:[0,0,0,0,0,0,0,0,0],a:[1,1,1,0,0,0,0,0,0]},
+    12:{g:[0,0,0,0,0,0,0,0,0],a:[0,0,1,0,0,0,0,0,0]},
+     4:{g:[0,0,0,0,0,0,0,0,0],a:[0,0,0,0,1,0,0,0,0]},
+    11:{g:[0,0,0,0,0,0,0,0,0],a:[0,0,0,0,0,1,0,0,0]},
+    17:{g:[0,0,0,0,0,0,0,0,0],a:[0,0,0,0,0,0,0,0,1]},
+  };
+
+  function mkPlayer(id,nome,cogn,num,ruolo,anno,leva,prob){
+    const ms=mst[id];
+    return{id,nome,cogn,soprannome:'',num,ruolo,anno:anno||0,tel:'',leva,
+      partite:ms?ms.g.map((gol,i)=>({gol,ass:ms.a[i]||0})):[],
+      presAll:mkPresAll(id,leva==='U12'?18:15,prob),
+      presPartite:mkPresPartite(id,leva==='U12'?9:7),
+      assenzeAvvisate:[]};
+  }
+  function pp(id){return 0.7+pr(id*7)*0.25;}
+
+  const saTeam='Stella Azzurra ASD U12';
+  const players=[
+    mkPlayer(1,'Giovanni','Mancini','1','P',2012,'U12',pp(1)),
+    mkPlayer(2,'Matteo','Ricci','12','P',2012,'U12',pp(2)),
+    mkPlayer(3,'Andrea','Esposito','2','D',2012,'U12',pp(3)),
+    mkPlayer(4,'Davide','Romano','3','D',2012,'U12',pp(4)),
+    mkPlayer(5,'Lorenzo','Colombo','4','D',2013,'U12',pp(5)),
+    mkPlayer(6,'Federico','Costa','5','D',2012,'U12',pp(6)),
+    mkPlayer(7,'Nicolò','Gallo','6','D',2013,'U12',pp(7)),
+    mkPlayer(8,'Marco','Ferretti','8','C',2012,'U12',pp(8)),
+    mkPlayer(9,'Riccardo','Barbieri','7','C',2012,'U12',pp(9)),
+    mkPlayer(10,'Simone','Martinelli','10','C',2013,'U12',pp(10)),
+    mkPlayer(11,'Tommaso','De Luca','13','C',2012,'U12',pp(11)),
+    mkPlayer(12,'Alessandro','Greco','14','C',2012,'U12',pp(12)),
+    mkPlayer(13,'Filippo','Lombardi','15','C',2013,'U12',pp(13)),
+    mkPlayer(14,'Mattia','Fontana','9','A',2012,'U12',pp(14)),
+    mkPlayer(15,'Leonardo','Caruso','11','A',2012,'U12',pp(15)),
+    mkPlayer(16,'Gabriele','Vitale','16','A',2012,'U12',pp(16)),
+    mkPlayer(17,'Dario','Ferri','17','A',2013,'U12',pp(17)),
+    mkPlayer(18,'Cristian','Bruno','18','A',2012,'U12',pp(18)),
+    mkPlayer(19,'Luca','Marino','10','C',2010,'U14',pp(19)),
+    mkPlayer(20,'Matteo','Pellegrini','8','C',2010,'U14',pp(20)),
+    mkPlayer(21,'Giorgio','Santoro','1','P',2010,'U14',pp(21)),
+    mkPlayer(22,'Paolo','Amato','9','A',2010,'U14',pp(22)),
+    mkPlayer(23,'Sergio','Marini','2','D',2011,'U14',pp(23)),
+    mkPlayer(24,'Antonio','Ferrara','3','D',2010,'U14',pp(24)),
+    mkPlayer(25,'Roberto','Moreno','11','A',2011,'U14',pp(25)),
+    mkPlayer(26,'Carlo','Riva','7','C',2010,'U14',pp(26)),
+    mkPlayer(27,'Stefano','Mele','6','D',2010,'U14',pp(27)),
+    mkPlayer(28,'Giuseppe','Neri','5','D',2011,'U14',pp(28)),
+  ];
+
+  const teams=[saTeam,'Falchi SC','Aquile FC','Leoni ASD','Pantere 2012','Tigri Calcio'];
+  const matchRows=[
+    {g:1,h:saTeam,a:'Falchi SC',gH:3,gA:1},
+    {g:1,h:'Aquile FC',a:'Leoni ASD',gH:2,gA:0},
+    {g:1,h:'Pantere 2012',a:'Tigri Calcio',gH:1,gA:1},
+    {g:2,h:'Aquile FC',a:saTeam,gH:2,gA:2},
+    {g:2,h:'Falchi SC',a:'Leoni ASD',gH:3,gA:0},
+    {g:2,h:'Tigri Calcio',a:'Pantere 2012',gH:2,gA:1},
+    {g:3,h:saTeam,a:'Leoni ASD',gH:4,gA:0},
+    {g:3,h:'Falchi SC',a:'Tigri Calcio',gH:3,gA:1},
+    {g:3,h:'Aquile FC',a:'Pantere 2012',gH:1,gA:2},
+    {g:4,h:'Pantere 2012',a:saTeam,gH:2,gA:1},
+    {g:4,h:'Falchi SC',a:'Aquile FC',gH:2,gA:0},
+    {g:4,h:'Leoni ASD',a:'Tigri Calcio',gH:1,gA:3},
+    {g:5,h:saTeam,a:'Tigri Calcio',gH:2,gA:0},
+    {g:5,h:'Falchi SC',a:'Pantere 2012',gH:1,gA:0},
+    {g:5,h:'Aquile FC',a:'Leoni ASD',gH:2,gA:0},
+    {g:6,h:'Falchi SC',a:saTeam,gH:1,gA:3},
+    {g:6,h:'Tigri Calcio',a:'Aquile FC',gH:0,gA:0},
+    {g:6,h:'Leoni ASD',a:'Pantere 2012',gH:2,gA:1},
+    {g:7,h:saTeam,a:'Aquile FC',gH:1,gA:2},
+    {g:7,h:'Falchi SC',a:'Leoni ASD',gH:3,gA:0},
+    {g:7,h:'Pantere 2012',a:'Tigri Calcio',gH:1,gA:0},
+    {g:8,h:'Leoni ASD',a:saTeam,gH:0,gA:2},
+    {g:8,h:'Falchi SC',a:'Tigri Calcio',gH:2,gA:1},
+    {g:8,h:'Aquile FC',a:'Pantere 2012',gH:3,gA:0},
+    {g:9,h:saTeam,a:'Pantere 2012',gH:3,gA:1},
+    {g:9,h:'Falchi SC',a:'Leoni ASD',gH:2,gA:0},
+    {g:9,h:'Tigri Calcio',a:'Aquile FC',gH:1,gA:1},
+    {g:10,h:'Tigri Calcio',a:saTeam,gH:0,gA:0,played:false},
+  ];
+
+  let mid=1;
+  const campPartite=matchRows.map(m=>{
+    const ri=m.g-1;
+    const stats=[];
+    if((m.h===saTeam||m.a===saTeam)&&m.played!==false){
+      players.filter(p=>p.leva==='U12').forEach(p=>{
+        const ms2=mst[p.id];if(!ms2)return;
+        const gol=ms2.g[ri]||0,ass=ms2.a[ri]||0;
+        if(gol||ass)stats.push({playerId:p.id,gol,assist:ass});
+      });
+    }
+    return{id:mid++,giornata:m.g,data:m.played===false?nxtSat:(pastSat[ri]||''),
+      orario:'10:30',casa:m.h,ospite:m.a,
+      luogo:m.h===saTeam?'Campo Via Larga 12, Milano':'',
+      played:m.played!==false,golCasa:m.gH,golOspiti:m.gA,stats};
+  });
+
+  const events=[
+    {id:1,title:'Allenamento',type:'allenamento',date:nxtTue,start:'18:00',end:'19:30',luogo:'Campo Via Larga 12, Milano',note:'',recur:'none',recurUntil:null,leve:['U12','U14'],createdBy:'demo.mister@stellaazzurra.it'},
+    {id:2,title:'Allenamento',type:'allenamento',date:nxtThu,start:'18:00',end:'19:30',luogo:'Campo Via Larga 12, Milano',note:'',recur:'none',recurUntil:null,leve:['U12','U14'],createdBy:'demo.mister@stellaazzurra.it'},
+    {id:3,title:'Campionato G10 — Tigri vs Stella Azzurra',type:'partita',date:nxtSat,start:'10:30',end:'12:00',luogo:'Campo Tigri, Via Brescia 40',note:'Trasferta. Ritrovo ore 09:30.',recur:'none',recurUntil:null,leve:['U12'],createdBy:'demo.admin@stellaazzurra.it'},
+    {id:4,title:'Campionato G11 — Stella Azzurra vs Falchi SC',type:'partita',date:nxtSat2,start:'10:30',end:'12:00',luogo:'Campo Via Larga 12, Milano',note:'Derby casalingo!',recur:'none',recurUntil:null,leve:['U12'],createdBy:'demo.admin@stellaazzurra.it'},
+  ];
+
+  const convIds=[1,3,4,6,7,8,9,10,12,13,14,15,16,18];
+  const convocazioni=[{id:1,eventId:3,leva:'U12',ritrovo:'09:30',divisa:'Trasferta',note:'Portare borraccia e tuta ufficiale.',playerIds:convIds,createdBy:2,createdAt:nowMs-86400000,sentAt:nowMs-86400000}];
+
+  const ago7=nowMs-7*86400000,ago3=nowMs-3*86400000,ago2=nowMs-2*86400000,ago1=nowMs-86400000;
+  const comunicazioni=[
+    {id:1,scope:'leva:U12',tipo:'urgente',titolo:'⚠️ Allenamento annullato — Giovedì 7 maggio',testo:'Per impegni del campo, l\'allenamento di giovedì 7 maggio è ANNULLATO. Ci vediamo martedì prossimo.',mittente:'Marco Rossi',mittenteId:1,ts:ago7,readBy:[1,2,3,4,5],commentiAbilitati:false,commenti:[],sondaggio:null},
+    {id:2,scope:'pubblica',tipo:'info',titolo:'🏆 G9 — Stella Azzurra 3-1 Pantere 2012!',testo:'Ottima prestazione! Con questa vittoria siamo secondi in classifica con 19 punti. Prossima partita sabato in trasferta contro Tigri Calcio. Forza Stella! 💙⭐',mittente:'Andrea Bianchi',mittenteId:2,ts:ago3,readBy:[1,2,3,5],commentiAbilitati:true,commenti:[{id:1,userId:3,testo:'Grandissimi! Marco ha fatto un assist splendido 👏',ts:ago3+3600000}],sondaggio:null},
+    {id:3,scope:'leva:U12',tipo:'evento',titolo:'🏟️ Torneo Città di Milano — 21 Giugno',testo:'La società parteciperà al Torneo Città di Milano il 21 Giugno. Iscrizioni entro il 31 maggio.',mittente:'Marco Rossi',mittenteId:1,ts:ago2,readBy:[1,2],commentiAbilitati:false,commenti:[],sondaggio:null},
+    {id:4,scope:'leva:U12',tipo:'sondaggio',titolo:'📊 Disponibilità trasferta — Tigri Calcio',testo:'Conferma la tua disponibilità per la partita di sabato in trasferta.',mittente:'Andrea Bianchi',mittenteId:2,ts:ago1,readBy:[1,2,3],commentiAbilitati:false,commenti:[],sondaggio:{domanda:'Puoi essere presente per la trasferta vs Tigri Calcio?',opzioni:['Sì ✓','No ✗','Forse'],anonimo:false,scadenza:null,chiuso:false,voti:[{userId:1,opzioneIdx:0,nome:'Marco Rossi'},{userId:2,opzioneIdx:0,nome:'Andrea Bianchi'},{userId:3,opzioneIdx:0,nome:'Sofia Ferrari'},{userId:5,opzioneIdx:0,nome:'Giulia Conti'}]}},
+  ];
+
+  const chatMessaggi=[
+    {id:1,chatId:'allenatori',userId:1,text:'Ragazzi, questa settimana concentriamoci sulla fase difensiva.',ts:ago7+3600000},
+    {id:2,chatId:'allenatori',userId:2,text:'Concordo. Ho preparato esercizi su pressing e posizionamento.',ts:ago7+7200000},
+    {id:3,chatId:'allenatori',userId:5,text:'Anche per U14 stessa cosa — più disciplina tattica.',ts:ago7+10800000},
+    {id:4,chatId:'allenatori',userId:1,text:'Per sabato ricordate di portare il modulo di distinta.',ts:ago3+3600000},
+    {id:5,chatId:'allenatori',userId:2,text:'Già fatto! I ragazzi sono carichi 💪',ts:ago3+7200000},
+    {id:6,chatId:'leva_U12',userId:3,text:'Ciao a tutti! A che ora dobbiamo portare i ragazzi sabato?',ts:ago2+3600000},
+    {id:7,chatId:'leva_U12',userId:2,text:'Ritrovo alle 09:30 al Campo Tigri, Via Brescia 40. Ci vediamo lì!',ts:ago2+7200000},
+    {id:8,chatId:'leva_U12',userId:3,text:'Perfetto, grazie! Marco è già pronto 😄',ts:ago2+7400000},
+    {id:9,chatId:'leva_U12',userId:2,text:'La convocazione è sull\'app. Controllate le notifiche.',ts:ago1+3600000},
+    {id:10,chatId:'amm_3',userId:3,text:'Buonasera, potrei avere info sulle quote per la stagione prossima?',ts:ago1+5000000},
+    {id:11,chatId:'amm_3',userId:1,text:'Certo! Le quote saranno confermate entro fine maggio. Ti avvisiamo a breve.',ts:ago1+7000000},
+  ];
+
+  const users=[
+    {id:1,nome:'Marco',cogn:'Rossi',email:'demo.admin@stellaazzurra.it',pass:'Demo2025!',role:'admin',leva:'Tutte',stato:'attivo',figli:[],figlio:null,anno:null,societaId:100},
+    {id:2,nome:'Andrea',cogn:'Bianchi',email:'demo.mister@stellaazzurra.it',pass:'Demo2025!',role:'allenatore',leva:'U12',stato:'attivo',figli:[],figlio:null,anno:null,societaId:100},
+    {id:3,nome:'Sofia',cogn:'Ferrari',email:'demo.genitore@stellaazzurra.it',pass:'Demo2025!',role:'genitore',leva:'U12',stato:'attivo',figli:['Marco Ferretti'],figlio:'Marco Ferretti',anno:null,societaId:100},
+    {id:4,nome:'Luca',cogn:'Marino',email:'demo.giocatore@stellaazzurra.it',pass:'Demo2025!',role:'giocatore',leva:'U14',stato:'attivo',figli:[],figlio:null,anno:2010,societaId:100},
+    {id:5,nome:'Giulia',cogn:'Conti',email:'mister.u14@stellaazzurra.it',pass:'Demo2025!',role:'allenatore',leva:'U14',stato:'attivo',figli:[],figlio:null,anno:null,societaId:100},
+  ];
+
+  return{
+    USERS_DB:users, nextUserId:6,
+    players, nextPlayerId:29,
+    leve:['U8','U10','U12','U14','U16'], currentLeva:'U12',
+    events, eventTypes:[{id:'allenamento',label:'🏃 Allenamento',color:'#047857'},{id:'partita',label:'⚽ Partita',color:'#1a3f8f'},{id:'evento',label:'🎉 Evento',color:'#f59e0b'},{id:'torneo',label:'🏆 Torneo',color:'#e03055'}],
+    nextEventId:5, nextEventTypeId:100,
+    convocazioni, nextConvocazioneId:2,
+    disponibilita:[], nextDisponibilitaId:1,
+    notifiche:[], nextNotificaId:1,
+    inviti:[], codiceSocieta:'STELLA25',
+    pendingUsers:[], nextPendingUserId:1,
+    chatMessaggi, nextChatMsgId:12,
+    chatLastSeen:{}, torneoChats:{},
+    amichevoli:[], nextAmichevoleId:1,
+    campionato:{U12:{nome:'Campionato Provinciale U12 Girone B',stagione:'2025/26',squadre:teams,partite:campPartite}},
+    nextCampId:2,
+    tornei:[], nextTorneoId:1, nextFaseId:1, nextTornMatchId:1,
+    comunicazioni, nextComunicazioneId:5, nextCommentoId:2,
+    mediaItems:[], nextMediaId:1,
+    playerPhotos:{}, squadFotos:{},
+    nomeSocieta:'Stella Azzurra ASD',
+    coloriPrimari:'#1a3f8f', coloriAccento:'#FFD700',
+    quotes:[], nextQuoteId:1,
+    quoteSettings:{periodicitaGiorni:30,scadenzaGiorni:7},
+    documenti:[], nextDocId:1,
+    campi:[{id:1,nome:'Campo Principale',indirizzo:'Via Larga 12, Milano',superficie:'Erba sintetica',capienza:300,note:'',usageCount:27}],
+    nextCampoId:2,
+    indisponibilita:[], nextIndispId:1,
+    levaConvSettings:{},
+    demoResetAt: nowMs + 86400000
+  };
+}
+
+function ensureDemoStellaState() {
+  const raw = localStorage.getItem(DEMO_STELLA_KEY);
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      if (s.demoResetAt && Date.now() < s.demoResetAt) return;
+    } catch(e) {}
+  }
+  const state = buildDemoStellaState();
+  const json = JSON.stringify(state);
+  localStorage.setItem(DEMO_STELLA_KEY, json);
+  fetch(API_BASE + '/api/state/' + encodeURIComponent(DEMO_STELLA_KEY), {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({stateJson: json})
+  }).catch(()=>{});
+}
+
+async function loginDemoAs(role) {
+  ensureDemoStellaState();
+  saLoadState();
+  if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
+    saSocieties.push({...STELLA_AZZ_SOC_DEF});
+  }
+  currentSocietaId = DEMO_STELLA_ID;
+  if (typeof window.__fieldosSetSocietaKey === 'function') {
+    window.__fieldosSetSocietaKey(DEMO_STELLA_KEY);
+  }
+  const raw = localStorage.getItem(DEMO_STELLA_KEY);
+  const state = raw ? JSON.parse(raw) : {};
+  const emailMap = {
+    admin:'demo.admin@stellaazzurra.it',
+    allenatore:'demo.mister@stellaazzurra.it',
+    genitore:'demo.genitore@stellaazzurra.it',
+    giocatore:'demo.giocatore@stellaazzurra.it'
+  };
+  me = (state.USERS_DB||[]).find(u => u.email === emailMap[role]) || (state.USERS_DB||[])[0];
+  if (!me) { toast('❌ Errore caricamento demo'); return; }
+  bootApp(me);
 }
 
 // Controlla piano all'avvio e mostra banner/modal
