@@ -29,12 +29,11 @@ function startListening() {
 // Ensure the society_state table exists (idempotent — safe to run on every start).
 async function ensureSchema() {
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS society_state (
-      \`key\`      VARCHAR(255) NOT NULL,
-      state_json LONGTEXT     NOT NULL,
-      updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      PRIMARY KEY (\`key\`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    CREATE TABLE IF NOT EXISTS \`society_state\` (
+      \`key\`      VARCHAR(255) PRIMARY KEY,
+      state_json  LONGTEXT NOT NULL,
+      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
   `);
   logger.info("DB schema ready");
 }
@@ -43,9 +42,11 @@ if (process.env.DATABASE_URL) {
   // DB available — run schema migration then start
   ensureSchema()
     .then(startListening)
-    .catch((err) => {
-      // Log but still start the server so the frontend remains accessible
-      logger.error({ err }, "DB schema init failed — starting without DB");
+    .catch((err: any) => {
+      logger.error(
+        { code: err?.code, sqlMessage: err?.sqlMessage, message: err?.message },
+        "DB schema init failed — starting without DB"
+      );
       startListening();
     });
 } else {
