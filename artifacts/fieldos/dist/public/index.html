@@ -67,8 +67,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .fl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);}
 .fi{padding:11px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;transition:border-color .15s,box-shadow .15s;width:100%;}
 .fi:focus{outline:none;border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
-.btn-login{width:100%;padding:13px;background:var(--cp);color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;}
+.btn-login{width:100%;padding:13px;background:var(--cp);color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
 .btn-login:hover{background:var(--cs);transform:translateY(-1px);box-shadow:var(--shm);}
+.btn-login:active{opacity:.8;transform:scale(.98);}
+.btn-login.loading{opacity:.7;pointer-events:none;}
 .lf-hint{margin-top:20px;background:var(--bg);border-radius:9px;padding:13px 15px;font-size:.75rem;color:var(--text2);}
 .lf-hint strong{color:var(--text);}
 .demo-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -876,10 +878,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="lf-title">Accedi a MyVivaio</div>
       <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
       <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"></div>
-      <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <button class="btn-login" onclick="doLogin()">Accedi →</button>
-      <button class="btn-demo" onclick="loginDemo()">🎮 Prova la demo gratuita — 14 giorni</button>
+      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}"></div>
+      <div class="fg"><label class="fl">Password</label><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"></div>
+      <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
+      <button class="btn-demo" onclick="loginDemo()" style="touch-action:manipulation;">🎮 Prova la demo gratuita — 14 giorni</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
         Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
       </div>
@@ -1980,21 +1982,44 @@ function selRole(el) {
 }
 
 function quick(role, email, pass) {
-  // Select role card
   document.querySelectorAll('.rc').forEach(r => {
     if (r.dataset.role === role) selRole(r);
   });
   document.getElementById('lEmail').value = email;
   document.getElementById('lPass').value  = pass;
-  setTimeout(doLogin, 100);
+  setTimeout(doLoginSafe, 100);
+}
+
+function doLoginSafe() {
+  const btn = document.getElementById('btnLogin');
+  if (btn) { btn.classList.add('loading'); btn.textContent = 'Accesso in corso…'; }
+  // Small delay so iOS has time to commit any pending autocomplete values
+  setTimeout(() => {
+    try {
+      doLogin();
+    } catch(e) {
+      console.error('[doLogin]', e);
+      toast('❌ Errore interno: ' + (e.message || String(e)));
+    } finally {
+      if (btn) { btn.classList.remove('loading'); btn.textContent = 'Accedi →'; }
+    }
+  }, 60);
 }
 
 function doLogin() {
-  const email = document.getElementById('lEmail').value.trim();
-  const pass  = document.getElementById('lPass').value.trim();
+  // Read value both ways — iOS Safari sometimes needs .value after blur
+  const emailEl = document.getElementById('lEmail');
+  const passEl  = document.getElementById('lPass');
+  const email = (emailEl.value || '').trim().toLowerCase();
+  const pass  = (passEl.value || '').trim();
 
-  // 1. Super Admin intercept
-  if (email.toLowerCase() === SA_EMAIL.toLowerCase() && pass === SA_PASS) {
+  if (!email || !pass) {
+    toast('⚠️ Inserisci email e password');
+    return;
+  }
+
+  // 1. Super Admin intercept (email already lowercased)
+  if (email === SA_EMAIL.toLowerCase() && pass === SA_PASS) {
     saLoadState();
     showSuperAdminPanel();
     return;
@@ -2015,7 +2040,7 @@ function doLogin() {
     } else { continue; }
 
     const found = (users || []).find(u =>
-      u.email.toLowerCase() === email.toLowerCase() && u.pass === pass
+      (u.email || '').toLowerCase() === email && u.pass === pass
     );
     if (!found) continue;
     if (found.stato === 'sospeso') { toast('⛔ Account sospeso. Contatta la società.'); return; }
@@ -2025,13 +2050,13 @@ function doLogin() {
       window.__fieldosSetSocietaKey(key); // cambia KEY e chiama restoreState
     }
     // me punta all'oggetto ora in USERS_DB (dopo restoreState)
-    me = USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase() && u.pass === pass) || found;
+    me = USERS_DB.find(u => (u.email || '').toLowerCase() === email && u.pass === pass) || found;
     bootApp(me);
     return;
   }
 
   // 3. Non trovato — controlla pendingUsers (Polis)
-  const pend = pendingUsers.find(p => p.email.toLowerCase() === email.toLowerCase());
+  const pend = pendingUsers.find(p => (p.email || '').toLowerCase() === email);
   if (pend) { toast('⏳ La tua richiesta è ancora in attesa di approvazione'); return; }
   toast('❌ Credenziali non valide');
 }
@@ -10451,7 +10476,7 @@ function loginDemo() {
   }
   document.getElementById('lEmail').value = DEMO_EMAIL;
   document.getElementById('lPass').value  = DEMO_PASS;
-  setTimeout(doLogin, 80);
+  setTimeout(doLoginSafe, 80);
 }
 
 // Controlla piano all'avvio e mostra banner/modal
