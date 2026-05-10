@@ -637,6 +637,46 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .sa-plan-societa{background:#dcfce7;color:#166534;}
 
 /* ═══════════════════════════════════════════
+   ASSISTENTE CHAT
+   ═══════════════════════════════════════════ */
+#asstBtn{position:fixed;bottom:78px;right:16px;z-index:2000;width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#047857,#059669);color:#fff;font-size:1.3rem;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(4,120,87,.45);display:none;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+#asstBtn.visible{display:flex;}
+#asstBtn:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(4,120,87,.55);}
+#asstUnread{position:absolute;top:-3px;right:-3px;background:#ef4444;color:#fff;border-radius:50%;width:17px;height:17px;font-size:.6rem;display:none;align-items:center;justify-content:center;font-weight:700;}
+#asstPanel{position:fixed;bottom:0;right:0;z-index:2001;width:min(380px,100vw);height:min(540px,100dvh);background:var(--white);border-radius:18px 18px 0 0;box-shadow:0 -6px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+#asstPanel.open{transform:translateY(0);}
+.chat-hd{display:flex;align-items:center;gap:10px;padding:13px 16px;background:linear-gradient(135deg,#047857,#059669);border-radius:18px 18px 0 0;flex-shrink:0;}
+.chat-hd-ico{font-size:1.2rem;}
+.chat-hd-title{flex:1;color:#fff;font-weight:700;font-size:.92rem;}
+.chat-hd-close{background:none;border:none;color:rgba(255,255,255,.8);font-size:1.1rem;cursor:pointer;padding:2px 6px;border-radius:6px;}
+.chat-hd-close:hover{background:rgba(255,255,255,.15);}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;}
+.chat-msg{max-width:86%;padding:10px 13px;border-radius:14px;font-size:.81rem;line-height:1.52;}
+.chat-msg.user{background:var(--cp);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.chat-msg.bot{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border);}
+.chat-fb{margin-top:7px;display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--text2);flex-wrap:wrap;}
+.chat-fb button{background:none;border:1px solid var(--border2);cursor:pointer;font-size:.78rem;padding:2px 7px;border-radius:8px;color:var(--text2);}
+.chat-fb button:hover{background:var(--border);color:var(--text);}
+.chat-not-found{color:var(--cp);text-decoration:underline;cursor:pointer;font-size:.71rem;}
+.chat-typing{align-self:flex-start;background:var(--bg);border:1px solid var(--border);border-radius:14px;border-bottom-left-radius:4px;padding:11px 15px;display:flex;gap:4px;align-items:center;}
+.chat-dot{width:7px;height:7px;border-radius:50%;background:var(--text2);animation:chatDot 1.2s ease-in-out infinite;}
+.chat-dot:nth-child(2){animation-delay:.2s;}
+.chat-dot:nth-child(3){animation-delay:.4s;}
+@keyframes chatDot{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-5px);}}
+.chat-sugs{padding:6px 12px 4px;display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;border-top:1px solid var(--border);}
+.chat-sug{padding:5px 11px;border-radius:12px;border:1.5px solid var(--cp);background:none;color:var(--cp);font-size:.69rem;cursor:pointer;white-space:nowrap;transition:all .14s;font-family:inherit;}
+.chat-sug:hover{background:var(--cp);color:#fff;}
+.chat-inp-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+.chat-inp{flex:1;border:1.5px solid var(--border2);border-radius:20px;padding:9px 14px;font-size:.81rem;font-family:inherit;outline:none;background:var(--bg);color:var(--text);}
+.chat-inp:focus{border-color:var(--cp);}
+.chat-send-btn{padding:9px 16px;border-radius:20px;background:var(--cp);color:#fff;border:none;cursor:pointer;font-size:.81rem;font-weight:700;white-space:nowrap;}
+.chat-send-btn:hover{opacity:.9;}
+/* SA: FAQ apprese */
+.faq-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);font-size:.82rem;}
+.faq-row-q{flex:1;color:var(--text);font-weight:600;}
+.faq-row-meta{font-size:.72rem;color:var(--text2);white-space:nowrap;}
+
+/* ═══════════════════════════════════════════
    MOBILE BOTTOM NAV
    ═══════════════════════════════════════════ */
 .mob-nav{
@@ -946,6 +986,25 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div style="text-align:center;margin-top:12px;font-size:.71rem;color:var(--text2);line-height:1.5;">
       Registrandoti accetti i termini di servizio.<br>I dati inseriti durante la prova restano tuoi per sempre.
     </div>
+  </div>
+</div>
+
+<!-- ══════ ASSISTENTE CHAT ══════ -->
+<button id="asstBtn" onclick="chatToggle()" aria-label="Apri assistente">💬
+  <span id="asstUnread"></span>
+</button>
+<div id="asstPanel">
+  <div class="chat-hd">
+    <span class="chat-hd-ico">🤖</span>
+    <div class="chat-hd-title">Assistente MyVivaio</div>
+    <button class="chat-hd-close" onclick="chatToggle()">✕</button>
+  </div>
+  <div class="chat-msgs" id="asstMsgs"></div>
+  <div class="chat-sugs" id="asstSugs"></div>
+  <div class="chat-inp-row">
+    <input class="chat-inp" id="asstInp" type="text" placeholder="Scrivi una domanda…"
+           onkeydown="if(event.key==='Enter')chatSend()" autocomplete="off">
+    <button class="chat-send-btn" onclick="chatSend()">Invia</button>
   </div>
 </div>
 
@@ -2272,6 +2331,12 @@ function bootApp(user) {
     if (me && me.tempPassword) setTimeout(() => openM('mChangePass'), 600);
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
+    // Mostra pulsante assistente
+    const _cb = document.getElementById('asstBtn');
+    if (_cb) _cb.classList.add('visible');
+    // Carica FAQ apprese dal SA state
+    const _saRaw = localStorage.getItem(SA_KEY);
+    if (_saRaw) { try { chatLoadLearned(JSON.parse(_saRaw)); } catch(e) {} }
   }, 380);
 }
 
@@ -10973,6 +11038,308 @@ function checkDemoMode() {
   } catch(e) {}
 }
 
+// ═══════════════════════════════════════════════════════════
+// ASSISTENTE — FAQ CHATBOT + CLAUDE FALLBACK
+// ═══════════════════════════════════════════════════════════
+
+const FAQ_DB = [
+  // ROSA
+  {s:'rosa',q:'Come aggiungo un giocatore?',a:'Vai in <strong>Rosa</strong> → tasto <strong>+ Aggiungi giocatore</strong> → compila nome, cognome, ruolo, numero maglia → Salva.'},
+  {s:'rosa',q:'Come cambio il ruolo di un giocatore?',a:'Clicca sulla card del giocatore → tasto <strong>✏️ Modifica</strong> → cambia il ruolo → Salva.'},
+  {s:'rosa',q:'Come elimino un giocatore?',a:'Clicca <strong>✏️ Modifica</strong> sulla card del giocatore → tasto <strong>🗑 Elimina</strong> in fondo alla scheda.'},
+  {s:'rosa',q:'Come aggiungo una foto profilo?',a:'Clicca sul riquadro con le iniziali nella card del giocatore → seleziona una foto dal tuo telefono.'},
+  {s:'rosa',q:'Come aggiungo il soprannome?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Soprannome</strong> → Salva.'},
+  {s:'rosa',q:'Come cambio la leva a un giocatore?',a:'Apri <strong>✏️ Modifica</strong> del giocatore → campo <strong>Leva</strong> → seleziona la nuova leva → Salva.'},
+  // PRESENZE
+  {s:'presenze',q:'Come segno le presenze?',a:'Vai in <strong>Presenze</strong> → seleziona la data → clicca <strong>✓ Presente</strong>, <strong>✗ Assente</strong> o <strong>~ Giustificato</strong> per ogni giocatore.'},
+  {s:'presenze',q:'Come segno tutti presenti?',a:'Tasto verde <strong>Tutti presenti</strong> in cima alla pagina Presenze.'},
+  {s:'presenze',q:'Come aggiungo una nota su un\'assenza?',a:'Clicca sulla colonna <strong>Note</strong> accanto al giocatore assente.'},
+  {s:'presenze',q:'Come vedo le presenze del mese scorso?',a:'Seleziona il mese dal selettore in cima alla pagina Presenze.'},
+  {s:'presenze',q:'Come esporto le presenze?',a:'Tasto <strong>Export CSV</strong> in alto a destra nella pagina Presenze.'},
+  {s:'presenze',q:'Come avviso di un\'assenza?',a:'I genitori possono inviare avviso di assenza dal loro profilo nella sezione <strong>Presenze</strong>.'},
+  // CONVOCAZIONI
+  {s:'convocazioni',q:'Come creo una convocazione?',a:'<strong>Partite & Tornei</strong> → seleziona la partita → tasto <strong>Convocazioni</strong> → seleziona i giocatori → Invia.'},
+  {s:'convocazioni',q:'Come cambio i convocati?',a:'Apri la convocazione esistente → tasto <strong>Modifica</strong> → aggiungi o rimuovi giocatori.'},
+  {s:'convocazioni',q:'Come i genitori vedono la convocazione?',a:'I genitori vedono <strong>Fase 1</strong> (solo data/ora) e <strong>Fase 2</strong> (dettagli completi) in base ai giorni impostati dal Mister.'},
+  {s:'convocazioni',q:'Come imposto quando i genitori vedono i dettagli?',a:'Convocazioni → <strong>Impostazioni visibilità</strong> → giorni prima per Fase 1 e Fase 2.'},
+  // COMUNICAZIONI
+  {s:'comunicazioni',q:'Come scrivo un avviso?',a:'<strong>Comunicazioni</strong> → tasto <strong>+ Nuovo avviso</strong> → scegli bacheca (pubblica o leva) → compila e invia.'},
+  {s:'comunicazioni',q:'Chi vede i miei avvisi?',a:'Gli avvisi <strong>pubblici</strong> li vedono tutti. Quelli di <strong>leva</strong> solo gli utenti di quella leva.'},
+  {s:'comunicazioni',q:'Come creo un sondaggio?',a:'Nuovo avviso → tasto <strong>+ Aggiungi sondaggio</strong> → inserisci domanda e opzioni.'},
+  {s:'comunicazioni',q:'Come abilito i commenti?',a:'Nuovo avviso → spunta <strong>Abilita commenti</strong> prima di inviare.'},
+  // CHAT
+  {s:'chat',q:'Come scrivo in una chat?',a:'Clicca sulla conversazione → scrivi in fondo → premi <strong>Invia</strong>.'},
+  {s:'chat',q:'Come invio una foto in chat?',a:'Nella chat → icona <strong>📎</strong> → seleziona la foto dal telefono.'},
+  {s:'chat',q:'Perché non vedo certe chat?',a:'Le chat vengono create automaticamente in base al tuo <strong>ruolo</strong> e alla tua <strong>leva</strong>. Ogni ruolo vede le chat di sua competenza.'},
+  {s:'chat',q:'Chi c\'è nel gruppo genitori?',a:'Tutti i genitori della leva + i dirigenti. Mister e admin hanno un gruppo separato.'},
+  // PARTITE E TORNEI
+  {s:'partite',q:'Come creo un campionato?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo campionato</strong> → inserisci nome, leva, squadre del girone.'},
+  {s:'partite',q:'Come aggiungo una partita?',a:'Apri il campionato → <strong>+ Aggiungi partita</strong> → data, orario, avversario, luogo.'},
+  {s:'partite',q:'Come inserisco il risultato?',a:'<strong>Partite & Tornei</strong> → clicca sulla partita → <strong>Inserisci risultato</strong> → aggiungi gol e assist per ogni giocatore.'},
+  {s:'partite',q:'Come creo un torneo?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuovo torneo</strong> → nome, date, leva, squadre.'},
+  {s:'partite',q:'Come si aggiorna la classifica?',a:'La classifica si aggiorna <strong>automaticamente</strong> quando inserisci i risultati delle partite.'},
+  {s:'partite',q:'Come creo un\'amichevole?',a:'<strong>Gestione Competizioni</strong> → <strong>+ Nuova amichevole</strong> → avversario, data, luogo.'},
+  // CALENDARIO
+  {s:'calendario',q:'Come aggiungo un evento?',a:'<strong>Calendario</strong> → tasto <strong>+ Evento</strong> → tipo, titolo, data, ora inizio e fine.'},
+  {s:'calendario',q:'Come creo un allenamento ricorrente?',a:'Nuovo evento → tipo <strong>Allenamento</strong> → attiva <strong>Evento ricorrente</strong> → seleziona giorni e periodo.'},
+  {s:'calendario',q:'Come elimino un singolo allenamento?',a:'Clicca sul giorno nel calendario → clicca sull\'evento → <strong>Elimina solo questo</strong>.'},
+  {s:'calendario',q:'Come filtro per leva nel calendario?',a:'Usa il <strong>filtro leva</strong> in cima al calendario.'},
+  // IMPOSTAZIONI
+  {s:'impostazioni',q:'Come aggiungo un utente?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → compila dati e ruolo → Salva e invia invito.'},
+  {s:'impostazioni',q:'Come aggiungo una leva?',a:'<strong>Impostazioni</strong> → Leve → <strong>+ Aggiungi leva</strong> → nome → Aggiungi.'},
+  {s:'impostazioni',q:'Come cambio i colori della società?',a:'<strong>Impostazioni</strong> → Personalizzazione → colore primario e accento → Salva.'},
+  {s:'impostazioni',q:'Come carico il logo?',a:'<strong>Impostazioni</strong> → Dati società → <strong>Logo società</strong> → carica immagine.'},
+  {s:'impostazioni',q:'Come cambio password?',a:'Clicca sul tuo avatar in alto → <strong>Profilo</strong> → Cambia password.'},
+  {s:'impostazioni',q:'Come invito un genitore?',a:'<strong>Impostazioni</strong> → Gestione utenti → <strong>+ Aggiungi utente</strong> → ruolo Genitore → associa al figlio → genera link invito.'},
+  // GENERALI
+  {s:'',q:'Come funziona la demo?',a:'Hai <strong>14 giorni</strong> con accesso completo a tutte le funzioni. I tuoi dati rimangono quando scegli un piano.'},
+  {s:'',q:'Quali sono i piani?',a:'<strong>Mister</strong> 9€/mese (1 leva, 25 giocatori) · <strong>Mister Pro</strong> 19€/mese (3 leve) · <strong>Società</strong> 49€/mese (leve e giocatori illimitati).'},
+];
+
+// Suggerimenti rapidi per sezione
+const CHAT_SUGS = {
+  rosa:         ['Come aggiungo un giocatore?','Come aggiungo una foto profilo?','Come cambio leva a un giocatore?'],
+  presenze:     ['Come segno le presenze?','Come segno tutti presenti?','Come esporto le presenze?'],
+  convocazioni: ['Come creo una convocazione?','Come cambio i convocati?','Come i genitori vedono la convocazione?'],
+  comunicazioni:['Come scrivo un avviso?','Come creo un sondaggio?','Chi vede i miei avvisi?'],
+  chat:         ['Come scrivo in una chat?','Chi c\'è nel gruppo genitori?'],
+  partite:      ['Come inserisco il risultato?','Come creo un campionato?','Come si aggiorna la classifica?'],
+  calendario:   ['Come aggiungo un evento?','Come creo un allenamento ricorrente?'],
+  impostazioni: ['Come aggiungo un utente?','Come aggiungo una leva?','Come cambio i colori?'],
+};
+
+let _chatOpen = false;
+let _chatMsgs = []; // {role:'user'|'bot', html:string, id:number}
+let _chatMsgId = 0;
+let _chatCurrentSection = '';
+let faqLearned = []; // salvate in SA state
+let faqLearnedNextId = 1;
+
+function chatToggle() {
+  _chatOpen = !_chatOpen;
+  const panel = document.getElementById('asstPanel');
+  if (_chatOpen) {
+    panel.classList.add('open');
+    if (!_chatMsgs.length) {
+      _chatAddBot('Ciao! 👋 Sono l\'assistente di MyVivaio. Come posso aiutarti?');
+    }
+    _chatUpdateSugs();
+    setTimeout(() => document.getElementById('asstInp')?.focus(), 300);
+    const unread = document.getElementById('asstUnread');
+    if (unread) unread.style.display = 'none';
+  } else {
+    panel.classList.remove('open');
+  }
+}
+
+function _chatCurrentPage() {
+  const pg = document.querySelector('.page.on');
+  return pg ? pg.id.replace('pg-', '') : '';
+}
+
+function _chatUpdateSugs() {
+  const pg = _chatCurrentPage();
+  const sugs = CHAT_SUGS[pg] || ['Come funziona la demo?','Quali sono i piani?','Come aggiungo un utente?'];
+  const el = document.getElementById('asstSugs');
+  if (!el) return;
+  el.innerHTML = sugs.map(s =>
+    `<button class="chat-sug" onclick="chatAskSug(${JSON.stringify(s)})">${s}</button>`
+  ).join('');
+}
+
+function chatAskSug(q) {
+  document.getElementById('asstInp').value = q;
+  chatSend();
+}
+
+function _chatAddBot(html, showFallback) {
+  const id = ++_chatMsgId;
+  const fb = showFallback
+    ? `<div class="chat-fb"><span>Non ho trovato quello che cercavo</span><button class="chat-not-found" onclick="_chatEscalate(${JSON.stringify(showFallback)})">→ Chiedi all\'AI</button></div>`
+    : '';
+  _chatMsgs.push({id, html: html + fb});
+  _chatRender();
+}
+
+function _chatRender() {
+  const el = document.getElementById('asstMsgs');
+  if (!el) return;
+  el.innerHTML = _chatMsgs.map(m =>
+    `<div class="chat-msg bot">${m.html}</div>`
+  ).join('') + (_chatTyping ? '<div class="chat-typing"><span class="chat-dot"></span><span class="chat-dot"></span><span class="chat-dot"></span></div>' : '');
+  el.scrollTop = el.scrollHeight;
+}
+
+let _chatTyping = false;
+
+function _chatShowTyping() {
+  _chatTyping = true; _chatRender();
+}
+function _chatHideTyping() {
+  _chatTyping = false; _chatRender();
+}
+
+// Matching FAQ: keywords semplici
+function _chatMatch(q) {
+  const norm = q.toLowerCase().replace(/[?!.,]/g,'');
+  // Prima controlla FAQ apprese (priorità alle promosse)
+  const promoted = faqLearned.filter(x => x.approved && x.count >= 3);
+  for (const f of promoted) {
+    const fq = f.question.toLowerCase().replace(/[?!.,]/g,'');
+    if (_simScore(norm, fq) > 0.45) return f.answer;
+  }
+  // Poi FAQ hardcoded
+  let best = null, bestScore = 0;
+  for (const faq of FAQ_DB) {
+    const fq = faq.q.toLowerCase().replace(/[?!.,]/g,'');
+    const sc = _simScore(norm, fq);
+    if (sc > bestScore) { bestScore = sc; best = faq; }
+  }
+  return bestScore > 0.35 ? best.a : null;
+}
+
+function _simScore(a, b) {
+  const wa = new Set(a.split(/\s+/).filter(x => x.length > 2));
+  const wb = new Set(b.split(/\s+/).filter(x => x.length > 2));
+  if (!wa.size || !wb.size) return 0;
+  let common = 0;
+  wa.forEach(w => { if (wb.has(w)) common++; });
+  return common / Math.max(wa.size, wb.size);
+}
+
+async function chatSend() {
+  const inp = document.getElementById('asstInp');
+  const q = (inp?.value || '').trim();
+  if (!q) return;
+  inp.value = '';
+
+  // Aggiungi messaggio utente
+  const uid = ++_chatMsgId;
+  _chatMsgs.push({id:uid, html:`<div class="chat-msg user">${escapeHtml(q)}</div>`});
+  _chatRender();
+
+  // Prova FAQ
+  const faqAns = _chatMatch(q);
+  if (faqAns) {
+    _chatAddBot(faqAns);
+    return;
+  }
+
+  // Nessuna FAQ trovata → mostra messaggio con link escalate
+  _chatAddBot(
+    'Non ho trovato una risposta nelle FAQ per questa domanda.',
+    q
+  );
+}
+
+async function _chatEscalate(q) {
+  // Rimuovi il messaggio "non trovato" e mostra typing
+  _chatMsgs.pop();
+  _chatShowTyping();
+
+  // Aggiunge la domanda dell'utente di nuovo (era già stata mostrata)
+  const section = _chatCurrentPage();
+  const role = (typeof me !== 'undefined' && me) ? me.role : '';
+
+  try {
+    const resp = await fetch(API_BASE + '/api/ai-assist', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question:q, section, role})
+    });
+    _chatHideTyping();
+
+    if (!resp.ok) {
+      _chatAddBot('⚠️ Il servizio AI non è momentaneamente disponibile. Riprova più tardi o contatta il supporto.');
+      return;
+    }
+    const data = await resp.json();
+    const answer = data.answer || 'Non ho trovato una risposta.';
+
+    // Salva nel sistema di apprendimento
+    _chatLearnSave(q, answer, section);
+
+    // Mostra risposta con feedback
+    const id = ++_chatMsgId;
+    _chatMsgs.push({id, html: answer + `<div class="chat-fb"><span>Questa risposta ti è stata utile?</span><button onclick="_chatFeedback(${id},1)">👍</button><button onclick="_chatFeedback(${id},0)">👎</button></div>`});
+    _chatRender();
+  } catch(e) {
+    _chatHideTyping();
+    _chatAddBot('⚠️ Errore di connessione. Controlla la rete e riprova.');
+  }
+}
+
+function _chatFeedback(msgId, positive) {
+  const m = _chatMsgs.find(x => x.id === msgId);
+  if (!m) return;
+  m.html = m.html.replace(/<div class="chat-fb">[\s\S]*?<\/div>/, '');
+  if (positive) {
+    m.html += '<div class="chat-fb" style="color:#4ade80;">✓ Grazie per il feedback!</div>';
+  } else {
+    m.html += '<div class="chat-fb" style="color:#f87171;">Ci dispiace. <a href="mailto:supporto@myvivaio.app" style="color:inherit;text-decoration:underline;">Contatta il supporto →</a></div>';
+  }
+  _chatRender();
+}
+
+function _chatLearnSave(question, answer, section) {
+  const norm = question.toLowerCase().trim();
+  const existing = faqLearned.find(x => {
+    const eq = x.question.toLowerCase().trim();
+    return _simScore(norm.replace(/[?!.,]/g,''), eq.replace(/[?!.,]/g,'')) > 0.6;
+  });
+  if (existing) {
+    existing.count = (existing.count || 1) + 1;
+    existing.lastTs = Date.now();
+  } else {
+    faqLearned.push({
+      id: faqLearnedNextId++,
+      question, answer, section,
+      count: 1, approved: false,
+      ts: Date.now(), lastTs: Date.now()
+    });
+  }
+  _chatSaveLearned();
+}
+
+function _chatSaveLearned() {
+  try {
+    const sa = JSON.parse(localStorage.getItem(SA_KEY) || '{}');
+    sa.faqLearned = faqLearned;
+    sa.faqLearnedNextId = faqLearnedNextId;
+    localStorage.setItem(SA_KEY, JSON.stringify(sa));
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({stateJson: JSON.stringify(sa)})
+    }).catch(()=>{});
+  } catch(e) {}
+}
+
+function chatLoadLearned(saState) {
+  if (Array.isArray(saState?.faqLearned)) faqLearned = saState.faqLearned;
+  if (typeof saState?.faqLearnedNextId === 'number') faqLearnedNextId = saState.faqLearnedNextId;
+}
+
+// SA: approva / modifica risposta appresa
+function saFaqApprove(id) {
+  const f = faqLearned.find(x => x.id === id);
+  if (!f) return;
+  f.approved = true;
+  _chatSaveLearned();
+  renderSaPanel();
+}
+function saFaqDelete(id) {
+  faqLearned = faqLearned.filter(x => x.id !== id);
+  _chatSaveLearned();
+  renderSaPanel();
+}
+function saFaqEditAnswer(id, newAns) {
+  const f = faqLearned.find(x => x.id === id);
+  if (!f) return;
+  f.answer = newAns;
+  _chatSaveLearned();
+  toast('✅ Risposta aggiornata');
+}
+
 // Controlla piano all'avvio e mostra banner/modal
 function checkPianoOnBoot(soc) {
   const status = getPianoStatus(soc);
@@ -11001,6 +11368,8 @@ function saLoadState() {
       if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;
       if (Array.isArray(s.saActionLog)) saActionLog = s.saActionLog;
       if (typeof s.saNextLogId === 'number') saNextLogId = s.saNextLogId;
+      if (Array.isArray(s.faqLearned)) faqLearned = s.faqLearned;
+      if (typeof s.faqLearnedNextId === 'number') faqLearnedNextId = s.faqLearnedNextId;
       // Migrazione: assicura Polis ASD (id 0) sia sempre presente
       if (!saSocieties.some(x => x.id === 0)) {
         saSocieties.unshift({ ...POLIS_SOC });
@@ -11021,6 +11390,8 @@ function saLoadState() {
         if (typeof s.saNextSocId === 'number') saNextSocId = s.saNextSocId;
         if (Array.isArray(s.saActionLog)) saActionLog = s.saActionLog;
         if (typeof s.saNextLogId === 'number') saNextLogId = s.saNextLogId;
+        if (Array.isArray(s.faqLearned)) faqLearned = s.faqLearned;
+        if (typeof s.faqLearnedNextId === 'number') faqLearnedNextId = s.faqLearnedNextId;
         localStorage.setItem(SA_KEY, data.stateJson);
         const saPanel = document.getElementById('saDashboard');
         if (saPanel && saPanel.style.display !== 'none' && typeof renderSaDashboard === 'function') renderSaDashboard();
@@ -11047,7 +11418,7 @@ function saLoadState() {
 
 function saSaveState() {
   try {
-    const data = JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId });
+    const data = JSON.stringify({ saSocieties, saNextSocId, saActionLog, saNextLogId, faqLearned, faqLearnedNextId });
     localStorage.setItem(SA_KEY, data);
     // Background sync to server (SA state non contiene immagini, no stripping necessario)
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
@@ -11273,6 +11644,30 @@ function renderSaPanel() {
 
     <div class="sa-section-hd" style="margin-top:28px;"><span>📋 Log azioni (ultime 50)</span></div>
     <div class="sa-log-box">${logHtml}</div>
+
+    <div class="sa-section-hd" style="margin-top:28px;">
+      <span>📚 FAQ apprese dall'AI (${faqLearned.length})</span>
+      <small style="color:#94a3b8;font-size:.72rem;">Le domande chieste 3+ volte diventano FAQ ufficiali dopo approvazione</small>
+    </div>
+    ${faqLearned.length ? `
+    <div style="background:var(--dark2);border-radius:10px;overflow:hidden;">
+      ${faqLearned.map(f => `
+        <div class="faq-row" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
+          <div style="flex:1;">
+            <div style="font-weight:600;color:#e2e8f0;font-size:.82rem;">${escapeHtml(f.question)}</div>
+            <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml(f.answer.replace(/<[^>]+>/g,'').slice(0,120))}…</div>
+            <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:.69rem;color:${f.count>=3?'#4ade80':'#f59e0b'};">chiesta ${f.count}x${f.count>=3?' — pronta per approvazione':''}</span>
+              ${f.section ? `<span style="font-size:.69rem;color:#64748b;">sezione: ${escapeHtml(f.section)}</span>` : ''}
+              ${f.approved ? '<span style="font-size:.69rem;color:#4ade80;font-weight:700;">✓ approvata</span>' : ''}
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-left:10px;flex-shrink:0;">
+            ${!f.approved && f.count>=3 ? `<button class="sa-btn-sm sa-btn-ok" onclick="saFaqApprove(${f.id})" title="Approva come FAQ ufficiale">✓ Approva</button>` : ''}
+            <button class="sa-btn-sm sa-btn-warn" onclick="saFaqDelete(${f.id})" title="Elimina">🗑</button>
+          </div>
+        </div>`).join('')}
+    </div>` : `<div style="color:#64748b;padding:12px;font-size:.82rem;">Nessuna domanda appresa ancora. Le risposte AI vengono salvate automaticamente.</div>`}
   `;
 }
 
