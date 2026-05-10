@@ -126,10 +126,38 @@ async function patchPinoPath() {
   // Lo sostituiamo con import.meta.url che funziona correttamente su qualsiasi macchina.
   const bundlePath = path.resolve(artifactDir, "dist/index.mjs");
   let src = await readFile(bundlePath, "utf8");
-  src = src.replace(
-    /function pinoBundlerAbsolutePath\(p\)\s*\{[^}]*(?:\{[^}]*\}[^}]*)*\}/g,
-    "function pinoBundlerAbsolutePath(p) {\n      return new URL(p, import.meta.url).pathname;\n    }"
-  );
+
+  const replacement = "function pinoBundlerAbsolutePath(p) {\n      return new URL(p, import.meta.url).pathname;\n    }";
+  const signature = "function pinoBundlerAbsolutePath(p)";
+  let result = "";
+  let searchFrom = 0;
+
+  while (true) {
+    const sigIdx = src.indexOf(signature, searchFrom);
+    if (sigIdx === -1) {
+      result += src.slice(searchFrom);
+      break;
+    }
+    // Find the opening brace of the function body
+    const braceStart = src.indexOf("{", sigIdx + signature.length);
+    if (braceStart === -1) {
+      result += src.slice(searchFrom);
+      break;
+    }
+    // Count braces to find the matching closing brace
+    let depth = 0;
+    let i = braceStart;
+    for (; i < src.length; i++) {
+      if (src[i] === "{") depth++;
+      else if (src[i] === "}") depth--;
+      if (depth === 0) break;
+    }
+    // Replace the entire function (from signature start to closing brace)
+    result += src.slice(searchFrom, sigIdx) + replacement;
+    searchFrom = i + 1;
+  }
+
+  src = result;
   await writeFile(bundlePath, src, "utf8");
   console.log("✓ pino worker paths patched to use import.meta.url");
 }
