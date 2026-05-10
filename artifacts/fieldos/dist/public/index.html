@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- build: 2026-05-10-v3 -->
+<!-- build: 2026-05-10-v4-mobile -->
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -534,6 +534,233 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   /* Section title */
   .sec-t{font-size:1.2rem;}
 }
+
+/* ═══════════════════════════════════════════
+   MOBILE BOTTOM NAV
+   ═══════════════════════════════════════════ */
+.mob-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  height:60px;background:var(--white);
+  border-top:1.5px solid var(--border);z-index:220;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  box-shadow:0 -2px 20px rgba(13,26,58,.08);
+}
+.mob-ni{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;color:var(--text3);
+  transition:color .15s;position:relative;
+  border:none;background:none;padding:8px 0 4px;
+  font-family:inherit;-webkit-tap-highlight-color:transparent;
+}
+.mob-ni.on{color:var(--cp);}
+.mob-ni.on .mob-nic{transform:translateY(-1px);}
+.mob-nic{
+  font-size:1.45rem;line-height:1;
+  position:relative;transition:transform .15s;
+}
+.mob-nlb{
+  font-size:.55rem;font-weight:700;
+  letter-spacing:.4px;text-transform:uppercase;margin-top:1px;
+}
+.mob-nbadge{
+  position:absolute;top:-4px;right:-6px;
+  background:var(--red);color:#fff;
+  border-radius:8px;min-width:16px;height:16px;
+  font-size:.58rem;font-weight:900;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 3px;line-height:1;border:2px solid var(--white);
+}
+
+/* ═══════════════════════════════════════════
+   MOBILE LAYOUT (≤640px)
+   ═══════════════════════════════════════════ */
+@media(max-width:640px){
+  /* Bottom nav visibile */
+  .mob-nav{display:flex;}
+  /* Spazio sotto il contenuto per non coprirlo */
+  .main{padding-bottom:80px!important;}
+  /* Toast sopra la nav */
+  .toast{bottom:76px;left:16px;right:16px;text-align:center;}
+  /* Hamburger nascosto — usa bottom nav */
+  .ham{display:none!important;}
+  #sbOverlay{display:none!important;}
+  /* Topbar semplificata */
+  .tb-sep,.tb-rbadge,.tb-uname,.tb-urole,.tb-app{display:none!important;}
+  .topbar{height:52px;padding:0 14px;gap:10px;}
+  .tb-club{font-size:.95rem;font-weight:800;}
+  .tb-leva{font-size:.64rem;padding:2px 8px;}
+  .tb-av{width:36px;height:36px;font-size:.85rem;cursor:pointer;flex-shrink:0;}
+  /* Font minimo 15px ovunque */
+  body{font-size:15px;}
+  p,div,span,li,td,th{min-height:0;}
+  /* Bottoni touch-friendly */
+  .btn{min-height:48px;font-size:.92rem;padding:10px 18px;}
+  .btn-sm{min-height:44px;font-size:.86rem;}
+  .btn-xs{min-height:40px;}
+  /* Prevent iOS zoom su input */
+  .fi,.fs,.fta,input,select,textarea{font-size:16px!important;}
+  /* Cards */
+  .card{border-radius:14px;padding:16px 14px;}
+  /* Section header */
+  .sec-h{margin-bottom:14px;}
+  .sec-t{font-size:1.3rem;}
+  /* Modali → bottom sheet */
+  .ov{align-items:flex-end;}
+  .modal{
+    width:100%!important;max-width:100%!important;
+    border-radius:20px 20px 0 0;
+    max-height:92vh;padding:20px 16px 32px;margin:0;
+  }
+  /* Chat full-height */
+  .chat-wrap{height:calc(100dvh - 52px - 60px);}
+  .cm-inp{padding:10px 12px;gap:8px;}
+  .cm-inp input{font-size:15px!important;padding:11px 14px;border-radius:22px;}
+  .cm-inp .btn{min-height:44px;padding:10px 16px;}
+  .msg{font-size:.93rem;line-height:1.45;}
+  /* Presenze: mostra cards, nascondi tabella */
+  .pres-tbl-wrap{display:none!important;}
+  #presMobCards{display:flex!important;flex-direction:column;gap:8px;}
+  /* Convocazioni: pulsante fisso in fondo */
+  #convMobFixedBtn{display:flex!important;}
+  /* Calendario: nascondi griglia mese, mostra settimana */
+  #calWeekView{display:block!important;}
+  #calMonthView{display:none!important;}
+}
+@media(min-width:641px){
+  .mob-nav{display:none!important;}
+  #presMobCards{display:none!important;}
+  .pres-tbl-wrap{display:block;}
+  #convMobFixedBtn{display:none!important;}
+  #calWeekView{display:none!important;}
+  #calMonthView{display:block;}
+}
+
+/* ═══════════════════════════════════════════
+   MOBILE PRESENZE CARDS
+   ═══════════════════════════════════════════ */
+#presMobCards{display:none;}
+.pres-mc{
+  display:flex;align-items:center;gap:12px;
+  background:var(--white);border-radius:12px;
+  padding:13px 14px;border:1.5px solid var(--border);
+  transition:border-color .12s;
+}
+.pres-mc.has-p{border-left:4px solid var(--green);}
+.pres-mc.has-a{border-left:4px solid var(--red);}
+.pres-mc.has-j{border-left:4px solid var(--gold);}
+.pres-mc-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.88rem;flex-shrink:0;}
+.pres-mc-name{flex:1;font-weight:700;font-size:.98rem;min-width:0;line-height:1.2;}
+.pres-mc-sub{font-size:.7rem;color:var(--text3);margin-top:2px;}
+.pres-mc-btns{display:flex;gap:6px;flex-shrink:0;}
+.pmb{
+  width:50px;height:50px;border-radius:10px;
+  border:2px solid var(--border);
+  background:var(--bg);color:var(--text3);
+  font-size:1.15rem;font-weight:900;cursor:pointer;
+  transition:all .12s;display:flex;align-items:center;
+  justify-content:center;-webkit-tap-highlight-color:transparent;
+}
+.pmb:active{transform:scale(.92);}
+.pmb.pmb-p{background:var(--green);color:#fff;border-color:var(--green);}
+.pmb.pmb-a{background:var(--red);color:#fff;border-color:var(--red);}
+.pmb.pmb-j{background:var(--gold);color:#fff;border-color:var(--gold);}
+
+/* ═══════════════════════════════════════════
+   MOBILE DASHBOARD
+   ═══════════════════════════════════════════ */
+.mob-next-evt{
+  background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
+  border-radius:18px;padding:22px 18px;color:#fff;
+  margin-bottom:12px;position:relative;overflow:hidden;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+}
+.mob-next-evt::before{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:5px;}
+.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.1;margin-bottom:5px;}
+.mob-evt-meta{font-size:.78rem;opacity:.8;}
+.mob-evt-cd{
+  position:absolute;right:18px;top:50%;transform:translateY(-50%);
+  text-align:center;background:rgba(255,255,255,.15);
+  border-radius:12px;padding:8px 12px;min-width:56px;
+}
+.mob-evt-cd-n{font-family:'Barlow Condensed',sans-serif;font-size:2.4rem;font-weight:900;line-height:1;color:#fff;}
+.mob-evt-cd-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;color:#fff;}
+.mob-dash-card{
+  background:var(--white);border-radius:16px;
+  padding:16px 14px;border:1px solid var(--border);
+  box-shadow:var(--sh);margin-bottom:10px;
+}
+.mob-dash-card-hd{
+  font-size:.68rem;font-weight:800;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--text3);margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mob-dash-card-hd a{font-size:.7rem;color:var(--cp);font-weight:700;cursor:pointer;text-decoration:none;}
+.mob-quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.mob-qi{
+  background:var(--white);border-radius:14px;
+  padding:16px 12px 14px;border:1.5px solid var(--border);
+  cursor:pointer;transition:all .14s;
+  display:flex;flex-direction:column;gap:5px;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-qi:active{transform:scale(.96);background:var(--cl);}
+.mob-qi-ic{font-size:1.6rem;}
+.mob-qi-lb{font-size:.86rem;font-weight:800;color:var(--text);}
+.mob-qi-sub{font-size:.7rem;color:var(--text3);}
+
+/* ═══════════════════════════════════════════
+   MOBILE WEEK CALENDAR
+   ═══════════════════════════════════════════ */
+#calWeekView{display:none;}
+.cal-week-strip{
+  display:flex;overflow-x:auto;gap:8px;
+  padding:4px 0 12px;scrollbar-width:none;
+  scroll-snap-type:x mandatory;
+}
+.cal-week-strip::-webkit-scrollbar{display:none;}
+.cal-wd{
+  flex-shrink:0;width:calc((100vw - 60px)/7);
+  min-width:42px;border-radius:12px;padding:10px 0;
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;cursor:pointer;border:2px solid transparent;
+  transition:all .14s;scroll-snap-align:start;
+  background:var(--white);
+}
+.cal-wd.today{border-color:var(--cp);background:var(--cl);}
+.cal-wd.has-ev{background:var(--cl);}
+.cal-wd.sel{background:var(--cp);border-color:var(--cp);}
+.cal-wd-day{font-size:.62rem;font-weight:700;color:var(--text3);text-transform:uppercase;}
+.cal-wd.sel .cal-wd-day{color:rgba(255,255,255,.8);}
+.cal-wd-num{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:var(--text);line-height:1;}
+.cal-wd.today .cal-wd-num{color:var(--cp);}
+.cal-wd.sel .cal-wd-num{color:#fff;}
+.cal-wd-dot{width:6px;height:6px;border-radius:50%;background:var(--cp);}
+.cal-wd.sel .cal-wd-dot{background:rgba(255,255,255,.7);}
+.cal-day-events{margin-top:4px;}
+.cal-day-ev-item{
+  background:var(--cl);border-left:3px solid var(--cp);
+  border-radius:8px;padding:10px 12px;margin-bottom:8px;
+  cursor:pointer;
+}
+.cal-day-ev-item.ev-p{background:var(--gbg);border-color:var(--green);}
+.cal-day-ev-item.ev-e{background:var(--gobg);border-color:var(--gold);}
+.cal-week-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.cal-week-nav-btn{
+  width:40px;height:40px;border-radius:50%;border:1.5px solid var(--border);
+  background:var(--white);font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.cal-week-title{font-weight:800;font-size:.92rem;color:var(--text);}
 </style>
 </head>
 <body>
@@ -586,18 +813,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <header class="topbar">
     <button class="ham" onclick="toggleSb()">☰</button>
     <div class="tb-crest" id="tbCrest">PA</div>
-    <div><div class="tb-club" id="tbClub">Polis ASD</div><div class="tb-app">MyVivaio</div></div>
+    <div>
+      <div class="tb-club" id="tbClub">Polis ASD</div>
+      <div class="tb-app">MyVivaio</div>
+    </div>
     <div class="tb-sep"></div>
     <div class="tb-leva" id="tbLeva">U12</div>
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <div class="tb-av" id="tbAv">?</div>
+        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640)goTo('impostazioni')" title="Profilo">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
       </div>
       <button class="btn-out" onclick="logout()">Esci</button>
     </div>
   </header>
+  <!-- MOBILE BOTTOM NAV (popolata da buildMobNav) -->
+  <nav class="mob-nav" id="mobNav"></nav>
 
   <div class="app-body">
     <div id="sbOverlay" onclick="closeSb()"></div>
@@ -738,7 +970,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <!-- CALENDARIO -->
       <div class="page" id="pg-calendario">
         <div class="sec-h"><div class="sec-t">📅 Calendario</div><div id="calActions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div></div>
-        <div class="card">
+        <!-- Vista settimana (solo mobile) -->
+        <div id="calWeekView">
+          <div class="cal-week-nav">
+            <button class="cal-week-nav-btn" onclick="calWeekMove(-1)">‹</button>
+            <span class="cal-week-title" id="calWeekTitle"></span>
+            <button class="cal-week-nav-btn" onclick="calWeekMove(1)">›</button>
+          </div>
+          <div class="cal-week-strip" id="calWeekStrip"></div>
+          <div id="calDayEvents" class="cal-day-events"></div>
+        </div>
+        <!-- Vista mese (desktop e tablet) -->
+        <div id="calMonthView" class="card">
           <div id="calFilters" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:end;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <button class="btn btn-g btn-sm" onclick="chMon(-1)">‹</button>
@@ -1764,10 +2007,52 @@ function bootApp(user) {
 // SIDEBAR
 // ═══════════════════════════════════
 
+// ── Mobile bottom nav ──────────────────────
+const MOB_NAV_ITEMS = [
+  {id:'dashboard',    ic:'🏠', lb:'Home'},
+  {id:'chat',         ic:'💬', lb:'Chat',    badge:'mn-chat'},
+  {id:'comunicazioni',ic:'📣', lb:'Avvisi',  badge:'mn-comm'},
+  {id:'calendario',   ic:'📅', lb:'Cal'},
+  {id:'impostazioni', ic:'👤', lb:'Profilo'},
+];
+function buildMobNav(role) {
+  const nav = document.getElementById('mobNav');
+  if (!nav) return;
+  nav.innerHTML = '';
+  // Per genitore/giocatore: usa dashboard come Home e presenze al posto di Calendario
+  const items = role === 'giocatore' || role === 'genitore'
+    ? [{id:'dashboard',ic:'🏠',lb:'Home'},{id:'chat',ic:'💬',lb:'Chat',badge:'mn-chat'},{id:'comunicazioni',ic:'📣',lb:'Avvisi',badge:'mn-comm'},{id:'presenze',ic:'✅',lb:'Presenze'},{id:'impostazioni',ic:'👤',lb:'Profilo'}]
+    : MOB_NAV_ITEMS;
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'mob-ni';
+    btn.dataset.pg = item.id;
+    btn.setAttribute('aria-label', item.lb);
+    btn.innerHTML = `<span class="mob-nic">${item.ic}${item.badge?`<span class="mob-nbadge" id="${item.badge}" style="display:none;"></span>`:''}</span><span class="mob-nlb">${item.lb}</span>`;
+    btn.onclick = () => goTo(item.id);
+    nav.appendChild(btn);
+  });
+}
+function updateMobNav(pgId) {
+  document.querySelectorAll('#mobNav .mob-ni').forEach(n => {
+    n.classList.toggle('on', n.dataset.pg === pgId);
+  });
+}
+function refreshMobBadges() {
+  if (!me) return;
+  const chatN = (typeof chatTotalUnread === 'function') ? chatTotalUnread(me) : 0;
+  const commN = (typeof commTotalUnread === 'function') ? commTotalUnread() : 0;
+  const mnChat = document.getElementById('mn-chat');
+  const mnComm = document.getElementById('mn-comm');
+  if (mnChat) { mnChat.textContent = chatN > 99 ? '99+' : chatN||''; mnChat.style.display = chatN>0?'':'none'; }
+  if (mnComm) { mnComm.textContent = commN > 99 ? '99+' : commN||''; mnComm.style.display = commN>0?'':'none'; }
+}
+
 function buildSidebar(role) {
   const cfg = ROLE_CFG[role];
   const nav = document.getElementById('sbNav');
   nav.innerHTML = '';
+  buildMobNav(role);
   cfg.nav.forEach(item => {
     if (item.s) {
       const d = document.createElement('div');
@@ -1819,6 +2104,7 @@ function goTo(pgId) {
   const ni = document.querySelector(`.ni[data-pg="${pgId}"]`);
   if (ni) ni.classList.add('on');
   document.getElementById('sidebar').classList.remove('on');
+  updateMobNav(pgId);
 
   // Render leva tabs for relevant pages
   if (['rosa','presenze','statistiche'].includes(pgId)) {
@@ -2623,13 +2909,14 @@ function renderPresenzeAllenatore(cont) {
         <div id="presBulkActions" style="display:flex;gap:6px;"></div>
       </div>
       <div id="presNoticesBox"></div>
-      <div style="overflow-x:auto;"><table class="tbl"><thead><tr>
+      <div class="pres-tbl-wrap" style="overflow-x:auto;"><table class="tbl"><thead><tr>
         <th style="min-width:160px;">Giocatore</th>
         <th style="min-width:90px;">Avviso famiglia</th>
         <th>Stato</th>
         <th>%All.</th>
         <th>Note assenza</th>
       </tr></thead><tbody id="presBody"></tbody></table></div>
+      <div id="presMobCards"></div>
       <div style="margin-top:10px;display:flex;gap:14px;font-size:.71rem;color:var(--text3);flex-wrap:wrap;">
         <span><span class="pd p" style="cursor:default;display:inline-flex;width:20px;height:20px;font-size:.6rem;">✓</span> Presente</span>
         <span><span class="pd a" style="cursor:default;display:inline-flex;width:20px;height:20px;font-size:.6rem;">✗</span> Assente</span>
@@ -2704,12 +2991,43 @@ function renderPresenzeAllenatore(cont) {
   }
 
   tbody.innerHTML = '';
+  const mobCards = document.getElementById('presMobCards');
+  if (mobCards) mobCards.innerHTML = '';
   list.forEach(p => {
     const s = calcStats(p);
     const pc = s.percAll>=80?'var(--green)':s.percAll>=60?'var(--gold)':'var(--red)';
     const cur = getPresenzaForDate(p, currentPresDate);
     const av = (p.assenzeAvvisate||[]).find(a=>a.date===currentPresDate);
     const isLowAtt = s.allTot>=3 && s.percAll<60;
+
+    // ── Mobile card ──
+    if (mobCards) {
+      const card = document.createElement('div');
+      card.className = `pres-mc${cur?' has-'+cur:''}`;
+      const avCol = p.colore || '#047857';
+      const initials = ((p.nome||'')[0]||(p.cogn||'')[0]||'?').toUpperCase();
+      const btnsHtml = [['p','✓','pmb-p'],['j','~','pmb-j'],['a','✗','pmb-a']].map(([code,ic,cls])=>{
+        const isOn = cur===code;
+        return `<button class="pmb${isOn?' '+cls:''}" data-pid="${p.id}" data-code="${code}">${ic}</button>`;
+      }).join('');
+      card.innerHTML = `
+        <div class="pres-mc-av" style="background:${avCol}20;color:${avCol};">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="pres-mc-name">${escapeHtml(p.nome+' '+p.cogn)}</div>
+          <div class="pres-mc-sub">${s.percAll}% presenze${av?' · 📩 '+escapeHtml((av.motivo||'avviso').slice(0,20)):''}</div>
+        </div>
+        <div class="pres-mc-btns">${btnsHtml}</div>`;
+      card.querySelectorAll('.pmb').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.dataset.code;
+          const isOn = cur===code;
+          setPresenzaForDate(p, currentPresDate, isOn?'':code);
+          renderPresenze();
+        });
+      });
+      mobCards.appendChild(card);
+    }
+
     const tr = document.createElement('tr');
     if (isLowAtt) tr.style.background='#fff9f9';
 
@@ -3976,6 +4294,7 @@ function refreshNotificheBadge() {
   });
   refreshPendingUsersBadge();
   if (typeof refreshQuotaBadge === 'function') refreshQuotaBadge();
+  if (typeof refreshMobBadges === 'function') refreshMobBadges();
 }
 
 function refreshPendingUsersBadge() {
@@ -6306,9 +6625,97 @@ function renderPanoramica() {
   `;
 }
 
+function buildMobDashboard(role, c) {
+  const todayStr = ymd(new Date());
+  const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const lv = currentLeva;
+
+  // Prossimo evento
+  const allEv = getAllCalendarEvents();
+  const nextEv = allEv.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date))[0];
+  let nextEvHtml = '';
+  if (nextEv) {
+    const d = parseYmd(nextEv.date);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const diffDays = Math.round((d-today)/86400000);
+    const colGrad = nextEv.type==='partita'||nextEv.type==='campionato'?'var(--cp),var(--cs)':nextEv.type==='torneo'?'#e03055,#f87171':'#7c3aed,#a78bfa';
+    nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')">
+      <div class="mob-evt-tag">${nextEv.type==='allenamento'?'⚽ Prossimo allenamento':'📅 Prossimo evento'}</div>
+      <div class="mob-evt-title">${escapeHtml(nextEv.title||nextEv.type||'Evento')}</div>
+      <div class="mob-evt-meta">${d.getDate()} ${MESI[d.getMonth()]}${nextEv.start?' · '+nextEv.start:''}${nextEv.luogo?' · '+escapeHtml(nextEv.luogo):''}</div>
+      <div class="mob-evt-cd">
+        <div class="mob-evt-cd-n">${diffDays===0?'OGG':diffDays===1?'DOM':diffDays}</div>
+        <div class="mob-evt-cd-l">${diffDays<=1?'':diffDays===1?'domani':'giorni'}</div>
+      </div>
+    </div>`;
+  } else {
+    nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')">
+      <div class="mob-evt-tag">📅 Calendario</div>
+      <div class="mob-evt-title">Nessun evento in programma</div>
+      <div class="mob-evt-meta">Aggiungi allenamenti e partite</div>
+    </div>`;
+  }
+
+  // Ultimo risultato
+  const lastR = panoLastResultForLeva(lv);
+  let lastRHtml = '';
+  if (lastR) {
+    const polis=polisName(lv), isH=lastR.casa===polis;
+    const polG=isH?lastR.golCasa:lastR.golOspiti, oppG=isH?lastR.golOspiti:lastR.golCasa;
+    const opp=isH?lastR.ospite:lastR.casa;
+    const won=polG>oppG, drew=polG===oppG;
+    const col=won?'var(--green)':drew?'var(--gold)':'var(--red)';
+    const label=won?'V':drew?'N':'P';
+    lastRHtml = `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--cl);border-radius:10px;cursor:pointer;" onclick="goTo('partite')">
+      <div style="width:36px;height:36px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.9rem;flex-shrink:0;">${label}</div>
+      <div><div style="font-weight:700;font-size:.95rem;">${escapeHtml(polis)} <strong style="color:${col};">${polG}–${oppG}</strong> ${escapeHtml(opp)}</div>
+        <div style="font-size:.75rem;color:var(--text2);">${panoFmtDateShort(lastR.data)}</div></div>
+    </div>`;
+  }
+
+  // Avvisi non letti
+  const unread = notifiche.filter(n=>n.userId===me.id&&!n.read).slice(0,2);
+  const avvisiHtml = unread.length
+    ? unread.map(n=>`<div style="padding:10px 12px;border-radius:10px;background:var(--bg);margin-bottom:6px;cursor:pointer;" onclick="goTo('comunicazioni')">
+        <div style="font-weight:700;font-size:.9rem;">${escapeHtml((n.titolo||n.message||'').slice(0,50))}</div>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:2px;">${panoFmtDateShort(n.date||n.createdAt||'')}</div>
+      </div>`).join('')
+    : `<div style="font-size:.85rem;color:var(--text3);padding:8px 0;">Nessun avviso non letto</div>`;
+
+  // Quick access tiles
+  const quickItems = role==='admin'
+    ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
+    : role==='allenatore'
+    ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'statistiche',ic:'📊',lb:'Statistiche',sub:'Stagione'}]
+    : role==='dirigente'
+    ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
+    : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria'}];
+
+  const quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
+    <div class="mob-qi" onclick="goTo('${qi.id}')">
+      <div class="mob-qi-ic">${qi.ic}</div>
+      <div class="mob-qi-lb">${qi.lb}</div>
+      <div class="mob-qi-sub">${qi.sub||''}</div>
+    </div>`).join('')}</div>`;
+
+  c.innerHTML = `
+    ${nextEvHtml}
+    <div class="mob-dash-card">
+      <div class="mob-dash-card-hd">Accesso rapido</div>
+      ${quickHtml}
+    </div>
+    ${lastR?`<div class="mob-dash-card"><div class="mob-dash-card-hd">Ultimo risultato · ${escapeHtml(lv)} <a onclick="goTo('partite')">Vedi tutti →</a></div>${lastRHtml}</div>`:''}
+    <div class="mob-dash-card">
+      <div class="mob-dash-card-hd">Avvisi recenti <a onclick="goTo('comunicazioni')">Vedi tutti →</a></div>
+      ${avvisiHtml}
+    </div>`;
+}
+
 function buildDashboard(role) {
   const c = document.getElementById('dashContent');
   if (!c) return;
+  // Mobile: render simplified dashboard
+  if (window.innerWidth <= 640) { buildMobDashboard(role, c); return; }
   const todayStr = ymd(new Date());
   const tomorrowStr = (() => { const d=new Date(); d.setDate(d.getDate()+1); return ymd(d); })();
   const MESI_SHORT = ['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
@@ -7481,7 +7888,81 @@ function renderLegend(){
 }
 
 // ── Render calendario
+// ── Mobile week calendar ──────────────────
+let calWeekOffset = 0; // settimane dall'oggi
+let calWeekSelDay = null; // 'YYYY-MM-DD' selezionato
+
+function calWeekMove(dir) { calWeekOffset += dir; renderCalWeek(); }
+
+function renderCalWeek() {
+  const strip = document.getElementById('calWeekStrip');
+  const title = document.getElementById('calWeekTitle');
+  const dayEvs = document.getElementById('calDayEvents');
+  if (!strip || !title) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Trova il lunedì della settimana corrente + offset
+  const dow = today.getDay(); // 0=Dom
+  const mondayOffset = (dow===0?-6:1-dow) + calWeekOffset*7;
+  const monday = new Date(today); monday.setDate(today.getDate()+mondayOffset);
+
+  const DAYS_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+  const allEv = getAllCalendarEvents ? getAllCalendarEvents() : [];
+
+  strip.innerHTML = '';
+  let days = [];
+  for (let i=0; i<7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    days.push(d);
+  }
+
+  // Title: "5-11 mag 2026"
+  const d0=days[0], d6=days[6];
+  title.textContent = `${d0.getDate()}–${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`;
+
+  // Default: seleziona oggi se nella settimana, altrimenti lunedì
+  if (!calWeekSelDay || !days.find(d=>ymd(d)===calWeekSelDay)) {
+    const todayInWeek = days.find(d=>ymd(d)===ymd(new Date()));
+    calWeekSelDay = ymd(todayInWeek || days[0]);
+  }
+
+  days.forEach(d => {
+    const ds = ymd(d);
+    const evs = allEv.filter(e=>e.date===ds);
+    const isToday = ds===ymd(new Date());
+    const isSel = ds===calWeekSelDay;
+    const btn = document.createElement('div');
+    btn.className = `cal-wd${isToday?' today':''}${evs.length?' has-ev':''}${isSel?' sel':''}`;
+    btn.innerHTML = `<div class="cal-wd-day">${DAYS_SHORT[d.getDay()]}</div><div class="cal-wd-num">${d.getDate()}</div>${evs.length?'<div class="cal-wd-dot"></div>':''}`;
+    btn.onclick = () => { calWeekSelDay=ds; renderCalWeek(); };
+    strip.appendChild(btn);
+  });
+
+  // Render eventi del giorno selezionato
+  if (dayEvs) {
+    const dayEvList = allEv.filter(e=>e.date===calWeekSelDay).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+    const selDate = parseYmd(calWeekSelDay);
+    const selLabel = `${selDate.getDate()} ${MESI_IT[selDate.getMonth()]}`;
+    if (!dayEvList.length) {
+      dayEvs.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text3);font-size:.88rem;">Nessun evento il ${selLabel}</div>`;
+    } else {
+      dayEvs.innerHTML = `<div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:12px 0 8px;">📅 ${selLabel}</div>`
+        + dayEvList.map(ev=>{
+          const cls = ev.type==='allenamento'?'ev-a':ev.type==='partita'||ev.type==='campionato'?'ev-p':'ev-e';
+          return `<div class="cal-day-ev-item ${cls}" onclick="if(ev)openEditEvento&&openEditEvento(ev)">
+            <div style="font-weight:700;font-size:.92rem;">${escapeHtml(ev.title||ev.type||'')}</div>
+            <div style="font-size:.76rem;color:var(--text2);margin-top:3px;">${ev.start||''}${ev.luogo?' · '+escapeHtml(ev.luogo):''}</div>
+          </div>`;
+        }).join('');
+    }
+  }
+}
+
 function renderCal() {
+  // Mobile: use week view
+  if (window.innerWidth <= 640) { renderCalWeek(); return; }
   const lab = document.getElementById('calLabel');
   if (lab) lab.textContent = MONTHS[calM] + ' ' + calY;
   const body = document.getElementById('calBody');
@@ -9524,6 +10005,7 @@ function refreshChatBadges() {
       el.appendChild(b);
     }
   });
+  if (typeof refreshMobBadges === 'function') refreshMobBadges();
 }
 
 // ═══════════════════════════════════
