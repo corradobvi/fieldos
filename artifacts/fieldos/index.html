@@ -11823,6 +11823,13 @@ function saExtendDemo(id) {
 }
 
 function renderSaPanel() {
+  try { _renderSaPanelInner(); } catch(e) {
+    console.error('[renderSaPanel]', e);
+    const el = document.getElementById('saContent');
+    if (el) el.innerHTML = `<div style="color:#f87171;padding:24px;font-family:monospace;font-size:.82rem;">⚠️ Errore rendering: ${escapeHtml(String(e))}</div>`;
+  }
+}
+function _renderSaPanelInner() {
   const total = saSocieties.length;
   const active = saSocieties.filter(s => s.stato === 'attivo').length;
   const planCount = (p) => saSocieties.filter(s => pianoNorm(s.piano) === p).length;
@@ -11890,9 +11897,9 @@ function renderSaPanel() {
     ? `<tr><td colspan="7" style="text-align:center;padding:32px;color:#64748b;">Nessuna società registrata. Aggiungi la prima con "＋ Nuova società".</td></tr>`
     : '';
 
+  const _safeFmt = (ts) => { try { const d=new Date(ts); return isNaN(d)?'—':d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} };
   const logHtml = saActionLog.slice(0,50).map(l => {
-    const d = new Date(l.ts);
-    const ts = d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    const ts = _safeFmt(l.ts);
     return `<div class="sa-log-row"><span class="sa-log-ts">${ts}</span> <span class="sa-log-act">${escapeHtml(l.action)}</span>${l.detail?` <span class="sa-log-det">— ${escapeHtml(l.detail)}</span>`:''}  </div>`;
   }).join('') || '<div style="color:#64748b;padding:12px;">Nessuna azione registrata.</div>';
 
@@ -11933,7 +11940,7 @@ function renderSaPanel() {
         <div class="faq-row" style="padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);">
           <div style="flex:1;">
             <div style="font-weight:600;color:#e2e8f0;font-size:.82rem;">${escapeHtml(f.question)}</div>
-            <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml(f.answer.replace(/<[^>]+>/g,'').slice(0,120))}…</div>
+            <div style="color:#94a3b8;font-size:.74rem;margin-top:3px;">${escapeHtml((f.answer||'').replace(/<[^>]+>/g,'').slice(0,120))}…</div>
             <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span style="font-size:.69rem;color:${f.count>=3?'#4ade80':'#f59e0b'};">chiesta ${f.count}x${f.count>=3?' — pronta per approvazione':''}</span>
               ${f.section ? `<span style="font-size:.69rem;color:#64748b;">sezione: ${escapeHtml(f.section)}</span>` : ''}
@@ -12965,7 +12972,7 @@ function saveNewPassword() {
 .sa-topbar-email { color:#64748b;font-size:.82rem; }
 .sa-logout-btn { background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:6px;padding:6px 14px;font-size:.82rem;cursor:pointer;transition:.15s; }
 .sa-logout-btn:hover { background:rgba(239,68,68,.25); }
-.sa-body { flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:24px 28px 40px; }
+.sa-body { flex:1;height:0;min-height:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:24px 28px 40px; }
 .sa-kpi-bar { display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px;margin-bottom:24px; }
 .sa-kpi { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:16px 18px; }
 .sa-kpi-val { font-size:1.7rem;font-weight:800;color:#fff;line-height:1; }
