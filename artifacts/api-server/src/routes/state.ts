@@ -6,28 +6,30 @@ const router = Router();
 
 const CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
-    \`key\`     VARCHAR(255) PRIMARY KEY,
+    \`key\`      VARCHAR(255) PRIMARY KEY,
     state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
 
 // Dimensione minima in bytes per considerare uno stato "non vuoto".
-// Uno stato con anche solo un utente reale e zero giocatori pesa ~500 bytes.
-// Uno stato completamente vuoto ({}) pesa 2 bytes.
-// 200 bytes come soglia conservativa esclude "{}" e "{USERS_DB:[]}" ma niente di reale.
 const MIN_STATE_BYTES = 200;
 
 // GET /state/:key — retrieve state blob
 router.get("/state/:key", async (req, res) => {
   try {
     const result = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ?",
+      "SELECT state_json, is_demo FROM `society_state` WHERE `key` = ?",
       [req.params.key]
     ) as any[];
     const rows = result[0] as any[];
     if (!rows.length) return res.status(404).json({ error: "not found" });
-    return res.json({ key: req.params.key, stateJson: rows[0].state_json });
+    return res.json({
+      key: req.params.key,
+      stateJson: rows[0].state_json,
+      isDemo: rows[0].is_demo === 1
+    });
   } catch (e: any) {
     logger.error({ err: e }, "state GET failed");
     return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
@@ -36,14 +38,14 @@ router.get("/state/:key", async (req, res) => {
 
 // PUT /state/:key — upsert state blob
 router.put("/state/:key", async (req, res) => {
-  const { stateJson } = req.body as { stateJson?: unknown };
+  const { stateJson, isDemo } = req.body as { stateJson?: unknown; isDemo?: unknown };
   if (typeof stateJson !== "string") {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
+  const isDemoWrite = isDemo === true;
+  const isDemoVal = isDemoWrite ? 1 : 0;
 
-  // ── Protezione dati: rifiuta scritture che sovrascriverebbero dati reali con stato vuoto ──
-  // Se il nuovo stato è troppo piccolo, controlla se il DB ha già dati.
-  // In caso affermativo, rifiuta la scrittura per proteggere i dati esistenti.
+  // ── Protezione 1: rifiuta stati quasi-vuoti che sovrascriverebbero dati reali ──
   if (stateJson.length < MIN_STATE_BYTES) {
     try {
       await pool.execute(CREATE_TABLE_SQL);
@@ -62,17 +64,45 @@ router.put("/state/:key", async (req, res) => {
         });
       }
     } catch (e: any) {
-      // Se il check fallisce, blocca comunque la scrittura di stati vuoti
       logger.error({ err: e }, "state PUT safety-check failed");
+      return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
+    }
+  }
+
+  // ── Protezione 2: dati demo non possono sovrascrivere dati reali ──
+  if (isDemoWrite) {
+    try {
+      await pool.execute(CREATE_TABLE_SQL);
+      const [existing] = (await pool.execute(
+        "SELECT is_demo FROM `society_state` WHERE `key` = ?",
+        [req.params.key]
+      )) as [any[], any];
+      if (existing.length && existing[0].is_demo === 0) {
+        logger.warn(
+          { key: req.params.key },
+          "state PUT rejected: demo write attempted on real-data row"
+        );
+        return res.status(409).json({
+          error: "demo_cannot_overwrite_real",
+          detail: "Dati demo non possono sovrascrivere dati reali. Operazione annullata a protezione dei dati."
+        });
+      }
+    } catch (e: any) {
+      logger.error({ err: e }, "state PUT demo-check failed");
       return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
     }
   }
 
   try {
     await pool.execute(CREATE_TABLE_SQL);
+    // is_demo: once a row is marked real (0), it stays real even if a demo write sneaks through.
+    // Formula: IF(existing is_demo = 0, keep 0, use new value)
     await pool.execute(
-      "INSERT INTO `society_state` (`key`, `state_json`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `state_json` = ?",
-      [req.params.key, stateJson, stateJson]
+      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         \`state_json\` = ?,
+         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?)`,
+      [req.params.key, stateJson, isDemoVal, stateJson, isDemoVal]
     );
     return res.json({ key: req.params.key, updatedAt: new Date().toISOString() });
   } catch (e: any) {

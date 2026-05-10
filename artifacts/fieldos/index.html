@@ -1583,6 +1583,21 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">I campi configurati qui sono selezionabili nella creazione di qualsiasi evento (allenamenti, partite, tornei).</div>
             <div id="campiListBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="backupCard">
+            <div class="ch"><div class="ct">📦 Backup dati</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:14px;">
+              Esporta un backup JSON di tutti i dati della società per conservarli in sicurezza, oppure ripristina da un backup precedente. Il backup automatico viene salvato ogni 24 ore nel cloud.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-p btn-sm" onclick="esportaBackup()">📥 Esporta backup</button>
+              <label class="btn btn-g btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">
+                📤 Importa backup
+                <input type="file" accept=".json" style="display:none;" onchange="importaBackup(this)">
+              </label>
+              <button class="btn btn-g btn-sm" onclick="backupCloud()">☁️ Backup manuale cloud</button>
+            </div>
+            <div id="backupStatus" style="font-size:.75rem;color:var(--text2);margin-top:8px;"></div>
+          </div>
           <div class="card" style="grid-column:span 2;" id="syncCloudCard">
             <div class="ch"><div class="ct">☁️ Sincronizzazione cloud</div></div>
             <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:14px;">
@@ -3084,6 +3099,9 @@ function goTo(pgId) {
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
     const _syncCloudCardEl = document.getElementById('syncCloudCard');
     if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    const _backupCardEl = document.getElementById('backupCard');
+    if (_backupCardEl) _backupCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    if (me.role === 'admin' && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _quoteCardEl = document.getElementById('quoteCard');
     if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
@@ -11763,13 +11781,12 @@ function ensureDemoStellaState() {
       if (s.demoResetAt && Date.now() < s.demoResetAt) return;
     } catch(e) {}
   }
+  // Rigenera i dati demo SOLO in localStorage — mai scrivere dati demo nel DB condiviso.
+  // Questo era il bug che sovrascriveva i dati reali: rimosso il fetch PUT.
   const state = buildDemoStellaState();
   const json = JSON.stringify(state);
   localStorage.setItem(DEMO_STELLA_KEY, json);
-  fetch(API_BASE + '/api/state/' + encodeURIComponent(DEMO_STELLA_KEY), {
-    method:'PUT', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({stateJson: json})
-  }).catch(()=>{});
+  if (typeof saLog === 'function') saLog('Demo reset', 'Stella Azzurra — dati demo rigenerati (solo locale)');
 }
 
 async function loginDemoAs(role) {
@@ -12445,9 +12462,15 @@ function _renderSaPanelInner() {
     : '';
 
   const _safeFmt = (ts) => { try { const d=new Date(ts); return isNaN(d)?'—':d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} };
-  const logHtml = saActionLog.slice(0,50).map(l => {
+  const _dangerActions = new Set(['Demo reset','Backup ripristinato','Prima sincronizzazione cloud']);
+  const _warnActions  = new Set(['Backup manuale cloud']);
+  const logHtml = saActionLog.slice(0,100).map(l => {
     const ts = _safeFmt(l.ts);
-    return `<div class="sa-log-row"><span class="sa-log-ts">${ts}</span> <span class="sa-log-act">${escapeHtml(l.action)}</span>${l.detail?` <span class="sa-log-det">— ${escapeHtml(l.detail)}</span>`:''}  </div>`;
+    const isDanger = _dangerActions.has(l.action);
+    const isWarn   = _warnActions.has(l.action);
+    const dot = isDanger ? '🔴' : isWarn ? '🟡' : '⚪';
+    const actColor = isDanger ? '#f87171' : isWarn ? '#fbbf24' : '#94a3b8';
+    return `<div class="sa-log-row"><span class="sa-log-ts">${ts}</span> ${dot} <span class="sa-log-act" style="color:${actColor};">${escapeHtml(l.action)}</span>${l.detail?` <span class="sa-log-det">— ${escapeHtml(l.detail)}</span>`:''}  </div>`;
   }).join('') || '<div style="color:#64748b;padding:12px;">Nessuna azione registrata.</div>';
 
   document.getElementById('saContent').innerHTML = `
@@ -12474,7 +12497,10 @@ function _renderSaPanelInner() {
       </table>
     </div>
 
-    <div class="sa-section-hd" style="margin-top:28px;"><span>📋 Log azioni (ultime 50)</span></div>
+    <div class="sa-section-hd" style="margin-top:28px;">
+      <span>📋 Log DB — reset e modifiche (ultimi 100)</span>
+      <small style="color:#94a3b8;font-size:.72rem;">🔴 eventi critici &nbsp;🟡 backup &nbsp;⚪ ordinari</small>
+    </div>
     <div class="sa-log-box">${logHtml}</div>
 
     <div class="sa-section-hd" style="margin-top:28px;">
@@ -12941,7 +12967,9 @@ function saveNewPassword() {
       if (data !== lastSnap) {
         localStorage.setItem(KEY, data);
         lastSnap = data;
-        apiPush(KEY, data); // background sync to server
+        // Mai sincronizzare sessioni demo al DB condiviso
+        const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+        if (!_isDemo) apiPush(KEY, data);
       }
     } catch (e) {
       console.error('FieldOS: salvataggio fallito', e);
@@ -13068,6 +13096,7 @@ function saveNewPassword() {
   // Poll server ogni 60s per ricevere modifiche da altri dispositivi
   function startSyncPoll() {
     clearInterval(_syncPollTimer);
+    _autoBackupCheck(); // controlla auto-backup all'avvio della sessione
     _syncPollTimer = setInterval(() => {
       if (document.hidden) return;
       apiPull(KEY).then(serverJson => {
@@ -13105,6 +13134,7 @@ function saveNewPassword() {
             const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
             if (hasRealPlayers || hasRealUsers) {
               apiPush(KEY, localData); // primo upload: localStorage → server
+              if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
             }
           } catch (_) {}
         }
@@ -13164,6 +13194,94 @@ function saveNewPassword() {
       location.reload();
     }
   };
+
+  // ── Backup / ripristino dati ────────────────────────────────────────────
+  const _BACKUP_TS_KEY = () => 'myvivaio_backup_ts_' + KEY;
+  const _BACKUP_CLOUD_KEY = () => 'fieldos_backup_' + KEY;
+
+  window.esportaBackup = function() {
+    try {
+      const data = JSON.stringify(snapshot());
+      const safeName = (typeof nomeSocieta === 'string' ? nomeSocieta : 'societa').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+      const date = new Date().toISOString().slice(0,10);
+      const blob = new Blob([data], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `myvivaio_backup_${safeName}_${date}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      if (typeof toast === 'function') toast('✅ Backup esportato');
+      const el = document.getElementById('backupStatus');
+      if (el) el.textContent = '📥 Esportato: ' + new Date().toLocaleString('it-IT');
+    } catch(e) {
+      if (typeof toast === 'function') toast('❌ Errore esportazione backup');
+    }
+  };
+
+  window.importaBackup = function(input) {
+    const file = input && input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = e.target.result;
+        JSON.parse(data); // validate JSON
+        if (!confirm('⚠️ Importare questo backup sovrascriverà TUTTI i dati attuali della società.\nQuesta operazione non può essere annullata. Continuare?')) {
+          input.value = ''; return;
+        }
+        localStorage.setItem(KEY, data);
+        restoreState();
+        lastSnap = data;
+        apiPush(KEY, data);
+        if (typeof saLog === 'function') saLog('Backup ripristinato', file.name + ' — ' + data.length + ' bytes');
+        if (typeof toast === 'function') toast('✅ Backup ripristinato con successo');
+        const el = document.getElementById('backupStatus');
+        if (el) el.textContent = '📤 Ripristinato: ' + file.name;
+        const activePg = document.querySelector('.page.on');
+        const pgId = activePg ? activePg.id.replace('pg-','') : null;
+        if (pgId && typeof goTo === 'function') goTo(pgId);
+      } catch(_e) {
+        if (typeof toast === 'function') toast('❌ File non valido o corrotto');
+      }
+      input.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  window.backupCloud = function() {
+    try {
+      const data = JSON.stringify(snapshot());
+      const bKey = _BACKUP_CLOUD_KEY();
+      apiPush(bKey, data);
+      const ts = Date.now();
+      localStorage.setItem(_BACKUP_TS_KEY(), String(ts));
+      if (typeof saLog === 'function') saLog('Backup manuale cloud', bKey + ' — ' + data.length + ' bytes');
+      if (typeof toast === 'function') toast('✅ Backup salvato nel cloud');
+      const el = document.getElementById('backupStatus');
+      if (el) el.textContent = '☁️ Backup cloud: ' + new Date(ts).toLocaleString('it-IT');
+    } catch(_e) {
+      if (typeof toast === 'function') toast('❌ Errore backup cloud');
+    }
+  };
+
+  // Auto-backup ogni 24h (solo sessioni reali, non demo)
+  function _autoBackupCheck() {
+    if (currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID) return;
+    const last = parseInt(localStorage.getItem(_BACKUP_TS_KEY()) || '0');
+    if (Date.now() - last > 86400000) {
+      const data = JSON.stringify(snapshot());
+      apiPush(_BACKUP_CLOUD_KEY(), data);
+      localStorage.setItem(_BACKUP_TS_KEY(), String(Date.now()));
+    }
+  }
+
+  window._backupUpdateStatus = function() {
+    const el = document.getElementById('backupStatus');
+    if (!el) return;
+    const ts = parseInt(localStorage.getItem(_BACKUP_TS_KEY()) || '0');
+    el.textContent = ts ? '☁️ Ultimo backup cloud: ' + new Date(ts).toLocaleString('it-IT') : 'Nessun backup cloud ancora.';
+  };
+  // ────────────────────────────────────────────────────────────────────────
 
   console.log('%cFieldOS Persistence attivo','color:#047857;font-weight:bold;font-size:13px;');
   console.log('Per cancellare i dati salvati esegui: __fieldosResetState()');

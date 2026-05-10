@@ -32,9 +32,20 @@ async function ensureSchema() {
     CREATE TABLE IF NOT EXISTS \`society_state\` (
       \`key\`      VARCHAR(255) PRIMARY KEY,
       state_json  LONGTEXT NOT NULL,
+      is_demo     TINYINT(1) NOT NULL DEFAULT 0,
       updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+  // Migrate existing tables that don't have is_demo yet
+  try {
+    await pool.query(
+      "ALTER TABLE `society_state` ADD COLUMN `is_demo` TINYINT(1) NOT NULL DEFAULT 0"
+    );
+    logger.info("DB: added is_demo column");
+  } catch (e: any) {
+    if (e?.errno !== 1060) logger.warn({ errno: e?.errno }, "DB: is_demo migration skipped");
+    // errno 1060 = Duplicate column name — column already exists, ignore
+  }
   logger.info("DB schema ready");
 }
 
