@@ -2324,17 +2324,57 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<!-- Scelta eliminazione allenamento ricorrente -->
+<!-- Scelta eliminazione evento ricorrente -->
 <div class="ov" id="mDeleteChoice">
-  <div class="modal" style="max-width:400px;">
-    <div class="mh"><div class="mt">🗑️ Elimina allenamento</div><button class="mx" onclick="closeM('mDeleteChoice')">✕</button></div>
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">🗑️ Elimina evento ricorrente</div><button class="mx" onclick="closeM('mDeleteChoice')">✕</button></div>
     <div style="font-size:.88rem;font-weight:700;margin-bottom:4px;" id="mDelChoiceDate"></div>
     <div style="font-size:.78rem;color:var(--text2);margin-bottom:16px;" id="mDelChoiceFut"></div>
-    <div style="font-size:.82rem;color:var(--text2);margin-bottom:14px;">Questo allenamento fa parte di una serie ricorrente. Cosa vuoi eliminare?</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn btn-r" onclick="deleteEventoSolo()">🗑 Elimina solo questo</button>
-      <button class="btn" style="background:#fee2e2;color:#dc2626;border-color:#fca5a5;" onclick="deleteEventoFuturi()">🗑 Elimina questo e tutti i futuri</button>
+    <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;">Questo evento fa parte di una serie ricorrente. <strong>Cosa vuoi eliminare?</strong></p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="delChoice" value="solo" checked style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Solo questo evento</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mDelChoiceSoloLabel">—</div></div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="delChoice" value="futuri" style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Questo e tutti i successivi</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mDelChoiceFutLabel">—</div></div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="delChoice" value="tutti" style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Tutti gli eventi della serie</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mDelChoiceTuttiLabel">—</div></div>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-r" style="flex:1;" onclick="applyDeleteChoice()">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mDeleteChoice')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scelta modifica evento ricorrente -->
+<div class="ov" id="mEditChoice">
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">✏️ Modifica evento ricorrente</div><button class="mx" onclick="cancelEditChoice()">✕</button></div>
+    <div style="font-size:.88rem;font-weight:700;margin-bottom:4px;" id="mEditChoiceDate"></div>
+    <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;">Questo evento fa parte di una serie ricorrente. <strong>Vuoi applicare la modifica a:</strong></p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="editChoice" value="solo" checked style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Solo questo evento</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mEditChoiceSoloLabel">—</div></div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="editChoice" value="futuri" style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Questo e tutti i successivi</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mEditChoiceFutLabel">—</div></div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.88rem;">
+        <input type="radio" name="editChoice" value="tutti" style="margin-top:2px;accent-color:var(--cp);">
+        <div><strong>Tutti gli eventi della serie</strong><div style="font-size:.78rem;color:var(--text3);margin-top:2px;" id="mEditChoiceTuttiLabel">—</div></div>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" onclick="applyEditChoice()">✅ Applica modifiche</button>
+      <button class="btn btn-g" onclick="cancelEditChoice()">Annulla</button>
     </div>
   </div>
 </div>
@@ -2721,6 +2761,7 @@ let calWeekOffset = 0;
 let calWeekSelDay = null;
 let _dayModalDate = null;
 let _deleteTargetId = null;
+let _editPendingData = null;
 // Chatbot FAQ (dichiarate qui perché usate da renderCal e da handler pre-inizializzati)
 const FAQ_DB = [
   // ROSA
@@ -10794,6 +10835,21 @@ function saveEvento(){
   if (id) {
     const ev = events.find(e => e.id === Number(id));
     if (!ev || !canEditEvent(ev)) { toast('⛔ Non puoi modificare questo evento'); return; }
+    if (ev.recurGroupId) {
+      // Raccoglie i dati e mostra la scelta ricorrenza
+      const newFields = { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days };
+      _editPendingData = { evId: ev.id, fields: newFields, oldCampoId: ev.campoId, newCampoId: campoIdSel };
+      const serie = events.filter(e => e.recurGroupId === ev.recurGroupId);
+      const fut   = serie.filter(e => e.date >= ev.date).length;
+      document.getElementById('mEditChoiceDate').textContent = escapeHtml(ev.title) + ' — ' + fmtDateLong(parseYmd(ev.date));
+      document.getElementById('mEditChoiceSoloLabel').textContent  = 'Solo ' + fmtDateLong(parseYmd(ev.date));
+      document.getElementById('mEditChoiceFutLabel').textContent   = fut + ' event' + (fut===1?'o':'i') + ' dal ' + ev.date + ' in poi';
+      document.getElementById('mEditChoiceTuttiLabel').textContent = serie.length + ' event' + (serie.length===1?'o':'i') + ' totali della serie';
+      document.querySelector('#mEditChoice input[name="editChoice"][value="solo"]').checked = true;
+      closeM('mEvento');
+      openM('mEditChoice');
+      return;
+    }
     if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
     Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
     toast('✅ Evento aggiornato');
@@ -10820,9 +10876,14 @@ function deleteCurrentEvento(){
   if (!canEditEvent(ev)) { toast('⛔ Non puoi eliminare questo evento'); return; }
   if (ev.recurGroupId) {
     _deleteTargetId = id;
-    document.getElementById('mDelChoiceDate').textContent = escapeHtml(ev.title) + ' — ' + ev.date;
-    const fut = events.filter(e => e.recurGroupId === ev.recurGroupId && e.date >= ev.date).length;
-    document.getElementById('mDelChoiceFut').textContent = fut + ' allenament' + (fut===1?'o':'i') + ' da questa data in poi';
+    const serie = events.filter(e => e.recurGroupId === ev.recurGroupId);
+    const fut   = serie.filter(e => e.date >= ev.date).length;
+    document.getElementById('mDelChoiceDate').textContent = escapeHtml(ev.title) + ' — ' + fmtDateLong(parseYmd(ev.date));
+    document.getElementById('mDelChoiceFut').textContent  = '';
+    document.getElementById('mDelChoiceSoloLabel').textContent  = 'Solo ' + fmtDateLong(parseYmd(ev.date));
+    document.getElementById('mDelChoiceFutLabel').textContent   = fut + ' event' + (fut===1?'o':'i') + ' dal ' + ev.date + ' in poi';
+    document.getElementById('mDelChoiceTuttiLabel').textContent = serie.length + ' event' + (serie.length===1?'o':'i') + ' totali della serie';
+    document.querySelector('#mDeleteChoice input[name="delChoice"][value="solo"]').checked = true;
     closeM('mEvento'); openM('mDeleteChoice');
     return;
   }
@@ -10833,27 +10894,78 @@ function deleteCurrentEvento(){
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('🗑 Evento eliminato');
 }
-function deleteEventoSolo(){
+function applyDeleteChoice() {
   if (!_deleteTargetId) return;
-  purgeEventRefs(_deleteTargetId);
-  events = events.filter(e => e.id !== _deleteTargetId);
-  _deleteTargetId = null;
-  closeM('mDeleteChoice'); renderCal();
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast('🗑 Allenamento eliminato');
-}
-function deleteEventoFuturi(){
-  if (!_deleteTargetId) return;
+  const choice = (document.querySelector('#mDeleteChoice input[name="delChoice"]:checked') || {}).value || 'solo';
   const ev = events.find(e => e.id === _deleteTargetId);
   if (!ev) { _deleteTargetId = null; closeM('mDeleteChoice'); return; }
-  const groupId = ev.recurGroupId, fromDate = ev.date;
-  const toDelete = events.filter(e => e.recurGroupId === groupId && e.date >= fromDate).map(e => e.id);
+
+  let toDelete = [];
+  if (choice === 'solo') {
+    toDelete = [ev.id];
+  } else if (choice === 'futuri') {
+    toDelete = events.filter(e => e.recurGroupId === ev.recurGroupId && e.date >= ev.date).map(e => e.id);
+  } else {
+    toDelete = events.filter(e => e.recurGroupId === ev.recurGroupId).map(e => e.id);
+  }
+
+  const label = choice === 'solo'
+    ? 'questo evento'
+    : choice === 'futuri'
+      ? `${toDelete.length} event${toDelete.length===1?'o':'i'} (questo e i successivi)`
+      : `tutta la serie (${toDelete.length} event${toDelete.length===1?'o':'i'})`;
+
+  if (!confirm(`Eliminare ${label}?\n\nQuesta azione non può essere annullata.`)) return;
+
   toDelete.forEach(id => purgeEventRefs(id));
   events = events.filter(e => !toDelete.includes(e.id));
   _deleteTargetId = null;
   closeM('mDeleteChoice'); renderCal();
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast('🗑 Eliminati ' + toDelete.length + ' allenament' + (toDelete.length===1?'o':'i'));
+  toast('🗑 Eliminat' + (toDelete.length===1?'o':'i') + ' ' + toDelete.length + ' event' + (toDelete.length===1?'o':'i'));
+}
+
+// Kept for backward-compat if called from anywhere
+function deleteEventoSolo() { applyDeleteChoice(); }
+function deleteEventoFuturi() {
+  const rb = document.querySelector('#mDeleteChoice input[name="delChoice"][value="futuri"]');
+  if (rb) rb.checked = true;
+  applyDeleteChoice();
+}
+
+function applyEditChoice() {
+  if (!_editPendingData) return;
+  const choice = (document.querySelector('#mEditChoice input[name="editChoice"]:checked') || {}).value || 'solo';
+  const { evId, fields, oldCampoId, newCampoId } = _editPendingData;
+  const ev = events.find(e => e.id === evId);
+  if (!ev) { _editPendingData = null; closeM('mEditChoice'); return; }
+
+  if (newCampoId && newCampoId !== oldCampoId) {
+    const c = campi.find(x => x.id === newCampoId);
+    if (c) c.usageCount = (c.usageCount || 0) + 1;
+  }
+
+  if (choice === 'solo') {
+    Object.assign(ev, fields);
+    toast('✅ Evento aggiornato');
+  } else if (choice === 'futuri') {
+    const affected = events.filter(e => e.recurGroupId === ev.recurGroupId && e.date >= ev.date);
+    affected.forEach(e => Object.assign(e, { ...fields, id: e.id, date: e.date, recurGroupId: e.recurGroupId }));
+    toast('✅ Aggiornati ' + affected.length + ' event' + (affected.length===1?'o':'i'));
+  } else {
+    const affected = events.filter(e => e.recurGroupId === ev.recurGroupId);
+    affected.forEach(e => Object.assign(e, { ...fields, id: e.id, date: e.date, recurGroupId: e.recurGroupId }));
+    toast('✅ Tutta la serie aggiornata (' + affected.length + ' event' + (affected.length===1?'o':'i') + ')');
+  }
+
+  _editPendingData = null;
+  closeM('mEditChoice'); renderCal();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+}
+
+function cancelEditChoice() {
+  _editPendingData = null;
+  closeM('mEditChoice');
 }
 
 // ── Luogo / campo select ─────────────────────────
