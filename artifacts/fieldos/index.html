@@ -5263,6 +5263,34 @@ function renderConvocazioni() {
 
   let html = '';
 
+  // DEBUG: pannello temporaneo visibile solo ai genitori — mostra calcolo fase per ogni evento
+  if (isParent && allList.length) {
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    const rows = allList.map(ev => {
+      const conv = getConvocazione(ev.id);
+      const evDate = parseYmd(ev.date);
+      const daysUntil = Math.floor((evDate - today0) / 86400000);
+      const fase = getConvFase(conv, ev);
+      const lv = conv ? (conv.leva || '') : ((ev.leve||[])[0]||'');
+      const def = levaConvSettings[lv] || {};
+      const f1 = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
+      const f2 = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
+      const faseColor = fase==='fase2'?'#059669':fase==='fase1'?'#2563eb':'#dc2626';
+      return `<div style="font-size:.75rem;padding:3px 0;border-bottom:1px solid #e5e7eb;">
+        <strong>${escapeHtml(ev.title||ev.type)}</strong> &nbsp;
+        📅 ${ev.date} &nbsp;
+        ⏳ <strong>${daysUntil}gg</strong> &nbsp;
+        F1=${f1!=null?f1:'—'} F2=${f2!=null?f2:'—'} &nbsp;
+        Conv=${conv?'✓':'✗'} &nbsp;
+        <span style="color:${faseColor};font-weight:700;">→ ${fase}</span>
+      </div>`;
+    }).join('');
+    html += `<div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;">
+      <div style="font-weight:700;font-size:.78rem;color:#854d0e;margin-bottom:6px;">🔍 DEBUG fase visibilità (pannello temporaneo)</div>
+      ${rows}
+    </div>`;
+  }
+
   // Sezione indisponibilità per genitori/giocatori
   if (isParent) {
     const myPlayers = getMyPlayers();
@@ -5641,9 +5669,13 @@ function getConvFase(conv, ev) {
   // Fase manuale (pulsante attivato dal mister) ha priorità
   if (conv.fase2Active) return 'fase2';
   if (conv.fase1Active) return 'fase1';
-  // Fase automatica: fase2Days < fase1Days (es. fase1=14gg, fase2=3gg prima dell'evento)
-  const f1 = (conv.fase1Days != null && !isNaN(conv.fase1Days)) ? Number(conv.fase1Days) : null;
-  const f2 = (conv.fase2Days != null && !isNaN(conv.fase2Days)) ? Number(conv.fase2Days) : null;
+  // Fase automatica: usa i giorni della convocazione, o il default della leva se non impostati
+  const lv = conv.leva || (Array.isArray(ev.leve) ? ev.leve[0] : '') || '';
+  const def = levaConvSettings[lv] || {};
+  const f1Raw = (conv.fase1Days != null) ? conv.fase1Days : def.fase1Days;
+  const f2Raw = (conv.fase2Days != null) ? conv.fase2Days : def.fase2Days;
+  const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
+  const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
   if (f2 != null && daysUntil <= f2) return 'fase2';
   if (f1 != null && daysUntil <= f1) return 'fase1';
   return 'none';
