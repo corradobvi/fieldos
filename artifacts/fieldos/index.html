@@ -2256,8 +2256,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <select class="fs" id="campoTipo">
           <option value="5">Campo a 5</option>
           <option value="7">Campo a 7</option>
+          <option value="9">Campo a 9</option>
           <option value="11">Campo a 11</option>
           <option value="stadio">Stadio</option>
+          <option value="altro">Altro</option>
         </select>
       </div>
     </div>
@@ -2358,6 +2360,16 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <!-- STEP 3: dati account -->
     <div id="srStep3" style="display:none;">
+      <div class="fg" style="margin-bottom:14px;">
+        <label class="fl">Ruolo in famiglia *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button type="button" id="srR_papa"  onclick="setSrRuolo('papa',this)"  style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Papà"><div style="font-size:1.6rem;">👨</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Papà</div></button>
+          <button type="button" id="srR_mamma" onclick="setSrRuolo('mamma',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Mamma"><div style="font-size:1.6rem;">👩</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Mamma</div></button>
+          <button type="button" id="srR_nonno" onclick="setSrRuolo('nonno',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Nonno"><div style="font-size:1.6rem;">👴</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Nonno</div></button>
+          <button type="button" id="srR_nonna" onclick="setSrRuolo('nonna',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Nonna"><div style="font-size:1.6rem;">👵</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Nonna</div></button>
+        </div>
+        <input type="hidden" id="srRuoloFamiliare" value="">
+      </div>
       <div class="fr">
         <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome" style="min-height:48px;"></div>
         <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome" style="min-height:48px;"></div>
@@ -3602,7 +3614,7 @@ function renderProfilo() {
     <div class="card" style="text-align:center;padding:28px 20px;">
       <div style="width:72px;height:72px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.6rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ini}</div>
       <div style="font-size:1.15rem;font-weight:700;">${escapeHtml(me.nome||'')} ${escapeHtml(me.cogn||'')}</div>
-      <div style="font-size:.83rem;color:var(--text2);margin-top:4px;">${ROLE_IC2[me.role]||''} ${me.role||''}</div>
+      <div style="font-size:.83rem;color:var(--text2);margin-top:4px;">${userRoleLabel(me)}</div>
       ${leva}${figli}
       <div style="font-size:.77rem;color:var(--text3);margin-top:6px;">${escapeHtml(me.email||'')}</div>
     </div>
@@ -6910,6 +6922,8 @@ function renderStatsTornei(el){
 // ═══════════════════════════════════
 
 const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', nonno:'Nonno/Nonna', giocatore:'Giocatore'};
+const TITOLO_FAM_LABELS = { papa:'👨 Papà', mamma:'👩 Mamma', nonno:'👴 Nonno', nonna:'👵 Nonna' };
+function userRoleLabel(u) { return (u && u.titoloFamiliare && TITOLO_FAM_LABELS[u.titoloFamiliare]) ? TITOLO_FAM_LABELS[u.titoloFamiliare] : ROLE_LABELS[u && u.role] || (u && u.role) || ''; }
 const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
 
 function renderUsersTable() {
@@ -6931,7 +6945,7 @@ function renderUsersTable() {
       tr.innerHTML = `
         <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
         <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
-        <td><span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span></td>
+        <td><span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span></td>
         <td>${u.leva}</td>
         <td>${statoHtml}</td>
         <td style="display:flex;gap:5px;">
@@ -6971,7 +6985,7 @@ function renderUsersTable() {
             ${statoHtml}
           </div>
           <div style="display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-            <span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span>
+            <span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span>
             ${u.leva ? `<span style="font-size:.78rem;color:var(--text2);">${escapeHtml(u.leva)}</span>` : ''}
           </div>
           <div style="display:flex;gap:8px;">
@@ -7650,8 +7664,12 @@ function openSelfReg(){
   _selfRegSelectedIds = [];
   const _srSN = document.getElementById('srSocNome');
   if (_srSN) _srSN.textContent = 'MyVivaio';
-  ['srCodice','srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => {
+  ['srCodice','srNome','srCogn','srEmail','srPass','srPass2','srSearch','srRuoloFamiliare'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['srR_papa','srR_mamma','srR_nonno','srR_nonna'].forEach(function(id) {
+    const b = document.getElementById(id);
+    if (b) { b.style.border = '2px solid var(--border)'; b.style.background = 'var(--cl)'; }
   });
   ['srStep1Error','srStep2Error','srStep3Error'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display='none';
@@ -7856,6 +7874,20 @@ function srStep2Next(){
   srShowStep(3);
 }
 
+function setSrRuolo(val, btn) {
+  document.getElementById('srRuoloFamiliare').value = val;
+  ['srR_papa','srR_mamma','srR_nonno','srR_nonna'].forEach(function(id) {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.style.border = '2px solid var(--border)';
+    b.style.background = 'var(--cl)';
+  });
+  if (btn) {
+    btn.style.border = '2px solid var(--cp)';
+    btn.style.background = 'rgba(var(--cp-rgb,4,120,87),.10)';
+  }
+}
+
 function renderSrRoster(){
   const host = document.getElementById('srRoster');
   if (!host) return;
@@ -7994,6 +8026,8 @@ function submitSelfReg(){
   const pass  = document.getElementById('srPass').value  || '';
   const pass2 = document.getElementById('srPass2').value || '';
 
+  const titoloFamiliare = (document.getElementById('srRuoloFamiliare')?.value || '').trim();
+  if (!titoloFamiliare) { _err('⚠️ Seleziona il tuo ruolo in famiglia (Papà, Mamma, Nonno o Nonna).'); return; }
   if (!nome || !cogn) { _err('⚠️ Inserisci nome e cognome.'); return; }
   if (!email || !email.includes('@')) { _err('⚠️ Inserisci un indirizzo email valido.'); return; }
   if (!_pwCheck(pass).valid) { _err('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale.'); return; }
@@ -8018,10 +8052,12 @@ function submitSelfReg(){
   const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
   const levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : '');
 
+  const _roleMap = { papa: 'genitore', mamma: 'genitore', nonno: 'nonno', nonna: 'nonno' };
   const newUser = {
     id: nextUserId++,
     nome, cogn, email, pass,
-    role: 'genitore',
+    role: _roleMap[titoloFamiliare] || 'genitore',
+    titoloFamiliare,
     leva: levaFinal,
     stato: 'attivo',
     figli,
@@ -10245,7 +10281,7 @@ function deleteEventoFuturi(){
 }
 
 // ── Luogo / campo select ─────────────────────────
-const CAMPO_TIPO_LABEL = { '5':'Campo a 5', '7':'Campo a 7', '11':'Campo a 11', 'stadio':'Stadio' };
+const CAMPO_TIPO_LABEL = { '5':'Campo a 5', '7':'Campo a 7', '9':'Campo a 9', '11':'Campo a 11', 'stadio':'Stadio', 'altro':'Altro' };
 function updateLuogoSelect(){
   const sel = document.getElementById('evLuogoSel'); if (!sel) return;
   const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
