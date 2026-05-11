@@ -2120,6 +2120,16 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<!-- Segnala indisponibilità per evento (genitore/nonno) -->
+<div class="ov" id="mConvIndisp">
+  <div class="modal">
+    <div class="mh"><div class="mt">❌ Segnala indisponibilità</div><button class="mx" onclick="closeM('mConvIndisp')">✕</button></div>
+    <div id="mConvIndispInfo" style="background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:10px 12px;margin-bottom:12px;font-size:.83rem;"></div>
+    <div class="fg"><label class="fl">Motivo <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="ciMotivo" placeholder="Es. Vacanza, visita medica, impegno scolastico..."></div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-r" style="flex:1;" onclick="saveConvIndisp()">❌ Conferma indisponibilità</button><button class="btn btn-g" onclick="closeM('mConvIndisp')">Annulla</button></div>
+  </div>
+</div>
+
 <!-- Indisponibilità genitore/giocatore (periodo) -->
 <div class="ov" id="mIndisp">
   <div class="modal">
@@ -5576,18 +5586,14 @@ function renderConvocazioneCard(ev) {
     </div>` : '';
 
     body = `
-      <div class="g3" style="margin-bottom:11px;">
+      <div class="g2" style="margin-bottom:11px;">
         <div style="background:var(--gbg);border-radius:8px;padding:8px 10px;">
-          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">✓ Disponibili</div>
-          <div style="font-size:1.15rem;font-weight:800;color:var(--green);">${bucket.disp.length}</div>
+          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">✅ Disponibili</div>
+          <div style="font-size:1.15rem;font-weight:800;color:var(--green);">${bucket.disp.length + bucket.senza.length}</div>
         </div>
-        <div style="background:#fef0f0;border-radius:8px;padding:8px 10px;">
-          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">✗ Indisponibili</div>
-          <div style="font-size:1.15rem;font-weight:800;color:var(--red);">${bucket.indisp.length}</div>
-        </div>
-        <div style="background:var(--cl);border-radius:8px;padding:8px 10px;">
-          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">? Senza risposta</div>
-          <div style="font-size:1.15rem;font-weight:800;color:var(--text2);">${bucket.senza.length}</div>
+        <div style="background:#fff7ed;border-radius:8px;padding:8px 10px;">
+          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">⚠️ Indisponibili segnalati</div>
+          <div style="font-size:1.15rem;font-weight:800;color:#c2410c;">${bucket.indisp.length}</div>
         </div>
       </div>`;
 
@@ -5604,7 +5610,11 @@ function renderConvocazioneCard(ev) {
         const p = players.find(x => x.id === pid);
         if (!p) return '?';
         const indispW = playerIndispOnDate(p.id, ev.date);
-        const warn = indispW ? ' <span style="color:var(--red);font-size:.72rem;" title="Indisponibile secondo genitori">⚠️</span>' : '';
+        const indispEv = getDispon(ev.id, p.id);
+        const indispEvFlag = indispEv && indispEv.status === 'indisponibile';
+        const warn = (indispW || indispEvFlag)
+          ? ` <span style="color:#f59e0b;font-size:.72rem;" title="${indispEvFlag ? '⚠️ Indisponibile segnalato dal genitore' + (indispEv.motivo ? ': '+escapeHtml(indispEv.motivo) : '') : 'Indisponibile (calendario)'}">⚠️</span>`
+          : '';
         return escapeHtml(p.soprannome || (p.nome + ' ' + p.cogn)) + warn;
       });
       body += `<div style="background:var(--gbg);border:1px solid rgba(14,168,96,.3);border-radius:8px;padding:9px 12px;margin-bottom:10px;">
@@ -5642,16 +5652,17 @@ function renderConvocazioneCard(ev) {
       // Solo tipo, data, ora — niente dettagli
       body = myPlayers.map(p => {
         const d = getDispon(ev.id, p.id);
-        const dispBadge = !d
-          ? `<span class="pill" style="background:var(--cl);color:var(--text2);">? Da indicare</span>`
-          : d.status === 'disponibile'
-            ? `<span class="pill pill-g">✓ Disponibile</span>`
-            : `<span class="pill pill-r">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
-        const btnHtml = !d
-          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Disponibile</button><button class="btn btn-sm" style="background:#e03055;color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non disponibile</button></div>`
-          : d.status === 'disponibile'
-          ? `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;pointer-events:none;">✅ Sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`
-          : `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#e03055;color:white;pointer-events:none;">❌ Non sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`;
+        const isIndisp = d && d.status === 'indisponibile';
+        const dispBadge = isIndisp
+          ? `<span class="pill pill-r">⚠️ Indisponibile</span>`
+          : `<span class="pill pill-g">✅ Disponibile</span>`;
+        const btnHtml = isIndisp
+          ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:9px 12px;">
+               <div style="font-weight:700;color:#c2410c;font-size:.86rem;margin-bottom:4px;">⚠️ Hai segnalato indisponibilità</div>
+               ${d.motivo ? `<div style="font-size:.76rem;color:var(--text2);margin-bottom:6px;">Motivo: ${escapeHtml(d.motivo)}</div>` : ''}
+               <a href="#" style="font-size:.78rem;color:var(--cp);font-weight:600;" onclick="cancelConvIndisp(${evIdJs},${p.id});return false;">↩ Annulla — siamo disponibili</a>
+             </div>`
+          : `<button class="btn btn-sm" style="background:#e03055;color:white;width:100%;padding:10px;font-size:.87rem;" onclick="openConvIndispModal(${evIdJs},${p.id})">❌ Segnala indisponibilità</button>`;
         return `<div style="background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
@@ -5683,21 +5694,22 @@ function renderConvocazioneCard(ev) {
       body = myPlayers.map(p => {
         const d = getDispon(ev.id, p.id);
         const isConv = conv && conv.playerIds.includes(p.id);
-        const dispBadge = !d
-          ? `<span class="pill" style="background:var(--cl);color:var(--text2);">? Da indicare</span>`
-          : d.status === 'disponibile'
-            ? `<span class="pill pill-g">✓ Disponibile</span>`
-            : `<span class="pill pill-r">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
+        const isIndisp2 = d && d.status === 'indisponibile';
+        const dispBadge = isIndisp2
+          ? `<span class="pill pill-r">⚠️ Indisponibile</span>`
+          : `<span class="pill pill-g">✅ Disponibile</span>`;
         const convBadge = conv
           ? (isConv
               ? `<span class="pill pill-g" style="font-weight:800;">📋 CONVOCATO</span>`
               : `<span class="pill" style="background:var(--cl);color:var(--text2);">Non convocato</span>`)
           : `<span class="pill pill-b">In attesa convocazione</span>`;
-        const btnHtml2 = !d
-          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Disponibile</button><button class="btn btn-sm" style="background:#e03055;color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non disponibile</button></div>`
-          : d.status === 'disponibile'
-          ? `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;pointer-events:none;">✅ Sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`
-          : `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#e03055;color:white;pointer-events:none;">❌ Non sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`;
+        const btnHtml2 = isIndisp2
+          ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:9px 12px;">
+               <div style="font-weight:700;color:#c2410c;font-size:.86rem;margin-bottom:4px;">⚠️ Hai segnalato indisponibilità</div>
+               ${d.motivo ? `<div style="font-size:.76rem;color:var(--text2);margin-bottom:6px;">Motivo: ${escapeHtml(d.motivo)}</div>` : ''}
+               <a href="#" style="font-size:.78rem;color:var(--cp);font-weight:600;" onclick="cancelConvIndisp(${evIdJs},${p.id});return false;">↩ Annulla — siamo disponibili</a>
+             </div>`
+          : `<button class="btn btn-sm" style="background:#e03055;color:white;width:100%;padding:10px;font-size:.87rem;" onclick="openConvIndispModal(${evIdJs},${p.id})">❌ Segnala indisponibilità</button>`;
         return `<div style="background:${isConv ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border:${isConv ? '1.5px solid rgba(14,168,96,.35)' : '1px solid transparent'};border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
@@ -5762,12 +5774,12 @@ function openConvocazioneModal(eventId) {
       const indisp = d && d.status === 'indisponibile';
       // Se diventato indisponibile dopo essere stato convocato, lo deseleziono
       const isSel = selected.has(p.id) && !indisp;
-      const motivoHtml = indisp ? `<span style="font-size:.72rem;color:var(--red);">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>` :
-                         (d && d.status === 'disponibile') ? `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>` :
-                         `<span style="font-size:.72rem;color:var(--text3);">? Nessuna risposta</span>`;
+      const motivoHtml = indisp
+        ? `<span style="font-size:.72rem;color:var(--red);">⚠️ Indisponibile segnalato${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`
+        : `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
       const calIndisp = playerIndispOnDate(p.id, ev.date);
-      const calIndispHtml = calIndisp ? `<span style="font-size:.72rem;color:var(--red);margin-left:4px;">⚠️ Genitori: indisponibile${calIndisp.motivo ? ' ('+escapeHtml(calIndisp.motivo)+')' : ''}</span>` : '';
-      return `<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${indisp?'#fef0f0':calIndisp?'#fff7ed':'var(--bg)'};opacity:${indisp?'0.55':'1'};cursor:${indisp?'not-allowed':'pointer'};">
+      const calIndispHtml = calIndisp ? `<span style="font-size:.72rem;color:#c2410c;margin-left:4px;">⚠️ Calendario: ${calIndisp.motivo ? escapeHtml(calIndisp.motivo) : 'indisponibile'}</span>` : '';
+      return `<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${indisp?'#fff7ed':calIndisp?'#fff7ed':'var(--bg)'};opacity:${indisp?'0.65':'1'};cursor:${indisp?'not-allowed':'pointer'};">
         <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:17px;height:17px;accent-color:var(--cp);">
         ${playerAv(p, 28, '50%', false)}
         <div style="flex:1;">
@@ -6047,6 +6059,47 @@ function saveConvVisibLeva(lv) {
 }
 
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
+
+// Genitori/nonno — segnala indisponibilità per evento specifico
+let _ciEvId = null, _ciPid = null;
+function openConvIndispModal(eventId, playerId) {
+  const ev = events.find(e => e.id === eventId);
+  const p = players.find(x => x.id === playerId);
+  if (!ev || !p) return;
+  _ciEvId = eventId; _ciPid = playerId;
+  const d = getDispon(eventId, playerId);
+  document.getElementById('ciMotivo').value = d ? (d.motivo || '') : '';
+  document.getElementById('mConvIndispInfo').innerHTML =
+    `<strong>${escapeHtml(p.nome+' '+p.cogn)}</strong><br>
+     ${escapeHtml(ev.title || '')} · ${fmtDateLong(parseYmd(ev.date))}${ev.start ? ' · '+ev.start : ''}`;
+  openM('mConvIndisp');
+}
+function saveConvIndisp() {
+  const motivo = document.getElementById('ciMotivo').value.trim();
+  setDispon(_ciEvId, _ciPid, 'indisponibile', motivo);
+  const ev = events.find(e => e.id === _ciEvId);
+  const p = players.find(x => x.id === _ciPid);
+  if (ev && p) {
+    const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
+    coachIds.forEach(uid => {
+      pushNotifica(uid, {
+        type: 'avviso_assenza',
+        title: `⚠️ Indisponibile · ${p.nome} ${p.cogn}`,
+        body: `${fmtDateLong(parseYmd(ev.date))} · ${ev.title||''}${motivo ? '\nMotivo: '+motivo : ''}\nSegnalato da ${me.nome} ${me.cogn}`,
+        eventId: ev.id,
+      });
+    });
+    refreshNotificheBadge();
+  }
+  closeM('mConvIndisp');
+  toast('⚠️ Indisponibilità segnalata al mister');
+  renderConvocazioni();
+}
+function cancelConvIndisp(eventId, playerId) {
+  disponibilita = disponibilita.filter(d => !(d.eventId === eventId && d.playerId === playerId));
+  toast('✅ Disponibilità ripristinata');
+  renderConvocazioni();
+}
 
 function quickSetDispon(eventId, playerId, status) {
   if (status === 'indisponibile') { openDisponModal(eventId, playerId); return; }
