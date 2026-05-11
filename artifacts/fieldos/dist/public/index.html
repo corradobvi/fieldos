@@ -528,12 +528,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .pc-num{font-size:1.4rem;}
   .pc-btns{flex-wrap:wrap;}
 
-  /* Impostazioni — colonna singola, color picker full-width */
+  /* Impostazioni — colonna singola, layout mobile completo */
   #pg-impostazioni .g2{grid-template-columns:1fr!important;}
   #pg-impostazioni .g2>*{grid-column:auto!important;}
-  #pg-impostazioni input[type=color]{width:100%;height:52px;padding:4px;border-radius:8px;cursor:pointer;box-sizing:border-box;}
   #pg-impostazioni .fr{display:flex;flex-direction:column;gap:12px;}
   #pg-impostazioni .rr{grid-template-columns:1fr 1fr 44px!important;}
+  #pg-impostazioni .card{padding:16px!important;}
+  /* Tutti gli input/select/textarea al 100% */
+  #pg-impostazioni input:not([type=checkbox]):not([type=file]),
+  #pg-impostazioni select,
+  #pg-impostazioni textarea{
+    width:100%!important;max-width:100%!important;
+    box-sizing:border-box!important;font-size:15px!important;}
+  #pg-impostazioni input[type=color]{height:52px;padding:4px;border-radius:8px;cursor:pointer;}
+  /* Rimuovi max-width dalle fg nested */
+  #pg-impostazioni .fg{max-width:none!important;}
+  #pg-impostazioni .fl{font-size:14px;}
+  /* Bottoni grandi e visibili */
+  #pg-impostazioni .btn{min-height:48px!important;font-size:15px!important;}
   /* Gestione utenti: solo colonne essenziali */
   #pg-impostazioni .tbl thead tr th:nth-child(2),
   #pg-impostazioni .tbl tbody tr td:nth-child(2){display:none;}
@@ -1532,12 +1544,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div class="fr" style="gap:18px;margin-bottom:14px;">
               <div class="fg" style="flex:1;margin-bottom:0;">
                 <label class="fl">Colore principale</label>
-                <input type="color" class="fi" id="impSocColore" style="padding:4px;height:44px;cursor:pointer;" oninput="updateThemeLive()">
+                <input type="color" class="fi" id="impSocColore" value="#047857" style="padding:4px;height:44px;cursor:pointer;" oninput="updateThemeLive()">
                 <div style="font-size:.69rem;color:var(--text3);margin-top:3px;">Sidebar, bottoni, stati attivi</div>
               </div>
               <div class="fg" style="flex:1;margin-bottom:0;">
                 <label class="fl">Colore accento</label>
-                <input type="color" class="fi" id="impAccento" style="padding:4px;height:44px;cursor:pointer;" oninput="updateThemeLive()">
+                <input type="color" class="fi" id="impAccento" value="#FFD93D" style="padding:4px;height:44px;cursor:pointer;" oninput="updateThemeLive()">
                 <div style="font-size:.69rem;color:var(--text3);margin-top:3px;">Badge, notifiche, evidenze, CTA</div>
               </div>
             </div>
@@ -8733,37 +8745,62 @@ function refreshQuotaBadge() {
 
 // ── Impostazioni quote (per leva)
 
+function _qsDateHtml(lv, s) {
+  const lve = encodeURIComponent(lv);
+  const modo = s.modo || 'mensile';
+  if (modo === 'mensile') {
+    const giorni = (s.scadenzeGiorni && s.scadenzeGiorni.length === 10) ? s.scadenzeGiorni : Array(10).fill(10);
+    const rows = giorni.map((g, i) => {
+      const opts = Array.from({length:31}, (_,j) => `<option value="${j+1}"${g===j+1?' selected':''}>${j+1}</option>`).join('');
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:.82rem;color:var(--text2);min-width:54px;flex-shrink:0;">Rata ${i+1}</span>
+        <select class="fs" id="qsGiorno_${lve}_${i}" style="flex:1;">${opts}</select>
+        <span style="font-size:.82rem;color:var(--text2);flex-shrink:0;">del mese</span>
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:4px;"><label class="fl" style="margin-bottom:8px;display:block;">Giorno di scadenza per ogni rata</label>${rows}</div>`;
+  } else {
+    const nRate = { trimestrale:3, semestrale:2, annuale:1 }[modo] || 1;
+    const scadenze = s.scadenze || [];
+    const rows = Array.from({length:nRate}, (_, i) => {
+      const val = scadenze[i] || '';
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:.82rem;color:var(--text2);min-width:54px;flex-shrink:0;">Rata ${i+1}</span>
+        <input type="date" class="fi" id="qsData_${lve}_${i}" value="${val}" style="flex:1;">
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:4px;"><label class="fl" style="margin-bottom:8px;display:block;">Date scadenza rate</label>${rows}</div>`;
+  }
+}
+
 function renderQuoteSettings() {
   const box = document.getElementById('quoteSettingsBox');
   if (!box) return;
   if (!leve.length) { box.innerHTML = '<div style="font-size:.82rem;color:var(--text2);">Aggiungi prima almeno una leva.</div>'; return; }
   box.innerHTML = leve.map(lv => {
-    const s = quoteSettings[lv] || { modo: 'mensile', totale: 0, scadenze: [], reminderGiorni: 7 };
+    const s = quoteSettings[lv] || { modo: 'mensile', totale: 0, scadenze: [], scadenzeGiorni: [], reminderGiorni: 7 };
     const nRate = { mensile: 10, trimestrale: 3, semestrale: 2, annuale: 1 }[s.modo] || 1;
     const rata = s.totale ? Math.round((s.totale / nRate) * 100) / 100 : 0;
     const lve = encodeURIComponent(lv);
-    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;">
-      <div style="font-weight:700;font-size:.84rem;color:var(--cp);margin-bottom:10px;">⚽ ${escapeHtml(lv)}</div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Modalità</label>
-          <select class="fs" id="qsModo_${lve}" onchange="qsRecalc('${escapeHtml(lv)}')">
-            <option value="mensile" ${s.modo === 'mensile' ? 'selected' : ''}>Mensile (10 rate)</option>
-            <option value="trimestrale" ${s.modo === 'trimestrale' ? 'selected' : ''}>Trimestrale (3 rate)</option>
-            <option value="semestrale" ${s.modo === 'semestrale' ? 'selected' : ''}>Semestrale (2 rate)</option>
-            <option value="annuale" ${s.modo === 'annuale' ? 'selected' : ''}>Annuale (1 rata)</option>
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-weight:700;font-size:.9rem;color:var(--cp);margin-bottom:12px;">⚽ ${escapeHtml(lv)}</div>
+      <div class="fr" style="margin-bottom:12px;">
+        <div class="fg"><label class="fl">Modalità pagamento</label>
+          <select class="fs" id="qsModo_${lve}" onchange="qsModoChange('${escapeHtml(lv)}')">
+            <option value="mensile" ${s.modo==='mensile'?'selected':''}>Mensile (10 rate)</option>
+            <option value="trimestrale" ${s.modo==='trimestrale'?'selected':''}>Trimestrale (3 rate)</option>
+            <option value="semestrale" ${s.modo==='semestrale'?'selected':''}>Semestrale (2 rate)</option>
+            <option value="annuale" ${s.modo==='annuale'?'selected':''}>Annuale (1 rata)</option>
           </select></div>
         <div class="fg"><label class="fl">Totale stagionale (€)</label>
           <input class="fi" id="qsTotale_${lve}" type="number" min="0" step="1" value="${s.totale || 0}" oninput="qsRecalc('${escapeHtml(lv)}')"></div>
         <div class="fg"><label class="fl">Importo per rata (€)</label>
           <input class="fi" id="qsRata_${lve}" type="number" readonly style="background:var(--bg);" value="${rata}"></div>
-      </div>
-      <div class="fr">
-        <div class="fg" style="max-width:160px;"><label class="fl">Reminder (giorni prima)</label>
+        <div class="fg"><label class="fl">Reminder (giorni prima della scadenza)</label>
           <input class="fi" id="qsRem_${lve}" type="number" min="1" max="90" value="${s.reminderGiorni || 7}"></div>
-        <div class="fg" style="flex:2;"><label class="fl">Date scadenza rate (una per riga, YYYY-MM-DD)</label>
-          <textarea class="fi" id="qsScad_${lve}" rows="3" style="resize:vertical;font-family:monospace;font-size:.78rem;">${(s.scadenze || []).join('\n')}</textarea></div>
       </div>
-      <button class="btn btn-p btn-sm" onclick="saveQuoteSettings('${escapeHtml(lv)}')">💾 Salva impostazioni ${escapeHtml(lv)}</button>
+      <div id="qsDateSec_${lve}">${_qsDateHtml(lv, s)}</div>
+      <button class="btn btn-p" style="width:100%;min-height:48px;margin-top:14px;" onclick="saveQuoteSettings('${escapeHtml(lv)}')">💾 Salva impostazioni ${escapeHtml(lv)}</button>
     </div>`;
   }).join('');
 }
@@ -8777,14 +8814,34 @@ function qsRecalc(lv) {
   if (rEl) rEl.value = Math.round((tot / nRate) * 100) / 100;
 }
 
+function qsModoChange(lv) {
+  const lve = encodeURIComponent(lv);
+  const modo = document.getElementById('qsModo_' + lve)?.value || 'mensile';
+  qsRecalc(lv);
+  const s = quoteSettings[lv] || {};
+  const dateSec = document.getElementById('qsDateSec_' + lve);
+  if (dateSec) dateSec.innerHTML = _qsDateHtml(lv, { ...s, modo });
+}
+
 function saveQuoteSettings(lv) {
   const lve = encodeURIComponent(lv);
   const modo = document.getElementById('qsModo_' + lve)?.value || 'mensile';
   const totale = parseFloat(document.getElementById('qsTotale_' + lve)?.value) || 0;
   const reminderGiorni = parseInt(document.getElementById('qsRem_' + lve)?.value) || 7;
-  const raw = document.getElementById('qsScad_' + lve)?.value || '';
-  const scadenze = raw.split('\n').map(s => s.trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s));
-  quoteSettings[lv] = { modo, totale, scadenze, reminderGiorni };
+  let scadenze = [], scadenzeGiorni = [];
+  if (modo === 'mensile') {
+    scadenzeGiorni = Array.from({length:10}, (_, i) => {
+      const el = document.getElementById('qsGiorno_' + lve + '_' + i);
+      return el ? (parseInt(el.value) || 10) : 10;
+    });
+  } else {
+    const nRate = { trimestrale:3, semestrale:2, annuale:1 }[modo] || 1;
+    scadenze = Array.from({length:nRate}, (_, i) => {
+      const el = document.getElementById('qsData_' + lve + '_' + i);
+      return el ? el.value.trim() : '';
+    }).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  }
+  quoteSettings[lv] = { modo, totale, scadenze, scadenzeGiorni, reminderGiorni };
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('✅ Impostazioni quote salvate per ' + lv);
 }
