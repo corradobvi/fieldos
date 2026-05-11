@@ -1864,16 +1864,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="backupStatus" style="font-size:.75rem;color:var(--text2);margin-top:8px;"></div>
           </div>
-          <div class="card" style="grid-column:span 2;" id="syncCloudCard">
-            <div class="ch"><div class="ct">☁️ Sincronizzazione cloud</div></div>
-            <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:14px;">
-              I dati inseriti su questo dispositivo non sono ancora sul server.<br>
-              Premi il pulsante per caricare tutto lo stato attuale sul database cloud. Dopo questa operazione la sincronizzazione automatica gestirà gli aggiornamenti futuri.
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-              <button class="btn btn-p" id="btnSyncCloud" onclick="sincronizzaCloud()">☁️ Sincronizza dati sul cloud</button>
-              <span id="syncCloudStatus" style="font-size:.83rem;"></span>
-            </div>
+          <div id="syncSettingsIndicator" style="grid-column:span 2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:.78rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;">
+            <span id="syncSettingsIcon">🟢</span>
+            <span id="syncSettingsText">Dati sincronizzati</span>
           </div>
           <div class="card" style="grid-column:span 2;" id="convVisibCard">
             <div class="ch"><div class="ct">👁️ Visibilità convocazioni (default per leva)</div></div>
@@ -3547,13 +3540,11 @@ function goTo(pgId) {
     const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
-    ['codiceCard','quoteCard','convVisibCard','syncCloudCard','colorCard'].forEach(id => {
+    ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
     });
     const _convVisibCardEl = document.getElementById('convVisibCard');
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
-    const _syncCloudCardEl = document.getElementById('syncCloudCard');
-    if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
     const _backupCardEl = document.getElementById('backupCard');
     if (_backupCardEl) _backupCardEl.style.display = me.role === 'admin' ? '' : 'none';
     if (me.role === 'admin' && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
@@ -13871,7 +13862,7 @@ function _renderSaPanelInner() {
     <div class="sa-section-hd">
       <span>🏢 Società attive e sospese</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="saSyncAllBtn" class="sa-btn sa-btn-outline" onclick="saForceSyncAll()" title="Sync tutte">↑ Sync</button>
+        <span id="saSyncAllBtn" style="display:none;"></span>
         <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()">🔄 Verifica</button>
         <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova</button>
       </div>
@@ -14387,31 +14378,28 @@ function saveNewPassword() {
   let _pendingPushes = 0;
   function _updateSyncBar(pending, errState) {
     const bar = document.getElementById('syncStatusBar');
-    if (!bar) return;
+    const ind = document.getElementById('syncSettingsIndicator');
+    const indText = document.getElementById('syncSettingsText');
     if (errState === 'fatal') {
-      bar.style.display = '';
-      bar.style.background = 'rgba(220,38,38,.12)';
-      bar.style.color = '#dc2626';
-      bar.style.borderColor = 'rgba(220,38,38,.35)';
-      bar.textContent = '🔴 Connessione persa — riconnessione in corso…';
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(220,38,38,.12)'; bar.style.color = '#dc2626'; bar.style.borderColor = 'rgba(220,38,38,.35)'; bar.textContent = '🔴 Connessione persa — riconnessione in corso…'; }
+      if (ind) { ind.style.background = '#fef2f2'; ind.style.borderColor = '#fecaca'; ind.style.color = '#dc2626'; }
+      if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
     } else if (errState === 'retry') {
-      bar.style.display = '';
-      bar.style.background = 'rgba(234,88,12,.1)';
-      bar.style.color = '#ea580c';
-      bar.style.borderColor = 'rgba(234,88,12,.3)';
-      bar.textContent = '⚠️ Riconnessione in corso…';
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(234,88,12,.1)'; bar.style.color = '#ea580c'; bar.style.borderColor = 'rgba(234,88,12,.3)'; bar.textContent = '⚠️ Riconnessione in corso…'; }
+      if (ind) { ind.style.background = '#fff7ed'; ind.style.borderColor = '#fed7aa'; ind.style.color = '#ea580c'; }
+      if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
     } else if (pending > 0) {
-      bar.style.display = '';
-      bar.style.background = 'rgba(245,158,11,.1)';
-      bar.style.color = '#f59e0b';
-      bar.style.borderColor = 'rgba(245,158,11,.3)';
-      bar.textContent = '⏳ Salvataggio in corso…';
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(245,158,11,.1)'; bar.style.color = '#f59e0b'; bar.style.borderColor = 'rgba(245,158,11,.3)'; bar.textContent = '⏳ Salvataggio in corso…'; }
+      if (ind) { ind.style.background = '#fefce8'; ind.style.borderColor = '#fde047'; ind.style.color = '#854d0e'; }
+      if (indText) indText.textContent = 'Salvataggio in corso...';
     } else {
-      bar.style.display = 'none';
-      bar.style.background = '';
-      bar.style.color = '';
-      bar.style.borderColor = '';
+      if (bar) { bar.style.display = 'none'; bar.style.background = ''; bar.style.color = ''; bar.style.borderColor = ''; }
+      if (ind) { ind.style.background = '#f0fdf4'; ind.style.borderColor = '#bbf7d0'; ind.style.color = '#166534'; }
+      if (indText) indText.textContent = 'Dati sincronizzati';
     }
+    // aggiorna anche l'icona
+    const indIcon = document.getElementById('syncSettingsIcon');
+    if (indIcon) indIcon.textContent = (errState === 'fatal' || errState === 'retry') ? '🔴' : (pending > 0 ? '🟡' : '🟢');
   }
 
   function apiPush(key, json) {
