@@ -2854,6 +2854,7 @@ const ROLE_CFG = {
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
+      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -2874,6 +2875,7 @@ const ROLE_CFG = {
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
+      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -2892,6 +2894,7 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
+      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -2954,6 +2957,7 @@ const ROLE_CFG = {
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
       {id:'chat',ic:'💬',lb:'Chat'},
+      {id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
     ], leve:true
   }
@@ -3586,6 +3590,7 @@ function renderSbLeve() {
 // ═══════════════════════════════════
 
 function goTo(pgId) {
+  if (pgId === 'gestcomp' && (!me || !['admin','dirigente','allenatore'].includes(me.role))) pgId = 'partite';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const pg = document.getElementById('pg-' + pgId);
@@ -10996,6 +11001,14 @@ function canEditPt(leva) {
   if (me.role === 'allenatore') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
   return false;
 }
+// Chi può inserire/modificare risultati (include preparatore portieri)
+function canEnterResult(leva) {
+  if (saViewMode) return false;
+  if (!me) return false;
+  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (me.role === 'allenatore' || me.role === 'preparatore_portieri') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
+  return false;
+}
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
 
 // Stats aggregate per giocatore (amichevoli + campionato + tornei per una leva)
@@ -11104,47 +11117,17 @@ function renderPartite() {
     } else { ltEl.innerHTML = ''; }
   }
 
-  // Actions
+  // Actions — solo link a Gestione Competizioni per manager
   const actEl = document.getElementById('ptActions');
   if (actEl) {
     actEl.innerHTML = '';
-    const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
-    if (isStaff) {
+    const isManager = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+    if (isManager) {
       const gc = document.createElement('button');
       gc.className = 'btn btn-g btn-sm';
-      gc.textContent = '⚙️ Gestione Competizioni';
+      gc.textContent = '🗂️ Gestione Competizioni';
       gc.onclick = () => goTo('gestcomp');
       actEl.appendChild(gc);
-    }
-    if (canEditPt(currentLeva)) {
-      if (ptCurrentTab === 'amichevoli') {
-        const b = document.createElement('button');
-        b.className = 'btn btn-p btn-sm';
-        b.textContent = '+ Amichevole';
-        b.onclick = () => openPtAmich(null);
-        actEl.appendChild(b);
-      }
-      if (ptCurrentTab === 'campionato') {
-        const b = document.createElement('button');
-        b.className = 'btn btn-p btn-sm';
-        b.textContent = '⚙️ Configura campionato';
-        b.onclick = () => openGcCampEdit();
-        actEl.appendChild(b);
-        if (campionato[currentLeva]?.squadre?.length) {
-          const b2 = document.createElement('button');
-          b2.className = 'btn btn-p btn-sm';
-          b2.textContent = '+ Partita';
-          b2.onclick = () => openGcAddMatch();
-          actEl.appendChild(b2);
-        }
-      }
-      if (ptCurrentTab === 'tornei') {
-        const b = document.createElement('button');
-        b.className = 'btn btn-p btn-sm';
-        b.textContent = '+ Torneo';
-        b.onclick = () => openPtTorneo(null);
-        actEl.appendChild(b);
-      }
     }
   }
 
@@ -11172,10 +11155,10 @@ function renderPtAmichevoli() {
   const future = active.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
   const past   = active.filter(m => m.played || m.data < today).sort((a,b) => b.data.localeCompare(a.data));
   if (all.length === 0) {
-    c.innerHTML = `<div class="empty"><div class="empty-ic">🤝</div><div class="empty-txt">Nessuna amichevole per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Aggiungi la prima amichevole con "+ Amichevole" in alto.':'Nessuna amichevole disponibile.'}</div></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ic">🤝</div><div class="empty-txt">Nessuna amichevole per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessuna amichevole disponibile.</div></div>`;
     return;
   }
-  const mkAmich = m => {
+  const mkAmich = (m, isPast) => {
     const polis = polisName(m.leva);
     const isHome = (m.tipo || 'casa') === 'casa';
     const home = isHome ? polis : m.avversario;
@@ -11190,24 +11173,22 @@ function renderPtAmichevoli() {
         : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
-    const editBtn = canEditPt(m.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id});event.stopPropagation();">✏️</button>` : '';
-    const delBtn  = canEditPt(m.leva) ? `<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
-    const risBtn  = (!m.annullata && canEditPt(m.leva)) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
+    const risBtn = (!m.annullata && isPast && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
   };
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
   if (isFamily()) {
     const futureFase2 = future.filter(m => getFasePt(m.data, m.leva, m) === 'fase2');
     const futureFase1 = future.filter(m => getFasePt(m.data, m.leva, m) === 'fase1');
-    const futureFam = [...futureFase2.map(mkAmich), ...futureFase1.map(mkAmichMasked)].join('');
+    const futureFam = [...futureFase2.map(m => mkAmich(m, false)), ...futureFase1.map(mkAmichMasked)].join('');
     if (futureFam) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${futureFam}</div>`;
   } else {
-    if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
+    if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(m => mkAmich(m, false)).join('')}</div>`;
   }
-  if (past.length)   html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
-  if (!isFamily() && annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(mkAmich).join('')}</div>`;
+  if (past.length)   html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(m => mkAmich(m, true)).join('')}</div>`;
+  if (!isFamily() && annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(m => mkAmich(m, false)).join('')}</div>`;
   c.innerHTML = html;
 }
 
@@ -11217,7 +11198,7 @@ function renderPtCampionato() {
   if (!c) return;
   const camp = campionato[currentLeva];
   if (!camp || !camp.squadre || camp.squadre.length === 0) {
-    c.innerHTML = `<div class="empty"><div class="empty-ic">🏅</div><div class="empty-txt">Campionato non configurato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva) ? 'Clicca "⚙️ Configura girone" per aggiungere le squadre e programmare le partite.' : 'Nessun campionato disponibile.'}</div></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ic">🏅</div><div class="empty-txt">Campionato non configurato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessun campionato disponibile. Configura il campionato dalla sezione Gestione Competizioni.</div></div>`;
     return;
   }
   const polis = polisName(currentLeva);
@@ -11291,9 +11272,8 @@ function renderPtCampionato() {
 
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
-    const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">📊</button>` : '';
-    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    const risBtn = canEnterResult(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">✏️ Modifica risultato</button>` : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
   }).join('');
   let polisSchedHtml;
   if (isFamily()) {
@@ -11301,22 +11281,18 @@ function renderPtCampionato() {
       const fase = getFasePt(m.data, currentLeva, m);
       if (fase === 'none') return '';
       if (fase === 'fase1') return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">Partita di campionato · ⏳ Dettagli a breve</div></div>`;
-      const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
-      const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
-      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div></div>`;
     }).join('');
   } else {
-    polisSchedHtml = polisScheduled.map(m => {
-      const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
-      const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
-      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
-    }).join('');
+    polisSchedHtml = polisScheduled.map(m =>
+      `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div></div>`
+    ).join('');
   }
 
   // ── Scontri tra avversari (con inserimento rapido) — nascosti ai genitori
   const altriAll  = [...altriPlayed, ...altriScheduled].sort((a,b) => (a.data||'').localeCompare(b.data||''));
-  const altriHtml = isFamily() ? '' : renderAltriScontri('campionato', altriAll, currentLeva, null, null);
-  const delCampBtn = canEditPt(currentLeva) ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>` : '';
+  const altriHtml = isFamily() ? '' : renderAltriScontri('campionato', altriAll, currentLeva, null, null, true);
+  const delCampBtn = '';
 
   c.innerHTML = `
     ${seniorBanner}
@@ -11339,7 +11315,7 @@ function renderPtTornei() {
   // For family users, filter out tornei in 'none' phase
   const list = isFamily() ? allList.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allList;
   if (list.length === 0) {
-    c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva) ? 'Aggiungi il primo torneo con il pulsante in alto.' : 'Nessun torneo disponibile.'}</div></div>`;
+    c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessun torneo disponibile. Crea un torneo dalla sezione Gestione Competizioni.</div></div>`;
     return;
   }
   c.innerHTML = list.map(t => {
@@ -11364,12 +11340,12 @@ function renderPtTornei() {
       const altriMatches = sorted.filter(m => m.casa !== polis && m.ospite !== polis);
       const polisHtml = polisMatches.map(m => {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
-        const risBtn = canEditPt(t.leva) ? `<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
+        const risBtn = m.played && canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ Modifica risultato</button>` : '';
         const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
-      const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id);
-      const addBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" style="margin-top:8px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>` : '';
+      const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
+      const addBtn = '';
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>
         ${stHtml}${polisHtml}${altriHtml}${addBtn}`;
     }).join('');
@@ -11381,7 +11357,7 @@ function renderPtTornei() {
     }).join('');
 
     const _tc = (t.convocati||[]).length;
-    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-sm" style="background:#1A7A4A;color:white;font-size:.72rem;" onclick="openTorneoConvocatiModal('${t.id}')">📋 ${_tc ? _tc+' conv.' : 'Convocati'}</button><button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>` : '';
+    const editBtn = '';
     const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
     return `<div class="torneo-card">
       <div class="torneo-hd">
@@ -11401,6 +11377,10 @@ function renderPtTornei() {
 function renderGestComp() {
   const pg = document.getElementById('pg-gestcomp');
   if (!pg || !pg.classList.contains('on')) return;
+  if (!me || !['admin','dirigente','allenatore'].includes(me.role)) {
+    pg.innerHTML = '<div class="empty"><div class="empty-ic">🔒</div><div class="empty-txt">Accesso non autorizzato</div><div class="empty-sub">La Gestione Competizioni è riservata ad Admin, Dirigenti e Mister.</div></div>';
+    return;
+  }
   // Leva tabs
   const ltEl = document.getElementById('gcLevaTabs');
   if (ltEl) {
@@ -12235,9 +12215,9 @@ function getPtVirtualEvents(dateStr) {
 // Rende una card compatta con tutte le partite NON coinvolgenti Polis.
 // Partite già giocate: mostra il risultato + bottone modifica stats.
 // Partite da giocare: due input inline + bottone ✓ per salvare solo il punteggio.
-function renderAltriScontri(tipo, matches, leva, torneoId, faseId) {
+function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = false) {
   if (!matches || !matches.length) return '';
-  const canEdit = canEditPt(leva);
+  const canEdit = !readOnly && canEditPt(leva);
   // Genera un ID HTML sicuro dal ref della partita
   const safeId = (m) => `qrc_${tipo}_${String(tipo==='campionato' ? m.id : torneoId+'_'+faseId+'_'+m.id).replace(/[^a-zA-Z0-9]/g,'_')}`;
   const refStr = (m) => tipo === 'campionato' ? String(m.id) : `${torneoId}__${faseId}__${m.id}`;
@@ -12559,7 +12539,9 @@ function buildRisultatoStats(match, leva) {
   const hdCols = ['<span style="flex:0 0 130px;font-size:.62rem;font-weight:800;color:var(--text3);text-transform:uppercase;">Giocatore</span>',
     '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">⚽</span>',
     '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🅰️</span>'];
-  if (adv) { hdCols.push('<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">min</span>',
+  if (adv) { hdCols.push(
+    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;" title="Titolare">🔵</span>',
+    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">min</span>',
     '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🟨</span>',
     '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🟥</span>'); }
   const gkRoster = roster.filter(p => isGK(p));
@@ -12572,6 +12554,7 @@ function buildRisultatoStats(match, leva) {
     const st = (match.stats||[]).find(s => s.playerId === p.id) || {};
     const gk = isGK(p);
     const advcols = adv ? `
+      <div class="rpstat" title="Titolare"><input type="checkbox" ${st.titolare?'checked':''} data-pid="${p.id}" data-field="titolare" style="width:16px;height:16px;accent-color:#0369a1;cursor:pointer;"></div>
       <div class="rpstat"><input type="number" min="0" max="120" value="${st.minuti||0}" data-pid="${p.id}" data-field="minuti"></div>
       <div class="rpstat"><input type="number" min="0" max="2" value="${st.gialli||0}" data-pid="${p.id}" data-field="gialli"></div>
       <div class="rpstat"><input type="number" min="0" max="1" value="${st.rossi||0}" data-pid="${p.id}" data-field="rossi"></div>` : '';
@@ -12585,7 +12568,48 @@ function buildRisultatoStats(match, leva) {
       ${advcols}${gkcols}
     </div>`;
   }).join('');
+
+  // Sezione Cambi (solo U14+)
+  const cambiSec = document.getElementById('ptRisCambiSection');
+  if (cambiSec) {
+    if (!adv) { cambiSec.style.display = 'none'; return; }
+    cambiSec.style.display = '';
+    const rosterOpts = roster.map(p => `<option value="${p.id}">${escapeHtml(p.nome+' '+p.cogn)}</option>`).join('');
+    window._risCambiRosterOpts = rosterOpts;
+    _renderRisCambi(match.cambi || []);
+  }
 }
+let _risCambiData = [];
+function _renderRisCambi(cambi) {
+  _risCambiData = cambi.map(c => ({...c}));
+  const el = document.getElementById('ptRisCambiList'); if (!el) return;
+  const opts = window._risCambiRosterOpts || '';
+  if (!_risCambiData.length) { el.innerHTML = '<div style="color:var(--text3);font-size:.8rem;padding:4px 0;">Nessun cambio registrato.</div>'; return; }
+  el.innerHTML = _risCambiData.map((c,i) => `
+    <div style="display:flex;gap:6px;align-items:center;padding:4px 0;flex-wrap:wrap;">
+      <span style="font-size:.72rem;color:var(--text3);min-width:20px;">${i+1}.</span>
+      <select style="flex:1;min-width:90px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" id="risCambioEn${i}">${opts}</select>
+      <span style="font-size:.75rem;color:var(--green);font-weight:700;">↑</span>
+      <select style="flex:1;min-width:90px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" id="risCambioUs${i}">${opts}</select>
+      <span style="font-size:.75rem;color:var(--red);font-weight:700;">↓</span>
+      <input type="number" min="1" max="120" value="${c.min||''}" placeholder="min" style="width:46px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;text-align:center;" id="risCambioMin${i}">
+      <button onclick="_removeRisCambio(${i})" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 7px;cursor:pointer;font-size:.78rem;">✕</button>
+    </div>`).join('');
+  _risCambiData.forEach((c,i) => {
+    const selEn = document.getElementById(`risCambioEn${i}`); if (selEn && c.en) selEn.value = c.en;
+    const selUs = document.getElementById(`risCambioUs${i}`); if (selUs && c.us) selUs.value = c.us;
+  });
+}
+function addRisCambio() { _risCambiData.push({en:'',us:'',min:''}); _renderRisCambi(_risCambiData); }
+function _removeRisCambio(i) { _risCambiData.splice(i,1); _renderRisCambi(_risCambiData); }
+function _readRisCambi() {
+  return _risCambiData.map((_,i) => ({
+    en: parseInt(document.getElementById(`risCambioEn${i}`)?.value)||0,
+    us: parseInt(document.getElementById(`risCambioUs${i}`)?.value)||0,
+    min: parseInt(document.getElementById(`risCambioMin${i}`)?.value)||0,
+  })).filter(c => c.en && c.us);
+}
+
 function savePtRisultato() {
   if (!_risCtx) return;
   const {tipo, ref, match, leva} = _risCtx;
@@ -12598,7 +12622,7 @@ function savePtRisultato() {
     const inputs = row.querySelectorAll('input[data-pid]');
     if (!inputs.length) return;
     const pid = parseInt(inputs[0].dataset.pid);
-    const s = {playerId: pid, gol:0, assist:0, minuti:0, gialli:0, rossi:0, golSub:0, cs:false};
+    const s = {playerId: pid, gol:0, assist:0, titolare:false, minuti:0, gialli:0, rossi:0, golSub:0, cs:false};
     inputs.forEach(inp => {
       if (inp.type === 'checkbox') s[inp.dataset.field] = inp.checked;
       else s[inp.dataset.field] = parseInt(inp.value) || 0;
@@ -12606,6 +12630,8 @@ function savePtRisultato() {
     stats.push(s);
   });
   match.stats = stats;
+  const cambiSec = document.getElementById('ptRisCambiSection');
+  if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
@@ -15540,7 +15566,12 @@ function saveNewPassword() {
     <div id="ptRisStatsSection">
       <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;color:var(--text2);" id="ptRisStatsTitle">📋 Statistiche giocatori</div>
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:6px;" id="ptRisStatsHeader"></div>
-      <div id="ptRisStatsList" style="max-height:300px;overflow-y:auto;padding-right:2px;"></div>
+      <div id="ptRisStatsList" style="max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+      <div id="ptRisCambiSection" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+        <div style="font-weight:800;font-size:.84rem;margin-bottom:6px;color:var(--text2);">🔄 Cambi effettuati</div>
+        <div id="ptRisCambiList"></div>
+        <button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="addRisCambio()">+ Aggiungi cambio</button>
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtRisultato')">Annulla</button>
