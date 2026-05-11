@@ -5893,7 +5893,8 @@ function isFamily() {
 // usando solo i default della leva (nessun override per-evento).
 // Se la leva non ha settings → fase2 (visibile, comportamento pre-funzionalità).
 // Per partite già giocate (m.played = true) o date passate passare dateStr nel passato → sempre fase2.
-function getFasePt(dateStr, leva) {
+function getFasePt(dateStr, leva, evObj) {
+  if (evObj && evObj.visibilitaSubito) return 'fase2';
   const def = levaConvSettings[leva] || {};
   const f1 = def.fase1Days != null ? Number(def.fase1Days) : null;
   const f2 = def.fase2Days != null ? Number(def.fase2Days) : null;
@@ -11198,8 +11199,8 @@ function renderPtAmichevoli() {
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
   if (isFamily()) {
-    const futureFase2 = future.filter(m => getFasePt(m.data, m.leva) === 'fase2');
-    const futureFase1 = future.filter(m => getFasePt(m.data, m.leva) === 'fase1');
+    const futureFase2 = future.filter(m => getFasePt(m.data, m.leva, m) === 'fase2');
+    const futureFase1 = future.filter(m => getFasePt(m.data, m.leva, m) === 'fase1');
     const futureFam = [...futureFase2.map(mkAmich), ...futureFase1.map(mkAmichMasked)].join('');
     if (futureFam) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${futureFam}</div>`;
   } else {
@@ -11250,10 +11251,10 @@ function renderPtCampionato() {
       })() : `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessun risultato</div>`;
       const nextBlock = polisScheduled[0] ? (() => {
         const m = polisScheduled[0];
-        if (isFamily() && getFasePt(m.data, currentLeva) === 'none') {
+        if (isFamily() && getFasePt(m.data, currentLeva, m) === 'none') {
           return `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessuna in programma</div>`;
         }
-        if (isFamily() && getFasePt(m.data, currentLeva) === 'fase1') {
+        if (isFamily() && getFasePt(m.data, currentLeva, m) === 'fase1') {
           return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Prossima partita</div><div style="font-size:.9rem;font-weight:800;">Partita di campionato</div><div style="font-size:.65rem;opacity:.75;">${fmtMatchDate(m.data)}${m.giornata ? ' · G'+m.giornata : ''}</div></div>`;
         }
         const avv = m.casa === polis ? m.ospite : m.casa;
@@ -11297,7 +11298,7 @@ function renderPtCampionato() {
   let polisSchedHtml;
   if (isFamily()) {
     polisSchedHtml = polisScheduled.map(m => {
-      const fase = getFasePt(m.data, currentLeva);
+      const fase = getFasePt(m.data, currentLeva, m);
       if (fase === 'none') return '';
       if (fase === 'fase1') return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">Partita di campionato · ⏳ Dettagli a breve</div></div>`;
       const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
@@ -11336,14 +11337,14 @@ function renderPtTornei() {
   if (!c) return;
   const allList = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
   // For family users, filter out tornei in 'none' phase
-  const list = isFamily() ? allList.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva) !== 'none') : allList;
+  const list = isFamily() ? allList.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allList;
   if (list.length === 0) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva) ? 'Aggiungi il primo torneo con il pulsante in alto.' : 'Nessun torneo disponibile.'}</div></div>`;
     return;
   }
   c.innerHTML = list.map(t => {
     // For family users in fase1: show minimal torneo card
-    if (isFamily() && getFasePt(t.dataInizio || t.dataFine || '', t.leva) === 'fase1') {
+    if (isFamily() && getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) === 'fase1') {
       const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
       return `<div class="torneo-card"><div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:.3px;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dateRange}</div></div></div><div class="torneo-body"><div style="color:var(--text3);font-size:.8rem;">⏳ Dettagli disponibili a breve</div></div></div>`;
     }
@@ -11362,7 +11363,7 @@ function renderPtTornei() {
       const polisMatches = sorted.filter(m => m.casa === polis || m.ospite === polis);
       const altriMatches = sorted.filter(m => m.casa !== polis && m.ospite !== polis);
       const polisHtml = polisMatches.map(m => {
-        if (isFamily() && !m.played && getFasePt(m.data, t.leva) === 'none') return '';
+        if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEditPt(t.leva) ? `<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
         const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
@@ -12183,7 +12184,7 @@ function getPtVirtualEvents(dateStr) {
     const polis = polisName(lv);
     amichevoli.filter(m=>m.leva===lv&&m.data===dateStr).forEach(m => {
       if (family) {
-        const fase = getFasePt(m.data, lv);
+        const fase = getFasePt(m.data, lv, m);
         if (fase === 'none') return;
         if (fase === 'fase1') { out.push({_virt:true,_tipo:'amichevole',_ref:m.id,_leva:lv,title:'🤝 Amichevole',color:'#7c3aed',priority:1,luogo:''}); return; }
       }
@@ -12193,7 +12194,7 @@ function getPtVirtualEvents(dateStr) {
     const camp = campionato[lv];
     if (camp) (camp.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m => {
       if (family) {
-        const fase = getFasePt(m.data, lv);
+        const fase = getFasePt(m.data, lv, m);
         if (fase === 'none') return;
         if (fase === 'fase1') { out.push({_virt:true,_tipo:'campionato',_ref:m.id,_leva:lv,title:'🏅 Partita campionato',color:'var(--cp)',priority:2}); return; }
       }
@@ -12205,7 +12206,7 @@ function getPtVirtualEvents(dateStr) {
       if (t.dataInizio&&t.dataFine&&dateStr>=t.dataInizio&&dateStr<=t.dataFine) {
         if (!out.some(e=>e._tipo==='torneo_banner'&&e._ref===t.id)) {
           if (family) {
-            const fase = getFasePt(t.dataInizio, lv);
+            const fase = getFasePt(t.dataInizio, lv, t);
             if (fase !== 'none') {
               const title = fase === 'fase1' ? '🏆 Torneo in programma' : `🏆 ${t.nome}`;
               out.push({_virt:true,_tipo:'torneo_banner',_ref:t.id,_leva:lv,title,color:'#e03055',priority:3});
@@ -12217,7 +12218,7 @@ function getPtVirtualEvents(dateStr) {
       }
       (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m=>{
         if (family) {
-          const fase = getFasePt(m.data, lv);
+          const fase = getFasePt(m.data, lv, m);
           if (fase === 'none') return;
           if (fase === 'fase1') { out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:'🏆 Partita torneo',color:'#e03055',priority:3}); return; }
         }
@@ -12306,6 +12307,7 @@ function openPtAmich(id) {
     document.getElementById('ptAmichAvv').value = m.avversario || '';
     document.getElementById('ptAmichLuogo').value = m.luogo || '';
     document.getElementById('ptAmichAnnullata').checked = !!m.annullata;
+    document.querySelectorAll('input[name="ptAmichVisib"]').forEach(r => { r.checked = r.value === (m.visibilitaSubito ? 'subito' : 'default'); });
   } else {
     document.getElementById('ptAmichData').value = today;
     document.getElementById('ptAmichOrario').value = '';
@@ -12313,6 +12315,7 @@ function openPtAmich(id) {
     document.getElementById('ptAmichAvv').value = '';
     document.getElementById('ptAmichLuogo').value = '';
     document.getElementById('ptAmichAnnullata').checked = false;
+    document.querySelectorAll('input[name="ptAmichVisib"]').forEach(r => { r.checked = r.value === 'default'; });
   }
   openM('mPtAmich');
 }
@@ -12325,13 +12328,14 @@ function savePtAmich() {
   const tipo   = document.getElementById('ptAmichTipo').value || 'casa';
   if (!avv) { toast('⚠️ Inserisci il nome dell\'avversario'); return; }
   const annullata = document.getElementById('ptAmichAnnullata').checked;
+  const visibilitaSubito = document.querySelector('input[name="ptAmichVisib"]:checked')?.value === 'subito';
   const idRaw = document.getElementById('ptAmichId').value;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
-    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; m.annullata = annullata; }
+    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; m.annullata = annullata; m.visibilitaSubito = visibilitaSubito; }
   } else {
     const newId = nextAmichevoleId++;
-    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[]});
+    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
     autoCreateConvocazione(newId, leva);
   }
   closeM('mPtAmich');
@@ -12390,6 +12394,7 @@ function renderCampMatchList() {
       <select style="flex:1;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" onchange="updateCampMatch(${i},'casa',this.value)">${opts.replace(`value="${escapeHtml(m.casa)}"`,`value="${escapeHtml(m.casa)}" selected`)}</select>
       <span style="font-size:.8rem;color:var(--text3);">vs</span>
       <select style="flex:1;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;" onchange="updateCampMatch(${i},'ospite',this.value)">${opts.replace(`value="${escapeHtml(m.ospite)}"`,`value="${escapeHtml(m.ospite)}" selected`)}</select>
+      <label title="Visibile subito ai genitori/nonni" style="display:flex;align-items:center;gap:2px;font-size:.72rem;color:var(--text2);cursor:pointer;white-space:nowrap;"><input type="checkbox"${m.visibilitaSubito?' checked':''} style="accent-color:var(--cp);" onchange="updateCampMatch(${i},'visibilitaSubito',this.checked)">👁</label>
       <button onclick="removeCampMatch(${i})" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.8rem;">✕</button>
     </div>`
   ).join('');
@@ -12400,7 +12405,7 @@ function addCampMatchRow() {
   renderCampMatchList();
 }
 function updateCampMatch(i, field, val) {
-  if (_campSetupMatches[i]) _campSetupMatches[i][field] = field === 'giornata' ? parseInt(val) : val;
+  if (_campSetupMatches[i]) _campSetupMatches[i][field] = field === 'giornata' ? parseInt(val) : field === 'visibilitaSubito' ? Boolean(val) : val;
 }
 function removeCampMatch(i) { _campSetupMatches.splice(i,1); renderCampMatchList(); }
 function saveCampSetup() {
@@ -12426,11 +12431,13 @@ function openPtTorneo(id) {
     document.getElementById('ptTorneoLuogo').value = t.luogo || '';
     document.getElementById('ptTorneoDataI').value = t.dataInizio || today;
     document.getElementById('ptTorneoDataF').value = t.dataFine   || today;
+    document.querySelectorAll('input[name="ptTorneoVisib"]').forEach(r => { r.checked = r.value === (t.visibilitaSubito ? 'subito' : 'default'); });
   } else {
     document.getElementById('ptTorneoNome').value  = '';
     document.getElementById('ptTorneoLuogo').value = '';
     document.getElementById('ptTorneoDataI').value = today;
     document.getElementById('ptTorneoDataF').value = today;
+    document.querySelectorAll('input[name="ptTorneoVisib"]').forEach(r => { r.checked = r.value === 'default'; });
   }
   openM('mPtTorneo');
 }
@@ -12441,12 +12448,13 @@ function savePtTorneo() {
   const di    = document.getElementById('ptTorneoDataI').value;
   const df    = document.getElementById('ptTorneoDataF').value;
   if (!nome) { toast('⚠️ Inserisci il nome del torneo'); return; }
+  const visibilitaSubito = document.querySelector('input[name="ptTorneoVisib"]:checked')?.value === 'subito';
   const id = document.getElementById('ptTorneoId').value;
   if (id) {
     const t = tornei.find(x => x.id === id);
-    if (t) { t.nome = nome; t.leva = leva; t.luogo = luogo; t.dataInizio = di; t.dataFine = df; }
+    if (t) { t.nome = nome; t.leva = leva; t.luogo = luogo; t.dataInizio = di; t.dataFine = df; t.visibilitaSubito = visibilitaSubito; }
   } else {
-    tornei.push({id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, fasi:[], convocati:[]});
+    tornei.push({id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, fasi:[], convocati:[], visibilitaSubito});
   }
   closeM('mPtTorneo');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -15383,6 +15391,17 @@ function saveNewPassword() {
       <input type="checkbox" id="ptAmichAnnullata" style="width:16px;height:16px;accent-color:var(--red);">
       <span style="font-size:.88rem;color:var(--red);font-weight:600;">Segna come annullata</span>
     </label>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px;margin-bottom:4px;">
+      <div style="font-size:.78rem;font-weight:700;color:#166534;margin-bottom:6px;">👁 Visibilità per genitori/nonni</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;margin-bottom:4px;">
+        <input type="radio" name="ptAmichVisib" value="default" checked style="accent-color:var(--cp);">
+        <span>Segui impostazioni Fase 1/2 della leva</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;">
+        <input type="radio" name="ptAmichVisib" value="subito" style="accent-color:var(--cp);">
+        <span>Rendi visibile subito (ignora Fase 1/2)</span>
+      </label>
+    </div>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtAmich')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtAmich()">💾 Salva</button>
@@ -15430,7 +15449,18 @@ function saveNewPassword() {
       <div class="fg"><label class="fl">Data inizio</label><input class="fi" id="ptTorneoDataI" type="date"></div>
       <div class="fg"><label class="fl">Data fine</label><input class="fi" id="ptTorneoDataF" type="date"></div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:18px;">
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 12px;margin-top:4px;">
+      <div style="font-size:.78rem;font-weight:700;color:#166534;margin-bottom:6px;">👁 Visibilità per genitori/nonni</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;margin-bottom:4px;">
+        <input type="radio" name="ptTorneoVisib" value="default" checked style="accent-color:var(--cp);">
+        <span>Segui impostazioni Fase 1/2 della leva</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.83rem;">
+        <input type="radio" name="ptTorneoVisib" value="subito" style="accent-color:var(--cp);">
+        <span>Rendi visibile subito (ignora Fase 1/2)</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtTorneo')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtTorneo()">Salva</button>
     </div>
