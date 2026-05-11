@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router8;
+    module.exports = Router20;
     module.exports.Route = Route;
-    function Router8(options) {
-      if (!(this instanceof Router8)) {
-        return new Router8(options);
+    function Router20(options) {
+      if (!(this instanceof Router20)) {
+        return new Router20(options);
       }
       const opts = options || {};
-      function router8(req, res, next) {
-        router8.handle(req, res, next);
+      function router20(req, res, next) {
+        router20.handle(req, res, next);
       }
-      Object.setPrototypeOf(router8, this);
-      router8.caseSensitive = opts.caseSensitive;
-      router8.mergeParams = opts.mergeParams;
-      router8.params = {};
-      router8.strict = opts.strict;
-      router8.stack = [];
-      return router8;
+      Object.setPrototypeOf(router20, this);
+      router20.caseSensitive = opts.caseSensitive;
+      router20.mergeParams = opts.mergeParams;
+      router20.params = {};
+      router20.strict = opts.strict;
+      router20.stack = [];
+      return router20;
     }
-    Router8.prototype = function() {
+    Router20.prototype = function() {
     };
-    Router8.prototype.param = function param(name, fn) {
+    Router20.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router8.prototype.handle = function handle(req, res, callback) {
+    Router20.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router8.prototype.use = function use(handler) {
+    Router20.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router8.prototype.route = function route(path2) {
+    Router20.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router8.prototype[method] = function(path2) {
+      Router20.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router8 = require_router();
+    var Router20 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router8 = null;
+      var router20 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router8 === null) {
-            router8 = new Router8({
+          if (router20 === null) {
+            router20 = new Router20({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router8;
+          return router20;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router8 = this.router;
+      var router20 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router8.use(path2, fn2);
+          return router20.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router8.use(path2, function mounted_app(req, res, next) {
+        router20.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router8 = require_router();
+    var Router20 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router8.Route;
-    exports.Router = Router8;
+    exports.Route = Router20.Route;
+    exports.Router = Router20;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -48705,12 +48705,12 @@ var require_jwa = __commonJS({
       };
     }
     var bufferEqual;
-    var timingSafeEqual = "timingSafeEqual" in crypto2 ? function timingSafeEqual2(a, b) {
+    var timingSafeEqual2 = "timingSafeEqual" in crypto2 ? function timingSafeEqual3(a, b) {
       if (a.byteLength !== b.byteLength) {
         return false;
       }
       return crypto2.timingSafeEqual(a, b);
-    } : function timingSafeEqual2(a, b) {
+    } : function timingSafeEqual3(a, b) {
       if (!bufferEqual) {
         bufferEqual = require_buffer_equal_constant_time();
       }
@@ -48719,7 +48719,7 @@ var require_jwa = __commonJS({
     function createHmacVerifier(bits) {
       return function verify(thing, signature, secret) {
         var computedSig = createHmacSigner(bits)(thing, secret);
-        return timingSafeEqual(Buffer2.from(signature), Buffer2.from(computedSig));
+        return timingSafeEqual2(Buffer2.from(signature), Buffer2.from(computedSig));
       };
     }
     function createKeySigner(bits) {
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // src/app.ts
-var import_express8 = __toESM(require_express2(), 1);
+var import_express20 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express7 = __toESM(require_express2(), 1);
+var import_express19 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -61262,18 +61262,1576 @@ router6.post("/push/send", async (req, res) => {
 });
 var push_default = router6;
 
-// src/routes/index.ts
+// src/routes/v2/index.ts
+var import_express18 = __toESM(require_express2(), 1);
+
+// src/routes/v2/schema.ts
+var SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS societies (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  nome            VARCHAR(255) NOT NULL,
+  citta           VARCHAR(255),
+  colore_primario VARCHAR(7)   DEFAULT '#1A7A4A',
+  colore_accento  VARCHAR(7)   DEFAULT '#FFD93D',
+  logo_url        TEXT,
+  codice          VARCHAR(50)  UNIQUE,
+  piano           VARCHAR(50)  DEFAULT 'demo',
+  demo_scadenza   DATETIME,
+  stato           VARCHAR(20)  DEFAULT 'attiva',
+  created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  society_id      INT          NOT NULL,
+  nome            VARCHAR(255) NOT NULL,
+  cognome         VARCHAR(255) NOT NULL,
+  email           VARCHAR(255) NOT NULL,
+  password_hash   VARCHAR(512) NOT NULL,
+  ruolo           VARCHAR(50)  NOT NULL,
+  leva            VARCHAR(100),
+  stato           VARCHAR(20)  DEFAULT 'attivo',
+  temp_password   BOOLEAN      DEFAULT FALSE,
+  figli           TEXT,
+  created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_email_society (email, society_id),
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS players (
+  id                   INT AUTO_INCREMENT PRIMARY KEY,
+  society_id           INT          NOT NULL,
+  nome                 VARCHAR(255) NOT NULL,
+  cognome              VARCHAR(255) NOT NULL,
+  soprannome           VARCHAR(255),
+  numero               INT,
+  ruolo_campo          VARCHAR(50),
+  anno_nascita         INT,
+  leva                 VARCHAR(100),
+  telefono_genitore    VARCHAR(50),
+  email_genitore       VARCHAR(255),
+  note                 TEXT,
+  foto_url             TEXT,
+  created_at           TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_players (
+  user_id    INT NOT NULL,
+  player_id  INT NOT NULL,
+  PRIMARY KEY (user_id, player_id),
+  FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
+  FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS leve (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  nome        VARCHAR(100) NOT NULL,
+  ordine      INT          DEFAULT 0,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_leva (society_id, nome),
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  tipo        VARCHAR(50)  NOT NULL,
+  titolo      VARCHAR(255) NOT NULL,
+  leva        VARCHAR(100),
+  luogo       VARCHAR(255),
+  data_inizio DATE,
+  ora_inizio  TIME,
+  data_fine   DATE,
+  ora_fine    TIME,
+  note        TEXT,
+  ricorrente  BOOLEAN      DEFAULT FALSE,
+  freq        VARCHAR(50),
+  giorni      VARCHAR(100),
+  fino_al     DATE,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS presenze (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  player_id   INT          NOT NULL,
+  event_id    INT          NOT NULL,
+  stato       VARCHAR(20)  DEFAULT 'assente',
+  nota        TEXT,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_pres (player_id, event_id),
+  FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+  FOREIGN KEY (event_id)  REFERENCES events(id)  ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS comunicazioni (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  autore_id   INT,
+  tipo        VARCHAR(50),
+  titolo      VARCHAR(255),
+  testo       TEXT,
+  bacheca     VARCHAR(100),
+  leva        VARCHAR(100),
+  urgente     BOOLEAN      DEFAULT FALSE,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS comunicazioni_reads (
+  comunicazione_id  INT NOT NULL,
+  user_id           INT NOT NULL,
+  letto_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (comunicazione_id, user_id),
+  FOREIGN KEY (comunicazione_id) REFERENCES comunicazioni(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)          REFERENCES users(id)         ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  chat_id     VARCHAR(100) NOT NULL,
+  autore_id   INT,
+  testo       TEXT,
+  foto_url    TEXT,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_chat (society_id, chat_id, created_at),
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS quote (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT             NOT NULL,
+  player_id   INT             NOT NULL,
+  importo     DECIMAL(10, 2),
+  scadenza    DATE,
+  stato       VARCHAR(20)     DEFAULT 'in_attesa',
+  leva        VARCHAR(100),
+  stagione    VARCHAR(20),
+  nota        TEXT,
+  created_at  TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY (player_id)  REFERENCES players(id)   ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS notifiche (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  user_id     INT,
+  tipo        VARCHAR(50),
+  titolo      VARCHAR(255),
+  messaggio   TEXT,
+  letto       BOOLEAN      DEFAULT FALSE,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  user_id         INT,
+  society_key     VARCHAR(255),
+  subscription    TEXT NOT NULL,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_push (user_id, society_key)
+);
+`;
+var SEED_SQL = `
+INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
+  VALUES ('Polis Genova', 'Genova', 'POLIS18', 'base', 'attiva');
+
+INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
+  VALUES ('Stella Azzurra Demo', 'Italia', 'STELLA25', 'demo', 'attiva');
+`;
+
+// src/routes/v2/auth.ts
+var import_express7 = __toESM(require_express2(), 1);
+
+// src/lib/auth.ts
+import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
+var JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+var JWT_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+function signJWT(payload) {
+  const full = { ...payload, exp: Math.floor(Date.now() / 1e3) + JWT_EXPIRY_SECONDS };
+  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
+  const body = Buffer.from(JSON.stringify(full)).toString("base64url");
+  const sig = createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+  return `${header}.${body}.${sig}`;
+}
+function verifyJWT(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const [header, body, sig] = parts;
+    const expected = createHmac("sha256", JWT_SECRET).update(`${header}.${body}`).digest("base64url");
+    const sigBuf = Buffer.from(sig, "base64url");
+    const expBuf = Buffer.from(expected, "base64url");
+    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) return null;
+    const payload = JSON.parse(Buffer.from(body, "base64url").toString());
+    if (payload.exp < Math.floor(Date.now() / 1e3)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+function hashPassword(plain) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = pbkdf2Sync(plain, salt, 1e5, 64, "sha512").toString("hex");
+  return `${salt}:${hash}`;
+}
+function verifyPassword(plain, stored) {
+  try {
+    if (!stored.includes(":")) {
+      return plain === stored;
+    }
+    const [salt, hash] = stored.split(":");
+    const attempt = pbkdf2Sync(plain, salt, 1e5, 64, "sha512").toString("hex");
+    const hashBuf = Buffer.from(hash, "hex");
+    const attemptBuf = Buffer.from(attempt, "hex");
+    return hashBuf.length === attemptBuf.length && timingSafeEqual(hashBuf, attemptBuf);
+  } catch {
+    return false;
+  }
+}
+function requireAuth(req, res, next) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  const payload = verifyJWT(auth.slice(7));
+  if (!payload) {
+    res.status(401).json({ error: "invalid_token" });
+    return;
+  }
+  req.jwtUser = payload;
+  next();
+}
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.jwtUser) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    if (!roles.includes(req.jwtUser.role)) {
+      res.status(403).json({ error: "forbidden" });
+      return;
+    }
+    next();
+  };
+}
+
+// src/routes/v2/auth.ts
 var router7 = (0, import_express7.Router)();
-router7.use(health_default);
-router7.use(login_default);
-router7.use(auth_default);
-router7.use(state_default);
-router7.use(assist_default);
-router7.use(push_default);
-var routes_default = router7;
+router7.post("/auth/login", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: "missing_fields" });
+  const normalizedEmail = email.trim().toLowerCase();
+  try {
+    const [rows] = await pool.execute(
+      `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
+              u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
+              s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
+              s.codice, s.piano, s.stato AS society_stato, s.logo_url
+       FROM users u
+       JOIN societies s ON s.id = u.society_id
+       WHERE LOWER(u.email) = ? AND u.stato = 'attivo' AND s.stato = 'attiva'
+       LIMIT 1`,
+      [normalizedEmail]
+    );
+    if (!rows.length) return res.status(401).json({ error: "invalid_credentials" });
+    const user = rows[0];
+    if (!verifyPassword(password, user.password_hash)) {
+      return res.status(401).json({ error: "invalid_credentials" });
+    }
+    const token = signJWT({
+      userId: user.id,
+      societyId: user.society_id,
+      role: user.ruolo,
+      email: user.email
+    });
+    logger.info({ userId: user.id, societyId: user.society_id }, "v2 login ok");
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        societyId: user.society_id,
+        nome: user.nome,
+        cognome: user.cognome,
+        email: user.email,
+        ruolo: user.ruolo,
+        leva: user.leva,
+        tempPassword: user.temp_password === 1,
+        figli: user.figli ? JSON.parse(user.figli) : []
+      },
+      society: {
+        id: user.society_id,
+        nome: user.society_nome,
+        citta: user.citta,
+        colorePrimario: user.colore_primario,
+        coloreAccento: user.colore_accento,
+        codice: user.codice,
+        piano: user.piano,
+        logoUrl: user.logo_url
+      }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "v2 login error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router7.post("/auth/register", async (req, res) => {
+  const { code, nome, cognome, email, password } = req.body;
+  if (!code || !nome || !cognome || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (password.length < 6) return res.status(400).json({ error: "password_too_short" });
+  const normalizedEmail = email.trim().toLowerCase();
+  const upperCode = code.trim().toUpperCase();
+  try {
+    const [socRows] = await pool.execute(
+      "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [upperCode]
+    );
+    if (!socRows.length) return res.status(400).json({ error: "invalid_code" });
+    const society = socRows[0];
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+      [normalizedEmail, society.id]
+    );
+    if (existing.length) return res.status(409).json({ error: "email_exists" });
+    const hash = hashPassword(password);
+    const [result] = await pool.execute(
+      "INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato) VALUES (?, ?, ?, ?, ?, 'genitore', 'pendente')",
+      [society.id, nome.trim(), cognome.trim(), normalizedEmail, hash]
+    );
+    logger.info({ societyId: society.id, email: normalizedEmail }, "v2 register: pending approval");
+    return res.status(201).json({ ok: true, societyName: society.nome, pending: true });
+  } catch (e) {
+    logger.error({ err: e }, "v2 register error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router7.post("/auth/verify-code", async (req, res) => {
+  const { code } = req.body;
+  if (!code?.trim()) return res.status(400).json({ valid: false, error: "missing_code" });
+  const upperCode = code.trim().toUpperCase();
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [upperCode]
+    );
+    if (rows.length) {
+      return res.json({ valid: true, societyId: rows[0].id, societyName: rows[0].nome });
+    }
+    const [blobRows] = await pool.execute(
+      `SELECT \`key\`, state_json FROM \`society_state\`
+       WHERE (\`key\` LIKE 'fieldos_state_soc_%' OR \`key\` = 'fieldos_state_v1')
+         AND \`key\` NOT LIKE 'fieldos_demo%'`
+    );
+    for (const row of blobRows) {
+      let state;
+      try {
+        state = JSON.parse(row.state_json);
+      } catch {
+        continue;
+      }
+      const rowCode = (state.codiceSocieta ?? "").trim().toUpperCase();
+      if (!rowCode || rowCode !== upperCode) continue;
+      const stateKey = row.key;
+      let societyId = 0;
+      const match = stateKey.match(/fieldos_state_soc_(\d+)$/);
+      if (match) societyId = parseInt(match[1], 10);
+      return res.json({ valid: true, societyId, stateKey, societyName: state.nomeSocieta ?? "MyVivaio" });
+    }
+    return res.json({ valid: false });
+  } catch (e) {
+    logger.error({ err: e }, "v2 verify-code error");
+    return res.status(500).json({ valid: false, error: "server_error" });
+  }
+});
+router7.post("/auth/change-password", requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: "missing_fields" });
+  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  const userId = req.jwtUser.userId;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT password_hash FROM users WHERE id = ?",
+      [userId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    if (!verifyPassword(currentPassword, rows[0].password_hash)) {
+      return res.status(401).json({ error: "wrong_current_password" });
+    }
+    await pool.execute(
+      "UPDATE users SET password_hash = ?, temp_password = FALSE WHERE id = ?",
+      [hashPassword(newPassword), userId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "change-password error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var auth_default2 = router7;
+
+// src/routes/v2/society.ts
+var import_express8 = __toESM(require_express2(), 1);
+var router8 = (0, import_express8.Router)();
+router8.get("/society", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, citta, colore_primario, colore_accento, logo_url, codice, piano, demo_scadenza, stato, created_at FROM societies WHERE id = ?",
+      [societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    logger.error({ err: e }, "GET society error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router8.put("/society", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, citta, colorePrimario, coloreAccento, logoUrl, codice } = req.body;
+  try {
+    if (codice !== void 0) {
+      const [conflict] = await pool.execute(
+        "SELECT id FROM societies WHERE UPPER(codice) = UPPER(?) AND id != ?",
+        [codice, societyId]
+      );
+      if (conflict.length) return res.status(409).json({ error: "codice_in_uso" });
+    }
+    await pool.execute(
+      `UPDATE societies SET
+        nome            = COALESCE(?, nome),
+        citta           = COALESCE(?, citta),
+        colore_primario = COALESCE(?, colore_primario),
+        colore_accento  = COALESCE(?, colore_accento),
+        logo_url        = COALESCE(?, logo_url),
+        codice          = COALESCE(?, codice)
+       WHERE id = ?`,
+      [nome ?? null, citta ?? null, colorePrimario ?? null, coloreAccento ?? null, logoUrl ?? null, codice ?? null, societyId]
+    );
+    const [rows] = await pool.execute(
+      "SELECT id, nome, citta, colore_primario, colore_accento, logo_url, codice, piano, stato FROM societies WHERE id = ?",
+      [societyId]
+    );
+    return res.json(rows[0]);
+  } catch (e) {
+    logger.error({ err: e }, "PUT society error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var society_default = router8;
+
+// src/routes/v2/leve.ts
+var import_express9 = __toESM(require_express2(), 1);
+var router9 = (0, import_express9.Router)();
+router9.get("/leve", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, ordine FROM leve WHERE society_id = ? ORDER BY ordine, nome",
+      [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET leve error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router9.post("/leve", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, ordine } = req.body;
+  if (!nome?.trim()) return res.status(400).json({ error: "nome_required" });
+  try {
+    const [result] = await pool.execute(
+      "INSERT INTO leve (society_id, nome, ordine) VALUES (?, ?, ?)",
+      [societyId, nome.trim(), ordine ?? 0]
+    );
+    return res.status(201).json({ id: result.insertId, nome: nome.trim(), ordine: ordine ?? 0 });
+  } catch (e) {
+    if (e?.code === "ER_DUP_ENTRY") return res.status(409).json({ error: "leva_exists" });
+    logger.error({ err: e }, "POST leva error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router9.put("/leve/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, ordine } = req.body;
+  try {
+    const [result] = await pool.execute(
+      "UPDATE leve SET nome = COALESCE(?, nome), ordine = COALESCE(?, ordine) WHERE id = ? AND society_id = ?",
+      [nome ?? null, ordine ?? null, req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT leva error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router9.delete("/leve/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM leve WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE leva error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var leve_default = router9;
+
+// src/routes/v2/players.ts
+var import_express10 = __toESM(require_express2(), 1);
+var router10 = (0, import_express10.Router)();
+var ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
+router10.get("/players", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const leva = req.query.leva;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at
+       FROM players p
+       WHERE p.society_id = ?
+         ${leva ? "AND p.leva = ?" : ""}
+       ORDER BY p.cognome, p.nome`,
+      leva ? [societyId, leva] : [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET players error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router10.get("/players/:id", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM players WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    logger.error({ err: e }, "GET player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router10.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note
+  } = req.body;
+  if (!nome?.trim() || !cognome?.trim()) {
+    return res.status(400).json({ error: "nome_cognome_required" });
+  }
+  try {
+    const [result] = await pool.execute(
+      `INSERT INTO players
+        (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
+         leva, telefono_genitore, email_genitore, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        societyId,
+        nome.trim(),
+        cognome.trim(),
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router10.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note,
+    fotoUrl
+  } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE players SET
+        nome             = COALESCE(?, nome),
+        cognome          = COALESCE(?, cognome),
+        soprannome       = COALESCE(?, soprannome),
+        numero           = COALESCE(?, numero),
+        ruolo_campo      = COALESCE(?, ruolo_campo),
+        anno_nascita     = COALESCE(?, anno_nascita),
+        leva             = COALESCE(?, leva),
+        telefono_genitore = COALESCE(?, telefono_genitore),
+        email_genitore   = COALESCE(?, email_genitore),
+        note             = COALESCE(?, note),
+        foto_url         = COALESCE(?, foto_url)
+       WHERE id = ? AND society_id = ?`,
+      [
+        nome ?? null,
+        cognome ?? null,
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null,
+        fotoUrl ?? null,
+        req.params.id,
+        societyId
+      ]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router10.delete("/players/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM players WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var players_default = router10;
+
+// src/routes/v2/users.ts
+var import_express11 = __toESM(require_express2(), 1);
+var router11 = (0, import_express11.Router)();
+router11.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, created_at
+       FROM users WHERE society_id = ? ORDER BY cognome, nome`,
+      [societyId]
+    );
+    return res.json(rows.map((u) => ({
+      ...u,
+      figli: u.figli ? JSON.parse(u.figli) : [],
+      tempPassword: u.temp_password === 1
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET users error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router11.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, cognome, email, password, ruolo, leva, figli } = req.body;
+  if (!nome || !cognome || !email || !password || !ruolo) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const hash = hashPassword(password);
+  try {
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+      [normalizedEmail, societyId]
+    );
+    if (existing.length) return res.status(409).json({ error: "email_exists" });
+    const [result] = await pool.execute(
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, temp_password)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      [
+        societyId,
+        nome.trim(),
+        cognome.trim(),
+        normalizedEmail,
+        hash,
+        ruolo,
+        leva ?? null,
+        figli ? JSON.stringify(figli) : null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router11.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, cognome, email, password, ruolo, leva, stato, figli } = req.body;
+  try {
+    const updates = [];
+    const params = [];
+    if (nome) {
+      updates.push("nome = ?");
+      params.push(nome.trim());
+    }
+    if (cognome) {
+      updates.push("cognome = ?");
+      params.push(cognome.trim());
+    }
+    if (email) {
+      updates.push("email = ?");
+      params.push(email.trim().toLowerCase());
+    }
+    if (ruolo) {
+      updates.push("ruolo = ?");
+      params.push(ruolo);
+    }
+    if (leva !== void 0) {
+      updates.push("leva = ?");
+      params.push(leva ?? null);
+    }
+    if (stato) {
+      updates.push("stato = ?");
+      params.push(stato);
+    }
+    if (figli !== void 0) {
+      updates.push("figli = ?");
+      params.push(figli ? JSON.stringify(figli) : null);
+    }
+    if (password) {
+      updates.push("password_hash = ?");
+      updates.push("temp_password = TRUE");
+      params.push(hashPassword(password));
+    }
+    if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
+    params.push(req.params.id, societyId);
+    const [result] = await pool.execute(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
+      params
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router11.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  if (String(userId) === req.params.id) return res.status(400).json({ error: "cannot_delete_self" });
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM users WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router11.get("/users/pending", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, cognome, email, created_at FROM users WHERE society_id = ? AND stato = 'pendente' ORDER BY created_at DESC",
+      [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router11.post("/users/:id/approve", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { ruolo, leva, figli } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE users SET stato = 'attivo', ruolo = COALESCE(?, ruolo),
+        leva = COALESCE(?, leva), figli = COALESCE(?, figli)
+       WHERE id = ? AND society_id = ? AND stato = 'pendente'`,
+      [ruolo ?? null, leva ?? null, figli ? JSON.stringify(figli) : null, req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var users_default = router11;
+
+// src/routes/v2/events.ts
+var import_express12 = __toESM(require_express2(), 1);
+var router12 = (0, import_express12.Router)();
+var WRITE_ROLES = ["admin", "allenatore", "dirigente"];
+router12.get("/events", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { month, year: year2, leva } = req.query;
+  let whereExtra = "";
+  const params = [societyId];
+  if (month && year2) {
+    whereExtra += " AND MONTH(data_inizio) = ? AND YEAR(data_inizio) = ?";
+    params.push(parseInt(month), parseInt(year2));
+  }
+  if (leva) {
+    whereExtra += " AND (leva = ? OR leva IS NULL)";
+    params.push(leva);
+  }
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, tipo, titolo, leva, luogo, data_inizio, ora_inizio, data_fine, ora_fine,
+              note, ricorrente, freq, giorni, fino_al, created_at
+       FROM events WHERE society_id = ?${whereExtra} ORDER BY data_inizio, ora_inizio`,
+      params
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET events error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router12.get("/events/:id", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router12.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    tipo,
+    titolo,
+    leva,
+    luogo,
+    dataInizio,
+    oraInizio,
+    dataFine,
+    oraFine,
+    note,
+    ricorrente,
+    freq,
+    giorni,
+    finoAl
+  } = req.body;
+  if (!tipo || !titolo) return res.status(400).json({ error: "tipo_titolo_required" });
+  try {
+    const [result] = await pool.execute(
+      `INSERT INTO events (society_id, tipo, titolo, leva, luogo, data_inizio, ora_inizio,
+                           data_fine, ora_fine, note, ricorrente, freq, giorni, fino_al)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        societyId,
+        tipo,
+        titolo,
+        leva ?? null,
+        luogo ?? null,
+        dataInizio ?? null,
+        oraInizio ?? null,
+        dataFine ?? null,
+        oraFine ?? null,
+        note ?? null,
+        ricorrente ? 1 : 0,
+        freq ?? null,
+        giorni ?? null,
+        finoAl ?? null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST event error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router12.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    tipo,
+    titolo,
+    leva,
+    luogo,
+    dataInizio,
+    oraInizio,
+    dataFine,
+    oraFine,
+    note,
+    ricorrente,
+    freq,
+    giorni,
+    finoAl
+  } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE events SET
+        tipo        = COALESCE(?, tipo),
+        titolo      = COALESCE(?, titolo),
+        leva        = COALESCE(?, leva),
+        luogo       = COALESCE(?, luogo),
+        data_inizio = COALESCE(?, data_inizio),
+        ora_inizio  = COALESCE(?, ora_inizio),
+        data_fine   = COALESCE(?, data_fine),
+        ora_fine    = COALESCE(?, ora_fine),
+        note        = COALESCE(?, note),
+        ricorrente  = COALESCE(?, ricorrente),
+        freq        = COALESCE(?, freq),
+        giorni      = COALESCE(?, giorni),
+        fino_al     = COALESCE(?, fino_al)
+       WHERE id = ? AND society_id = ?`,
+      [
+        tipo ?? null,
+        titolo ?? null,
+        leva ?? null,
+        luogo ?? null,
+        dataInizio ?? null,
+        oraInizio ?? null,
+        dataFine ?? null,
+        oraFine ?? null,
+        note ?? null,
+        ricorrente != null ? ricorrente ? 1 : 0 : null,
+        freq ?? null,
+        giorni ?? null,
+        finoAl ?? null,
+        req.params.id,
+        societyId
+      ]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT event error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router12.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var events_default = router12;
+
+// src/routes/v2/presenze.ts
+var import_express13 = __toESM(require_express2(), 1);
+var router13 = (0, import_express13.Router)();
+router13.get("/presenze", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { eventId } = req.query;
+  if (!eventId) return res.status(400).json({ error: "eventId_required" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT pr.id, pr.player_id, pr.event_id, pr.stato, pr.nota, pr.created_at,
+              p.nome, p.cognome, p.numero, p.leva
+       FROM presenze pr
+       JOIN players p ON p.id = pr.player_id
+       JOIN events e ON e.id = pr.event_id AND e.society_id = ?
+       WHERE pr.event_id = ?
+       ORDER BY p.cognome, p.nome`,
+      [societyId, eventId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET presenze error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router13.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { playerId, eventId, stato, nota } = req.body;
+  if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [evCheck] = await pool.execute(
+      "SELECT id FROM events WHERE id = ? AND society_id = ?",
+      [eventId, societyId]
+    );
+    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
+    await pool.execute(
+      `INSERT INTO presenze (player_id, event_id, stato, nota)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
+      [playerId, eventId, stato, nota ?? null]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenza error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router13.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { eventId, presenze } = req.body;
+  if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [evCheck] = await pool.execute(
+      "SELECT id FROM events WHERE id = ? AND society_id = ?",
+      [eventId, societyId]
+    );
+    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
+    if (!presenze.length) return res.json({ ok: true, updated: 0 });
+    const values = presenze.map((p) => [p.playerId, eventId, p.stato, p.nota ?? null]);
+    const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
+    const flat = values.flat();
+    await pool.execute(
+      `INSERT INTO presenze (player_id, event_id, stato, nota) VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
+      flat
+    );
+    return res.json({ ok: true, updated: presenze.length });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenze/bulk error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var presenze_default = router13;
+
+// src/routes/v2/comunicazioni.ts
+var import_express14 = __toESM(require_express2(), 1);
+var router14 = (0, import_express14.Router)();
+router14.get("/comunicazioni", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { leva, limit = "50", offset = "0" } = req.query;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
+              c.urgente, c.created_at,
+              u.nome AS autore_nome, u.cognome AS autore_cognome,
+              MAX(cr.letto_at) IS NOT NULL AS letto
+       FROM comunicazioni c
+       LEFT JOIN users u ON u.id = c.autore_id
+       LEFT JOIN comunicazioni_reads cr ON cr.comunicazione_id = c.id AND cr.user_id = ?
+       WHERE c.society_id = ?
+         ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
+       GROUP BY c.id
+       ORDER BY c.created_at DESC
+       LIMIT ? OFFSET ?`,
+      leva ? [userId, societyId, leva, parseInt(limit), parseInt(offset)] : [userId, societyId, parseInt(limit), parseInt(offset)]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET comunicazioni error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
+  if (!testo) return res.status(400).json({ error: "testo_required" });
+  try {
+    const [result] = await pool.execute(
+      "INSERT INTO comunicazioni (society_id, autore_id, tipo, titolo, testo, bacheca, leva, urgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        societyId,
+        userId,
+        tipo ?? "comunicazione",
+        titolo ?? null,
+        testo,
+        bacheca ?? "generale",
+        leva ?? null,
+        urgente ? 1 : 0
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST comunicazione error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
+  const { userId } = req.jwtUser;
+  try {
+    await pool.execute(
+      "INSERT IGNORE INTO comunicazioni_reads (comunicazione_id, user_id) VALUES (?, ?)",
+      [req.params.id, userId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM comunicazioni WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var comunicazioni_default = router14;
+
+// src/routes/v2/chat.ts
+var import_express15 = __toESM(require_express2(), 1);
+var router15 = (0, import_express15.Router)();
+router15.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { chatId } = req.params;
+  const { limit = "50", before } = req.query;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT m.id, m.autore_id, m.testo, m.foto_url, m.created_at,
+              u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
+       FROM chat_messages m
+       LEFT JOIN users u ON u.id = m.autore_id
+       WHERE m.society_id = ? AND m.chat_id = ?
+         ${before ? "AND m.id < ?" : ""}
+       ORDER BY m.created_at DESC
+       LIMIT ?`,
+      before ? [societyId, chatId, parseInt(before), parseInt(limit)] : [societyId, chatId, parseInt(limit)]
+    );
+    return res.json(rows.reverse());
+  } catch (e) {
+    logger.error({ err: e }, "GET chat messages error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  const { testo, fotoUrl } = req.body;
+  if (!testo?.trim() && !fotoUrl) return res.status(400).json({ error: "testo_or_foto_required" });
+  try {
+    const [result] = await pool.execute(
+      "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
+      [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST chat message error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var chat_default = router15;
+
+// src/routes/v2/quote.ts
+var import_express16 = __toESM(require_express2(), 1);
+var router16 = (0, import_express16.Router)();
+router16.get("/quote", requireAuth, requireRole("admin", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { leva, stato } = req.query;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT q.id, q.player_id, q.importo, q.scadenza, q.stato, q.leva, q.stagione, q.nota,
+              p.nome, p.cognome
+       FROM quote q
+       JOIN players p ON p.id = q.player_id
+       WHERE q.society_id = ?
+         ${leva ? "AND q.leva = ?" : ""}
+         ${stato ? "AND q.stato = ?" : ""}
+       ORDER BY q.scadenza, p.cognome`,
+      [societyId, ...leva ? [leva] : [], ...stato ? [stato] : []]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET quote error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.post("/quote", requireAuth, requireRole("admin", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { playerId, importo, scadenza, stato, leva, stagione, nota } = req.body;
+  if (!playerId) return res.status(400).json({ error: "playerId_required" });
+  try {
+    const [result] = await pool.execute(
+      "INSERT INTO quote (society_id, player_id, importo, scadenza, stato, leva, stagione, nota) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        societyId,
+        playerId,
+        importo ?? null,
+        scadenza ?? null,
+        stato ?? "in_attesa",
+        leva ?? null,
+        stagione ?? null,
+        nota ?? null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST quota error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.put("/quote/:id", requireAuth, requireRole("admin", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { importo, scadenza, stato, nota } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE quote SET
+        importo  = COALESCE(?, importo),
+        scadenza = COALESCE(?, scadenza),
+        stato    = COALESCE(?, stato),
+        nota     = COALESCE(?, nota)
+       WHERE id = ? AND society_id = ?`,
+      [
+        importo ?? null,
+        scadenza ?? null,
+        stato ?? null,
+        nota ?? null,
+        req.params.id,
+        societyId
+      ]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    await pool.execute("DELETE FROM quote WHERE id = ? AND society_id = ?", [req.params.id, societyId]);
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var quote_default = router16;
+
+// src/routes/v2/migrate.ts
+var import_express17 = __toESM(require_express2(), 1);
+var router17 = (0, import_express17.Router)();
+router17.post("/migrate", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const blob = req.body;
+  if (!blob || typeof blob !== "object") {
+    return res.status(400).json({ error: "body_must_be_blob_json" });
+  }
+  const report = {};
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    if (blob.nomeSocieta || blob.coloriPrimari) {
+      await conn.execute(
+        `UPDATE societies SET
+          nome            = COALESCE(?, nome),
+          colore_primario = COALESCE(?, colore_primario),
+          colore_accento  = COALESCE(?, colore_accento),
+          codice          = COALESCE(NULLIF(?, ''), codice)
+         WHERE id = ?`,
+        [
+          blob.nomeSocieta ?? null,
+          blob.coloriPrimari ?? null,
+          blob.coloriAccento ?? null,
+          blob.codiceSocieta ?? null,
+          societyId
+        ]
+      );
+    }
+    let leveCount = 0;
+    if (Array.isArray(blob.leve)) {
+      for (const l of blob.leve) {
+        if (!l?.trim()) continue;
+        await conn.execute(
+          "INSERT IGNORE INTO leve (society_id, nome) VALUES (?, ?)",
+          [societyId, l.trim()]
+        );
+        leveCount++;
+      }
+    }
+    report.leve = leveCount;
+    const userIdMap = /* @__PURE__ */ new Map();
+    let usersCount = 0;
+    if (Array.isArray(blob.USERS_DB)) {
+      for (const u of blob.USERS_DB) {
+        if (!u.email || !u.nome) continue;
+        const normalEmail = u.email.toLowerCase().trim();
+        const figli = Array.isArray(u.figli) ? u.figli : u.figlio ? [u.figlio] : [];
+        const roleMap = {
+          admin: "admin",
+          allenatore: "allenatore",
+          dirigente: "dirigente",
+          genitore: "genitore",
+          nonno: "nonno",
+          giocatore: "giocatore"
+        };
+        const ruolo = roleMap[u.role] ?? "genitore";
+        const pwdHash = u.pass && !u.pass.includes(":") ? hashPassword(u.pass) : u.pass ?? hashPassword("changeme");
+        try {
+          const [existing] = await conn.execute(
+            "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+            [normalEmail, societyId]
+          );
+          let dbId;
+          if (existing.length) {
+            dbId = existing[0].id;
+            await conn.execute(
+              "UPDATE users SET nome = ?, cognome = ?, ruolo = ?, leva = ?, stato = ?, figli = ?, temp_password = ? WHERE id = ?",
+              [
+                u.nome,
+                u.cogn ?? "",
+                ruolo,
+                u.leva ?? null,
+                u.stato === "sospeso" ? "sospeso" : "attivo",
+                figli.length ? JSON.stringify(figli) : null,
+                u.tempPassword ? 1 : 0,
+                dbId
+              ]
+            );
+          } else {
+            const [ins] = await conn.execute(
+              "INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, stato, figli, temp_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [
+                societyId,
+                u.nome,
+                u.cogn ?? "",
+                normalEmail,
+                pwdHash,
+                ruolo,
+                u.leva ?? null,
+                u.stato === "sospeso" ? "sospeso" : "attivo",
+                figli.length ? JSON.stringify(figli) : null,
+                u.tempPassword ? 1 : 0
+              ]
+            );
+            dbId = ins.insertId;
+            usersCount++;
+          }
+          userIdMap.set(u.id, dbId);
+        } catch (e) {
+          logger.warn({ email: normalEmail, err: e?.message }, "migrate: skip user");
+        }
+      }
+    }
+    report.users = usersCount;
+    const playerIdMap = /* @__PURE__ */ new Map();
+    let playersCount = 0;
+    if (Array.isArray(blob.players)) {
+      for (const p of blob.players) {
+        if (!p.nome) continue;
+        const [existing] = await conn.execute(
+          "SELECT id FROM players WHERE society_id = ? AND nome = ? AND cognome = ? AND COALESCE(leva,'') = COALESCE(?,'') LIMIT 1",
+          [societyId, p.nome, p.cogn ?? "", p.leva ?? null]
+        );
+        let dbId;
+        if (existing.length) {
+          dbId = existing[0].id;
+        } else {
+          const [ins] = await conn.execute(
+            "INSERT INTO players (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva, telefono_genitore, email_genitore, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              societyId,
+              p.nome,
+              p.cogn ?? "",
+              p.sopran ?? null,
+              p.numero ?? null,
+              p.ruolo ?? null,
+              p.anno ?? null,
+              p.leva ?? null,
+              p.telGenitore ?? null,
+              p.emailGenitore ?? null,
+              p.note ?? null
+            ]
+          );
+          dbId = ins.insertId;
+          playersCount++;
+        }
+        playerIdMap.set(p.id, dbId);
+      }
+    }
+    report.players = playersCount;
+    const eventIdMap = /* @__PURE__ */ new Map();
+    let eventsCount = 0;
+    if (Array.isArray(blob.events)) {
+      for (const e of blob.events) {
+        if (!e.type) continue;
+        const typeMap = {
+          allenamento: "allenamento",
+          partita: "partita",
+          campionato: "partita",
+          torneo: "torneo",
+          altro: "altro",
+          allenamento_portieri: "allenamento"
+        };
+        const tipo = typeMap[e.type] ?? e.type;
+        const titolo = e.title ?? tipo;
+        const [ins] = await conn.execute(
+          "INSERT INTO events (society_id, tipo, titolo, leva, luogo, data_inizio, ora_inizio, data_fine, ora_fine, note, ricorrente, freq, giorni, fino_al) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            societyId,
+            tipo,
+            titolo,
+            e.leva ?? null,
+            e.luogo ?? null,
+            e.date ?? null,
+            e.start ?? null,
+            e.endDate ?? null,
+            e.end ?? null,
+            e.note ?? null,
+            e.recurring ? 1 : 0,
+            e.freq ?? null,
+            e.days ?? null,
+            e.until ?? null
+          ]
+        );
+        eventIdMap.set(e.id, ins.insertId);
+        eventsCount++;
+      }
+    }
+    report.events = eventsCount;
+    let commCount = 0;
+    if (Array.isArray(blob.comunicazioni)) {
+      for (const c of blob.comunicazioni) {
+        const body = c.testo ?? c.text ?? "";
+        if (!body) continue;
+        const authorDbId = c.userId ? userIdMap.get(c.userId) ?? null : null;
+        await conn.execute(
+          "INSERT INTO comunicazioni (society_id, autore_id, tipo, titolo, testo, bacheca, leva, urgente, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            societyId,
+            authorDbId,
+            c.tipo ?? "comunicazione",
+            c.titolo ?? null,
+            body,
+            c.bacheca ?? "generale",
+            c.leva ?? null,
+            c.urgente ? 1 : 0,
+            c.date ? new Date(c.date) : /* @__PURE__ */ new Date()
+          ]
+        );
+        commCount++;
+      }
+    }
+    report.comunicazioni = commCount;
+    let chatCount = 0;
+    if (blob.chatMessaggi && typeof blob.chatMessaggi === "object") {
+      for (const [chatId, messages] of Object.entries(blob.chatMessaggi)) {
+        if (!Array.isArray(messages)) continue;
+        for (const m of messages) {
+          const testo = m.testo ?? m.text ?? "";
+          const authorDbId = m.autoreId ? userIdMap.get(m.autoreId) ?? null : null;
+          await conn.execute(
+            "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            [
+              societyId,
+              chatId,
+              authorDbId,
+              testo || null,
+              m.foto ?? null,
+              m.ts ? new Date(m.ts) : m.date ? new Date(m.date) : /* @__PURE__ */ new Date()
+            ]
+          );
+          chatCount++;
+        }
+      }
+    }
+    report.chatMessages = chatCount;
+    await conn.commit();
+    logger.info({ societyId, report }, "v2 migrate: completed");
+    return res.json({ ok: true, report });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "v2 migrate error");
+    return res.status(500).json({ error: "migrate_failed", detail: e?.message });
+  } finally {
+    conn.release();
+  }
+});
+var migrate_default = router17;
+
+// src/routes/v2/index.ts
+var router18 = (0, import_express18.Router)();
+var _schemaReady = false;
+async function ensureSchema() {
+  if (_schemaReady) return;
+  const statements = SCHEMA_SQL.split(";").map((s) => s.trim()).filter(Boolean);
+  for (const sql2 of statements) {
+    await pool.execute(sql2);
+  }
+  const [rows] = await pool.execute("SELECT COUNT(*) AS n FROM societies");
+  if (rows[0].n === 0) {
+    const seeds = SEED_SQL.split(";").map((s) => s.trim()).filter(Boolean);
+    for (const sql2 of seeds) {
+      await pool.execute(sql2);
+    }
+    logger.info("v2: seed data inserted");
+  }
+  _schemaReady = true;
+  logger.info("v2: schema ready");
+}
+router18.use(async (_req, _res, next) => {
+  try {
+    await ensureSchema();
+    next();
+  } catch (e) {
+    logger.error({ err: e }, "v2: schema init failed");
+    next();
+  }
+});
+router18.use(auth_default2);
+router18.use(society_default);
+router18.use(leve_default);
+router18.use(players_default);
+router18.use(users_default);
+router18.use(events_default);
+router18.use(presenze_default);
+router18.use(comunicazioni_default);
+router18.use(chat_default);
+router18.use(quote_default);
+router18.use(migrate_default);
+var v2_default = router18;
+
+// src/routes/index.ts
+var router19 = (0, import_express19.Router)();
+router19.use(health_default);
+router19.use(login_default);
+router19.use(auth_default);
+router19.use(state_default);
+router19.use(assist_default);
+router19.use(push_default);
+router19.use("/api/v2", v2_default);
+var routes_default = router19;
 
 // src/app.ts
-var app = (0, import_express8.default)();
+var app = (0, import_express20.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -61294,12 +62852,12 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express8.default.json({ limit: "10mb" }));
-app.use(import_express8.default.urlencoded({ extended: true }));
+app.use(import_express20.default.json({ limit: "10mb" }));
+app.use(import_express20.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express8.default.static(staticDir));
+  app.use(import_express20.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
@@ -61326,7 +62884,7 @@ function startListening() {
     logger.info({ port }, "Server listening");
   });
 }
-async function ensureSchema() {
+async function ensureSchema2() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS \`society_state\` (
       \`key\`      VARCHAR(255) PRIMARY KEY,
@@ -61347,7 +62905,7 @@ async function ensureSchema() {
 }
 startListening();
 if (process.env.DATABASE_URL) {
-  ensureSchema().catch((err) => {
+  ensureSchema2().catch((err) => {
     logger.error(
       { code: err?.code, sqlMessage: err?.sqlMessage, message: err?.message },
       "DB schema init failed"
