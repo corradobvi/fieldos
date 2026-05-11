@@ -1522,7 +1522,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="rf-sub">14 giorni gratis · nessuna carta di credito richiesta · i tuoi dati restano per sempre.</div>
     <div class="fg"><label class="fl">Nome e cognome *</label><input class="fi" type="text" id="rNomeCogn" placeholder="Mario Rossi" autocomplete="name" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Almeno 6 caratteri" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
     <div class="fg"><label class="fl">Nome società *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
     <div class="fg">
@@ -2364,8 +2364,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       </div>
       <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it" style="min-height:48px;" autocapitalize="off" autocorrect="off"></div>
       <div class="fr">
-        <div class="fg"><label class="fl">Password (min. 6 caratteri)</label><input class="fi" id="srPass" type="password" placeholder="••••••••" style="min-height:48px;"></div>
-        <div class="fg"><label class="fl">Ripeti password</label><input class="fi" id="srPass2" type="password" placeholder="••••••••" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Password</label><input class="fi" id="srPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" style="min-height:48px;" autocomplete="new-password"></div>
+        <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="srPass2" type="password" placeholder="Ripeti la password" style="min-height:48px;" autocomplete="new-password"></div>
       </div>
       <div id="srStep3Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
@@ -2964,6 +2964,153 @@ function togglePassVis() {
   btn.querySelector('svg').innerHTML = show
     ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
     : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+// ── Validazione password robusta ────────────────────────────────
+function _pwCheck(val) {
+  val = val || '';
+  const len     = val.length >= 8;
+  const upper   = /[A-Z]/.test(val);
+  const num     = /[0-9]/.test(val);
+  const special = /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(val);
+  const score   = (len?1:0)+(upper?1:0)+(num?1:0)+(special?1:0);
+  return { len, upper, num, special, score, valid: len && upper && num && special };
+}
+
+// ── Widget riutilizzabile per tutti i campi password ─────────────
+// Aggiunge: occhio mostra/nascondi, barra forza, requisiti, match conferma
+function initPwField(passId, confirmId) {
+  var inp = document.getElementById(passId);
+  if (!inp || inp._pwInited) return;
+  inp._pwInited = true;
+
+  var SVG_EYE_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  var SVG_EYE_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  // 1. Wrappa input in .fi-wrap + aggiunge occhio
+  var par = inp.parentNode;
+  var fw = document.createElement('div');
+  fw.className = 'fi-wrap';
+  par.insertBefore(fw, inp);
+  fw.appendChild(inp);
+  inp.style.border = 'none';
+  inp.style.boxShadow = 'none';
+  inp.style.background = 'transparent';
+  inp.style.flex = '1';
+  inp.style.minWidth = '0';
+
+  var eye = document.createElement('button');
+  eye.type = 'button'; eye.className = 'fi-eye'; eye.tabIndex = -1;
+  eye.setAttribute('aria-label','Mostra/nascondi password');
+  eye.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+SVG_EYE_OPEN+'</svg>';
+  fw.appendChild(eye);
+  eye.addEventListener('click', function() {
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.classList.toggle('on', show);
+    eye.querySelector('svg').innerHTML = show ? SVG_EYE_CLOSED : SVG_EYE_OPEN;
+  });
+
+  // 2. Crea UI forza sotto il gruppo .fg
+  var fg = par.closest ? (par.closest('.fg') || par) : par;
+  var ui = document.createElement('div');
+  ui.id = passId + '_pwui';
+  ui.style.cssText = 'display:none;margin:-2px 0 8px;';
+
+  var reqDiv = document.createElement('div');
+  reqDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:2px 10px;margin-bottom:5px;font-size:.7rem;';
+  var reqs = [
+    { id:'_r1', key:'len',     label:'8 caratteri'       },
+    { id:'_r2', key:'upper',   label:'Maiuscola'          },
+    { id:'_r3', key:'num',     label:'Numero'             },
+    { id:'_r4', key:'special', label:'Carattere speciale' }
+  ];
+  reqs.forEach(function(r) {
+    var s = document.createElement('span');
+    s.id = passId + r.id;
+    s.style.cssText = 'color:#94a3b8;white-space:nowrap;';
+    s.textContent = '❌ ' + r.label;
+    reqDiv.appendChild(s);
+  });
+
+  var barWrap = document.createElement('div');
+  barWrap.style.cssText = 'height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden;margin-bottom:3px;';
+  var bar = document.createElement('div');
+  bar.style.cssText = 'height:100%;width:0;border-radius:2px;transition:width .2s,background .2s;';
+  barWrap.appendChild(bar);
+
+  var barLbl = document.createElement('div');
+  barLbl.style.cssText = 'font-size:.67rem;color:#94a3b8;text-align:right;height:14px;';
+
+  ui.appendChild(reqDiv);
+  ui.appendChild(barWrap);
+  ui.appendChild(barLbl);
+  if (fg.parentNode) fg.after ? fg.after(ui) : fg.parentNode.insertBefore(ui, fg.nextSibling);
+
+  // 3. Listener input → aggiorna indicatori
+  inp.addEventListener('input', function() {
+    var val = inp.value;
+    if (!val) { ui.style.display = 'none'; return; }
+    ui.style.display = '';
+    var c = _pwCheck(val);
+    var labels = { len:'8 caratteri ('+val.length+'/8)', upper:'Maiuscola', num:'Numero', special:'Carattere speciale' };
+    reqs.forEach(function(r) {
+      var el = document.getElementById(passId + r.id);
+      if (!el) return;
+      var ok = c[r.key];
+      el.style.color = ok ? '#059669' : '#dc2626';
+      el.textContent = (ok ? '✅ ' : '❌ ') + labels[r.key];
+    });
+    var cols  = ['#e2e8f0','#dc2626','#f97316','#eab308','#22c55e'];
+    var names = ['','Debole','Media','Buona','Forte'];
+    bar.style.width = (c.score * 25) + '%';
+    bar.style.background = cols[c.score];
+    barLbl.style.color = cols[c.score];
+    barLbl.textContent = c.score > 0 ? names[c.score] : '';
+    updateConf();
+  });
+
+  // 4. Campo conferma (se richiesto)
+  var conf = confirmId ? document.getElementById(confirmId) : null;
+  var confMsg = null;
+  function updateConf() {
+    if (!conf || !confMsg) return;
+    if (!conf.value) { confMsg.style.display = 'none'; return; }
+    confMsg.style.display = '';
+    var match = inp.value === conf.value;
+    confMsg.style.color = match ? '#059669' : '#dc2626';
+    confMsg.textContent = match ? '✅ Password confermata' : '❌ Le password non coincidono';
+  }
+  if (conf) {
+    if (!conf._pwInited) {
+      conf._pwInited = true;
+      var cpar = conf.parentNode;
+      var cfw = document.createElement('div');
+      cfw.className = 'fi-wrap';
+      cpar.insertBefore(cfw, conf);
+      cfw.appendChild(conf);
+      conf.style.border = 'none'; conf.style.boxShadow = 'none';
+      conf.style.background = 'transparent'; conf.style.flex = '1'; conf.style.minWidth = '0';
+
+      var ceye = document.createElement('button');
+      ceye.type = 'button'; ceye.className = 'fi-eye'; ceye.tabIndex = -1;
+      ceye.setAttribute('aria-label','Mostra/nascondi password');
+      ceye.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+SVG_EYE_OPEN+'</svg>';
+      cfw.appendChild(ceye);
+      ceye.addEventListener('click', function() {
+        var show = conf.type === 'password';
+        conf.type = show ? 'text' : 'password';
+        ceye.classList.toggle('on', show);
+        ceye.querySelector('svg').innerHTML = show ? SVG_EYE_CLOSED : SVG_EYE_OPEN;
+      });
+    }
+    var cfg = conf.parentNode.closest ? (conf.parentNode.closest('.fg') || conf.parentNode) : conf.parentNode;
+    confMsg = document.createElement('div');
+    confMsg.style.cssText = 'font-size:.72rem;margin-top:3px;display:none;';
+    cfg.appendChild(confMsg);
+    conf.addEventListener('input', updateConf);
+    inp.addEventListener('input', updateConf);
+  }
 }
 
 function _showLoginErr(msg) {
@@ -6894,16 +7041,19 @@ function openUserModal(id) {
 
 // Genera una password leggibile da pronunciare (no caratteri ambigui)
 function genPassword() {
-  const cons = 'bcdfghjkmnpqrstvwxz';
-  const voc = 'aeiou';
-  const dig = '23456789';
-  let out = '';
-  for (let i=0;i<2;i++) {
-    out += cons[Math.floor(Math.random()*cons.length)];
-    out += voc[Math.floor(Math.random()*voc.length)];
-    out += cons[Math.floor(Math.random()*cons.length)];
-  }
-  out += dig[Math.floor(Math.random()*dig.length)] + dig[Math.floor(Math.random()*dig.length)];
+  // Genera password che soddisfa tutti i requisiti: 8+ car, maiuscola, numero, simbolo
+  const lower   = 'abcdefghjkmnpqrstuvwxyz';
+  const upper   = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  const digits  = '23456789';
+  const symbols = '!@#$%&*';
+  function rnd(s){ return s[Math.floor(Math.random()*s.length)]; }
+  // Garantisce almeno 1 di ogni categoria
+  let parts = [rnd(upper), rnd(digits), rnd(symbols)];
+  // Riempie con lettere minuscole fino a 10 caratteri
+  for (let i=0;i<7;i++) parts.push(rnd(lower));
+  // Mescola
+  parts.sort(function(){ return Math.random()-.5; });
+  const out = parts.join('');
   document.getElementById('uPass').value = out;
 }
 
@@ -7035,9 +7185,10 @@ function saveUser() {
   if (!nome || !cogn || !email || !role) { toast('⚠️ Compila tutti i campi'); return; }
   // Validazione password: obbligatoria in creazione, opzionale in modifica
   if (editingUserId === null) {
-    if (!pass || pass.length < 4) { toast('⚠️ Imposta una password di almeno 4 caratteri (o usa Genera)'); return; }
+    if (!pass) { toast('⚠️ Imposta una password (o usa Genera)'); return; }
+    if (!_pwCheck(pass).valid) { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   } else {
-    if (pass && pass.length < 4) { toast('⚠️ La nuova password deve avere almeno 4 caratteri'); return; }
+    if (pass && !_pwCheck(pass).valid) { toast('⚠️ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   }
   const figli = (role === 'genitore' || role === 'nonno' || role === 'dirigente')
     ? Array.from(document.querySelectorAll('#uFigliBox .lp.on')).map(c => c.dataset.figlio)
@@ -7303,7 +7454,7 @@ function onbNextStep(){
   const pass2 = document.getElementById('onbPass2').value;
   if (!nome || !cogn) { toast('⚠️ Inserisci nome e cognome'); return; }
   if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (!pass || pass.length < 6) { toast('⚠️ Password troppo corta (min. 6)'); return; }
+  if (!_pwCheck(pass).valid) { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (pass !== pass2) { toast('⚠️ Le password non coincidono'); return; }
   // Email duplicata?
   if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -7838,7 +7989,7 @@ function submitSelfReg(){
 
   if (!nome || !cogn) { _err('⚠️ Inserisci nome e cognome.'); return; }
   if (!email || !email.includes('@')) { _err('⚠️ Inserisci un indirizzo email valido.'); return; }
-  if (!pass || pass.length < 6) { _err('⚠️ La password deve essere di almeno 6 caratteri.'); return; }
+  if (!_pwCheck(pass).valid) { _err('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale.'); return; }
   if (pass !== pass2) { _err('⚠️ Le due password non coincidono.'); return; }
 
   if (USERS_DB.find(u => (u.email||'').toLowerCase() === email)) {
@@ -12851,7 +13002,7 @@ async function doSelfRegister() {
 
   if (!nomeCogn)                  { toast('⚠️ Inserisci nome e cognome'); return; }
   if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (pass.length < 6)            { toast('⚠️ Password troppo corta (min. 6 caratteri)'); return; }
+  if (!_pwCheck(pass).valid)      { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (!societa)                   { toast('⚠️ Inserisci il nome della società'); return; }
 
   const parts = nomeCogn.split(' ');
@@ -13990,7 +14141,7 @@ function saCloseModal() {
 function saveNewPassword() {
   const np = document.getElementById('cpNewPass').value;
   const cp = document.getElementById('cpConfPass').value;
-  if (np.length < 6) { toast('❌ Minimo 6 caratteri'); return; }
+  if (!_pwCheck(np).valid) { toast('❌ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (np !== cp) { toast('❌ Le password non coincidono'); return; }
   const u = USERS_DB.find(x => x.id === me.id);
   if (u) { u.pass = np; u.tempPassword = false; }
@@ -15240,8 +15391,8 @@ function saveNewPassword() {
   <div class="modal" style="max-width:400px;">
     <div class="mh"><div class="mt">🔑 Imposta la tua password</div></div>
     <p style="color:var(--text2);font-size:.88rem;margin:0 0 16px;">Benvenuto! Questo è il tuo primo accesso. Scegli una password personale.</p>
-    <div class="fg"><label class="fl">Nuova password *</label><input class="fi" id="cpNewPass" type="password" placeholder="Minimo 6 caratteri" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
-    <div class="fg"><label class="fl">Conferma password *</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
+    <div class="fg"><label class="fl">Nuova password</label><input class="fi" id="cpNewPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
+    <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
   </div>
 </div>
@@ -15506,6 +15657,11 @@ function urlBase64ToUint8Array(base64String) {
 // ── Init PWA on page load
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
+  // Widget password: occhio + barra forza + requisiti + match conferma
+  initPwField('rPass',      null);          // registrazione nuova società (no confirm)
+  initPwField('srPass',     'srPass2');     // registrazione genitore con codice
+  initPwField('onbPass',    'onbPass2');    // onboarding via invito
+  initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
 });
 </script>
 
