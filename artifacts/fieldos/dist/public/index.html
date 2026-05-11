@@ -673,6 +673,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
 .btn-demo:hover{opacity:.9;transform:translateY(-1px);}
+/* Cerca società cards */
+.soc-result-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:9px;display:flex;align-items:center;gap:14px;transition:border-color .15s;}
+.soc-result-card:hover{border-color:var(--cp);}
+.soc-result-av{width:44px;height:44px;border-radius:50%;background:var(--cp);color:#fff;font-weight:800;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+/* Richiesta accesso titolo buttons */
+.ra-titolo-btn{display:flex;align-items:center;gap:7px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;transition:border-color .12s,background .12s;justify-content:center;}
+.ra-titolo-btn.on{border-color:var(--cp);background:rgba(var(--cp-rgb),.07);color:var(--cp);}
 /* Schermata registrazione autonoma */
 #registerScreen{
   display:none;min-height:100vh;background:var(--bg);
@@ -1488,6 +1495,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             onclick="loginConCodice()">Accedi →</button>
         </div>
         <div id="loginCodiceMsg" style="display:none;font-size:.84rem;font-weight:600;margin-top:8px;padding:8px 11px;border-radius:8px;"></div>
+        <div style="text-align:center;margin-top:10px;font-size:.8rem;color:var(--text2);">
+          Non hai il codice? <a href="#" onclick="event.preventDefault();openCercaSocieta()" style="color:var(--cp);font-weight:700;text-decoration:none;">🔍 Cerca la tua società →</a>
+        </div>
       </div>
       <!-- Demo interna: visibile solo con ?demo=true nell'URL -->
       <div id="demoQuickPanel" style="display:none;margin-top:14px;">
@@ -1822,6 +1832,26 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               </div>
             </div>
             <div id="setCodiceStato" style="font-size:.75rem;margin-top:4px;"></div>
+          </div>
+          <!-- Card ricerca pubblica + richieste -->
+          <div class="card" id="ricercaCard" style="grid-column:span 2;">
+            <div class="ch"><div class="ct">🔍 Ricerca pubblica e accesso</div></div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--bg2,#f8fafc);border-radius:10px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-weight:700;font-size:.88rem;">🔍 Visibile nella ricerca pubblica</div>
+                  <div style="font-size:.77rem;color:var(--text2);margin-top:2px;">I genitori possono trovare questa società cercando per nome su MyVivaio</div>
+                </div>
+                <input type="checkbox" id="toggleRicercaPubblica" onchange="saveRicercaSettings()" style="width:20px;height:20px;accent-color:var(--cp);cursor:pointer;flex-shrink:0;">
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:var(--bg2,#f8fafc);border-radius:10px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-weight:700;font-size:.88rem;">📬 Accetta richieste di associazione</div>
+                  <div style="font-size:.77rem;color:var(--text2);margin-top:2px;">I genitori possono inviare richieste di accesso senza il codice società</div>
+                </div>
+                <input type="checkbox" id="toggleAccettaRichieste" onchange="saveRicercaSettings()" style="width:20px;height:20px;accent-color:var(--cp);cursor:pointer;flex-shrink:0;">
+              </div>
+            </div>
           </div>
           <div class="card" id="usersCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">👥 Gestione utenti</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-g btn-sm" onclick="openInvitaGenitore()">📧 Invita genitore</button><button class="btn btn-p btn-sm" onclick="openUserModal(null)">+ Aggiungi utente</button></div></div>
@@ -2703,6 +2733,9 @@ let editingUserId = null;
 let codiceSocieta = '';
 let pendingUsers = [];
 let nextPendingUserId = 1;
+let ricercaPubblica = true;
+let accettaRichieste = true;
+let _raSelectedSoc = null; // società selezionata nel flusso "trova società"
 let inviti = [];
 let _currentInvitoToken = null;
 let _onboardSelectedIds = [];
@@ -3679,6 +3712,17 @@ function goTo(pgId) {
     if (_usersCardEl) _usersCardEl.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
     const _leveCardEl = document.getElementById('leveCard');
     if (_leveCardEl) _leveCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    // ricercaCard: solo admin
+    const _ricercaCardEl = document.getElementById('ricercaCard');
+    if (_ricercaCardEl) {
+      _ricercaCardEl.style.display = me.role === 'admin' ? '' : 'none';
+      if (me.role === 'admin') {
+        const _tRP = document.getElementById('toggleRicercaPubblica');
+        const _tAR = document.getElementById('toggleAccettaRichieste');
+        if (_tRP) _tRP.checked = ricercaPubblica !== false;
+        if (_tAR) _tAR.checked = accettaRichieste !== false;
+      }
+    }
     // Nasconde i pulsanti Aggiungi/Invita per dirigente (solo visualizza)
     document.querySelectorAll('#usersCard .btn-p, #usersCard .btn-g').forEach(btn => {
       if (btn.textContent.includes('Aggiungi') || btn.textContent.includes('Invita')) {
@@ -8662,27 +8706,234 @@ function renderPendingUsersBox(){
   box.style.display = 'block';
   box.style.cssText += 'background:#fff8e6;border:1.5px solid #f0c060;border-radius:9px;padding:11px 13px;margin-bottom:12px;';
   const rows = pendingUsers.map(p => {
-    const figliEsist = players.filter(pl => p.figli.includes(pl.nome + ' ' + pl.cogn));
-    const figliMancanti = p.figli.filter(nome => !figliEsist.find(pl => (pl.nome+' '+pl.cogn) === nome));
-    const figliInfo = `<span style="color:var(--text2);">Figli:</span> ${escapeHtml(p.figli.join(', '))}` +
-      (figliMancanti.length ? ` <span style="color:var(--red);">(⚠ ${figliMancanti.length} non più in rosa)</span>` : '');
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px;background:white;border-radius:7px;margin-top:6px;border:1px solid #f0d090;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}</div>
-        <div style="font-size:.74rem;color:var(--text2);">${escapeHtml(p.email)}</div>
-        <div style="font-size:.72rem;margin-top:2px;">${figliInfo}</div>
+    const figliEsist = players.filter(pl => (p.figli||[]).includes(pl.nome + ' ' + pl.cogn));
+    const figliMancanti = (p.figli||[]).filter(nome => !figliEsist.find(pl => (pl.nome+' '+pl.cogn) === nome));
+    const figliInfo = (p.figli||[]).length
+      ? `<span style="color:var(--text2);">Figlio/a:</span> ${escapeHtml((p.figli||[]).join(', '))}` +
+        (figliMancanti.length ? ` <span style="color:var(--red);">(⚠ non trovato in rosa)</span>` : '')
+      : '<span style="color:var(--text3);">Nessun figlio indicato</span>';
+    const titoloLabel = {papa:'👨 Papà',mamma:'👩 Mamma',nonno:'👴 Nonno',nonna:'👵 Nonna'}[p.titoloFamiliare] || '';
+    const fromSearchBadge = p.fromSearch ? '<span class="pill" style="background:#e0f2fe;color:#0369a1;font-size:.66rem;">🔍 da ricerca</span>' : '';
+    const msgHtml = p.messaggio ? `<div style="font-size:.72rem;color:var(--text2);margin-top:3px;font-style:italic;">"${escapeHtml(p.messaggio)}"</div>` : '';
+    return `<div style="padding:10px 12px;background:white;border-radius:7px;margin-top:6px;border:1px solid #f0d090;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+            <span style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}</span>
+            ${titoloLabel ? `<span style="font-size:.75rem;color:var(--text2);">${titoloLabel}</span>` : ''}
+            ${fromSearchBadge}
+          </div>
+          <div style="font-size:.74rem;color:var(--text2);">${escapeHtml(p.email)}</div>
+          <div style="font-size:.72rem;margin-top:3px;">${figliInfo}</div>
+          ${msgHtml}
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0;align-items:flex-start;">
+          <button class="btn btn-p btn-xs" id="appr${p.id}">✅ Accetta</button>
+          <button class="btn btn-r btn-xs" id="rej${p.id}">✕</button>
+        </div>
       </div>
-      <button class="btn btn-p btn-xs" id="appr${p.id}">✅ Approva</button>
-      <button class="btn btn-r btn-xs" id="rej${p.id}">✕ Rifiuta</button>
     </div>`;
   }).join('');
-  box.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#8a5a00;">⏳ Richieste di iscrizione in attesa <span class="pill" style="background:#f0c060;color:white;">${pendingUsers.length}</span></div>${rows}`;
+  box.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#8a5a00;margin-bottom:4px;">📬 Richieste di accesso in attesa <span class="pill" style="background:#f0c060;color:white;">${pendingUsers.length}</span></div>${rows}`;
   pendingUsers.forEach(p => {
     const a = document.getElementById('appr'+p.id);
     const r = document.getElementById('rej'+p.id);
     if (a) a.onclick = () => approvePending(p.id);
     if (r) r.onclick = () => rejectPending(p.id);
   });
+}
+
+// ═══════════════════════════════════
+// CERCA SOCIETÀ + RICHIESTA ACCESSO
+// ═══════════════════════════════════
+
+function openCercaSocieta() {
+  const inp = document.getElementById('cercaSocInput');
+  const res = document.getElementById('cercaSocResults');
+  const st  = document.getElementById('cercaSocStatus');
+  if (inp) inp.value = '';
+  if (res) res.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.85rem;padding:24px;">Inserisci il nome della società per cercarla.</div>';
+  if (st) st.style.display = 'none';
+  openM('mCercaSocieta');
+}
+
+async function doCercaSocSearch() {
+  const inp = document.getElementById('cercaSocInput');
+  const res = document.getElementById('cercaSocResults');
+  const st  = document.getElementById('cercaSocStatus');
+  const q   = (inp ? inp.value : '').trim();
+  if (!q || q.length < 2) {
+    if (res) res.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.85rem;padding:24px;">Inserisci almeno 2 caratteri per cercare.</div>';
+    return;
+  }
+  if (st) { st.textContent = '⏳ Ricerca in corso…'; st.style.display = 'block'; }
+  if (res) res.innerHTML = '';
+  try {
+    const r = await fetch('/api/public/societies?q=' + encodeURIComponent(q));
+    if (!r.ok) throw new Error('server_error');
+    const data = await r.json();
+    const list = data.societies || [];
+    if (st) st.style.display = 'none';
+    if (!list.length) {
+      if (res) res.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.85rem;padding:24px;">Nessuna società trovata. Riprova con un altro termine.</div>';
+      return;
+    }
+    if (res) res.innerHTML = list.map(s => {
+      const ini = (s.nome||'?')[0].toUpperCase();
+      const leveHtml = s.leveCount > 0 ? `<span style="font-size:.75rem;color:var(--text2);">${s.leveCount} lev${s.leveCount===1?'a':'e'} attiv${s.leveCount===1?'a':'e'}: ${(s.leve||[]).join(', ')}</span>` : '';
+      return `<div class="soc-result-card">
+        <div class="soc-result-av">${escapeHtml(ini)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.92rem;">${escapeHtml(s.nome)}</div>
+          ${leveHtml}
+        </div>
+        <button class="btn btn-p btn-sm" onclick="openRichiestaAccesso(${JSON.stringify(s).replace(/"/g,'&quot;')})">📬 Richiedi</button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (st) { st.textContent = '❌ Errore durante la ricerca. Verifica la connessione.'; st.style.display = 'block'; }
+  }
+}
+
+function openRichiestaAccesso(soc) {
+  _raSelectedSoc = soc;
+  const nomeSocEl = document.getElementById('raNomeSoc');
+  if (nomeSocEl) nomeSocEl.textContent = soc.nome || '—';
+  // Reset form
+  ['raNome','raCogn','raEmail','raPass','raFiglio','raMessaggio'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['raStep1Err','raStep2Err','raStep3Err','raStep3Ok'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.ra-titolo-btn').forEach(b => b.classList.remove('on'));
+  const firstTitolo = document.querySelector('.ra-titolo-btn');
+  if (firstTitolo) firstTitolo.classList.add('on');
+  const raStep3Btns = document.getElementById('raStep3Btns');
+  if (raStep3Btns) raStep3Btns.style.display = 'flex';
+  const raBtnSubmit = document.getElementById('raBtnSubmit');
+  if (raBtnSubmit) { raBtnSubmit.disabled = false; raBtnSubmit.textContent = '📬 Invia richiesta'; }
+  closeM('mCercaSocieta');
+  raShowStep(1);
+  openM('mRichiestaAccesso');
+  // Init pw field after DOM is ready
+  setTimeout(() => { if (typeof initPwField === 'function') initPwField('raPass', null); }, 60);
+}
+
+function selectRaTitolo(lbl, val) {
+  document.querySelectorAll('.ra-titolo-btn').forEach(b => b.classList.remove('on'));
+  lbl.classList.add('on');
+  const rb = lbl.querySelector('input[type=radio]');
+  if (rb) rb.checked = true;
+}
+
+function raShowStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('raStep' + i);
+    if (el) el.style.display = i === n ? '' : 'none';
+    const dot = document.getElementById('raStepDot' + i);
+    if (dot) dot.style.background = i <= n ? 'var(--cp)' : 'var(--border2)';
+  });
+}
+
+function raGoStep(n) {
+  const showErr = (id, msg) => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  };
+  const hideErr = id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; };
+
+  if (n === 2) {
+    hideErr('raStep1Err');
+    const nome = (document.getElementById('raNome')||{}).value?.trim();
+    const cogn = (document.getElementById('raCogn')||{}).value?.trim();
+    const email = (document.getElementById('raEmail')||{}).value?.trim();
+    const pass  = (document.getElementById('raPass')||{}).value;
+    if (!nome || !cogn) { showErr('raStep1Err', '⚠️ Inserisci nome e cognome'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('raStep1Err', '⚠️ Email non valida'); return; }
+    if (!pass || pass.length < 6) { showErr('raStep1Err', '⚠️ Password troppo corta (minimo 6 caratteri)'); return; }
+  }
+  if (n === 3) {
+    hideErr('raStep2Err');
+    const figlio = (document.getElementById('raFiglio')||{}).value?.trim();
+    if (!figlio) { showErr('raStep2Err', '⚠️ Inserisci il nome e cognome del figlio/a'); return; }
+    // Update riepilogo
+    const nome = (document.getElementById('raNome')||{}).value?.trim();
+    const cogn = (document.getElementById('raCogn')||{}).value?.trim();
+    const titoloSel = document.querySelector('.ra-titolo-btn.on');
+    const titoloText = titoloSel ? titoloSel.textContent.trim() : '';
+    const riepilogoNome = document.getElementById('raRiepilogoNome');
+    const riepilogoFiglio = document.getElementById('raRiepilogoFiglio');
+    if (riepilogoNome) riepilogoNome.textContent = `${nome} ${cogn} — ${titoloText}`;
+    if (riepilogoFiglio) riepilogoFiglio.textContent = `Figlio/a dichiarato/a: ${figlio}`;
+  }
+  raShowStep(n);
+}
+
+async function submitRichiestaAccesso() {
+  if (!_raSelectedSoc) return;
+  const nome    = (document.getElementById('raNome')||{}).value?.trim();
+  const cogn    = (document.getElementById('raCogn')||{}).value?.trim();
+  const email   = (document.getElementById('raEmail')||{}).value?.trim().toLowerCase();
+  const pass    = (document.getElementById('raPass')||{}).value;
+  const figlio  = (document.getElementById('raFiglio')||{}).value?.trim();
+  const msg     = (document.getElementById('raMessaggio')||{}).value?.trim();
+  const titoloEl = document.querySelector('.ra-titolo-btn.on input[type=radio]') ||
+                   document.querySelector('input[name="raTitolo"]:checked');
+  const titolo  = titoloEl ? titoloEl.value : 'papa';
+
+  const btn = document.getElementById('raBtnSubmit');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Invio in corso…'; }
+  document.getElementById('raStep3Err').style.display = 'none';
+
+  try {
+    const r = await fetch('/api/public/join-request', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        societyId: _raSelectedSoc.id,
+        nome, cogn, email, pass,
+        titoloFamiliare: titolo,
+        figlioDichiarato: figlio,
+        messaggio: msg
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      const msgs = {
+        email_already_exists: 'Questa email ha già un account in questa società.',
+        request_already_sent: 'Hai già inviato una richiesta a questa società.',
+        requests_disabled: 'Questa società non accetta richieste al momento.',
+        society_not_found: 'Società non trovata. Riprova più tardi.',
+      };
+      const errEl = document.getElementById('raStep3Err');
+      if (errEl) { errEl.textContent = '❌ ' + (msgs[data.error] || 'Errore imprevisto. Riprova.'); errEl.style.display = 'block'; }
+      if (btn) { btn.disabled = false; btn.textContent = '📬 Invia richiesta'; }
+      return;
+    }
+    // Success
+    const okEl = document.getElementById('raStep3Ok');
+    if (okEl) {
+      okEl.innerHTML = `✅ <strong>Richiesta inviata a ${escapeHtml(_raSelectedSoc.nome)}!</strong><br>Lo staff della società riceverà una notifica e ti contatterà a breve all'indirizzo <strong>${escapeHtml(email)}</strong>.`;
+      okEl.style.display = 'block';
+    }
+    const btnsEl = document.getElementById('raStep3Btns');
+    if (btnsEl) btnsEl.style.display = 'none';
+    _raSelectedSoc = null;
+  } catch(e) {
+    const errEl = document.getElementById('raStep3Err');
+    if (errEl) { errEl.textContent = '❌ Errore di connessione. Verifica la rete e riprova.'; errEl.style.display = 'block'; }
+    if (btn) { btn.disabled = false; btn.textContent = '📬 Invia richiesta'; }
+  }
+}
+
+function saveRicercaSettings() {
+  const _tRP = document.getElementById('toggleRicercaPubblica');
+  const _tAR = document.getElementById('toggleAccettaRichieste');
+  ricercaPubblica   = _tRP ? _tRP.checked : true;
+  accettaRichieste  = _tAR ? _tAR.checked : true;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('✅ Impostazioni ricerca salvate');
 }
 
 // ═══════════════════════════════════
@@ -15276,6 +15527,8 @@ async function doRejoinSocieta() {
       codiceSocieta: codiceSocieta,
       pendingUsers: pendingUsers,
       nextPendingUserId: nextPendingUserId,
+      ricercaPubblica: ricercaPubblica,
+      accettaRichieste: accettaRichieste,
       chatMessaggi: chatMessaggi,
       nextChatMsgId: nextChatMsgId,
       chatLastSeen: chatLastSeen,
@@ -15473,6 +15726,8 @@ async function doRejoinSocieta() {
       if (typeof s.codiceSocieta === 'string') codiceSocieta = s.codiceSocieta;
       if (Array.isArray(s.pendingUsers)) pendingUsers = s.pendingUsers;
       if (typeof s.nextPendingUserId === 'number') nextPendingUserId = s.nextPendingUserId;
+      if (typeof s.ricercaPubblica === 'boolean') ricercaPubblica = s.ricercaPubblica;
+      if (typeof s.accettaRichieste === 'boolean') accettaRichieste = s.accettaRichieste;
       if (Array.isArray(s.chatMessaggi)) chatMessaggi = s.chatMessaggi;
       if (typeof s.nextChatMsgId === 'number') nextChatMsgId = s.nextChatMsgId;
       if (s.chatLastSeen && typeof s.chatLastSeen === 'object') chatLastSeen = s.chatLastSeen;
@@ -16571,6 +16826,96 @@ async function doRejoinSocieta() {
     </div>
     <div id="nsMsg" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:12px;"></div>
     <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
+  </div>
+</div>
+
+<!-- ══════ CERCA SOCIETÀ ══════ -->
+<div class="ov" id="mCercaSocieta">
+  <div class="modal" style="max-width:520px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="mh"><div class="mt">🔍 Trova la tua società</div><button class="mx" onclick="closeM('mCercaSocieta')">✕</button></div>
+    <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;flex-shrink:0;">Cerca la società sportiva di tuo figlio/a per richiedere l'accesso.</p>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-shrink:0;">
+      <input class="fi" id="cercaSocInput" placeholder="Nome società o città..." style="flex:1;"
+        oninput="doCercaSocSearch()"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();doCercaSocSearch();}">
+      <button class="btn btn-p" onclick="doCercaSocSearch()" style="white-space:nowrap;">Cerca</button>
+    </div>
+    <div id="cercaSocStatus" style="font-size:.82rem;color:var(--text2);text-align:center;padding:8px 0;display:none;flex-shrink:0;"></div>
+    <div id="cercaSocResults" style="overflow-y:auto;flex:1;min-height:100px;"></div>
+  </div>
+</div>
+
+<!-- ══════ RICHIESTA ACCESSO ══════ -->
+<div class="ov" id="mRichiestaAccesso">
+  <div class="modal" style="max-width:480px;">
+    <div class="mh">
+      <div class="mt">📬 Richiedi accesso a <span id="raNomeSoc" style="color:var(--cp);">—</span></div>
+      <button class="mx" onclick="closeM('mRichiestaAccesso')">✕</button>
+    </div>
+    <!-- Step indicator -->
+    <div style="display:flex;gap:6px;margin-bottom:18px;flex-shrink:0;">
+      <div id="raStepDot1" style="flex:1;height:4px;border-radius:2px;background:var(--cp);"></div>
+      <div id="raStepDot2" style="flex:1;height:4px;border-radius:2px;background:var(--border2);"></div>
+      <div id="raStepDot3" style="flex:1;height:4px;border-radius:2px;background:var(--border2);"></div>
+    </div>
+
+    <!-- Step 1: Dati personali -->
+    <div id="raStep1">
+      <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;font-weight:600;">Passo 1 di 3 — I tuoi dati</p>
+      <div class="fr">
+        <div class="fg"><label class="fl">Nome *</label><input class="fi" id="raNome" placeholder="Es. Marco" autocapitalize="words"></div>
+        <div class="fg"><label class="fl">Cognome *</label><input class="fi" id="raCogn" placeholder="Es. Rossi" autocapitalize="words"></div>
+      </div>
+      <div class="fg"><label class="fl">Email *</label><input class="fi" id="raEmail" type="email" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none"></div>
+      <div class="fg"><label class="fl">Password *</label>
+        <div class="fi-wrap"><input class="fi" id="raPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
+      </div>
+      <div id="raStep1Err" style="display:none;font-size:.82rem;color:#c0392b;padding:7px 10px;background:#fef2f2;border-radius:7px;margin-top:8px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-p" style="flex:1;" onclick="raGoStep(2)">Avanti →</button>
+        <button class="btn btn-g" onclick="closeM('mRichiestaAccesso')">Annulla</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Figlio + ruolo -->
+    <div id="raStep2" style="display:none;">
+      <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;font-weight:600;">Passo 2 di 3 — Tuo figlio/a</p>
+      <div class="fg"><label class="fl">Nome e cognome del figlio/a *</label>
+        <input class="fi" id="raFiglio" placeholder="Es. Lorenzo Rossi" autocapitalize="words">
+        <div style="font-size:.74rem;color:var(--text3);margin-top:3px;">Come appare nella rosa della squadra</div>
+      </div>
+      <div class="fg"><label class="fl">Sei il/la suo/sua…</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;" id="raTitoloGrid">
+          <label class="ra-titolo-btn" onclick="selectRaTitolo(this,'papa')"><input type="radio" name="raTitolo" value="papa" style="display:none;"> 👨 Papà</label>
+          <label class="ra-titolo-btn" onclick="selectRaTitolo(this,'mamma')"><input type="radio" name="raTitolo" value="mamma" style="display:none;"> 👩 Mamma</label>
+          <label class="ra-titolo-btn" onclick="selectRaTitolo(this,'nonno')"><input type="radio" name="raTitolo" value="nonno" style="display:none;"> 👴 Nonno</label>
+          <label class="ra-titolo-btn" onclick="selectRaTitolo(this,'nonna')"><input type="radio" name="raTitolo" value="nonna" style="display:none;"> 👵 Nonna</label>
+        </div>
+      </div>
+      <div id="raStep2Err" style="display:none;font-size:.82rem;color:#c0392b;padding:7px 10px;background:#fef2f2;border-radius:7px;margin-top:8px;"></div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-g" onclick="raGoStep(1)" style="padding:0 14px;">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;" onclick="raGoStep(3)">Avanti →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Messaggio + submit -->
+    <div id="raStep3" style="display:none;">
+      <p style="font-size:.85rem;color:var(--text2);margin:0 0 14px;font-weight:600;">Passo 3 di 3 — Messaggio (opzionale)</p>
+      <div style="background:var(--bg2,#f8fafc);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.84rem;line-height:1.5;">
+        <div style="font-weight:700;margin-bottom:4px;" id="raRiepilogoNome">—</div>
+        <div style="color:var(--text2);" id="raRiepilogoFiglio">—</div>
+      </div>
+      <div class="fg"><label class="fl">Messaggio per la società (opzionale)</label>
+        <textarea class="fi" id="raMessaggio" rows="3" placeholder="Es. Mio figlio gioca negli U10, coach Bianchi. Grazie!" style="resize:vertical;"></textarea>
+      </div>
+      <div id="raStep3Err" style="display:none;font-size:.82rem;color:#c0392b;padding:7px 10px;background:#fef2f2;border-radius:7px;margin-top:8px;"></div>
+      <div id="raStep3Ok" style="display:none;font-size:.88rem;font-weight:700;color:#065f46;padding:12px 14px;background:#ecfdf5;border-radius:8px;margin-top:8px;line-height:1.5;"></div>
+      <div id="raStep3Btns" style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn btn-g" onclick="raGoStep(2)" style="padding:0 14px;">← Indietro</button>
+        <button class="btn btn-p" id="raBtnSubmit" style="flex:1;" onclick="submitRichiestaAccesso()">📬 Invia richiesta</button>
+      </div>
+    </div>
   </div>
 </div>
 
