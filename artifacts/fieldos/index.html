@@ -6116,7 +6116,7 @@ function saveNuovaComunicazione() {
       })();
       canSee = ul.includes(scopeLv);
     }
-    if (canSee) pushNotifica(u.id, { type:'comunicazione', title:`📣 ${titolo}`, body:testo.slice(0,120)+(testo.length>120?'…':'')+'\nDa: '+c.mittente });
+    if (canSee) pushNotifica(u.id, { type:'comunicazione', title: tipo==='urgente' ? `🚨 URGENTE: ${titolo}` : `📣 ${titolo}`, body:testo.slice(0,120)+(testo.length>120?'…':'')+'\nDa: '+c.mittente });
   });
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   closeM('mCommNuova');
@@ -10293,10 +10293,10 @@ function saveEvento(){
     events.push(_newEv);
     // Notifica ai genitori/nonni delle leve coinvolte
     (function(){
-      const _tl = { allenamento:'Allenamento', allenamento_portieri:'Allenamento portieri', partita:'Partita', torneo:'Torneo', altro:'Evento' };
+      const _tl = { allenamento:'🏃 Allenamento aggiunto', allenamento_portieri:'🧤 Allenamento portieri', partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
       const _pids = new Set();
       USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
-      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:'📅 Nuovo '+(_tl[type]||'evento')+': '+title, body: fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
+      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
     })();
     toast('✅ Evento creato');
   }
@@ -15697,11 +15697,14 @@ if (_origPushNotifica) {
     if (!sKey) return;
     // Map notification type to push payload
     const typeMap = {
-      convocazione: { url: '/#convocazioni' },
+      convocazione:  { url: '/#convocazioni' },
       comunicazione: { url: '/#comunicazioni' },
       chat:          { url: '/#chat' },
       quota:         { url: '/#pagamenti' },
       doc:           { url: '/#documenti' },
+      evento:        { url: '/#convocazioni' },
+      campionato:    { url: '/#convocazioni' },
+      avviso_assenza:{ url: '/#presenze' },
     };
     const extra = typeMap[n.type] || { url: '/' };
     sendPushNotification(userId, sKey, {

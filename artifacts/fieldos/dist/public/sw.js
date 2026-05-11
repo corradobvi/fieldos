@@ -1,7 +1,7 @@
 'use strict';
 // MyVivaio Service Worker — skip-waiting update pattern
 // Bump CACHE_VERSION on each deploy to trigger update detection
-const CACHE_VERSION = 'myvivaio-v4';
+const CACHE_VERSION = 'myvivaio-v5';
 const CACHE_NAME = 'myvivaio-' + CACHE_VERSION;
 
 // Files to precache (app shell)
@@ -48,7 +48,50 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Message handler — main app can send SKIP_WAITING to apply update immediately
+// ── Push notification handler ──────────────────────────────────────────────
+self.addEventListener('push', e => {
+  let data = {};
+  try { data = e.data ? JSON.parse(e.data.text()) : {}; } catch {}
+
+  const title = data.title || 'MyVivaio';
+  const body  = data.body  || '';
+  const url   = data.url   || '/';
+  const tag   = data.tag   || 'myvivaio';
+
+  e.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon:              '/icons/icon-192.png',
+      badge:             '/icons/icon-96.png',
+      tag,
+      data:              { url },
+      requireInteraction: false,
+      vibrate:           [200, 100, 200],
+    })
+  );
+});
+
+// ── Notification click → open/focus app and navigate ──────────────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // If the app is already open, focus it and send a navigate message
+      for (const c of list) {
+        if (c.url && c.url.startsWith(self.registration.scope) && 'focus' in c) {
+          c.postMessage({ type: 'PUSH_NAVIGATE', url });
+          return c.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
+
+// ── Message handler — main app can send SKIP_WAITING to apply update ───────
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
