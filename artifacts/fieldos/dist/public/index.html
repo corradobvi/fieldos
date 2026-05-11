@@ -1522,7 +1522,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="rf-sub">14 giorni gratis · nessuna carta di credito richiesta · i tuoi dati restano per sempre.</div>
     <div class="fg"><label class="fl">Nome e cognome *</label><input class="fi" type="text" id="rNomeCogn" placeholder="Mario Rossi" autocomplete="name" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Almeno 6 caratteri" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
     <div class="fg"><label class="fl">Nome società *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
     <div class="fg">
@@ -1864,16 +1864,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="backupStatus" style="font-size:.75rem;color:var(--text2);margin-top:8px;"></div>
           </div>
-          <div class="card" style="grid-column:span 2;" id="syncCloudCard">
-            <div class="ch"><div class="ct">☁️ Sincronizzazione cloud</div></div>
-            <div style="font-size:.78rem;color:var(--text2);line-height:1.5;margin-bottom:14px;">
-              I dati inseriti su questo dispositivo non sono ancora sul server.<br>
-              Premi il pulsante per caricare tutto lo stato attuale sul database cloud. Dopo questa operazione la sincronizzazione automatica gestirà gli aggiornamenti futuri.
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-              <button class="btn btn-p" id="btnSyncCloud" onclick="sincronizzaCloud()">☁️ Sincronizza dati sul cloud</button>
-              <span id="syncCloudStatus" style="font-size:.83rem;"></span>
-            </div>
+          <div id="syncSettingsIndicator" style="grid-column:span 2;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;font-size:.78rem;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;">
+            <span id="syncSettingsIcon">🟢</span>
+            <span id="syncSettingsText">Dati sincronizzati</span>
           </div>
           <div class="card" style="grid-column:span 2;" id="convVisibCard">
             <div class="ch"><div class="ct">👁️ Visibilità convocazioni (default per leva)</div></div>
@@ -2256,8 +2249,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <select class="fs" id="campoTipo">
           <option value="5">Campo a 5</option>
           <option value="7">Campo a 7</option>
+          <option value="9">Campo a 9</option>
           <option value="11">Campo a 11</option>
           <option value="stadio">Stadio</option>
+          <option value="altro">Altro</option>
         </select>
       </div>
     </div>
@@ -2327,58 +2322,61 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="modal" style="max-width:520px;">
     <div class="mh"><div class="mt" id="srTitle">👨‍👧 Registrati come genitore</div><button class="mx" onclick="closeM('mSelfReg')">✕</button></div>
     <div style="background:linear-gradient(135deg,var(--cp),var(--cs));color:white;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div id="srSocNome" style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">FieldOS</div>
+      <div id="srSocNome" style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">MyVivaio</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;line-height:1.1;" id="srHeroTitle">Crea il tuo account famiglia</div>
-      <div style="font-size:.78rem;opacity:.9;margin-top:4px;" id="srHeroSub">La tua richiesta verrà approvata dall'admin della società.</div>
+      <div style="font-size:.78rem;opacity:.9;margin-top:4px;" id="srHeroSub">Accedi subito dopo la registrazione — nessuna approvazione richiesta.</div>
     </div>
     <!-- Step indicator -->
     <div id="srSteps" style="display:flex;gap:6px;margin-bottom:12px;font-size:.7rem;color:var(--text2);">
       <div id="srStepInd1" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--cl);font-weight:700;">1. Codice</div>
-      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Account</div>
-      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Figli</div>
+      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Figli</div>
+      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Account</div>
     </div>
     <!-- STEP 1: codice società -->
     <div id="srStep1">
       <div class="fg"><label class="fl">Codice società</label><input class="fi" id="srCodice" placeholder="Es. POLIS18" style="text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;min-height:48px;" autocorrect="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();srNextStep1();}"></div>
       <div style="font-size:.78rem;color:var(--text2);margin:-4px 0 12px;line-height:1.4;">Il codice ti viene fornito dalla società (volantino, modulo iscrizione o gruppo WhatsApp).</div>
       <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
-      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;" onclick="closeM('mSelfReg')">Annulla</button></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;min-height:48px;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
-    <!-- STEP 2: dati account -->
+    <!-- STEP 2: scelta figli -->
     <div id="srStep2" style="display:none;">
-      <div class="fr">
-        <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome"></div>
-        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome"></div>
-      </div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it"></div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Password (min. 6 caratteri)</label><input class="fi" id="srPass" type="password" placeholder="••••••••"></div>
-        <div class="fg"><label class="fl">Ripeti password</label><input class="fi" id="srPass2" type="password" placeholder="••••••••"></div>
-      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">Seleziona uno o più figli/e in rosa.</div>
+      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()" style="min-height:48px;"></div>
+      <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
+      <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:6px;min-height:18px;"></div>
+      <div id="srStep2Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
-        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srNextStep2()">Avanti → Seleziona figli</button>
+        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Dati account</button>
       </div>
     </div>
-    <!-- STEP 3: scelta figli -->
+    <!-- STEP 3: dati account -->
     <div id="srStep3" style="display:none;">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">Seleziona uno o più figli/e in rosa.</div>
-      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()"></div>
-      <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
-      <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:10px;"></div>
+      <div class="fg" style="margin-bottom:14px;">
+        <label class="fl">Ruolo in famiglia *</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <button type="button" id="srR_papa"  onclick="setSrRuolo('papa',this)"  style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Papà"><div style="font-size:1.6rem;">👨</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Papà</div></button>
+          <button type="button" id="srR_mamma" onclick="setSrRuolo('mamma',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Mamma"><div style="font-size:1.6rem;">👩</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Mamma</div></button>
+          <button type="button" id="srR_nonno" onclick="setSrRuolo('nonno',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Nonno"><div style="font-size:1.6rem;">👴</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Nonno</div></button>
+          <button type="button" id="srR_nonna" onclick="setSrRuolo('nonna',this)" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:1.5rem;text-align:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" title="Nonna"><div style="font-size:1.6rem;">👵</div><div style="font-size:.8rem;font-weight:700;margin-top:2px;">Nonna</div></button>
+        </div>
+        <input type="hidden" id="srRuoloFamiliare" value="">
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome" style="min-height:48px;"></div>
+      </div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it" style="min-height:48px;" autocapitalize="off" autocorrect="off"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Password</label><input class="fi" id="srPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" style="min-height:48px;" autocomplete="new-password"></div>
+        <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="srPass2" type="password" placeholder="Ripeti la password" style="min-height:48px;" autocomplete="new-password"></div>
+      </div>
+      <div id="srStep3Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(2)">← Indietro</button>
-        <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">📨 Invia richiesta</button>
+        <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">🎉 Registrati e accedi</button>
       </div>
-    </div>
-    <!-- STEP 4: conferma in attesa -->
-    <div id="srStep4" style="display:none;text-align:center;">
-      <div style="font-size:3rem;margin-bottom:8px;">⏳</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:800;color:var(--cp);margin-bottom:8px;">Richiesta inviata!</div>
-      <div style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:16px;">
-        L'amministratore della società riceverà la tua richiesta e la approverà a breve. Quando sarà approvata potrai accedere con l'email e la password che hai scelto.
-      </div>
-      <button class="btn btn-p" style="width:100%;" onclick="closeM('mSelfReg')">OK, ho capito</button>
     </div>
   </div>
 </div>
@@ -2973,6 +2971,153 @@ function togglePassVis() {
     : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 }
 
+// ── Validazione password robusta ────────────────────────────────
+function _pwCheck(val) {
+  val = val || '';
+  const len     = val.length >= 8;
+  const upper   = /[A-Z]/.test(val);
+  const num     = /[0-9]/.test(val);
+  const special = /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>/?`~]/.test(val);
+  const score   = (len?1:0)+(upper?1:0)+(num?1:0)+(special?1:0);
+  return { len, upper, num, special, score, valid: len && upper && num && special };
+}
+
+// ── Widget riutilizzabile per tutti i campi password ─────────────
+// Aggiunge: occhio mostra/nascondi, barra forza, requisiti, match conferma
+function initPwField(passId, confirmId) {
+  var inp = document.getElementById(passId);
+  if (!inp || inp._pwInited) return;
+  inp._pwInited = true;
+
+  var SVG_EYE_OPEN   = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  var SVG_EYE_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  // 1. Wrappa input in .fi-wrap + aggiunge occhio
+  var par = inp.parentNode;
+  var fw = document.createElement('div');
+  fw.className = 'fi-wrap';
+  par.insertBefore(fw, inp);
+  fw.appendChild(inp);
+  inp.style.border = 'none';
+  inp.style.boxShadow = 'none';
+  inp.style.background = 'transparent';
+  inp.style.flex = '1';
+  inp.style.minWidth = '0';
+
+  var eye = document.createElement('button');
+  eye.type = 'button'; eye.className = 'fi-eye'; eye.tabIndex = -1;
+  eye.setAttribute('aria-label','Mostra/nascondi password');
+  eye.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+SVG_EYE_OPEN+'</svg>';
+  fw.appendChild(eye);
+  eye.addEventListener('click', function() {
+    var show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.classList.toggle('on', show);
+    eye.querySelector('svg').innerHTML = show ? SVG_EYE_CLOSED : SVG_EYE_OPEN;
+  });
+
+  // 2. Crea UI forza sotto il gruppo .fg
+  var fg = par.closest ? (par.closest('.fg') || par) : par;
+  var ui = document.createElement('div');
+  ui.id = passId + '_pwui';
+  ui.style.cssText = 'display:none;margin:-2px 0 8px;';
+
+  var reqDiv = document.createElement('div');
+  reqDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:2px 10px;margin-bottom:5px;font-size:.7rem;';
+  var reqs = [
+    { id:'_r1', key:'len',     label:'8 caratteri'       },
+    { id:'_r2', key:'upper',   label:'Maiuscola'          },
+    { id:'_r3', key:'num',     label:'Numero'             },
+    { id:'_r4', key:'special', label:'Carattere speciale' }
+  ];
+  reqs.forEach(function(r) {
+    var s = document.createElement('span');
+    s.id = passId + r.id;
+    s.style.cssText = 'color:#94a3b8;white-space:nowrap;';
+    s.textContent = '❌ ' + r.label;
+    reqDiv.appendChild(s);
+  });
+
+  var barWrap = document.createElement('div');
+  barWrap.style.cssText = 'height:4px;border-radius:2px;background:#e2e8f0;overflow:hidden;margin-bottom:3px;';
+  var bar = document.createElement('div');
+  bar.style.cssText = 'height:100%;width:0;border-radius:2px;transition:width .2s,background .2s;';
+  barWrap.appendChild(bar);
+
+  var barLbl = document.createElement('div');
+  barLbl.style.cssText = 'font-size:.67rem;color:#94a3b8;text-align:right;height:14px;';
+
+  ui.appendChild(reqDiv);
+  ui.appendChild(barWrap);
+  ui.appendChild(barLbl);
+  if (fg.parentNode) fg.after ? fg.after(ui) : fg.parentNode.insertBefore(ui, fg.nextSibling);
+
+  // 3. Listener input → aggiorna indicatori
+  inp.addEventListener('input', function() {
+    var val = inp.value;
+    if (!val) { ui.style.display = 'none'; return; }
+    ui.style.display = '';
+    var c = _pwCheck(val);
+    var labels = { len:'8 caratteri ('+val.length+'/8)', upper:'Maiuscola', num:'Numero', special:'Carattere speciale' };
+    reqs.forEach(function(r) {
+      var el = document.getElementById(passId + r.id);
+      if (!el) return;
+      var ok = c[r.key];
+      el.style.color = ok ? '#059669' : '#dc2626';
+      el.textContent = (ok ? '✅ ' : '❌ ') + labels[r.key];
+    });
+    var cols  = ['#e2e8f0','#dc2626','#f97316','#eab308','#22c55e'];
+    var names = ['','Debole','Media','Buona','Forte'];
+    bar.style.width = (c.score * 25) + '%';
+    bar.style.background = cols[c.score];
+    barLbl.style.color = cols[c.score];
+    barLbl.textContent = c.score > 0 ? names[c.score] : '';
+    updateConf();
+  });
+
+  // 4. Campo conferma (se richiesto)
+  var conf = confirmId ? document.getElementById(confirmId) : null;
+  var confMsg = null;
+  function updateConf() {
+    if (!conf || !confMsg) return;
+    if (!conf.value) { confMsg.style.display = 'none'; return; }
+    confMsg.style.display = '';
+    var match = inp.value === conf.value;
+    confMsg.style.color = match ? '#059669' : '#dc2626';
+    confMsg.textContent = match ? '✅ Password confermata' : '❌ Le password non coincidono';
+  }
+  if (conf) {
+    if (!conf._pwInited) {
+      conf._pwInited = true;
+      var cpar = conf.parentNode;
+      var cfw = document.createElement('div');
+      cfw.className = 'fi-wrap';
+      cpar.insertBefore(cfw, conf);
+      cfw.appendChild(conf);
+      conf.style.border = 'none'; conf.style.boxShadow = 'none';
+      conf.style.background = 'transparent'; conf.style.flex = '1'; conf.style.minWidth = '0';
+
+      var ceye = document.createElement('button');
+      ceye.type = 'button'; ceye.className = 'fi-eye'; ceye.tabIndex = -1;
+      ceye.setAttribute('aria-label','Mostra/nascondi password');
+      ceye.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'+SVG_EYE_OPEN+'</svg>';
+      cfw.appendChild(ceye);
+      ceye.addEventListener('click', function() {
+        var show = conf.type === 'password';
+        conf.type = show ? 'text' : 'password';
+        ceye.classList.toggle('on', show);
+        ceye.querySelector('svg').innerHTML = show ? SVG_EYE_CLOSED : SVG_EYE_OPEN;
+      });
+    }
+    var cfg = conf.parentNode.closest ? (conf.parentNode.closest('.fg') || conf.parentNode) : conf.parentNode;
+    confMsg = document.createElement('div');
+    confMsg.style.cssText = 'font-size:.72rem;margin-top:3px;display:none;';
+    cfg.appendChild(confMsg);
+    conf.addEventListener('input', updateConf);
+    inp.addEventListener('input', updateConf);
+  }
+}
+
 function _showLoginErr(msg) {
   const el = document.getElementById('loginErrMsg');
   if (el) { el.textContent = msg; el.style.display = 'block'; }
@@ -3074,7 +3219,7 @@ async function doLogin() {
   // ── 2. Server login — fonte di verità principale ──
   try {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 8000);
+    const tid = setTimeout(() => ctrl.abort(), 5000);
     let resp;
     try {
       resp = await fetch(API_BASE + '/api/login', {
@@ -3395,13 +3540,11 @@ function goTo(pgId) {
     const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
-    ['codiceCard','quoteCard','convVisibCard','syncCloudCard','colorCard'].forEach(id => {
+    ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
     });
     const _convVisibCardEl = document.getElementById('convVisibCard');
     if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
-    const _syncCloudCardEl = document.getElementById('syncCloudCard');
-    if (_syncCloudCardEl) _syncCloudCardEl.style.display = me.role === 'admin' ? '' : 'none';
     const _backupCardEl = document.getElementById('backupCard');
     if (_backupCardEl) _backupCardEl.style.display = me.role === 'admin' ? '' : 'none';
     if (me.role === 'admin' && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
@@ -3409,11 +3552,13 @@ function goTo(pgId) {
     if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = _isStaff && me.role !== 'allenatore' ? '' : 'none';
-    // Gestione utenti, leve e campi: solo staff
-    ['usersCard','leveCard','campiCard'].forEach(id => {
+    // Gestione utenti e leve: solo admin/dirigente; campi: tutto lo staff
+    ['usersCard','leveCard'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = _isStaff ? '' : 'none';
+      if (el) el.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
     });
+    const _campiCardEl2 = document.getElementById('campiCard');
+    if (_campiCardEl2) _campiCardEl2.style.display = _isStaff ? '' : 'none';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -3460,7 +3605,7 @@ function renderProfilo() {
     <div class="card" style="text-align:center;padding:28px 20px;">
       <div style="width:72px;height:72px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.6rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">${ini}</div>
       <div style="font-size:1.15rem;font-weight:700;">${escapeHtml(me.nome||'')} ${escapeHtml(me.cogn||'')}</div>
-      <div style="font-size:.83rem;color:var(--text2);margin-top:4px;">${ROLE_IC2[me.role]||''} ${me.role||''}</div>
+      <div style="font-size:.83rem;color:var(--text2);margin-top:4px;">${userRoleLabel(me)}</div>
       ${leva}${figli}
       <div style="font-size:.77rem;color:var(--text3);margin-top:6px;">${escapeHtml(me.email||'')}</div>
     </div>
@@ -5019,11 +5164,10 @@ function getConvocazione(eventId) {
 }
 function autoCreateConvocazione(eventId, leva) {
   if (getConvocazione(eventId)) return;
-  const allPlayers = players.filter(p => p.leva === leva).map(p => p.id);
   convocazioni.push({
     id: nextConvocazioneId++, eventId, leva,
     ritrovo: '', divisa: '', note: '',
-    playerIds: allPlayers,
+    playerIds: [],
     createdBy: me?.id || 0, createdAt: Date.now(), sentAt: Date.now()
   });
 }
@@ -5080,13 +5224,13 @@ function recipientsForPlayer(p) {
   return [...ids];
 }
 
-// Allenatori della leva indicata + admin (destinatari avvisi famiglia)
+// Allenatori e dirigenti della leva indicata (destinatari avvisi famiglia — NO admin)
 function recipientsForCoachesOfLeva(leva) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
-    if (u.role === 'admin') ids.add(u.id);
-    else if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
   });
   return [...ids];
 }
@@ -5109,6 +5253,8 @@ function renderConvocazioni() {
     : allList;
 
   let html = '';
+
+
 
   // Sezione indisponibilità per genitori/giocatori
   if (isParent) {
@@ -5265,8 +5411,8 @@ function renderConvocazioneCard(ev) {
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✓ Disponibile</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">✗ Indisponibile…</button>
+            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:.83rem;color:var(--text2);">Questo evento non riguarda nessuno dei tuoi giocatori.</div>`;
@@ -5309,8 +5455,8 @@ function renderConvocazioneCard(ev) {
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge} ${convBadge}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✓ Disponibile</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">✗ Indisponibile…</button>
+            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
           </div>
         </div>`;
       }).join('');
@@ -5481,12 +5627,21 @@ function notifyConvocazione(ev, conv) {
 // ─── VISIBILITÀ A DUE FASI ────────────────────────────
 
 function getConvFase(conv, ev) {
-  if (!conv) return 'none';
-  const today = new Date(); today.setHours(0,0,0,0);
-  const evDate = parseYmd(ev.date);
-  const daysUntil = Math.floor((evDate - today) / (86400000));
-  if (conv.fase2Active || (conv.fase2Days != null && !isNaN(conv.fase2Days) && daysUntil <= conv.fase2Days)) return 'fase2';
-  if (conv.fase1Active || (conv.fase1Days != null && !isNaN(conv.fase1Days) && daysUntil <= conv.fase1Days)) return 'fase1';
+  // Fase manuale ha priorità (solo se conv esiste)
+  if (conv && conv.fase2Active) return 'fase2';
+  if (conv && conv.fase1Active) return 'fase1';
+  // Determina la leva per leggere i default
+  const lv = (conv && conv.leva) || (Array.isArray(ev.leve) ? ev.leve[0] : '') || '';
+  const def = levaConvSettings[lv] || {};
+  // f1/f2 dalla convocazione (se esiste) oppure dai default leva
+  const f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
+  const f2Raw = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
+  const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
+  const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
+  if (f1 == null) return 'none'; // nessuna configurazione di fase
+  const giorniMancanti = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
+  if (f2 != null && giorniMancanti <= f2) return 'fase2';
+  if (giorniMancanti <= f1) return 'fase1';
   return 'none';
 }
 
@@ -6467,10 +6622,21 @@ function fvUploadSquad(leva, input) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      squadFotos[leva] = canvas.toDataURL('image/jpeg', 0.82);
-      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      const base64 = canvas.toDataURL('image/jpeg', 0.82);
+      // Mostra subito mentre upload avviene in background
+      squadFotos[leva] = base64;
       fvRenderTabBody();
-      toast('📷 Foto squadra aggiornata!');
+      toast('📷 Caricamento in corso…');
+      uploadPhotoToServer('squad_' + encodeURIComponent(leva), base64).then(function(url) {
+        if (url) {
+          squadFotos[leva] = url;
+          fvRenderTabBody();
+          toast('📷 Foto squadra aggiornata!');
+        } else {
+          toast('📷 Foto salvata (solo locale — server non raggiungibile)');
+        }
+        if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      });
     };
     img.src = e.target.result;
   };
@@ -6495,22 +6661,77 @@ function fvUploadPlayer(playerId, input) {
       const sc = Math.max(SIZE/img.width, SIZE/img.height);
       const nw = img.width*sc, nh = img.height*sc;
       ctx.drawImage(img, (SIZE-nw)/2, (SIZE-nh)/2, nw, nh);
-      playerPhotos[playerId] = canvas.toDataURL('image/jpeg', 0.82);
-      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-      // Aggiorna tutte le viste che mostrano avatar
-      if (document.getElementById('pg-rosa')?.classList.contains('on'))         renderRosa();
-      if (document.getElementById('pg-presenze')?.classList.contains('on'))     renderPresenze();
-      if (document.getElementById('pg-statistiche')?.classList.contains('on'))  renderStats();
-      if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
-      if (document.getElementById('pg-fotovideo')?.classList.contains('on'))    fvRenderTabBody();
-      renderPPhotoArea(players.find(x => x.id === playerId));
-      toast('👤 Foto profilo aggiornata!');
+      const base64 = canvas.toDataURL('image/jpeg', 0.82);
+      // Mostra subito la foto locale mentre upload avviene in background
+      playerPhotos[playerId] = base64;
+      function _refreshViews() {
+        if (document.getElementById('pg-rosa')?.classList.contains('on'))         renderRosa();
+        if (document.getElementById('pg-presenze')?.classList.contains('on'))     renderPresenze();
+        if (document.getElementById('pg-statistiche')?.classList.contains('on'))  renderStats();
+        if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+        if (document.getElementById('pg-fotovideo')?.classList.contains('on'))    fvRenderTabBody();
+        renderPPhotoArea(players.find(x => x.id === playerId));
+      }
+      _refreshViews();
+      toast('👤 Caricamento in corso…');
+      // Upload al server — sostituisce base64 con URL persistente
+      uploadPhotoToServer('player_' + playerId, base64).then(function(url) {
+        if (url) {
+          playerPhotos[playerId] = url;
+          _refreshViews();
+          toast('👤 Foto profilo aggiornata!');
+        } else {
+          toast('👤 Foto salvata (solo locale — server non raggiungibile)');
+        }
+        if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      });
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
   input.value = '';
 }
+
+// ─── UPLOAD FOTO AL SERVER ────────────────────────────────
+// Carica una foto sul server MySQL e restituisce l'URL pubblico.
+// photoKey: es. 'player_5' | 'squad_U12'
+async function uploadPhotoToServer(photoKey, dataBase64) {
+  const societyKey = window._mvSocietaKey || 'fieldos_state_v1';
+  try {
+    const resp = await fetch(API_BASE + '/api/upload/photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ societyKey, photoKey, dataBase64 })
+    });
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    return d.url || null;
+  } catch { return null; }
+}
+
+// Migrazione automatica: converte le foto base64 già in localStorage → URL server.
+// Viene chiamata una volta dopo il login. Idempotente (salta le già migrate).
+async function migratePhotosToServer() {
+  let migrated = 0;
+  for (const [pid, foto] of Object.entries(playerPhotos)) {
+    if (foto && typeof foto === 'string' && foto.startsWith('data:')) {
+      const url = await uploadPhotoToServer('player_' + pid, foto);
+      if (url) { playerPhotos[pid] = url; migrated++; }
+    }
+  }
+  for (const [leva, foto] of Object.entries(squadFotos)) {
+    if (foto && typeof foto === 'string' && foto.startsWith('data:')) {
+      const url = await uploadPhotoToServer('squad_' + encodeURIComponent(leva), foto);
+      if (url) { squadFotos[leva] = url; migrated++; }
+    }
+  }
+  if (migrated > 0) {
+    if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+    console.log('[FieldOS] Migrate', migrated, 'foto al server completata');
+    if (typeof toast === 'function') toast('📷 ' + migrated + ' foto sincronizzate nel cloud');
+  }
+}
+// ──────────────────────────────────────────────────────────
 
 function fvOpenLightbox(itemId) {
   const item = mediaItems.find(m => m.id === itemId);
@@ -6763,6 +6984,8 @@ function renderStatsTornei(el){
 // ═══════════════════════════════════
 
 const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', nonno:'Nonno/Nonna', giocatore:'Giocatore'};
+const TITOLO_FAM_LABELS = { papa:'👨 Papà', mamma:'👩 Mamma', nonno:'👴 Nonno', nonna:'👵 Nonna' };
+function userRoleLabel(u) { return (u && u.titoloFamiliare && TITOLO_FAM_LABELS[u.titoloFamiliare]) ? TITOLO_FAM_LABELS[u.titoloFamiliare] : ROLE_LABELS[u && u.role] || (u && u.role) || ''; }
 const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
 
 function renderUsersTable() {
@@ -6784,7 +7007,7 @@ function renderUsersTable() {
       tr.innerHTML = `
         <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
         <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
-        <td><span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span></td>
+        <td><span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span></td>
         <td>${u.leva}</td>
         <td>${statoHtml}</td>
         <td style="display:flex;gap:5px;">
@@ -6824,7 +7047,7 @@ function renderUsersTable() {
             ${statoHtml}
           </div>
           <div style="display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
-            <span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span>
+            <span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span>
             ${u.leva ? `<span style="font-size:.78rem;color:var(--text2);">${escapeHtml(u.leva)}</span>` : ''}
           </div>
           <div style="display:flex;gap:8px;">
@@ -6901,16 +7124,19 @@ function openUserModal(id) {
 
 // Genera una password leggibile da pronunciare (no caratteri ambigui)
 function genPassword() {
-  const cons = 'bcdfghjkmnpqrstvwxz';
-  const voc = 'aeiou';
-  const dig = '23456789';
-  let out = '';
-  for (let i=0;i<2;i++) {
-    out += cons[Math.floor(Math.random()*cons.length)];
-    out += voc[Math.floor(Math.random()*voc.length)];
-    out += cons[Math.floor(Math.random()*cons.length)];
-  }
-  out += dig[Math.floor(Math.random()*dig.length)] + dig[Math.floor(Math.random()*dig.length)];
+  // Genera password che soddisfa tutti i requisiti: 8+ car, maiuscola, numero, simbolo
+  const lower   = 'abcdefghjkmnpqrstuvwxyz';
+  const upper   = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+  const digits  = '23456789';
+  const symbols = '!@#$%&*';
+  function rnd(s){ return s[Math.floor(Math.random()*s.length)]; }
+  // Garantisce almeno 1 di ogni categoria
+  let parts = [rnd(upper), rnd(digits), rnd(symbols)];
+  // Riempie con lettere minuscole fino a 10 caratteri
+  for (let i=0;i<7;i++) parts.push(rnd(lower));
+  // Mescola
+  parts.sort(function(){ return Math.random()-.5; });
+  const out = parts.join('');
   document.getElementById('uPass').value = out;
 }
 
@@ -7042,9 +7268,10 @@ function saveUser() {
   if (!nome || !cogn || !email || !role) { toast('⚠️ Compila tutti i campi'); return; }
   // Validazione password: obbligatoria in creazione, opzionale in modifica
   if (editingUserId === null) {
-    if (!pass || pass.length < 4) { toast('⚠️ Imposta una password di almeno 4 caratteri (o usa Genera)'); return; }
+    if (!pass) { toast('⚠️ Imposta una password (o usa Genera)'); return; }
+    if (!_pwCheck(pass).valid) { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   } else {
-    if (pass && pass.length < 4) { toast('⚠️ La nuova password deve avere almeno 4 caratteri'); return; }
+    if (pass && !_pwCheck(pass).valid) { toast('⚠️ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   }
   const figli = (role === 'genitore' || role === 'nonno' || role === 'dirigente')
     ? Array.from(document.querySelectorAll('#uFigliBox .lp.on')).map(c => c.dataset.figlio)
@@ -7310,7 +7537,7 @@ function onbNextStep(){
   const pass2 = document.getElementById('onbPass2').value;
   if (!nome || !cogn) { toast('⚠️ Inserisci nome e cognome'); return; }
   if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (!pass || pass.length < 6) { toast('⚠️ Password troppo corta (min. 6)'); return; }
+  if (!_pwCheck(pass).valid) { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (pass !== pass2) { toast('⚠️ Le password non coincidono'); return; }
   // Email duplicata?
   if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase())) {
@@ -7498,14 +7725,17 @@ function refreshCodiceStatoUI(){
 function openSelfReg(){
   _selfRegSelectedIds = [];
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN) _srSN.textContent = 'MyVivaio'; // aggiornato dopo validazione codice
-  document.getElementById('srCodice').value = '';
-  document.getElementById('srNome').value = '';
-  document.getElementById('srCogn').value = '';
-  document.getElementById('srEmail').value = '';
-  document.getElementById('srPass').value = '';
-  document.getElementById('srPass2').value = '';
-  document.getElementById('srSearch').value = '';
+  if (_srSN) _srSN.textContent = 'MyVivaio';
+  ['srCodice','srNome','srCogn','srEmail','srPass','srPass2','srSearch','srRuoloFamiliare'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['srR_papa','srR_mamma','srR_nonno','srR_nonna'].forEach(function(id) {
+    const b = document.getElementById(id);
+    if (b) { b.style.border = '2px solid var(--border)'; b.style.background = 'var(--cl)'; }
+  });
+  ['srStep1Error','srStep2Error','srStep3Error'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display='none';
+  });
   _srVerifiedCode  = '';
   _srVerifiedState = '';
   srShowStep(1);
@@ -7513,20 +7743,18 @@ function openSelfReg(){
 }
 
 function srShowStep(n){
-  for (let i=1;i<=4;i++){
+  for (let i=1;i<=3;i++){
     const el = document.getElementById('srStep'+i);
     if (el) el.style.display = (i===n) ? 'block' : 'none';
   }
-  // Step indicator (solo per step 1-3)
   for (let i=1;i<=3;i++){
     const ind = document.getElementById('srStepInd'+i);
     if (ind) {
       ind.style.background = (i===n) ? 'var(--cl)' : 'var(--bg)';
       ind.style.fontWeight = (i===n) ? '700' : '500';
+      ind.style.color = (i===n) ? 'var(--cp)' : 'var(--text2)';
     }
   }
-  const steps = document.getElementById('srSteps');
-  if (steps) steps.style.display = (n===4) ? 'none' : 'flex';
 }
 
 function srBackStep(n){ srShowStep(n); }
@@ -7570,9 +7798,16 @@ async function _srFindSocByCode(v) {
 function _srApplySocietaContext(socId, soc) {
   currentSocietaId = socId;
   if (typeof window.__fieldosSetSocietaKey === 'function') window.__fieldosSetSocietaKey(societyStorageKey(socId));
+  // restoreState() was called by __fieldosSetSocietaKey above — coloriPrimari/coloriAccento are now populated from the blob
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN && soc) _srSN.textContent = soc.nome.toUpperCase();
-  if (soc && typeof applyBranding === 'function') applyBranding(soc.nome, soc.colori, soc.coloriAccento || '#FFD93D');
+  if (_srSN) _srSN.textContent = ((soc && soc.nome) ? soc.nome : nomeSocieta).toUpperCase();
+  if (typeof applyBranding === 'function') {
+    applyBranding(
+      (soc && soc.nome) ? soc.nome : nomeSocieta,
+      (soc && soc.colori) ? soc.colori : coloriPrimari,
+      (soc && soc.coloriAccento) ? soc.coloriAccento : (coloriAccento || '#FFD93D')
+    );
+  }
 }
 
 async function srNextStep1(){
@@ -7612,7 +7847,9 @@ async function srNextStep1(){
 
     _srApplySocietaContext(found.socId, found.soc);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+    _selfRegSelectedIds = [];
     srShowStep(2);
+    renderSrRoster();
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
@@ -7670,7 +7907,7 @@ async function loginConCodice() {
 
     _srApplySocietaContext(found.socId, found.soc);
 
-    // Pre-popola il modal e vai direttamente allo step 2
+    // Pre-popola il modal e vai direttamente allo step 2 (selezione figli)
     _selfRegSelectedIds = [];
     const srCod = document.getElementById('srCodice');
     if (srCod) srCod.value = v;
@@ -7680,6 +7917,7 @@ async function loginConCodice() {
     setTimeout(() => {
       btn.disabled=false; btn.textContent='Accedi →';
       srShowStep(2);
+      renderSrRoster();
       openM('mSelfReg');
     }, 300);
   } catch(e) {
@@ -7688,144 +7926,226 @@ async function loginConCodice() {
   }
 }
 
-function srNextStep2(){
-  const nome = document.getElementById('srNome').value.trim();
-  const cogn = document.getElementById('srCogn').value.trim();
-  const email = document.getElementById('srEmail').value.trim();
-  const pass = document.getElementById('srPass').value;
-  const pass2 = document.getElementById('srPass2').value;
-  if (!nome || !cogn) { toast('⚠️ Inserisci nome e cognome'); return; }
-  if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (!pass || pass.length < 6) { toast('⚠️ Password troppo corta (min. 6)'); return; }
-  if (pass !== pass2) { toast('⚠️ Le password non coincidono'); return; }
-  // Email duplicata? (sia tra utenti attivi che pendenti)
-  if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-    toast('⛔ Email già registrata. Accedi invece di registrarti.'); return;
+function srStep2Next(){
+  const errEl = document.getElementById('srStep2Error');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
   }
-  if (pendingUsers.find(p => p.email.toLowerCase() === email.toLowerCase())) {
-    toast('⏳ Esiste già una richiesta in attesa con questa email.'); return;
-  }
+  if (errEl) errEl.style.display='none';
+  if (_selfRegSelectedIds.length === 0) { _err('⚠️ Seleziona almeno un figlio/a per continuare.'); return; }
   srShowStep(3);
-  renderSrRoster();
+}
+
+function setSrRuolo(val, btn) {
+  document.getElementById('srRuoloFamiliare').value = val;
+  ['srR_papa','srR_mamma','srR_nonno','srR_nonna'].forEach(function(id) {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.style.border = '2px solid var(--border)';
+    b.style.background = 'var(--cl)';
+  });
+  if (btn) {
+    btn.style.border = '2px solid var(--cp)';
+    btn.style.background = 'rgba(var(--cp-rgb,4,120,87),.10)';
+  }
 }
 
 function renderSrRoster(){
   const host = document.getElementById('srRoster');
   if (!host) return;
-  const q = (document.getElementById('srSearch').value || '').toLowerCase().trim();
+  const q = (document.getElementById('srSearch')?.value || '').toLowerCase().trim();
   let list = players.slice();
   if (q) list = list.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
   list.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
-  if (!list.length) {
-    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:12px;text-align:center;">Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.</div>';
-  } else {
-    host.innerHTML = list.map(p => {
-      const sel = _selfRegSelectedIds.includes(p.id);
-      // ontouchstart="" forza iOS Safari a riconoscere :active e a innescare onclick senza delay 300ms
-      return `<div data-pid="${p.id}"
-        ontouchstart=""
-        style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:9px;
-               background:${sel?'#d1fae5':'#fff'};border:2px solid ${sel?'#059669':'var(--border)'};
-               touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-               user-select:none;-webkit-user-select:none;min-height:52px;transition:opacity .1s;">
-        <div style="width:22px;height:22px;border-radius:5px;border:2px solid ${sel?'#059669':'#ccc'};
-             background:${sel?'#059669':'#fff'};display:flex;align-items:center;justify-content:center;
-             flex-shrink:0;transition:all .15s;">
-          ${sel?'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-        </div>
-        <div style="flex:1;">
-          <div style="font-weight:700;font-size:.9rem;color:#111;">${escapeHtml(p.nome+' '+p.cogn)}</div>
-          <div style="font-size:.72rem;color:var(--text2);margin-top:1px;">${escapeHtml(p.leva||'')}${p.num?' · #'+p.num:''}${p.ruolo?' · '+escapeHtml(p.ruolo):''}</div>
-        </div>
-      </div>`;
-    }).join('');
 
-    host.querySelectorAll('[data-pid]').forEach(row => {
-      function _toggle(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const pid = parseInt(row.dataset.pid);
-        const idx = _selfRegSelectedIds.indexOf(pid);
-        if (idx >= 0) _selfRegSelectedIds.splice(idx,1);
-        else _selfRegSelectedIds.push(pid);
-        // Feedback visivo immediato prima del re-render
-        const isNowSel = _selfRegSelectedIds.includes(pid);
-        row.style.background = isNowSel ? '#d1fae5' : '#fff';
-        row.style.borderColor = isNowSel ? '#059669' : 'var(--border)';
-        renderSrRoster();
+  // Svuota il contenitore senza usare innerHTML = '' (più compatibile)
+  while (host.firstChild) host.removeChild(host.firstChild);
+
+  if (!list.length) {
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:.78rem;color:#94a3b8;padding:16px;text-align:center;line-height:1.5;';
+    msg.textContent = 'Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.';
+    host.appendChild(msg);
+  } else {
+    list.forEach(function(p) {
+      const sel = _selfRegSelectedIds.includes(p.id);
+
+      // <button> è un elemento interattivo nativo: iOS Safari lo tratta sempre come tappabile
+      // senza delay e senza bisogno di touchend + preventDefault
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.style.cssText = [
+        'cursor:pointer',
+        'display:flex',
+        'align-items:center',
+        'gap:12px',
+        'padding:14px 16px',
+        'border-radius:10px',
+        'width:100%',
+        'text-align:left',
+        'background:' + (sel ? '#d1fae5' : '#ffffff'),
+        'border:2px solid ' + (sel ? '#059669' : '#e2e8f0'),
+        'touch-action:manipulation',
+        '-webkit-tap-highlight-color:transparent',
+        'user-select:none',
+        '-webkit-user-select:none',
+        'min-height:56px',
+        'box-sizing:border-box',
+        'transition:background .12s,border-color .12s',
+        'outline:none',
+        'font-family:inherit'
+      ].join(';');
+
+      // Checkbox visivo
+      const chk = document.createElement('div');
+      chk.style.cssText = [
+        'width:24px',
+        'height:24px',
+        'border-radius:6px',
+        'border:2px solid ' + (sel ? '#059669' : '#cbd5e1'),
+        'background:' + (sel ? '#059669' : '#ffffff'),
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'flex-shrink:0',
+        'pointer-events:none'
+      ].join(';');
+      if (sel) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '13'); svg.setAttribute('height', '10');
+        svg.setAttribute('viewBox', '0 0 13 10'); svg.setAttribute('fill', 'none');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('points', '1.5,5 5,8.5 11.5,1.5');
+        poly.setAttribute('stroke', '#fff');
+        poly.setAttribute('stroke-width', '2.2');
+        poly.setAttribute('stroke-linecap', 'round');
+        poly.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(poly);
+        chk.appendChild(svg);
       }
-      // touchend per iOS (nessun delay)
-      row.addEventListener('touchend', function(e){
-        // Evita il doppio fire con il click successivo
-        e.preventDefault();
-        _toggle(e);
-      }, { passive: false });
-      // click come fallback per desktop
-      row.addEventListener('click', _toggle);
+
+      // Testo
+      const txt = document.createElement('div');
+      txt.style.cssText = 'flex:1;min-width:0;pointer-events:none;';
+
+      const nome = document.createElement('div');
+      nome.style.cssText = 'font-weight:700;font-size:.9rem;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      nome.textContent = p.nome + ' ' + p.cogn;
+
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-size:.72rem;color:#64748b;margin-top:2px;';
+      sub.textContent = [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · ');
+
+      txt.appendChild(nome);
+      txt.appendChild(sub);
+      card.appendChild(chk);
+      card.appendChild(txt);
+
+      // Un solo listener click — i <button> su iOS Safari non hanno delay con touch-action:manipulation
+      card.addEventListener('click', function() {
+        var idx = _selfRegSelectedIds.indexOf(p.id);
+        if (idx >= 0) { _selfRegSelectedIds.splice(idx, 1); }
+        else { _selfRegSelectedIds.push(p.id); }
+        renderSrRoster();
+      });
+
+      host.appendChild(card);
     });
   }
 
-  const info = document.getElementById('srSelectedInfo');
-  const submitBtn = document.getElementById('srBtnSubmit');
-  if (info) {
-    if (_selfRegSelectedIds.length) {
-      info.style.color = '#059669';
-      info.style.fontWeight = '700';
-      info.textContent = `✅ Selezionati: ${_selfRegSelectedIds.length} figlio/a`;
-      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; }
+  const infoEl = document.getElementById('srSelectedInfo');
+  if (infoEl) {
+    if (_selfRegSelectedIds.length > 0) {
+      infoEl.style.cssText = 'font-size:.78rem;color:#059669;font-weight:700;margin-bottom:6px;min-height:18px;';
+      infoEl.textContent = '✅ Selezionati: ' + _selfRegSelectedIds.length + ' figlio/a';
     } else {
-      info.style.color = 'var(--text2)';
-      info.style.fontWeight = '400';
-      info.textContent = 'Seleziona almeno un figlio/a per continuare.';
-      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; } // non disabilitare: toast spiega
+      infoEl.style.cssText = 'font-size:.78rem;color:var(--text2);font-weight:400;margin-bottom:6px;min-height:18px;';
+      infoEl.textContent = 'Seleziona almeno un figlio/a per continuare.';
     }
   }
 }
 
 function submitSelfReg(){
-  // Refresh stato condiviso (race con altre tab che approvano/rifiutano/aggiungono utenti)
-  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
-  // Controlla codiceSocieta con fallback al codice verificato al login (su nuovo dispositivo codiceSocieta può essere vuoto)
-  const _activeCode = codiceSocieta || _srVerifiedCode;
-  if (!_activeCode) { toast('⛔ Registrazione disattivata'); closeM('mSelfReg'); return; }
-  if (_selfRegSelectedIds.length === 0) { toast('⚠️ Seleziona almeno un figlio/a'); return; }
-  const nome = document.getElementById('srNome').value.trim();
-  const cogn = document.getElementById('srCogn').value.trim();
-  const email = document.getElementById('srEmail').value.trim();
-  const pass = document.getElementById('srPass').value;
-  // Re-check email univoca (race con altre tab)
-  if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase()) ||
-      pendingUsers.find(p => p.email.toLowerCase() === email.toLowerCase())) {
-    toast('⛔ Email già registrata. Accedi invece di registrarti.'); return;
+  const errEl = document.getElementById('srStep3Error');
+  const btn   = document.getElementById('srBtnSubmit');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
+    if (btn) { btn.disabled=false; btn.textContent='🎉 Registrati e accedi'; }
   }
-  // Filtra i figli selezionati che esistono ancora in rosa (la rosa può essere cambiata mentre il genitore compilava)
+  if (errEl) errEl.style.display='none';
+
+  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
+
+  const _activeCode = codiceSocieta || _srVerifiedCode;
+  if (!_activeCode) { _err('⛔ Registrazione disattivata per questa società.'); return; }
+
+  // Se i figli sono stati deselezionati torna allo step 2
+  if (_selfRegSelectedIds.length === 0) { _err('⚠️ Nessun figlio/a selezionato. Torna indietro e selezionane almeno uno.'); return; }
+
+  const nome  = (document.getElementById('srNome').value  || '').trim();
+  const cogn  = (document.getElementById('srCogn').value  || '').trim();
+  const email = (document.getElementById('srEmail').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('srPass').value  || '';
+  const pass2 = document.getElementById('srPass2').value || '';
+
+  const titoloFamiliare = (document.getElementById('srRuoloFamiliare')?.value || '').trim();
+  if (!titoloFamiliare) { _err('⚠️ Seleziona il tuo ruolo in famiglia (Papà, Mamma, Nonno o Nonna).'); return; }
+  if (!nome || !cogn) { _err('⚠️ Inserisci nome e cognome.'); return; }
+  if (!email || !email.includes('@')) { _err('⚠️ Inserisci un indirizzo email valido.'); return; }
+  if (!_pwCheck(pass).valid) { _err('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale.'); return; }
+  if (pass !== pass2) { _err('⚠️ Le due password non coincidono.'); return; }
+
+  if (USERS_DB.find(u => (u.email||'').toLowerCase() === email)) {
+    _err('⛔ Email già registrata. Usa la schermata di login per accedere.'); return;
+  }
+  if (pendingUsers.find(p => (p.email||'').toLowerCase() === email)) {
+    _err('⏳ Esiste già una richiesta con questa email.'); return;
+  }
+
   const figliPlayers = players.filter(p => _selfRegSelectedIds.includes(p.id));
   if (figliPlayers.length === 0) {
-    toast('⛔ I figli selezionati non sono più in rosa. Riprova.'); srShowStep(3); renderSrRoster(); return;
+    _err('⛔ I giocatori selezionati non sono più in rosa. Torna indietro e riseleziona.'); return;
   }
+
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Registrazione…'; }
+
   const figli = figliPlayers.map(p => p.nome + ' ' + p.cogn);
   const figliIds = figliPlayers.map(p => p.id);
-  const req = {
-    id: nextPendingUserId++,
+  const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
+  const levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : '');
+
+  const _roleMap = { papa: 'genitore', mamma: 'genitore', nonno: 'nonno', nonna: 'nonno' };
+  const newUser = {
+    id: nextUserId++,
     nome, cogn, email, pass,
-    role: 'genitore',
-    figli,        // tenuti per UI / compatibilità storico
-    figliIds,     // SOURCE OF TRUTH per il rematch in approvePending (no omonimi)
-    richiestaTs: Date.now()
+    role: _roleMap[titoloFamiliare] || 'genitore',
+    titoloFamiliare,
+    leva: levaFinal,
+    stato: 'attivo',
+    figli,
+    figlio: figli[0] || null,
+    figliIds,
+    anno: null
   };
-  pendingUsers.push(req);
-  // Notifica tutti gli admin
+  USERS_DB.push(newUser);
+
+  // Notifica admin del nuovo genitore registrato
   USERS_DB.filter(u => u.role === 'admin').forEach(adm => {
     if (typeof pushNotifica === 'function') {
       pushNotifica(adm.id, {
-        type: 'richiesta_iscrizione',
-        title: `📨 Nuova richiesta iscrizione: ${nome} ${cogn}`,
-        body: `Figli: ${figli.join(', ')} — approva da Impostazioni › Utenti`
+        type: 'nuovo_genitore',
+        title: `✅ Nuovo genitore: ${nome} ${cogn}`,
+        body: `Figli: ${figli.join(', ')}`
       });
     }
   });
+
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  srShowStep(4);
+
+  closeM('mSelfReg');
+  setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
+  me = newUser;
+  bootApp(newUser);
 }
 
 // Approvazione/rifiuto richieste (chiamate dalla tabella in Impostazioni)
@@ -9965,7 +10285,15 @@ function saveEvento(){
     toast('✅ Evento aggiornato');
   } else {
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    events.push({ id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email });
+    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email };
+    events.push(_newEv);
+    // Notifica ai genitori/nonni delle leve coinvolte
+    (function(){
+      const _tl = { allenamento:'Allenamento', allenamento_portieri:'Allenamento portieri', partita:'Partita', torneo:'Torneo', altro:'Evento' };
+      const _pids = new Set();
+      USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
+      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:'📅 Nuovo '+(_tl[type]||'evento')+': '+title, body: fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
+    })();
     toast('✅ Evento creato');
   }
   closeM('mEvento');
@@ -10015,7 +10343,7 @@ function deleteEventoFuturi(){
 }
 
 // ── Luogo / campo select ─────────────────────────
-const CAMPO_TIPO_LABEL = { '5':'Campo a 5', '7':'Campo a 7', '11':'Campo a 11', 'stadio':'Stadio' };
+const CAMPO_TIPO_LABEL = { '5':'Campo a 5', '7':'Campo a 7', '9':'Campo a 9', '11':'Campo a 11', 'stadio':'Stadio', 'altro':'Altro' };
 function updateLuogoSelect(){
   const sel = document.getElementById('evLuogoSel'); if (!sel) return;
   const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
@@ -10124,7 +10452,7 @@ function renderCampiSettings(){
   });
 }
 function openCampoModal(id){
-  if (me.role !== 'admin' && me.role !== 'dirigente') { toast('⛔ Solo admin e dirigenti possono gestire i campi'); return; }
+  if (me.role !== 'admin' && me.role !== 'dirigente' && me.role !== 'allenatore') { toast('⛔ Solo admin, dirigenti e allenatori possono gestire i campi'); return; }
   const c = id ? campi.find(x => x.id === id) : null;
   document.getElementById('mCampoTitle').textContent = c ? '✏️ Modifica campo' : '🏟️ Nuovo campo';
   document.getElementById('campoId').value    = c ? c.id : '';
@@ -10244,7 +10572,7 @@ function canEditPt(leva) {
   if (saViewMode) return false;
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'dirigente') return true;
-  if (me.role === 'allenatore') return me.leva === leva;
+  if (me.role === 'allenatore') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
   return false;
 }
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
@@ -10418,8 +10746,10 @@ function renderPtAmichevoli() {
   if (!c) return;
   const today = ymd(new Date());
   const all = amichevoli.filter(m => m.leva === currentLeva);
-  const future = all.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
-  const past   = all.filter(m => m.played || m.data < today).sort((a,b) => b.data.localeCompare(a.data));
+  const active = all.filter(m => !m.annullata);
+  const annullate = all.filter(m => m.annullata);
+  const future = active.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
+  const past   = active.filter(m => m.played || m.data < today).sort((a,b) => b.data.localeCompare(a.data));
   if (all.length === 0) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🤝</div><div class="empty-txt">Nessuna amichevole per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Aggiungi la prima amichevole con "+ Amichevole" in alto.':'Nessuna amichevole disponibile.'}</div></div>`;
     return;
@@ -10429,19 +10759,26 @@ function renderPtAmichevoli() {
     const isHome = (m.tipo || 'casa') === 'casa';
     const home = isHome ? polis : m.avversario;
     const away = isHome ? m.avversario : polis;
-    const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-    const tag = isHome
-      ? '<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>'
-      : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
+    const score = m.annullata
+      ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
+      : m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+    const tag = m.annullata
+      ? '<span class="mc-tag" style="background:#fef2f2;color:var(--red);font-size:.65rem;">Annullata</span>'
+      : isHome
+        ? '<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>'
+        : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const editBtn = canEditPt(m.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id});event.stopPropagation();">✏️</button>` : '';
-    const risBtn  = canEditPt(m.leva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(home)}</span>${score}<span class="mc-team away">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    const delBtn  = canEditPt(m.leva) ? `<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+    const risBtn  = (!m.annullata && canEditPt(m.leva)) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
+    const opacity = m.annullata ? 'opacity:.55;' : '';
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   };
   let html = '';
   if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
-  if (past.length)   html += `<div class="card"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
+  if (past.length)   html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
+  if (annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(mkAmich).join('')}</div>`;
   c.innerHTML = html;
 }
 
@@ -10520,16 +10857,19 @@ function renderPtCampionato() {
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
     const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">📊</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   }).join('');
   const polisSchedHtml = polisScheduled.map(m => {
     const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   }).join('');
 
   // ── Scontri tra avversari (con inserimento rapido)
   const altriAll  = [...altriPlayed, ...altriScheduled].sort((a,b) => (a.data||'').localeCompare(b.data||''));
   const altriHtml = renderAltriScontri('campionato', altriAll, currentLeva, null, null);
+  const delCampBtn = canEditPt(currentLeva) ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>` : '';
 
   c.innerHTML = `
     ${seniorBanner}
@@ -10540,6 +10880,7 @@ function renderPtCampionato() {
     ${polisSchedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime partite Polis</div></div>${polisSchedHtml}</div>` : ''}
     ${polisPlayedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Risultati Polis</div></div>${polisPlayedHtml}</div>` : ''}
     ${altriHtml}
+    ${delCampBtn}
   `;
 }
 
@@ -10584,7 +10925,7 @@ function renderPtTornei() {
       return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p ? p.nome+' '+p.cogn : '#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
     }).join('');
 
-    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button>` : '';
+    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>` : '';
     const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
     return `<div class="torneo-card">
       <div class="torneo-hd">
@@ -10699,7 +11040,7 @@ function renderGcCampionato() {
     const timeStr=m.orario?` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>`:'';
     const luogoStr=m.luogo?` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>`:'';
     const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
-    const delBtn=(!m.played&&canEdit)?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">✕</button>`:'';
+    const delBtn=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">🗑</button>`:'';
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   };
   const mkOther = (m) => {
@@ -10836,10 +11177,17 @@ function renderGcAmichevoli() {
   }
   const polis = polisName(currentLeva);
   c.innerHTML = list.map(m => {
-    const score = m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    const score = m.annullata
+      ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
+      : m.played ? `<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+    const tag = m.annullata
+      ? `<span class="mc-tag" style="background:#fef2f2;color:var(--red);">Annullata</span>`
+      : `<span class="mc-tag amic">Amichevole</span>`;
     const editBtn = canEditPt(m.leva)?`<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id})">✏️</button>`:'';
-    const risBtn  = canEditPt(m.leva)?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag amic">Amichevole</span><div class="mc-teams"><span class="mc-team">${escapeHtml(polis)}</span>${score}<span class="mc-team away">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    const delBtn  = canEditPt(m.leva)?`<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id})" title="Elimina">🗑</button>`:'';
+    const risBtn  = (!m.annullata && canEditPt(m.leva))?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
+    const opacity = m.annullata ? 'opacity:.55;' : '';
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   }).join('');
 }
 
@@ -11131,56 +11479,48 @@ function saveGcAddMatch() {
 }
 
 function deleteGcCampMatch(matchId) {
-  if (!confirm('Eliminare questa partita dal campionato?')) return;
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   const leva = currentLeva;
   if (!campionato[leva]?.partite) return;
   campionato[leva].partite = campionato[leva].partite.filter(m => m.id !== matchId);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
-  toast('✅ Partita eliminata');
+  toast('🗑 Partita eliminata');
 }
 
 function deleteCampionato(leva) {
   if (!canEditPt(leva)) return;
   const camp = campionato[leva];
   if (!camp) return;
-  const nPartite = camp.partite?.length || 0;
-  const nGiocate = (camp.partite||[]).filter(m => m.played).length;
-  if (!confirm(
-    `Eliminare il campionato della leva ${leva}?\n\n` +
-    `Verranno eliminati anche:\n` +
-    `• ${nPartite} ${nPartite === 1 ? 'partita' : 'partite'} (di cui ${nGiocate} giocate)\n` +
-    `• Tutti i risultati e le statistiche collegate\n\n` +
-    `Questa azione non può essere annullata.`
-  )) return;
-  // Rimuovi convocazioni legate alle partite di questo campionato
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   convocazioni = convocazioni.filter(cv => !String(cv.eventId).startsWith('camp_' + leva + '_'));
   delete campionato[leva];
   window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Campionato eliminato');
 }
 
 function deleteTorneo(torneoId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
-  const nFasi = t.fasi?.length || 0;
-  const nPartite = (t.fasi || []).reduce((sum, f) => sum + (f.partite?.length || 0), 0);
-  const nGiocate = (t.fasi || []).reduce((sum, f) => sum + (f.partite || []).filter(m => m.played).length, 0);
-  if (!confirm(
-    `Eliminare il torneo "${t.nome}"?\n\n` +
-    `Verranno eliminati anche:\n` +
-    `• ${nFasi} ${nFasi === 1 ? 'fase' : 'fasi'}\n` +
-    `• ${nPartite} ${nPartite === 1 ? 'partita' : 'partite'} (di cui ${nGiocate} giocate)\n` +
-    `• Tutti i risultati e le statistiche collegate\n\n` +
-    `Questa azione non può essere annullata.`
-  )) return;
-  // Rimuovi convocazioni legate a questo torneo
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   convocazioni = convocazioni.filter(cv => cv.eventId !== torneoId);
   tornei = tornei.filter(x => x.id !== torneoId);
   window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Torneo eliminato');
+}
+
+function deleteTorneoMatch(torneoId, faseId, matchId) {
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t || !canEditPt(t.leva)) return;
+  const f = t.fasi && t.fasi.find(x => x.id === faseId);
+  if (!f) return;
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  f.partite = (f.partite || []).filter(m => m.id !== matchId);
+  window.__fieldosSaveState();
+  renderGestComp(); renderPartite(); renderCal();
+  toast('🗑 Partita eliminata');
 }
 
 // ─── Torneo: modal ───
@@ -11434,7 +11774,12 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId) {
     const editBtn = m.played && canEdit
       ? `<button class="btn btn-g btn-sm" onclick="openRisultato('${tipo}',${tipo==='campionato' ? m.id : "'"+ref+"'"});event.stopPropagation();">📊</button>`
       : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}</div></div>`;
+    const delMatchBtn = canEdit
+      ? (tipo === 'campionato'
+          ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>`
+          : `<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${torneoId}','${faseId}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`)
+      : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
   }).join('');
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
@@ -11478,12 +11823,14 @@ function openPtAmich(id) {
     leva_sel.value = m.leva;
     document.getElementById('ptAmichAvv').value = m.avversario || '';
     document.getElementById('ptAmichLuogo').value = m.luogo || '';
+    document.getElementById('ptAmichAnnullata').checked = !!m.annullata;
   } else {
     document.getElementById('ptAmichData').value = today;
     document.getElementById('ptAmichOrario').value = '';
     document.getElementById('ptAmichTipo').value = 'casa';
     document.getElementById('ptAmichAvv').value = '';
     document.getElementById('ptAmichLuogo').value = '';
+    document.getElementById('ptAmichAnnullata').checked = false;
   }
   openM('mPtAmich');
 }
@@ -11495,19 +11842,30 @@ function savePtAmich() {
   const orario = document.getElementById('ptAmichOrario').value.trim() || null;
   const tipo   = document.getElementById('ptAmichTipo').value || 'casa';
   if (!avv) { toast('⚠️ Inserisci il nome dell\'avversario'); return; }
+  const annullata = document.getElementById('ptAmichAnnullata').checked;
   const idRaw = document.getElementById('ptAmichId').value;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
-    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; }
+    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; m.annullata = annullata; }
   } else {
     const newId = nextAmichevoleId++;
-    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, golCasa:0, golOspiti:0, stats:[]});
+    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[]});
     autoCreateConvocazione(newId, leva);
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
+}
+
+function deletePtAmich(id) {
+  const m = amichevoli.find(x => x.id === id);
+  if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  amichevoli = amichevoli.filter(x => x.id !== id);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderPartite(); renderGestComp(); renderCal();
+  toast('🗑 Amichevole eliminata');
 }
 
 // ─── MODALI CAMPIONATO ───
@@ -12787,7 +13145,7 @@ async function doSelfRegister() {
 
   if (!nomeCogn)                  { toast('⚠️ Inserisci nome e cognome'); return; }
   if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (pass.length < 6)            { toast('⚠️ Password troppo corta (min. 6 caratteri)'); return; }
+  if (!_pwCheck(pass).valid)      { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (!societa)                   { toast('⚠️ Inserisci il nome della società'); return; }
 
   const parts = nomeCogn.split(' ');
@@ -13490,7 +13848,7 @@ function _renderSaPanelInner() {
     <div class="sa-section-hd">
       <span>🏢 Società attive e sospese</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="saSyncAllBtn" class="sa-btn sa-btn-outline" onclick="saForceSyncAll()" title="Sync tutte">↑ Sync</button>
+        <span id="saSyncAllBtn" style="display:none;"></span>
         <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()">🔄 Verifica</button>
         <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova</button>
       </div>
@@ -13926,7 +14284,7 @@ function saCloseModal() {
 function saveNewPassword() {
   const np = document.getElementById('cpNewPass').value;
   const cp = document.getElementById('cpConfPass').value;
-  if (np.length < 6) { toast('❌ Minimo 6 caratteri'); return; }
+  if (!_pwCheck(np).valid) { toast('❌ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (np !== cp) { toast('❌ Le password non coincidono'); return; }
   const u = USERS_DB.find(x => x.id === me.id);
   if (u) { u.pass = np; u.tempPassword = false; }
@@ -14004,17 +14362,30 @@ function saveNewPassword() {
 
   // ── API sync helpers ─────────────────────────────────────
   let _pendingPushes = 0;
-  function _updateSyncBar(pending) {
+  function _updateSyncBar(pending, errState) {
     const bar = document.getElementById('syncStatusBar');
-    if (!bar) return;
-    if (pending > 0) {
-      bar.style.display = '';
-      bar.style.color = '';
-      bar.textContent = '⏳ Salvataggio in corso…';
+    const ind = document.getElementById('syncSettingsIndicator');
+    const indText = document.getElementById('syncSettingsText');
+    if (errState === 'fatal') {
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(220,38,38,.12)'; bar.style.color = '#dc2626'; bar.style.borderColor = 'rgba(220,38,38,.35)'; bar.textContent = '🔴 Connessione persa — riconnessione in corso…'; }
+      if (ind) { ind.style.background = '#fef2f2'; ind.style.borderColor = '#fecaca'; ind.style.color = '#dc2626'; }
+      if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
+    } else if (errState === 'retry') {
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(234,88,12,.1)'; bar.style.color = '#ea580c'; bar.style.borderColor = 'rgba(234,88,12,.3)'; bar.textContent = '⚠️ Riconnessione in corso…'; }
+      if (ind) { ind.style.background = '#fff7ed'; ind.style.borderColor = '#fed7aa'; ind.style.color = '#ea580c'; }
+      if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
+    } else if (pending > 0) {
+      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(245,158,11,.1)'; bar.style.color = '#f59e0b'; bar.style.borderColor = 'rgba(245,158,11,.3)'; bar.textContent = '⏳ Salvataggio in corso…'; }
+      if (ind) { ind.style.background = '#fefce8'; ind.style.borderColor = '#fde047'; ind.style.color = '#854d0e'; }
+      if (indText) indText.textContent = 'Salvataggio in corso...';
     } else {
-      bar.style.display = 'none';
-      bar.style.color = '';
+      if (bar) { bar.style.display = 'none'; bar.style.background = ''; bar.style.color = ''; bar.style.borderColor = ''; }
+      if (ind) { ind.style.background = '#f0fdf4'; ind.style.borderColor = '#bbf7d0'; ind.style.color = '#166534'; }
+      if (indText) indText.textContent = 'Dati sincronizzati';
     }
+    // aggiorna anche l'icona
+    const indIcon = document.getElementById('syncSettingsIcon');
+    if (indIcon) indIcon.textContent = (errState === 'fatal' || errState === 'retry') ? '🔴' : (pending > 0 ? '🟡' : '🟢');
   }
 
   function apiPush(key, json) {
@@ -14038,20 +14409,20 @@ function saveNewPassword() {
           _updateSyncBar(_pendingPushes);
           if (r.status === 409) console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
         } else if (_retries < _maxRetries) {
-          // 5xx o altro errore — riprova con backoff esponenziale
           _retries++;
+          _updateSyncBar(_pendingPushes, 'retry');
           setTimeout(doFetch, Math.min(4000 * _retries, 36000));
         } else {
           console.error('[apiPush] fallito dopo', _maxRetries, 'tentativi per key', key);
-          // Non decrementare: il badge rimane visibile come segnale di errore
-          const bar = document.getElementById('syncStatusBar');
-          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+          _updateSyncBar(_pendingPushes, 'fatal');
         }
       }).catch(() => {
-        if (_retries < _maxRetries) { _retries++; setTimeout(doFetch, Math.min(4000 * _retries, 36000)); }
-        else {
-          const bar = document.getElementById('syncStatusBar');
-          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+        if (_retries < _maxRetries) {
+          _retries++;
+          _updateSyncBar(_pendingPushes, 'retry');
+          setTimeout(doFetch, Math.min(4000 * _retries, 36000));
+        } else {
+          _updateSyncBar(_pendingPushes, 'fatal');
         }
       });
     }
@@ -14199,10 +14570,14 @@ function saveNewPassword() {
 
   let _syncPollTimer = null;
 
-  // Applica stato dal server preservando le foto locali (non inviate al server per risparmiare spazio)
+  // Applica stato dal server.
+  // Le URL-foto (/api/photo/...) sono già nel blob server → arrivano via restoreState.
+  // Preserviamo solo le foto base64 locali (ancora non migrate al server).
   function applyServerState(serverJson) {
-    const savedPhotos = Object.assign({}, playerPhotos);
-    const savedSquad  = Object.assign({}, squadFotos);
+    const savedPhotos = {};
+    const savedSquad  = {};
+    Object.entries(playerPhotos).forEach(function([k,v]){ if (v && typeof v === 'string' && v.startsWith('data:')) savedPhotos[k] = v; });
+    Object.entries(squadFotos).forEach(function([k,v]){ if (v && typeof v === 'string' && v.startsWith('data:')) savedSquad[k] = v; });
     localStorage.setItem(KEY, serverJson);
     lastSnap = serverJson;
     restoreState();
@@ -14231,44 +14606,93 @@ function saveNewPassword() {
     }, 30000);
   }
 
-  // Hook su bootApp: server-first (4s), localStorage come fallback
+  // Hook su bootApp: se abbiamo già dati (lastSnap settato da doLogin o restoreState),
+  // avvia l'app subito e verifica il server in background.
+  // Se non abbiamo dati (nuovo dispositivo, primo accesso), aspetta il server prima di avviare.
   const _origBoot = bootApp;
   bootApp = function(user) {
-    // Tenta il server prima (4s timeout): se risponde è fonte di verità
-    apiPull(KEY, 4000).then(serverJson => {
-      if (serverJson && serverJson !== _PULL_EMPTY) {
-        // ── CASO 1: server ha dati → sono la fonte di verità, sempre ──
-        applyServerState(serverJson);
-        const fresh = USERS_DB.find(u => u.email?.toLowerCase() === user.email?.toLowerCase());
-        if (fresh) user = fresh;
+    const _email = (user.email || '').toLowerCase();
 
-      } else if (serverJson === _PULL_EMPTY) {
-        // ── CASO 2: server risponde 404 (DB vuoto per questa chiave) ──
-        // Usa localStorage se ha dati reali, e sincronizzali al server
-        restoreState();
-        const localData = localStorage.getItem(KEY);
-        if (localData && localData !== '{}') {
-          try {
-            const parsed = JSON.parse(localData);
-            // Considera "dati reali" solo se ci sono giocatori OPPURE utenti creati dopo i default
-            const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
-            const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
-            if (hasRealPlayers || hasRealUsers) {
-              apiPush(KEY, localData); // primo upload: localStorage → server
-              if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
-            }
-          } catch (_) {}
-        }
-
-      } else {
-        // ── CASO 3: null = timeout o errore di rete ──
-        // Usa localStorage come fallback, NON toccare il server
-        // (i dati sul server potrebbero essere integri — non sovrascrivere mai)
-        restoreState();
+    function _ensureUserInDb() {
+      // Garantisce che l'utente appena registrato sia in USERS_DB anche se il server
+      // non ha ancora ricevuto la push (race condition registrazione → bootApp pull)
+      if (!USERS_DB.some(u => u.id === user.id)) {
+        USERS_DB.push(user);
       }
+    }
+
+    function _applyServerUpdate(serverJson) {
+      if (!serverJson || serverJson === _PULL_EMPTY) return;
+      const stripped = lastSnap ? lastSnap.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""') : null;
+      if (serverJson === stripped) return; // già in sync, nessuna modifica necessaria
+      applyServerState(serverJson);
+      // Se l'utente non è nel nuovo stato (push della registrazione non ancora arrivata),
+      // lo re-inseriamo per evitare rotture dell'UI
+      const fresh = USERS_DB.find(u => (u.email || '').toLowerCase() === _email);
+      if (fresh) { user = fresh; } else { _ensureUserInDb(); }
+    }
+
+    if (lastSnap) {
+      // ── FAST PATH: dati già presenti (login server o localStorage) → avvia subito ──
+      // Assicuriamoci che l'utente sia in USERS_DB (protezione race registrazione)
+      _ensureUserInDb();
       _origBoot(user);
       startSyncPoll();
-    });
+      // Controlla in background se ci sono aggiornamenti da altri dispositivi
+      apiPull(KEY, 5000).then(serverJson => {
+        if (serverJson && serverJson !== _PULL_EMPTY) {
+          _applyServerUpdate(serverJson);
+        } else if (serverJson === _PULL_EMPTY) {
+          // Server non ha questa chiave ma noi abbiamo dati locali → carica sul server
+          const localData = localStorage.getItem(KEY);
+          if (localData && localData !== '{}') {
+            try {
+              const parsed = JSON.parse(localData);
+              const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
+              const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
+              if (hasRealPlayers || hasRealUsers) {
+                apiPush(KEY, localData);
+                if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
+              }
+            } catch (_) {}
+          }
+        }
+        // null = rete assente → i dati locali vanno bene, il sync riprenderà al prossimo poll
+        // Migrazione foto base64 → server (solo se ci sono foto legacy)
+        setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
+      });
+    } else {
+      // ── SLOW PATH: nessun dato locale → aspetta il server (primo accesso nuovo dispositivo) ──
+      apiPull(KEY, 5000).then(serverJson => {
+        if (serverJson && serverJson !== _PULL_EMPTY) {
+          applyServerState(serverJson);
+          const fresh = USERS_DB.find(u => (u.email || '').toLowerCase() === _email);
+          if (fresh) { user = fresh; } else { _ensureUserInDb(); }
+        } else if (serverJson === _PULL_EMPTY) {
+          restoreState();
+          const localData = localStorage.getItem(KEY);
+          if (localData && localData !== '{}') {
+            try {
+              const parsed = JSON.parse(localData);
+              const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
+              const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
+              if (hasRealPlayers || hasRealUsers) {
+                apiPush(KEY, localData);
+                if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
+              }
+            } catch (_) {}
+          }
+        } else {
+          restoreState();
+        }
+        _ensureUserInDb();
+        me = user; // aggiorna il riferimento globale con l'utente fresco dal server
+        _origBoot(user);
+        startSyncPoll();
+        // Migrazione foto base64 → server (solo se ci sono foto legacy)
+        setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
+      });
+    }
   };
 
   // Hook su logout: ferma il polling e salva prima di uscire
@@ -14432,6 +14856,10 @@ function saveNewPassword() {
     </div>
     <div class="fg"><label class="fl">Avversario *</label><input class="fi" id="ptAmichAvv" placeholder="Nome squadra avversaria"></div>
     <div class="fg"><label class="fl">Luogo</label><input class="fi" id="ptAmichLuogo" placeholder="es. Campo Primavera — Genova"></div>
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;">
+      <input type="checkbox" id="ptAmichAnnullata" style="width:16px;height:16px;accent-color:var(--red);">
+      <span style="font-size:.88rem;color:var(--red);font-weight:600;">Segna come annullata</span>
+    </label>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtAmich')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtAmich()">💾 Salva</button>
@@ -15115,8 +15543,8 @@ function saveNewPassword() {
   <div class="modal" style="max-width:400px;">
     <div class="mh"><div class="mt">🔑 Imposta la tua password</div></div>
     <p style="color:var(--text2);font-size:.88rem;margin:0 0 16px;">Benvenuto! Questo è il tuo primo accesso. Scegli una password personale.</p>
-    <div class="fg"><label class="fl">Nuova password *</label><input class="fi" id="cpNewPass" type="password" placeholder="Minimo 6 caratteri" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
-    <div class="fg"><label class="fl">Conferma password *</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
+    <div class="fg"><label class="fl">Nuova password</label><input class="fi" id="cpNewPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
+    <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
   </div>
 </div>
@@ -15381,6 +15809,11 @@ function urlBase64ToUint8Array(base64String) {
 // ── Init PWA on page load
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
+  // Widget password: occhio + barra forza + requisiti + match conferma
+  initPwField('rPass',      null);          // registrazione nuova società (no confirm)
+  initPwField('srPass',     'srPass2');     // registrazione genitore con codice
+  initPwField('onbPass',    'onbPass2');    // onboarding via invito
+  initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
 });
 </script>
 
