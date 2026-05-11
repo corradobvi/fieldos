@@ -10576,7 +10576,7 @@ function canEditPt(leva) {
   if (saViewMode) return false;
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'dirigente') return true;
-  if (me.role === 'allenatore') return me.leva === leva;
+  if (me.role === 'allenatore') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
   return false;
 }
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
@@ -11867,7 +11867,7 @@ function deletePtAmich(id) {
   if (!confirm('Eliminare l\'amichevole contro ' + m.avversario + '?')) return;
   amichevoli = amichevoli.filter(x => x.id !== id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  renderPartite(); renderGestComp(); renderCal();
   toast('🗑 Amichevole eliminata');
 }
 
