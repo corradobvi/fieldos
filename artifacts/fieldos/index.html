@@ -2327,58 +2327,51 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="modal" style="max-width:520px;">
     <div class="mh"><div class="mt" id="srTitle">👨‍👧 Registrati come genitore</div><button class="mx" onclick="closeM('mSelfReg')">✕</button></div>
     <div style="background:linear-gradient(135deg,var(--cp),var(--cs));color:white;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div id="srSocNome" style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">FieldOS</div>
+      <div id="srSocNome" style="font-size:.7rem;opacity:.85;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">MyVivaio</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;line-height:1.1;" id="srHeroTitle">Crea il tuo account famiglia</div>
-      <div style="font-size:.78rem;opacity:.9;margin-top:4px;" id="srHeroSub">La tua richiesta verrà approvata dall'admin della società.</div>
+      <div style="font-size:.78rem;opacity:.9;margin-top:4px;" id="srHeroSub">Accedi subito dopo la registrazione — nessuna approvazione richiesta.</div>
     </div>
     <!-- Step indicator -->
     <div id="srSteps" style="display:flex;gap:6px;margin-bottom:12px;font-size:.7rem;color:var(--text2);">
       <div id="srStepInd1" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--cl);font-weight:700;">1. Codice</div>
-      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Account</div>
-      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Figli</div>
+      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Figli</div>
+      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Account</div>
     </div>
     <!-- STEP 1: codice società -->
     <div id="srStep1">
       <div class="fg"><label class="fl">Codice società</label><input class="fi" id="srCodice" placeholder="Es. POLIS18" style="text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;min-height:48px;" autocorrect="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();srNextStep1();}"></div>
       <div style="font-size:.78rem;color:var(--text2);margin:-4px 0 12px;line-height:1.4;">Il codice ti viene fornito dalla società (volantino, modulo iscrizione o gruppo WhatsApp).</div>
       <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
-      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;" onclick="closeM('mSelfReg')">Annulla</button></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;min-height:48px;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
-    <!-- STEP 2: dati account -->
+    <!-- STEP 2: scelta figli -->
     <div id="srStep2" style="display:none;">
-      <div class="fr">
-        <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome"></div>
-        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome"></div>
-      </div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it"></div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Password (min. 6 caratteri)</label><input class="fi" id="srPass" type="password" placeholder="••••••••"></div>
-        <div class="fg"><label class="fl">Ripeti password</label><input class="fi" id="srPass2" type="password" placeholder="••••••••"></div>
-      </div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">Seleziona uno o più figli/e in rosa.</div>
+      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()" style="min-height:48px;"></div>
+      <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
+      <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:6px;min-height:18px;"></div>
+      <div id="srStep2Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
-        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srNextStep2()">Avanti → Seleziona figli</button>
+        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Dati account</button>
       </div>
     </div>
-    <!-- STEP 3: scelta figli -->
+    <!-- STEP 3: dati account -->
     <div id="srStep3" style="display:none;">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">Seleziona uno o più figli/e in rosa.</div>
-      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()"></div>
-      <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
-      <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:10px;"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome" style="min-height:48px;"></div>
+      </div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it" style="min-height:48px;" autocapitalize="off" autocorrect="off"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Password (min. 6 caratteri)</label><input class="fi" id="srPass" type="password" placeholder="••••••••" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Ripeti password</label><input class="fi" id="srPass2" type="password" placeholder="••••••••" style="min-height:48px;"></div>
+      </div>
+      <div id="srStep3Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(2)">← Indietro</button>
-        <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">📨 Invia richiesta</button>
+        <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">🎉 Registrati e accedi</button>
       </div>
-    </div>
-    <!-- STEP 4: conferma in attesa -->
-    <div id="srStep4" style="display:none;text-align:center;">
-      <div style="font-size:3rem;margin-bottom:8px;">⏳</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:800;color:var(--cp);margin-bottom:8px;">Richiesta inviata!</div>
-      <div style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:16px;">
-        L'amministratore della società riceverà la tua richiesta e la approverà a breve. Quando sarà approvata potrai accedere con l'email e la password che hai scelto.
-      </div>
-      <button class="btn btn-p" style="width:100%;" onclick="closeM('mSelfReg')">OK, ho capito</button>
     </div>
   </div>
 </div>
@@ -7498,14 +7491,13 @@ function refreshCodiceStatoUI(){
 function openSelfReg(){
   _selfRegSelectedIds = [];
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN) _srSN.textContent = 'MyVivaio'; // aggiornato dopo validazione codice
-  document.getElementById('srCodice').value = '';
-  document.getElementById('srNome').value = '';
-  document.getElementById('srCogn').value = '';
-  document.getElementById('srEmail').value = '';
-  document.getElementById('srPass').value = '';
-  document.getElementById('srPass2').value = '';
-  document.getElementById('srSearch').value = '';
+  if (_srSN) _srSN.textContent = 'MyVivaio';
+  ['srCodice','srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['srStep1Error','srStep2Error','srStep3Error'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display='none';
+  });
   _srVerifiedCode  = '';
   _srVerifiedState = '';
   srShowStep(1);
@@ -7513,20 +7505,18 @@ function openSelfReg(){
 }
 
 function srShowStep(n){
-  for (let i=1;i<=4;i++){
+  for (let i=1;i<=3;i++){
     const el = document.getElementById('srStep'+i);
     if (el) el.style.display = (i===n) ? 'block' : 'none';
   }
-  // Step indicator (solo per step 1-3)
   for (let i=1;i<=3;i++){
     const ind = document.getElementById('srStepInd'+i);
     if (ind) {
       ind.style.background = (i===n) ? 'var(--cl)' : 'var(--bg)';
       ind.style.fontWeight = (i===n) ? '700' : '500';
+      ind.style.color = (i===n) ? 'var(--cp)' : 'var(--text2)';
     }
   }
-  const steps = document.getElementById('srSteps');
-  if (steps) steps.style.display = (n===4) ? 'none' : 'flex';
 }
 
 function srBackStep(n){ srShowStep(n); }
@@ -7612,7 +7602,9 @@ async function srNextStep1(){
 
     _srApplySocietaContext(found.socId, found.soc);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+    _selfRegSelectedIds = [];
     srShowStep(2);
+    renderSrRoster();
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
@@ -7670,7 +7662,7 @@ async function loginConCodice() {
 
     _srApplySocietaContext(found.socId, found.soc);
 
-    // Pre-popola il modal e vai direttamente allo step 2
+    // Pre-popola il modal e vai direttamente allo step 2 (selezione figli)
     _selfRegSelectedIds = [];
     const srCod = document.getElementById('srCodice');
     if (srCod) srCod.value = v;
@@ -7680,6 +7672,7 @@ async function loginConCodice() {
     setTimeout(() => {
       btn.disabled=false; btn.textContent='Accedi →';
       srShowStep(2);
+      renderSrRoster();
       openM('mSelfReg');
     }, 300);
   } catch(e) {
@@ -7688,25 +7681,14 @@ async function loginConCodice() {
   }
 }
 
-function srNextStep2(){
-  const nome = document.getElementById('srNome').value.trim();
-  const cogn = document.getElementById('srCogn').value.trim();
-  const email = document.getElementById('srEmail').value.trim();
-  const pass = document.getElementById('srPass').value;
-  const pass2 = document.getElementById('srPass2').value;
-  if (!nome || !cogn) { toast('⚠️ Inserisci nome e cognome'); return; }
-  if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (!pass || pass.length < 6) { toast('⚠️ Password troppo corta (min. 6)'); return; }
-  if (pass !== pass2) { toast('⚠️ Le password non coincidono'); return; }
-  // Email duplicata? (sia tra utenti attivi che pendenti)
-  if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-    toast('⛔ Email già registrata. Accedi invece di registrarti.'); return;
+function srStep2Next(){
+  const errEl = document.getElementById('srStep2Error');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
   }
-  if (pendingUsers.find(p => p.email.toLowerCase() === email.toLowerCase())) {
-    toast('⏳ Esiste già una richiesta in attesa con questa email.'); return;
-  }
+  if (errEl) errEl.style.display='none';
+  if (_selfRegSelectedIds.length === 0) { _err('⚠️ Seleziona almeno un figlio/a per continuare.'); return; }
   srShowStep(3);
-  renderSrRoster();
 }
 
 function renderSrRoster(){
@@ -7783,49 +7765,82 @@ function renderSrRoster(){
 }
 
 function submitSelfReg(){
-  // Refresh stato condiviso (race con altre tab che approvano/rifiutano/aggiungono utenti)
-  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
-  // Controlla codiceSocieta con fallback al codice verificato al login (su nuovo dispositivo codiceSocieta può essere vuoto)
-  const _activeCode = codiceSocieta || _srVerifiedCode;
-  if (!_activeCode) { toast('⛔ Registrazione disattivata'); closeM('mSelfReg'); return; }
-  if (_selfRegSelectedIds.length === 0) { toast('⚠️ Seleziona almeno un figlio/a'); return; }
-  const nome = document.getElementById('srNome').value.trim();
-  const cogn = document.getElementById('srCogn').value.trim();
-  const email = document.getElementById('srEmail').value.trim();
-  const pass = document.getElementById('srPass').value;
-  // Re-check email univoca (race con altre tab)
-  if (USERS_DB.find(u => u.email.toLowerCase() === email.toLowerCase()) ||
-      pendingUsers.find(p => p.email.toLowerCase() === email.toLowerCase())) {
-    toast('⛔ Email già registrata. Accedi invece di registrarti.'); return;
+  const errEl = document.getElementById('srStep3Error');
+  const btn   = document.getElementById('srBtnSubmit');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
+    if (btn) { btn.disabled=false; btn.textContent='🎉 Registrati e accedi'; }
   }
-  // Filtra i figli selezionati che esistono ancora in rosa (la rosa può essere cambiata mentre il genitore compilava)
+  if (errEl) errEl.style.display='none';
+
+  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
+
+  const _activeCode = codiceSocieta || _srVerifiedCode;
+  if (!_activeCode) { _err('⛔ Registrazione disattivata per questa società.'); return; }
+
+  // Se i figli sono stati deselezionati torna allo step 2
+  if (_selfRegSelectedIds.length === 0) { _err('⚠️ Nessun figlio/a selezionato. Torna indietro e selezionane almeno uno.'); return; }
+
+  const nome  = (document.getElementById('srNome').value  || '').trim();
+  const cogn  = (document.getElementById('srCogn').value  || '').trim();
+  const email = (document.getElementById('srEmail').value || '').trim().toLowerCase();
+  const pass  = document.getElementById('srPass').value  || '';
+  const pass2 = document.getElementById('srPass2').value || '';
+
+  if (!nome || !cogn) { _err('⚠️ Inserisci nome e cognome.'); return; }
+  if (!email || !email.includes('@')) { _err('⚠️ Inserisci un indirizzo email valido.'); return; }
+  if (!pass || pass.length < 6) { _err('⚠️ La password deve essere di almeno 6 caratteri.'); return; }
+  if (pass !== pass2) { _err('⚠️ Le due password non coincidono.'); return; }
+
+  if (USERS_DB.find(u => (u.email||'').toLowerCase() === email)) {
+    _err('⛔ Email già registrata. Usa la schermata di login per accedere.'); return;
+  }
+  if (pendingUsers.find(p => (p.email||'').toLowerCase() === email)) {
+    _err('⏳ Esiste già una richiesta con questa email.'); return;
+  }
+
   const figliPlayers = players.filter(p => _selfRegSelectedIds.includes(p.id));
   if (figliPlayers.length === 0) {
-    toast('⛔ I figli selezionati non sono più in rosa. Riprova.'); srShowStep(3); renderSrRoster(); return;
+    _err('⛔ I giocatori selezionati non sono più in rosa. Torna indietro e riseleziona.'); return;
   }
+
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Registrazione…'; }
+
   const figli = figliPlayers.map(p => p.nome + ' ' + p.cogn);
   const figliIds = figliPlayers.map(p => p.id);
-  const req = {
-    id: nextPendingUserId++,
+  const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
+  const levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : '');
+
+  const newUser = {
+    id: nextUserId++,
     nome, cogn, email, pass,
     role: 'genitore',
-    figli,        // tenuti per UI / compatibilità storico
-    figliIds,     // SOURCE OF TRUTH per il rematch in approvePending (no omonimi)
-    richiestaTs: Date.now()
+    leva: levaFinal,
+    stato: 'attivo',
+    figli,
+    figlio: figli[0] || null,
+    figliIds,
+    anno: null
   };
-  pendingUsers.push(req);
-  // Notifica tutti gli admin
+  USERS_DB.push(newUser);
+
+  // Notifica admin del nuovo genitore registrato
   USERS_DB.filter(u => u.role === 'admin').forEach(adm => {
     if (typeof pushNotifica === 'function') {
       pushNotifica(adm.id, {
-        type: 'richiesta_iscrizione',
-        title: `📨 Nuova richiesta iscrizione: ${nome} ${cogn}`,
-        body: `Figli: ${figli.join(', ')} — approva da Impostazioni › Utenti`
+        type: 'nuovo_genitore',
+        title: `✅ Nuovo genitore: ${nome} ${cogn}`,
+        body: `Figli: ${figli.join(', ')}`
       });
     }
   });
+
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  srShowStep(4);
+
+  closeM('mSelfReg');
+  setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
+  me = newUser;
+  bootApp(newUser);
 }
 
 // Approvazione/rifiuto richieste (chiamate dalla tabella in Impostazioni)
