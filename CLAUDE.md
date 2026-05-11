@@ -24,6 +24,28 @@ git push origin main
 - Backend API: `artifacts/api-server/` → Railway (Dockerfile)
 - Proxy API: Netlify redirige `/api/*` → `https://workspacefieldos-production.up.railway.app/api/:splat`
 
+## REGOLA CRITICA: verifica sintassi JS prima del push
+
+**Dopo ogni modifica al codice JavaScript, verificare SEMPRE la sintassi prima di fare il push.**
+
+```bash
+node -e "
+const fs = require('fs');
+const html = fs.readFileSync('artifacts/fieldos/index.html', 'utf8');
+const start = html.indexOf('<script>');
+const end = html.indexOf('</script>', start);
+const script = html.slice(start+8, end);
+fs.writeFileSync('/tmp/_check.js', script);
+" && node --check /tmp/_check.js && echo 'SYNTAX OK'
+```
+
+Errori da controllare in particolare:
+- **`else if` dopo `else` finale** — causa `SyntaxError: Unexpected token 'else'` che blocca tutta l'app
+- Template literals annidati non chiusi correttamente
+- Parentesi o graffe non bilanciate
+
+**Non fare mai il push se il controllo sintassi fallisce.** Un errore JS blocca il login su tutti i dispositivi.
+
 ## Script deploy rapido
 
 ```bash
