@@ -11004,7 +11004,8 @@ function renderPtTornei() {
       return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p ? p.nome+' '+p.cogn : '#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
     }).join('');
 
-    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>` : '';
+    const _tc = (t.convocati||[]).length;
+    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-sm" style="background:#1A7A4A;color:white;font-size:.72rem;" onclick="openTorneoConvocatiModal('${t.id}')">📋 ${_tc ? _tc+' conv.' : 'Convocati'}</button><button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>` : '';
     const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
     return `<div class="torneo-card">
       <div class="torneo-hd">
@@ -11160,8 +11161,10 @@ function renderGcTornei() {
 function _gcTorneoHd(t) {
   const dr = t.dataInizio?(t.dataFine&&t.dataFine!==t.dataInizio?`${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}`:fmtMatchDate(t.dataInizio)):'';
   const tipoLabel = t.tipo===2?'Doppio girone':t.tipo===3?'Gironi + Scontri diretti':'Girone unico';
-  const editBtns = canEditPt(t.leva)?`<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
-  return `<div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div></div><div style="display:flex;gap:6px;">${editBtns}</div></div>`;
+  const convCount = (t.convocati || []).length;
+  const convLabel = convCount ? `${convCount} convoc.` : 'Nessun convocato';
+  const editBtns = canEditPt(t.leva)?`<button class="btn btn-sm" style="background:#1A7A4A;color:white;font-size:.72rem;" onclick="openTorneoConvocatiModal('${t.id}')" title="Gestisci convocati">📋 ${convLabel}</button><button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
+  return `<div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">${editBtns}</div></div>`;
 }
 
 function _gcFaseStanding(t, f) {
@@ -11783,7 +11786,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[]};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
@@ -12043,7 +12046,7 @@ function savePtTorneo() {
     const t = tornei.find(x => x.id === id);
     if (t) { t.nome = nome; t.leva = leva; t.luogo = luogo; t.dataInizio = di; t.dataFine = df; }
   } else {
-    tornei.push({id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, fasi:[]});
+    tornei.push({id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, fasi:[], convocati:[]});
   }
   closeM('mPtTorneo');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -12320,23 +12323,28 @@ function getChatsForUser(user) {
     }
   }
 
-  // 5. Chat Torneo — dirigenti + genitori della leva del torneo
+  // 5. Chat Torneo — dirigenti della leva + genitori/nonni dei soli giocatori convocati
   if (Array.isArray(tornei)) {
     tornei.forEach(t => {
-      const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
-      const genitoriInLeva = USERS_DB.filter(u => {
+      const convocatiSet = new Set(t.convocati || []);
+      // Dirigenti: solo quelli assegnati alla leva del torneo (o senza leva / Tutte)
+      const dirigenti = USERS_DB.filter(u =>
+        u.role === 'dirigente' && (!u.leva || u.leva === t.leva || u.leva === 'Tutte')
+      ).map(u => u.id);
+      // Genitori/nonni: solo quelli con un figlio tra i convocati
+      const genitoriConvocati = USERS_DB.filter(u => {
         if (u.role !== 'genitore' && u.role !== 'nonno') return false;
         const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
         return figli.some(f => {
           const p = players.find(pl => (pl.nome + ' ' + pl.cogn).toLowerCase() === String(f).toLowerCase());
-          return p && p.leva === t.leva;
+          return p && convocatiSet.has(p.id);
         });
       }).map(u => u.id);
-      const members = [...new Set([...dirigenti, ...genitoriInLeva])];
+      const members = [...new Set([...dirigenti, ...genitoriConvocati])];
       const torneoState = (torneoChats && torneoChats[t.id]) || {};
       const genitoriScrivono = !!torneoState.genitoriScrivono;
-      const isGenit = (user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id);
-      const isDirig = user.role === 'dirigente';
+      const isGenit = (user.role === 'genitore' || user.role === 'nonno') && genitoriConvocati.includes(user.id);
+      const isDirig = user.role === 'dirigente' && dirigenti.includes(user.id);
       if ((isGenit || isDirig) && members.length > 0) {
         out.push({
           id: 'torneo_' + t.id,
@@ -12354,6 +12362,42 @@ function getChatsForUser(user) {
   }
 
   return out;
+}
+
+function openTorneoConvocatiModal(torneoId) {
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t) return;
+  document.getElementById('tcTorneoId').value = torneoId;
+  const convocatiSet = new Set(t.convocati || []);
+  const infoEl = document.getElementById('tcInfo');
+  if (infoEl) infoEl.textContent = '🏆 ' + t.nome + ' — ' + t.leva;
+  const levaPlayers = players.filter(p => p.leva === t.leva).sort((a,b) => (a.cogn+a.nome).localeCompare(b.cogn+b.nome));
+  const list = document.getElementById('tcPlayerList');
+  if (!levaPlayers.length) {
+    list.innerHTML = '<div style="color:var(--text2);font-size:.83rem;padding:8px;">Nessun giocatore nella leva ' + escapeHtml(t.leva) + '.</div>';
+  } else {
+    list.innerHTML = levaPlayers.map(p => {
+      const chk = convocatiSet.has(p.id) ? 'checked' : '';
+      const num = p.numero ? `<span style="font-size:.73rem;color:var(--text3);margin-left:4px;">#${p.numero}</span>` : '';
+      return `<label style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--white);cursor:pointer;">
+        <input type="checkbox" value="${p.id}" ${chk} style="accent-color:var(--cp);width:17px;height:17px;cursor:pointer;flex-shrink:0;">
+        <span style="font-weight:600;font-size:.86rem;">${escapeHtml(p.nome + ' ' + p.cogn)}${num}</span>
+      </label>`;
+    }).join('');
+  }
+  openM('mTorneoConvocati');
+}
+
+function saveTorneoConvocati() {
+  const torneoId = document.getElementById('tcTorneoId').value;
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t) return;
+  t.convocati = Array.from(document.querySelectorAll('#tcPlayerList input[type=checkbox]:checked')).map(cb => parseInt(cb.value));
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  closeM('mTorneoConvocati');
+  if (typeof renderChatList === 'function') renderChatList();
+  renderGestComp(); renderPartite();
+  toast('✅ ' + t.convocati.length + ' convocati salvati — chat torneo aggiornata');
 }
 
 function toggleTorneoScrivono(torneoId) {
@@ -14989,6 +15033,21 @@ function saveNewPassword() {
     <div style="display:flex;gap:10px;margin-top:18px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtTorneo')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtTorneo()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- Convocati torneo -->
+<div class="ov" id="mTorneoConvocati">
+  <div class="modal" style="max-width:460px;">
+    <div class="mh"><div class="mt">📋 Convocati torneo</div><button class="mx" onclick="closeM('mTorneoConvocati')">✕</button></div>
+    <input type="hidden" id="tcTorneoId">
+    <div id="tcInfo" style="font-weight:700;font-size:.86rem;color:var(--text);margin-bottom:6px;"></div>
+    <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:7px 10px;">Solo i genitori/nonni dei giocatori selezionati accederanno alla chat di questo torneo.</div>
+    <div id="tcPlayerList" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;padding:2px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mTorneoConvocati')">Annulla</button>
+      <button class="btn btn-p" style="flex:1;" onclick="saveTorneoConvocati()">💾 Salva convocati</button>
     </div>
   </div>
 </div>
