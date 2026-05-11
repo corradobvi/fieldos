@@ -3067,7 +3067,7 @@ async function doLogin() {
   // ── 2. Server login — fonte di verità principale ──
   try {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 8000);
+    const tid = setTimeout(() => ctrl.abort(), 5000);
     let resp;
     try {
       resp = await fetch(API_BASE + '/api/login', {
@@ -7560,9 +7560,16 @@ async function _srFindSocByCode(v) {
 function _srApplySocietaContext(socId, soc) {
   currentSocietaId = socId;
   if (typeof window.__fieldosSetSocietaKey === 'function') window.__fieldosSetSocietaKey(societyStorageKey(socId));
+  // restoreState() was called by __fieldosSetSocietaKey above — coloriPrimari/coloriAccento are now populated from the blob
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN && soc) _srSN.textContent = soc.nome.toUpperCase();
-  if (soc && typeof applyBranding === 'function') applyBranding(soc.nome, soc.colori, soc.coloriAccento || '#FFD93D');
+  if (_srSN) _srSN.textContent = ((soc && soc.nome) ? soc.nome : nomeSocieta).toUpperCase();
+  if (typeof applyBranding === 'function') {
+    applyBranding(
+      (soc && soc.nome) ? soc.nome : nomeSocieta,
+      (soc && soc.colori) ? soc.colori : coloriPrimari,
+      (soc && soc.coloriAccento) ? soc.coloriAccento : (coloriAccento || '#FFD93D')
+    );
+  }
 }
 
 async function srNextStep1(){
@@ -14019,16 +14026,32 @@ function saveNewPassword() {
 
   // ── API sync helpers ─────────────────────────────────────
   let _pendingPushes = 0;
-  function _updateSyncBar(pending) {
+  function _updateSyncBar(pending, errState) {
     const bar = document.getElementById('syncStatusBar');
     if (!bar) return;
-    if (pending > 0) {
+    if (errState === 'fatal') {
       bar.style.display = '';
-      bar.style.color = '';
+      bar.style.background = 'rgba(220,38,38,.12)';
+      bar.style.color = '#dc2626';
+      bar.style.borderColor = 'rgba(220,38,38,.35)';
+      bar.textContent = '🔴 Connessione persa — riconnessione in corso…';
+    } else if (errState === 'retry') {
+      bar.style.display = '';
+      bar.style.background = 'rgba(234,88,12,.1)';
+      bar.style.color = '#ea580c';
+      bar.style.borderColor = 'rgba(234,88,12,.3)';
+      bar.textContent = '⚠️ Riconnessione in corso…';
+    } else if (pending > 0) {
+      bar.style.display = '';
+      bar.style.background = 'rgba(245,158,11,.1)';
+      bar.style.color = '#f59e0b';
+      bar.style.borderColor = 'rgba(245,158,11,.3)';
       bar.textContent = '⏳ Salvataggio in corso…';
     } else {
       bar.style.display = 'none';
+      bar.style.background = '';
       bar.style.color = '';
+      bar.style.borderColor = '';
     }
   }
 
@@ -14053,20 +14076,20 @@ function saveNewPassword() {
           _updateSyncBar(_pendingPushes);
           if (r.status === 409) console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
         } else if (_retries < _maxRetries) {
-          // 5xx o altro errore — riprova con backoff esponenziale
           _retries++;
+          _updateSyncBar(_pendingPushes, 'retry');
           setTimeout(doFetch, Math.min(4000 * _retries, 36000));
         } else {
           console.error('[apiPush] fallito dopo', _maxRetries, 'tentativi per key', key);
-          // Non decrementare: il badge rimane visibile come segnale di errore
-          const bar = document.getElementById('syncStatusBar');
-          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+          _updateSyncBar(_pendingPushes, 'fatal');
         }
       }).catch(() => {
-        if (_retries < _maxRetries) { _retries++; setTimeout(doFetch, Math.min(4000 * _retries, 36000)); }
-        else {
-          const bar = document.getElementById('syncStatusBar');
-          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+        if (_retries < _maxRetries) {
+          _retries++;
+          _updateSyncBar(_pendingPushes, 'retry');
+          setTimeout(doFetch, Math.min(4000 * _retries, 36000));
+        } else {
+          _updateSyncBar(_pendingPushes, 'fatal');
         }
       });
     }
@@ -14246,44 +14269,89 @@ function saveNewPassword() {
     }, 30000);
   }
 
-  // Hook su bootApp: server-first (4s), localStorage come fallback
+  // Hook su bootApp: se abbiamo già dati (lastSnap settato da doLogin o restoreState),
+  // avvia l'app subito e verifica il server in background.
+  // Se non abbiamo dati (nuovo dispositivo, primo accesso), aspetta il server prima di avviare.
   const _origBoot = bootApp;
   bootApp = function(user) {
-    // Tenta il server prima (4s timeout): se risponde è fonte di verità
-    apiPull(KEY, 4000).then(serverJson => {
-      if (serverJson && serverJson !== _PULL_EMPTY) {
-        // ── CASO 1: server ha dati → sono la fonte di verità, sempre ──
-        applyServerState(serverJson);
-        const fresh = USERS_DB.find(u => u.email?.toLowerCase() === user.email?.toLowerCase());
-        if (fresh) user = fresh;
+    const _email = (user.email || '').toLowerCase();
 
-      } else if (serverJson === _PULL_EMPTY) {
-        // ── CASO 2: server risponde 404 (DB vuoto per questa chiave) ──
-        // Usa localStorage se ha dati reali, e sincronizzali al server
-        restoreState();
-        const localData = localStorage.getItem(KEY);
-        if (localData && localData !== '{}') {
-          try {
-            const parsed = JSON.parse(localData);
-            // Considera "dati reali" solo se ci sono giocatori OPPURE utenti creati dopo i default
-            const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
-            const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
-            if (hasRealPlayers || hasRealUsers) {
-              apiPush(KEY, localData); // primo upload: localStorage → server
-              if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
-            }
-          } catch (_) {}
-        }
-
-      } else {
-        // ── CASO 3: null = timeout o errore di rete ──
-        // Usa localStorage come fallback, NON toccare il server
-        // (i dati sul server potrebbero essere integri — non sovrascrivere mai)
-        restoreState();
+    function _ensureUserInDb() {
+      // Garantisce che l'utente appena registrato sia in USERS_DB anche se il server
+      // non ha ancora ricevuto la push (race condition registrazione → bootApp pull)
+      if (!USERS_DB.some(u => u.id === user.id)) {
+        USERS_DB.push(user);
       }
+    }
+
+    function _applyServerUpdate(serverJson) {
+      if (!serverJson || serverJson === _PULL_EMPTY) return;
+      const stripped = lastSnap ? lastSnap.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""') : null;
+      if (serverJson === stripped) return; // già in sync, nessuna modifica necessaria
+      applyServerState(serverJson);
+      // Se l'utente non è nel nuovo stato (push della registrazione non ancora arrivata),
+      // lo re-inseriamo per evitare rotture dell'UI
+      const fresh = USERS_DB.find(u => (u.email || '').toLowerCase() === _email);
+      if (fresh) { user = fresh; } else { _ensureUserInDb(); }
+    }
+
+    if (lastSnap) {
+      // ── FAST PATH: dati già presenti (login server o localStorage) → avvia subito ──
+      // Assicuriamoci che l'utente sia in USERS_DB (protezione race registrazione)
+      _ensureUserInDb();
       _origBoot(user);
       startSyncPoll();
-    });
+      // Controlla in background se ci sono aggiornamenti da altri dispositivi
+      apiPull(KEY, 5000).then(serverJson => {
+        if (serverJson && serverJson !== _PULL_EMPTY) {
+          _applyServerUpdate(serverJson);
+        } else if (serverJson === _PULL_EMPTY) {
+          // Server non ha questa chiave ma noi abbiamo dati locali → carica sul server
+          const localData = localStorage.getItem(KEY);
+          if (localData && localData !== '{}') {
+            try {
+              const parsed = JSON.parse(localData);
+              const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
+              const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
+              if (hasRealPlayers || hasRealUsers) {
+                apiPush(KEY, localData);
+                if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
+              }
+            } catch (_) {}
+          }
+        }
+        // null = rete assente → i dati locali vanno bene, il sync riprenderà al prossimo poll
+      });
+    } else {
+      // ── SLOW PATH: nessun dato locale → aspetta il server (primo accesso nuovo dispositivo) ──
+      apiPull(KEY, 5000).then(serverJson => {
+        if (serverJson && serverJson !== _PULL_EMPTY) {
+          applyServerState(serverJson);
+          const fresh = USERS_DB.find(u => (u.email || '').toLowerCase() === _email);
+          if (fresh) { user = fresh; } else { _ensureUserInDb(); }
+        } else if (serverJson === _PULL_EMPTY) {
+          restoreState();
+          const localData = localStorage.getItem(KEY);
+          if (localData && localData !== '{}') {
+            try {
+              const parsed = JSON.parse(localData);
+              const hasRealPlayers = Array.isArray(parsed.players) && parsed.players.length > 0;
+              const hasRealUsers   = Array.isArray(parsed.USERS_DB) && typeof parsed.nextUserId === 'number' && parsed.nextUserId > 7;
+              if (hasRealPlayers || hasRealUsers) {
+                apiPush(KEY, localData);
+                if (typeof saLog === 'function') saLog('Prima sincronizzazione cloud', `${KEY} — ${localData.length} bytes caricati`);
+              }
+            } catch (_) {}
+          }
+        } else {
+          restoreState();
+        }
+        _ensureUserInDb();
+        me = user; // aggiorna il riferimento globale con l'utente fresco dal server
+        _origBoot(user);
+        startSyncPoll();
+      });
+    }
   };
 
   // Hook su logout: ferma il polling e salva prima di uscire
