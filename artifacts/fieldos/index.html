@@ -1909,10 +1909,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">N° maglia</label><input class="fi" id="pNum" type="number" placeholder="10"></div>
       <div class="fg"><label class="fl">Ruolo</label>
         <select class="fs" id="pRuolo">
-          <option value="Portiere">Portiere</option>
-          <option value="Difensore">Difensore</option>
-          <option value="Centrocampista">Centrocampista</option>
-          <option value="Attaccante">Attaccante</option>
+          <option value="Portiere">🧤 Portiere</option>
+          <option value="Difensore">🛡️ Difensore</option>
+          <option value="Centrocampista">⚙️ Centrocampista</option>
+          <option value="Attaccante">⚡ Attaccante</option>
+          <option value="Ruolo variabile">🔄 Ruolo variabile</option>
+          <option value="Jolly">⚽ Jolly</option>
         </select>
       </div>
     </div>
@@ -1986,6 +1988,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <option value="">— Seleziona —</option>
           <option value="admin">Amministratore</option>
           <option value="allenatore">Mister</option>
+          <option value="preparatore_portieri">🧤 Preparatore portieri</option>
           <option value="dirigente">Dirigente</option>
           <option value="genitore">Genitore</option>
           <option value="nonno">Nonno/Nonna</option>
@@ -2634,6 +2637,7 @@ let editingPlayerId = null;
 let currentPresDate = null;
 let currentPresNavMonth = null;
 let currentPresMonthFilter = null;
+let currentPresPortieriMode = false; // true = mostra solo portieri (con allenamenti portieri)
 // Comunicazioni
 let _commActiveTab = 'pubblica';
 let _commSearchQ = '';
@@ -2930,6 +2934,18 @@ const ROLE_CFG = {
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
     ], leve:false
+  },
+  preparatore_portieri: {
+    label:'🧤 Prep. Portieri', color:'#0369a1', bg:'#e0f2fe',
+    nav:[
+      {s:'Squadra'},{id:'dashboard',ic:'🏠',lb:'Dashboard'},
+      {id:'rosa',ic:'👥',lb:'Portieri'},
+      {id:'presenze',ic:'✅',lb:'Presenze portieri'},
+      {id:'statistiche',ic:'📊',lb:'Statistiche'},
+      {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
+      {id:'chat',ic:'💬',lb:'Chat'},
+      {id:'calendario',ic:'📅',lb:'Calendario'},
+    ], leve:true
   }
 };
 
@@ -2941,10 +2957,12 @@ function byCogn(a, b) {
 // ─── Colore avatar basato sul ruolo (coerente in tutta l'app) ───
 function ruoloColor(ruolo) {
   const r = String(ruolo || '').toLowerCase();
-  if (r === 'portiere')       return '#f59e0b';
-  if (r === 'difensore')      return '#1a3f8f';
-  if (r === 'centrocampista') return '#1a7a4a';
-  if (r === 'attaccante')     return '#e03055';
+  if (r === 'portiere')        return '#f59e0b';
+  if (r === 'difensore')       return '#1a3f8f';
+  if (r === 'centrocampista')  return '#1a7a4a';
+  if (r === 'attaccante')      return '#e03055';
+  if (r === 'ruolo variabile') return '#6b7280';
+  if (r === 'jolly')           return '#6b7280';
   return '#5a6a8a';
 }
 
@@ -3378,7 +3396,7 @@ function bootApp(user) {
   document.getElementById('tbRole').textContent  = cfg.label.replace(/^[^\s]+\s/, '');
   const tb = document.getElementById('tbBadge');
   tb.textContent = cfg.label;
-  const _useCP = (user.role === 'admin' || user.role === 'allenatore' || user.role === 'dirigente');
+  const _useCP = (user.role === 'admin' || user.role === 'allenatore' || user.role === 'preparatore_portieri' || user.role === 'dirigente');
   tb.style.background   = _useCP ? 'var(--cl)'  : cfg.bg;
   tb.style.color        = _useCP ? 'var(--cp)'  : cfg.color;
   tb.style.borderColor  = _useCP ? 'var(--cp)'  : cfg.color;
@@ -3578,7 +3596,7 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
-    const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente';
+    const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
     ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
@@ -3638,7 +3656,7 @@ function renderProfilo() {
   if ((me.role === 'genitore' || me.role === 'nonno') && window.innerWidth <= 640) {
     renderProfiloFiglio(el); return;
   }
-  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
+  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
   const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
   const leva = me.leva ? `<div style="font-size:.8rem;color:var(--text3);margin-top:4px;">Leva ${me.leva}</div>` : '';
@@ -3952,7 +3970,8 @@ function renderRosa() {
   const g = document.getElementById('rosaGrid');
   if (!g) return;
   const editable = me && (me.role === 'admin' || me.role === 'allenatore');
-  const list = players.filter(p => p.leva === currentLeva).sort(byCogn);
+  const baseList = players.filter(p => p.leva === currentLeva).sort(byCogn);
+  const list = isGKCoach() ? baseList.filter(p => isGK(p)) : baseList;
 
   if (list.length === 0) {
     g.innerHTML = '';
@@ -4330,7 +4349,8 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 // Permessi:
-function canEditPresenze(){ return me && me.role === 'allenatore'; }
+function canEditPresenze(){ return me && (me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
+function isGKCoach(){ return me && me.role === 'preparatore_portieri'; }
 function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Genera le date degli allenamenti per la leva corrente espandendo le ricorrenze.
@@ -4347,7 +4367,22 @@ function getTrainingDatesForLeva(leva){
       if (eventOccursOn(ev, ds)) { set.add(ds); break; }
     }
   }
-  return Array.from(set).sort().reverse(); // ISO date strings: sort ascending then reverse = newest first
+  return Array.from(set).sort().reverse();
+}
+
+function getGKTrainingDatesForLeva(leva){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const set = new Set();
+  const gkEvents = events.filter(ev => ev.type === 'allenamento_portieri'
+    && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(leva)));
+  for (let off = -90; off <= 30; off++){
+    const d = new Date(today); d.setDate(today.getDate() + off);
+    const ds = ymd(d);
+    for (const ev of gkEvents) {
+      if (eventOccursOn(ev, ds)) { set.add(ds); break; }
+    }
+  }
+  return Array.from(set).sort().reverse();
 }
 
 // Trova/aggiorna lo status di un giocatore per una data specifica
@@ -4392,6 +4427,12 @@ function renderPresenze() {
       actions.appendChild(b);
     }
     if (me.role === 'allenatore') {
+      const gkBtn = document.createElement('button');
+      gkBtn.className = 'btn btn-sm';
+      gkBtn.style.cssText = currentPresPortieriMode ? 'background:#0369a1;color:white;' : 'background:var(--bg);border-color:var(--border);';
+      gkBtn.textContent = '🧤 Portieri';
+      gkBtn.onclick = () => { currentPresPortieriMode = !currentPresPortieriMode; currentPresDate = null; currentPresNavMonth = null; renderPresenze(); };
+      actions.appendChild(gkBtn);
       const ex = document.createElement('button');
       ex.className = 'btn btn-g btn-sm';
       ex.textContent = '↓ Export CSV';
@@ -4404,6 +4445,8 @@ function renderPresenze() {
     renderPresenzeOverview(cont, me.role === 'dirigente' ? userLeve() : leve);
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
+  } else if (me.role === 'preparatore_portieri') {
+    renderPresenzePortieri(cont);
   } else if (me.role === 'genitore' || me.role === 'nonno') {
     const figliNames = getFigliOf(me);
     renderPresenzePersonale(cont, players.filter(p => figliNames.includes(p.nome+' '+p.cogn)));
@@ -4511,6 +4554,7 @@ function renderPresenzeOverview(cont, leveList) {
 
 // ── Allenatore: full editable register for currentLeva
 function renderPresenzeAllenatore(cont) {
+  if (currentPresPortieriMode) { renderPresenzePortieri(cont); return; }
   cont.innerHTML = `
     <div class="card" id="presRegistroCard">
       <!-- Selettore mese -->
@@ -4701,6 +4745,161 @@ function renderPresenzeAllenatore(cont) {
   renderPresRecap();
 }
 
+// ── Preparatore portieri: registro presenze solo per portieri, date da allenamento_portieri
+function renderPresenzePortieri(cont) {
+  cont.innerHTML = `
+    <div class="card" id="presRegistroCard">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:1.2rem;">🧤</span>
+        <span style="font-weight:800;font-size:.95rem;">Registro presenze portieri</span>
+        <span style="font-size:.72rem;color:var(--text3);margin-left:4px;">Solo allenamenti portieri</span>
+      </div>
+      <div id="presNavMonthRow" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);"></div>
+      <div id="presNavDateList" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;min-height:36px;"></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:14px;" id="presActionRow">
+        <button class="btn btn-g btn-sm" onclick="presGoToday()">📍 Oggi</button>
+        <div id="presBulkActions" style="display:flex;gap:6px;"></div>
+      </div>
+      <div id="presNoticesBox"></div>
+      <div class="pres-tbl-wrap" style="overflow-x:auto;"><table class="tbl"><thead><tr>
+        <th style="min-width:160px;">Portiere</th>
+        <th style="min-width:90px;">Avviso famiglia</th>
+        <th>Stato</th>
+        <th>%All. GK</th>
+        <th>Note assenza</th>
+      </tr></thead><tbody id="presBody"></tbody></table></div>
+      <div id="presMobCards"></div>
+      <div style="margin-top:10px;display:flex;gap:14px;font-size:.71rem;color:var(--text3);flex-wrap:wrap;">
+        <span><span class="pd p" style="cursor:default;display:inline-flex;width:20px;height:20px;font-size:.6rem;">✓</span> Presente</span>
+        <span><span class="pd a" style="cursor:default;display:inline-flex;width:20px;height:20px;font-size:.6rem;">✗</span> Assente</span>
+        <span><span class="pd j" style="cursor:default;display:inline-flex;width:20px;height:20px;font-size:.6rem;">~</span> Giustificato</span>
+      </div>
+    </div>`;
+
+  const gkDates = getGKTrainingDatesForLeva(currentLeva);
+  const todayStr = ymd(new Date());
+
+  if (!currentPresDate || !gkDates.includes(currentPresDate)) {
+    const pasts = gkDates.filter(d => d <= todayStr);
+    const futures = gkDates.filter(d => d > todayStr);
+    currentPresDate = pasts.length ? pasts[0] : (futures.length ? futures[futures.length - 1] : '');
+  }
+  if (!currentPresNavMonth) {
+    currentPresNavMonth = currentPresDate ? currentPresDate.slice(0,7) : todayStr.slice(0,7);
+  }
+
+  renderPresNavMonthRow(gkDates);
+  renderPresNavDateList(gkDates);
+
+  const bulk = document.getElementById('presBulkActions');
+  if (bulk && currentPresDate) {
+    bulk.innerHTML = '';
+    const bAll = document.createElement('button');
+    bAll.className = 'btn btn-g btn-sm'; bAll.textContent = '✓ Tutti presenti';
+    bAll.onclick = () => { players.filter(p=>p.leva===currentLeva&&isGK(p)).forEach(p=>setPresenzaForDate(p,currentPresDate,'p')); renderPresenze(); };
+    bulk.appendChild(bAll);
+    const bClr = document.createElement('button');
+    bClr.className = 'btn btn-g btn-sm'; bClr.textContent = '↺ Azzera';
+    bClr.onclick = () => { players.filter(p=>p.leva===currentLeva&&isGK(p)).forEach(p=>setPresenzaForDate(p,currentPresDate,'')); renderPresenze(); };
+    bulk.appendChild(bClr);
+  }
+
+  const avvisi = currentPresDate ? players.filter(p=>p.leva===currentLeva&&isGK(p)).flatMap(p => {
+    const av=(p.assenzeAvvisate||[]).find(a=>a.date===currentPresDate);
+    return av?[{p,av}]:[];
+  }) : [];
+  const notices = document.getElementById('presNoticesBox');
+  if (notices) notices.innerHTML = avvisi.length
+    ? `<div style="background:#fff7ed;border:1px solid #f59e0b;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:.78rem;font-weight:700;color:#b45309;margin-bottom:4px;">📩 ${avvisi.length} avviso${avvisi.length>1?'i':''} di assenza:</div>
+        ${avvisi.map(({p,av})=>`<div style="font-size:.78rem;color:var(--text2);">• <strong>${escapeHtml(p.nome+' '+p.cogn)}</strong>${av.motivo?' — '+escapeHtml(av.motivo):''}</div>`).join('')}
+      </div>` : '';
+
+  const tbody = document.getElementById('presBody');
+  if (!tbody) return;
+  const list = players.filter(p=>p.leva===currentLeva&&isGK(p)).sort(byCogn);
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3);">Nessun portiere nella leva ${escapeHtml(currentLeva)}</td></tr>`;
+    return;
+  }
+  if (!currentPresDate) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3);">Nessun allenamento portieri programmato. Aggiungi un evento "Allenamento portieri" dal Calendario.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = '';
+  const mobCards = document.getElementById('presMobCards');
+  if (mobCards) mobCards.innerHTML = '';
+  list.forEach(p => {
+    const allGK = (p.presAll||[]).filter(r => {
+      if (typeof r !== 'object' || !r.date) return false;
+      return gkDates.includes(r.date);
+    });
+    const percGK = allGK.length ? Math.round(allGK.filter(r=>r.status==='p').length / allGK.length * 100) : 0;
+    const pc = percGK>=80?'var(--green)':percGK>=60?'var(--gold)':'var(--red)';
+    const cur = getPresenzaForDate(p, currentPresDate);
+    const av = (p.assenzeAvvisate||[]).find(a=>a.date===currentPresDate);
+
+    if (mobCards) {
+      const card = document.createElement('div');
+      card.className = `pres-mc${cur?' has-'+cur:''}`;
+      const btnsHtml = [['p','✓','pmb-p'],['j','~','pmb-j'],['a','✗','pmb-a']].map(([code,ic,cls])=>{
+        const isOn = cur===code;
+        return `<button class="pmb${isOn?' '+cls:''}" data-pid="${p.id}" data-code="${code}">${ic}</button>`;
+      }).join('');
+      card.innerHTML = `
+        <div class="pres-mc-av" style="background:#f59e0b20;color:#f59e0b;">🧤</div>
+        <div style="flex:1;min-width:0;">
+          <div class="pres-mc-name">${escapeHtml(p.nome+' '+p.cogn)}</div>
+          <div class="pres-mc-sub">${percGK}% presenze GK${av?' · 📩 '+escapeHtml((av.motivo||'avviso').slice(0,20)):''}</div>
+        </div>
+        <div class="pres-mc-btns">${btnsHtml}</div>`;
+      card.querySelectorAll('.pmb').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const code = btn.dataset.code;
+          setPresenzaForDate(p, currentPresDate, cur===code?'':code);
+          renderPresenze();
+        });
+      });
+      mobCards.appendChild(card);
+    }
+
+    const tr = document.createElement('tr');
+    const tdG = document.createElement('td');
+    tdG.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">${playerAv(p,30,'7px',false)}<strong>${escapeHtml(p.nome+' '+p.cogn)}</strong></div>`;
+    tr.appendChild(tdG);
+    const tdAv = document.createElement('td');
+    tdAv.innerHTML = av ? `<span class="pill" style="background:#fef3c7;color:#92400e;">📩 ${av.motivo?escapeHtml(av.motivo.slice(0,18)):'avviso'}</span>` : '<span style="color:var(--text3);font-size:.75rem;">—</span>';
+    tr.appendChild(tdAv);
+    const tdS = document.createElement('td'); tdS.style.minWidth='170px';
+    const wrap = document.createElement('div'); wrap.style.cssText='display:flex;gap:5px;';
+    [['p','✓','Presente','var(--green)','#dcfce7'],['a','✗','Assente','var(--red)','#fee2e2'],['j','~','Giustificato','var(--gold)','#fef3c7']].forEach(([code,ic,label,col,bg])=>{
+      const btn = document.createElement('button');
+      const isOn = cur===code;
+      btn.className='btn btn-xs';
+      btn.style.cssText=`background:${isOn?bg:'transparent'};color:${isOn?col:'var(--text3)'};border-color:${isOn?col:'var(--border)'};min-width:34px;`;
+      btn.title=label; btn.textContent=ic;
+      btn.onclick=()=>{ setPresenzaForDate(p,currentPresDate,isOn?'':code); renderPresenze(); };
+      wrap.appendChild(btn);
+    });
+    tdS.appendChild(wrap); tr.appendChild(tdS);
+    const tdP = document.createElement('td');
+    tdP.innerHTML = `<span style="font-weight:700;color:${pc};">${percGK}%</span>`;
+    tr.appendChild(tdP);
+    const tdNote = document.createElement('td'); tdNote.style.minWidth='100px';
+    const noteVal = av && av.noteAllenatore ? av.noteAllenatore : '';
+    const noteSpan = document.createElement('span');
+    noteSpan.style.cssText='font-size:.78rem;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:4px;';
+    noteSpan.title='Clicca per aggiungere/modificare nota';
+    noteSpan.innerHTML = noteVal
+      ? `<span style="color:var(--text);">📝 ${escapeHtml(noteVal.slice(0,24))}${noteVal.length>24?'…':''}</span>`
+      : `<span style="opacity:.5;">+ nota</span>`;
+    noteSpan.onclick = () => presEditNote(p.id, currentPresDate, noteSpan);
+    tdNote.appendChild(noteSpan); tr.appendChild(tdNote);
+    tbody.appendChild(tr);
+  });
+}
+
 // ── Genitore / Giocatore: personal attendance history
 function renderPresenzePersonale(cont, figliPlayers) {
   if (!figliPlayers.length) {
@@ -4794,7 +4993,7 @@ function presEditNote(playerId, dateStr, triggerEl) {
 
 function presGoToday(){
   const today = ymd(new Date());
-  const trainings = getTrainingDatesForLeva(currentLeva);
+  const trainings = (currentPresPortieriMode || isGKCoach()) ? getGKTrainingDatesForLeva(currentLeva) : getTrainingDatesForLeva(currentLeva);
   const pasts = trainings.filter(d => d <= today);
   const futures = trainings.filter(d => d > today);
   if (pasts.length) currentPresDate = pasts[0];
@@ -4884,7 +5083,7 @@ function renderPresNavDateList(trainings) {
 function presNavSelectMonth(ym) {
   currentPresNavMonth = ym;
   // Se la data corrente non è in questo mese, sposta alla data più vicina del mese
-  const trainings = getTrainingDatesForLeva(currentLeva);
+  const trainings = (currentPresPortieriMode || isGKCoach()) ? getGKTrainingDatesForLeva(currentLeva) : getTrainingDatesForLeva(currentLeva);
   const monthDates = trainings.filter(d => d.startsWith(ym)).sort();
   if (monthDates.length && !monthDates.includes(currentPresDate)) {
     const todayStr = ymd(new Date());
@@ -4914,7 +5113,8 @@ function openPresenzeFromEvento(){
 function bulkSetPres(status){
   if (!canEditPresenze() || !currentPresDate) return;
   if (!confirm(status === 'p' ? 'Segnare tutti come presenti per questa data?' : 'Azzerare le presenze di questa data?')) return;
-  const list = players.filter(p => p.leva === currentLeva);
+  const base = players.filter(p => p.leva === currentLeva);
+  const list = (currentPresPortieriMode || isGKCoach()) ? base.filter(p => isGK(p)) : base;
   list.forEach(p => setPresenzaForDate(p, currentPresDate, status));
   renderPresenze();
   toast(status === 'p' ? '✅ Tutti segnati come presenti' : '↺ Presenze azzerate');
@@ -5068,7 +5268,7 @@ function saveAvvisoAssenza(){
   setPresenzaForDate(p, date, 'j');
   // Notifica al/ai mister della leva (+ admin)
   const dateLong = fmtDateLong(parseYmd(date));
-  const coachIds = recipientsForCoachesOfLeva(p.leva);
+  const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
   coachIds.forEach(uid => {
     pushNotifica(uid, {
       type: 'avviso_assenza',
@@ -5266,12 +5466,13 @@ function recipientsForPlayer(p) {
 }
 
 // Allenatori e dirigenti della leva indicata (destinatari avvisi famiglia — NO admin)
-function recipientsForCoachesOfLeva(leva) {
+function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
   });
   return [...ids];
 }
@@ -6207,7 +6408,7 @@ function deleteComunicazione(id) {
 
 function canComment(c) {
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente') return true;
+  if (me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente') return true;
   return c.commentiAbilitati === true;
 }
 function renderSondaggio(c) {
@@ -6297,7 +6498,7 @@ function renderCommentiSheet() {
   if (!cont) return;
   const commenti = Array.isArray(c.commenti) ? c.commenti : [];
   const canManageAll = me.role === 'admin' || c.mittenteId === me.id;
-  const ROLE_IC = {admin:'🔑',allenatore:'⚽',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
+  const ROLE_IC = {admin:'🔑',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
   const titleEl = document.getElementById('commentiSheetTitle');
   if (titleEl) titleEl.textContent = '💬 ' + escapeHtml(c.titolo);
   let html = '';
@@ -6876,9 +7077,10 @@ function renderStats() {
   if (mainCards) mainCards.style.display = showTornei ? 'none' : '';
   if (showTornei) { renderStatsTornei(torneiPanel); return; }
 
-  const list = players.filter(p => p.leva === currentLeva).sort(byCogn);
+  const allList = players.filter(p => p.leva === currentLeva).sort(byCogn);
+  const list = isGKCoach() ? allList.filter(p => isGK(p)) : allList;
   if (list.length === 0) {
-    g.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-ic">📊</div><div class="empty-txt">Nessun giocatore nella leva ${currentLeva}</div></div>`;
+    g.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-ic">📊</div><div class="empty-txt">Nessun ${isGKCoach()?'portiere':'giocatore'} nella leva ${currentLeva}</div></div>`;
     document.getElementById('marcatoriBody').innerHTML = '';
     return;
   }
@@ -9251,6 +9453,38 @@ function buildDashboard(role) {
       <div class="g2">
         <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div></div>${miniStandings(lv)}</div>
         <div class="card"><div class="ch"><div class="ct">🥇 Classifica marcatori</div><button class="btn btn-g btn-sm" onclick="goTo('statistiche')">Apri →</button></div>${scorersTableHtml}</div>
+      </div>`;
+  } else if (role === 'preparatore_portieri') {
+    const lv = currentLeva;
+    const gkList = players.filter(p => p.leva === lv && isGK(p)).sort(byCogn);
+    const todayStr = ymd(new Date());
+    const hasTodayGKTrain = events.some(ev => ev.type === 'allenamento_portieri'
+      && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(lv)) && eventOccursOn(ev, todayStr));
+    const presentToday = hasTodayGKTrain ? gkList.filter(p => getPresenzaForDate(p, todayStr) === 'p') : [];
+    const trainingBanner = hasTodayGKTrain
+      ? `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#e0f2fe;border-radius:9px;border-left:3px solid #0369a1;margin-bottom:12px;">
+          <span style="font-size:1.2rem;flex-shrink:0;">🧤</span>
+          <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">Allenamento portieri oggi · ${escapeHtml(lv)}</div>
+            <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">${presentToday.length} su ${gkList.length} presenti</div>
+          </div>
+          <button class="btn btn-p btn-sm" onclick="goTo('presenze')">Registro →</button>
+        </div>` : '';
+    const gkRows = gkList.map(p => {
+      const gkDates = getGKTrainingDatesForLeva(lv);
+      const allGK = (p.presAll||[]).filter(r => typeof r==='object'&&r.date&&gkDates.includes(r.date));
+      const percGK = allGK.length ? Math.round(allGK.filter(r=>r.status==='p').length/allGK.length*100) : 0;
+      const pc = percGK>=80?'var(--green)':percGK>=60?'var(--gold)':'var(--red)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--cl);border-radius:9px;">
+        ${playerAv(p,36,'50%',false)}
+        <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">${escapeHtml(p.nome+' '+p.cogn)}${p.num?' <span style="color:var(--text2);font-weight:400;">#'+p.num+'</span>':''}</div></div>
+        <div style="font-weight:800;font-size:.95rem;color:${pc};">${percGK}%</div>
+      </div>`;
+    }).join('') || `<div style="color:var(--text3);font-size:.82rem;font-style:italic;">Nessun portiere in questa leva.</div>`;
+    c.innerHTML = `
+      ${trainingBanner}
+      <div class="card">
+        <div class="ch"><div class="ct">🧤 I miei portieri · ${escapeHtml(lv)}</div><button class="btn btn-g btn-sm" onclick="goTo('presenze')">Presenze →</button></div>
+        <div style="display:flex;flex-direction:column;gap:6px;">${gkRows}</div>
       </div>`;
   }
 }
@@ -12373,9 +12607,9 @@ function getChatsForUser(user) {
     return [l];
   }
 
-  // 1. Staff — allenatori + dirigenti + admin (id: 'allenatori')
-  if (user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'admin') {
-    const members = USERS_DB.filter(u => u.role === 'allenatore' || u.role === 'dirigente' || u.role === 'admin').map(u => u.id);
+  // 1. Staff — allenatori + dirigenti + admin + preparatori portieri (id: 'allenatori')
+  if (user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'admin' || user.role === 'preparatore_portieri') {
+    const members = USERS_DB.filter(u => u.role === 'allenatore' || u.role === 'dirigente' || u.role === 'admin' || u.role === 'preparatore_portieri').map(u => u.id);
     if (members.length > 0) {
       out.push({ id: 'allenatori', name: '📋 Staff', avatar: '📋', color: '#374151', members, kind: 'staff' });
     }
