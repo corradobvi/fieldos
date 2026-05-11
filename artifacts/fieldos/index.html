@@ -5254,21 +5254,7 @@ function renderConvocazioni() {
 
   let html = '';
 
-  // DEBUG temporaneo visibile solo al genitore
-  if (isParent) {
-    const _dbgLines = allList.map(ev => {
-      const conv = getConvocazione(ev.id);
-      const lv = (conv && conv.leva) || (ev.leve||[])[0] || '';
-      const def = levaConvSettings[lv] || {};
-      const f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
-      const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
-      const giorniMancanti = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
-      const visible = f1 != null && giorniMancanti <= f1;
-      return `DEBUG: Eventi trovati: ${allList.length} | Fase1: ${f1!=null?f1:'—'} giorni | ${escapeHtml(ev.title||ev.type)} (${ev.date}): ${giorniMancanti} giorni mancanti | Visibile: ${visible?'SI':'NO'}`;
-    });
-    if (!allList.length) _dbgLines.push(`DEBUG: Nessun evento trovato per leve: [${leveFilter.join(', ')||'—'}]`);
-    html += `<div style="background:yellow;padding:10px;font-size:12px;">${_dbgLines.join('<br>') || 'DEBUG: allList vuoto'}</div>`;
-  }
+
 
   // Sezione indisponibilità per genitori/giocatori
   if (isParent) {
