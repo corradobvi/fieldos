@@ -10893,16 +10893,19 @@ function renderPtCampionato() {
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
     const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">📊</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   }).join('');
   const polisSchedHtml = polisScheduled.map(m => {
     const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   }).join('');
 
   // ── Scontri tra avversari (con inserimento rapido)
   const altriAll  = [...altriPlayed, ...altriScheduled].sort((a,b) => (a.data||'').localeCompare(b.data||''));
   const altriHtml = renderAltriScontri('campionato', altriAll, currentLeva, null, null);
+  const delCampBtn = canEditPt(currentLeva) ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>` : '';
 
   c.innerHTML = `
     ${seniorBanner}
@@ -10913,6 +10916,7 @@ function renderPtCampionato() {
     ${polisSchedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime partite Polis</div></div>${polisSchedHtml}</div>` : ''}
     ${polisPlayedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Risultati Polis</div></div>${polisPlayedHtml}</div>` : ''}
     ${altriHtml}
+    ${delCampBtn}
   `;
 }
 
@@ -10957,7 +10961,7 @@ function renderPtTornei() {
       return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p ? p.nome+' '+p.cogn : '#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
     }).join('');
 
-    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button>` : '';
+    const editBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtTorneo('${t.id}')">✏️</button><button class="btn btn-p btn-sm" onclick="openPtFase('${t.id}')">+ Fase</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>` : '';
     const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
     return `<div class="torneo-card">
       <div class="torneo-hd">
@@ -11072,7 +11076,7 @@ function renderGcCampionato() {
     const timeStr=m.orario?` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>`:'';
     const luogoStr=m.luogo?` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>`:'';
     const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
-    const delBtn=(!m.played&&canEdit)?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">✕</button>`:'';
+    const delBtn=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">🗑</button>`:'';
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   };
   const mkOther = (m) => {
@@ -11511,56 +11515,48 @@ function saveGcAddMatch() {
 }
 
 function deleteGcCampMatch(matchId) {
-  if (!confirm('Eliminare questa partita dal campionato?')) return;
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   const leva = currentLeva;
   if (!campionato[leva]?.partite) return;
   campionato[leva].partite = campionato[leva].partite.filter(m => m.id !== matchId);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
-  toast('✅ Partita eliminata');
+  toast('🗑 Partita eliminata');
 }
 
 function deleteCampionato(leva) {
   if (!canEditPt(leva)) return;
   const camp = campionato[leva];
   if (!camp) return;
-  const nPartite = camp.partite?.length || 0;
-  const nGiocate = (camp.partite||[]).filter(m => m.played).length;
-  if (!confirm(
-    `Eliminare il campionato della leva ${leva}?\n\n` +
-    `Verranno eliminati anche:\n` +
-    `• ${nPartite} ${nPartite === 1 ? 'partita' : 'partite'} (di cui ${nGiocate} giocate)\n` +
-    `• Tutti i risultati e le statistiche collegate\n\n` +
-    `Questa azione non può essere annullata.`
-  )) return;
-  // Rimuovi convocazioni legate alle partite di questo campionato
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   convocazioni = convocazioni.filter(cv => !String(cv.eventId).startsWith('camp_' + leva + '_'));
   delete campionato[leva];
   window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Campionato eliminato');
 }
 
 function deleteTorneo(torneoId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
-  const nFasi = t.fasi?.length || 0;
-  const nPartite = (t.fasi || []).reduce((sum, f) => sum + (f.partite?.length || 0), 0);
-  const nGiocate = (t.fasi || []).reduce((sum, f) => sum + (f.partite || []).filter(m => m.played).length, 0);
-  if (!confirm(
-    `Eliminare il torneo "${t.nome}"?\n\n` +
-    `Verranno eliminati anche:\n` +
-    `• ${nFasi} ${nFasi === 1 ? 'fase' : 'fasi'}\n` +
-    `• ${nPartite} ${nPartite === 1 ? 'partita' : 'partite'} (di cui ${nGiocate} giocate)\n` +
-    `• Tutti i risultati e le statistiche collegate\n\n` +
-    `Questa azione non può essere annullata.`
-  )) return;
-  // Rimuovi convocazioni legate a questo torneo
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   convocazioni = convocazioni.filter(cv => cv.eventId !== torneoId);
   tornei = tornei.filter(x => x.id !== torneoId);
   window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Torneo eliminato');
+}
+
+function deleteTorneoMatch(torneoId, faseId, matchId) {
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t || !canEditPt(t.leva)) return;
+  const f = t.fasi && t.fasi.find(x => x.id === faseId);
+  if (!f) return;
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  f.partite = (f.partite || []).filter(m => m.id !== matchId);
+  window.__fieldosSaveState();
+  renderGestComp(); renderPartite(); renderCal();
+  toast('🗑 Partita eliminata');
 }
 
 // ─── Torneo: modal ───
@@ -11814,7 +11810,12 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId) {
     const editBtn = m.played && canEdit
       ? `<button class="btn btn-g btn-sm" onclick="openRisultato('${tipo}',${tipo==='campionato' ? m.id : "'"+ref+"'"});event.stopPropagation();">📊</button>`
       : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}</div></div>`;
+    const delMatchBtn = canEdit
+      ? (tipo === 'campionato'
+          ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>`
+          : `<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${torneoId}','${faseId}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`)
+      : '';
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
   }).join('');
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
@@ -11896,7 +11897,7 @@ function savePtAmich() {
 function deletePtAmich(id) {
   const m = amichevoli.find(x => x.id === id);
   if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
-  if (!confirm('Eliminare l\'amichevole contro ' + m.avversario + '?')) return;
+  if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   amichevoli = amichevoli.filter(x => x.id !== id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderGestComp(); renderCal();
