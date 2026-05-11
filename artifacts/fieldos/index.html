@@ -5671,6 +5671,26 @@ function notifyConvocazione(ev, conv) {
 
 // ─── VISIBILITÀ A DUE FASI ────────────────────────────
 
+// ── Helpers visibilità famiglia (genitore/nonno) ──────────────────────────
+function isFamily() {
+  return !!(me && (me.role === 'genitore' || me.role === 'nonno'));
+}
+// Calcola la fase per un match di competizione (amichevole/campionato/torneo)
+// usando solo i default della leva (nessun override per-evento).
+// Se la leva non ha settings → fase2 (visibile, comportamento pre-funzionalità).
+// Per partite già giocate (m.played = true) o date passate passare dateStr nel passato → sempre fase2.
+function getFasePt(dateStr, leva) {
+  const def = levaConvSettings[leva] || {};
+  const f1 = def.fase1Days != null ? Number(def.fase1Days) : null;
+  const f2 = def.fase2Days != null ? Number(def.fase2Days) : null;
+  if (f1 == null) return 'fase2'; // nessuna configurazione = sempre visibile
+  const d = Math.ceil((parseYmd(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+  if (f2 != null && d <= f2) return 'fase2';
+  if (d <= f1) return 'fase1';
+  return 'none';
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getConvFase(conv, ev) {
   // Visibilità a livello di evento (priorità massima)
   if (ev && ev.visibilitaMode === 'nascosto') return 'none';
@@ -10135,7 +10155,17 @@ function renderCal() {
     const dateStr = `${calY}-${pad2(calM+1)}-${pad2(day)}`;
     const dayEvs = eventsForDay(dateStr);
     const virtEvs = getPtVirtualEvents(dateStr);
-    const allEvs = [...virtEvs, ...dayEvs]; // virtual events have visual priority
+    let filteredDayEvs = dayEvs;
+    if (isFamily()) {
+      filteredDayEvs = dayEvs.map(ev => {
+        const conv = getConvocazione(ev.id);
+        const fase = getConvFase(conv, ev);
+        if (fase === 'none') return null;
+        if (fase === 'fase1') return Object.assign({}, ev, {_fase1: true});
+        return ev;
+      }).filter(Boolean);
+    }
+    const allEvs = [...virtEvs, ...filteredDayEvs]; // virtual events have visual priority
     let h = `<div class="cal-dn">${day}</div>`;
     const max = 3;
     allEvs.slice(0, max).forEach(ev => {
@@ -10143,8 +10173,12 @@ function renderCal() {
         h += `<div class="cal-ev" style="background:${ev.color}22;color:${ev.color};font-weight:700;" title="${escapeHtml(ev.title)}">${ev.title}</div>`;
       } else {
         const tipo = getTipo(ev.type);
-        const time = ev.start ? ev.start + ' ' : '';
-        h += `<div class="cal-ev" style="background:${tipo.color}22;color:${tipo.color};" title="${(time + ev.title).replace(/"/g,'&quot;')}">${time}${ev.title}</div>`;
+        if (ev._fase1) {
+          h += `<div class="cal-ev" style="background:${tipo.color}22;color:${tipo.color};" title="${tipo.label}">${tipo.label}</div>`;
+        } else {
+          const time = ev.start ? ev.start + ' ' : '';
+          h += `<div class="cal-ev" style="background:${tipo.color}22;color:${tipo.color};" title="${(time + ev.title).replace(/"/g,'&quot;')}">${time}${ev.title}</div>`;
+        }
       }
     });
     if (allEvs.length > max) {
@@ -10172,8 +10206,18 @@ function openDayModal(dateStr){
   const acts = document.getElementById('mDayActions');
   const virtEvs = getPtVirtualEvents(dateStr);
   const list = eventsForDay(dateStr);
+  let calList = list;
+  if (isFamily()) {
+    calList = list.map(ev => {
+      const conv = getConvocazione(ev.id);
+      const fase = getConvFase(conv, ev);
+      if (fase === 'none') return null;
+      if (fase === 'fase1') return Object.assign({}, ev, {_fase1: true});
+      return ev;
+    }).filter(Boolean);
+  }
   body.innerHTML = '';
-  if (virtEvs.length === 0 && list.length === 0) {
+  if (virtEvs.length === 0 && calList.length === 0) {
     body.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text3);font-size:.85rem;">Nessun evento per questo giorno.</div>';
   } else {
     // Virtual events (partite) first
@@ -10193,28 +10237,37 @@ function openDayModal(dateStr){
       body.appendChild(row);
     });
     // Regular calendar events
-    list.forEach(ev => {
+    calList.forEach(ev => {
       const tipo = getTipo(ev.type);
       const row = document.createElement('div');
       row.style.cssText = `border:1.5px solid ${tipo.color}55;background:${tipo.color}11;border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;`;
-      const time = (ev.start || '—') + (ev.end ? ' – ' + ev.end : '');
-      const leveStr = (ev.leve && ev.leve.length) ? ev.leve.join(', ') : 'Tutte';
-      const recurBadge = (ev.recur && ev.recur !== 'none') ? `<span style="font-size:.65rem;background:var(--bg);padding:2px 6px;border-radius:4px;margin-left:6px;color:var(--text2);">🔁 ${ev.recur}</span>` : '';
-      row.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-          <div style="font-weight:800;color:${tipo.color};font-size:.92rem;">${tipo.label.split(' ')[0]} ${ev.title}${recurBadge}</div>
-          <div style="font-size:.78rem;font-weight:700;color:var(--text2);">${time}</div>
-        </div>
-        <div style="font-size:.74rem;color:var(--text2);">📍 ${ev.luogo || '—'} · 👥 ${leveStr}</div>
-        ${ev.note ? `<div style="font-size:.74rem;color:var(--text3);margin-top:2px;">${ev.note}</div>` : ''}
-      `;
-      if (canEditEvent(ev)) {
-        const editRow = document.createElement('div');
-        editRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
-        const eb = document.createElement('button'); eb.className='btn btn-g btn-sm'; eb.textContent='✏️ Modifica';
-        eb.onclick = (e)=>{ e.stopPropagation(); closeM('mDay'); openEventoModal(ev.id); };
-        editRow.appendChild(eb);
-        row.appendChild(editRow);
+      if (ev._fase1) {
+        row.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <div style="font-weight:800;color:${tipo.color};font-size:.92rem;">${tipo.label}</div>
+          </div>
+          <div style="font-size:.74rem;color:var(--text3);margin-top:2px;">⏳ Dettagli disponibili a breve</div>
+        `;
+      } else {
+        const time = (ev.start || '—') + (ev.end ? ' – ' + ev.end : '');
+        const leveStr = (ev.leve && ev.leve.length) ? ev.leve.join(', ') : 'Tutte';
+        const recurBadge = (ev.recur && ev.recur !== 'none') ? `<span style="font-size:.65rem;background:var(--bg);padding:2px 6px;border-radius:4px;margin-left:6px;color:var(--text2);">🔁 ${ev.recur}</span>` : '';
+        row.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+            <div style="font-weight:800;color:${tipo.color};font-size:.92rem;">${tipo.label.split(' ')[0]} ${ev.title}${recurBadge}</div>
+            <div style="font-size:.78rem;font-weight:700;color:var(--text2);">${time}</div>
+          </div>
+          <div style="font-size:.74rem;color:var(--text2);">📍 ${ev.luogo || '—'} · 👥 ${leveStr}</div>
+          ${ev.note ? `<div style="font-size:.74rem;color:var(--text3);margin-top:2px;">${ev.note}</div>` : ''}
+        `;
+        if (canEditEvent(ev)) {
+          const editRow = document.createElement('div');
+          editRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+          const eb = document.createElement('button'); eb.className='btn btn-g btn-sm'; eb.textContent='✏️ Modifica';
+          eb.onclick = (e)=>{ e.stopPropagation(); closeM('mDay'); openEventoModal(ev.id); };
+          editRow.appendChild(eb);
+          row.appendChild(editRow);
+        }
       }
       body.appendChild(row);
     });
@@ -10854,10 +10907,18 @@ function renderPtAmichevoli() {
     const opacity = m.annullata ? 'opacity:.55;' : '';
     return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   };
+  const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
-  if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
+  if (isFamily()) {
+    const futureFase2 = future.filter(m => getFasePt(m.data, m.leva) === 'fase2');
+    const futureFase1 = future.filter(m => getFasePt(m.data, m.leva) === 'fase1');
+    const futureFam = [...futureFase2.map(mkAmich), ...futureFase1.map(mkAmichMasked)].join('');
+    if (futureFam) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${futureFam}</div>`;
+  } else {
+    if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
+  }
   if (past.length)   html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
-  if (annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(mkAmich).join('')}</div>`;
+  if (!isFamily() && annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(mkAmich).join('')}</div>`;
   c.innerHTML = html;
 }
 
@@ -10901,6 +10962,12 @@ function renderPtCampionato() {
       })() : `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessun risultato</div>`;
       const nextBlock = polisScheduled[0] ? (() => {
         const m = polisScheduled[0];
+        if (isFamily() && getFasePt(m.data, currentLeva) === 'none') {
+          return `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessuna in programma</div>`;
+        }
+        if (isFamily() && getFasePt(m.data, currentLeva) === 'fase1') {
+          return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Prossima partita</div><div style="font-size:.9rem;font-weight:800;">Partita di campionato</div><div style="font-size:.65rem;opacity:.75;">${fmtMatchDate(m.data)}${m.giornata ? ' · G'+m.giornata : ''}</div></div>`;
+        }
         const avv = m.casa === polis ? m.ospite : m.casa;
         return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Prossima partita</div><div style="font-size:.9rem;font-weight:800;">vs ${escapeHtml(avv)}</div><div style="font-size:.65rem;opacity:.75;">${fmtMatchDate(m.data)}${m.giornata ? ' · G'+m.giornata : ''}</div></div>`;
       })() : `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessuna in programma</div>`;
@@ -10939,22 +11006,34 @@ function renderPtCampionato() {
     const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   }).join('');
-  const polisSchedHtml = polisScheduled.map(m => {
-    const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
-    const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
-  }).join('');
+  let polisSchedHtml;
+  if (isFamily()) {
+    polisSchedHtml = polisScheduled.map(m => {
+      const fase = getFasePt(m.data, currentLeva);
+      if (fase === 'none') return '';
+      if (fase === 'fase1') return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">Partita di campionato · ⏳ Dettagli a breve</div></div>`;
+      const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
+      const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    }).join('');
+  } else {
+    polisSchedHtml = polisScheduled.map(m => {
+      const risBtn = canEditPt(currentLeva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">⚽ Risultato</button>` : '';
+      const delBtn = canEditPt(currentLeva) ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
+      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    }).join('');
+  }
 
-  // ── Scontri tra avversari (con inserimento rapido)
+  // ── Scontri tra avversari (con inserimento rapido) — nascosti ai genitori
   const altriAll  = [...altriPlayed, ...altriScheduled].sort((a,b) => (a.data||'').localeCompare(b.data||''));
-  const altriHtml = renderAltriScontri('campionato', altriAll, currentLeva, null, null);
+  const altriHtml = isFamily() ? '' : renderAltriScontri('campionato', altriAll, currentLeva, null, null);
   const delCampBtn = canEditPt(currentLeva) ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>` : '';
 
   c.innerHTML = `
     ${seniorBanner}
     <div class="g2" style="margin-bottom:16px;">
       <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div></div>${stHtml}</div>
-      <div class="card"><div class="ch"><div class="ct">⚽ Marcatori campionato</div></div>${scorersHtml}</div>
+      ${isFamily() ? '' : `<div class="card"><div class="ch"><div class="ct">⚽ Marcatori campionato</div></div>${scorersHtml}</div>`}
     </div>
     ${polisSchedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime partite Polis</div></div>${polisSchedHtml}</div>` : ''}
     ${polisPlayedHtml ? `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Risultati Polis</div></div>${polisPlayedHtml}</div>` : ''}
@@ -10967,12 +11046,19 @@ function renderPtCampionato() {
 function renderPtTornei() {
   const c = document.getElementById('ptContent');
   if (!c) return;
-  const list = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const allList = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
+  // For family users, filter out tornei in 'none' phase
+  const list = isFamily() ? allList.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva) !== 'none') : allList;
   if (list.length === 0) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva) ? 'Aggiungi il primo torneo con il pulsante in alto.' : 'Nessun torneo disponibile.'}</div></div>`;
     return;
   }
   c.innerHTML = list.map(t => {
+    // For family users in fase1: show minimal torneo card
+    if (isFamily() && getFasePt(t.dataInizio || t.dataFine || '', t.leva) === 'fase1') {
+      const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
+      return `<div class="torneo-card"><div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:.3px;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dateRange}</div></div></div><div class="torneo-body"><div style="color:var(--text3);font-size:.8rem;">⏳ Dettagli disponibili a breve</div></div></div>`;
+    }
     const polis = polisName(t.leva);
     const fasiHtml = (t.fasi||[]).map(f => {
       const standings = computeStandings(f.squadre||[], f.partite||[]);
@@ -10988,11 +11074,12 @@ function renderPtTornei() {
       const polisMatches = sorted.filter(m => m.casa === polis || m.ospite === polis);
       const altriMatches = sorted.filter(m => m.casa !== polis && m.ospite !== polis);
       const polisHtml = polisMatches.map(m => {
+        if (isFamily() && !m.played && getFasePt(m.data, t.leva) === 'none') return '';
         const risBtn = canEditPt(t.leva) ? `<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
         const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
-      const altriHtml = renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id);
+      const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id);
       const addBtn = canEditPt(t.leva) ? `<button class="btn btn-g btn-sm" style="margin-top:8px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>` : '';
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>
         ${stHtml}${polisHtml}${altriHtml}${addBtn}`;
@@ -11800,27 +11887,52 @@ function saveGcTorneo() {
 function getPtVirtualEvents(dateStr) {
   if (!me) return [];
   const out = [];
+  const family = isFamily();
   leve.forEach(lv => {
     if (calFilterLeva !== '__all' && calFilterLeva !== lv) return;
     const canSee = me.role==='admin'||me.role==='allenatore'||me.role==='dirigente' || userLeve().includes(lv);
     if (!canSee) return;
     const polis = polisName(lv);
     amichevoli.filter(m=>m.leva===lv&&m.data===dateStr).forEach(m => {
+      if (family) {
+        const fase = getFasePt(m.data, lv);
+        if (fase === 'none') return;
+        if (fase === 'fase1') { out.push({_virt:true,_tipo:'amichevole',_ref:m.id,_leva:lv,title:'🤝 Amichevole',color:'#7c3aed',priority:1,luogo:''}); return; }
+      }
       const sc = m.played ? ` ${m.golCasa}–${m.golOspiti}` : '';
       out.push({_virt:true,_tipo:'amichevole',_ref:m.id,_leva:lv,title:`🤝 vs ${m.avversario}${sc}`,color:'#7c3aed',priority:1,luogo:m.luogo||''});
     });
     const camp = campionato[lv];
     if (camp) (camp.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m => {
+      if (family) {
+        const fase = getFasePt(m.data, lv);
+        if (fase === 'none') return;
+        if (fase === 'fase1') { out.push({_virt:true,_tipo:'campionato',_ref:m.id,_leva:lv,title:'🏅 Partita campionato',color:'var(--cp)',priority:2}); return; }
+      }
       const avv = m.casa===polis?m.ospite:m.casa;
       const sc = m.played ? ` ${m.golCasa}–${m.golOspiti}` : '';
       out.push({_virt:true,_tipo:'campionato',_ref:m.id,_leva:lv,title:`🏅 G${m.giornata||'?'} vs ${avv}${sc}`,color:'var(--cp)',priority:2});
     });
     tornei.filter(t=>t.leva===lv).forEach(t => {
       if (t.dataInizio&&t.dataFine&&dateStr>=t.dataInizio&&dateStr<=t.dataFine) {
-        if (!out.some(e=>e._tipo==='torneo_banner'&&e._ref===t.id))
-          out.push({_virt:true,_tipo:'torneo_banner',_ref:t.id,_leva:lv,title:`🏆 ${t.nome}`,color:'#e03055',priority:3});
+        if (!out.some(e=>e._tipo==='torneo_banner'&&e._ref===t.id)) {
+          if (family) {
+            const fase = getFasePt(t.dataInizio, lv);
+            if (fase !== 'none') {
+              const title = fase === 'fase1' ? '🏆 Torneo in programma' : `🏆 ${t.nome}`;
+              out.push({_virt:true,_tipo:'torneo_banner',_ref:t.id,_leva:lv,title,color:'#e03055',priority:3});
+            }
+          } else {
+            out.push({_virt:true,_tipo:'torneo_banner',_ref:t.id,_leva:lv,title:`🏆 ${t.nome}`,color:'#e03055',priority:3});
+          }
+        }
       }
       (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m=>{
+        if (family) {
+          const fase = getFasePt(m.data, lv);
+          if (fase === 'none') return;
+          if (fase === 'fase1') { out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:'🏆 Partita torneo',color:'#e03055',priority:3}); return; }
+        }
         const avv=m.casa===polis?m.ospite:m.casa;
         const sc=m.played?` ${m.golCasa}–${m.golOspiti}`:'';
         out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:`🏆 ${t.nome}: vs ${avv}${sc}`,color:'#e03055',priority:3});
