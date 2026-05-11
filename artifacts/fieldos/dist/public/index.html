@@ -2203,6 +2203,47 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <button class="btn btn-p" style="width:100%;margin-top:10px;" onclick="creaAllenamentiRicorrenti()">🔁 Crea allenamenti</button>
       </div>
     </div>
+    <!-- Visibilità genitori -->
+    <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:4px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:10px;">👁 Visibilità genitori</div>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+          <input type="radio" name="evVisib" value="default" onchange="onEvVisibChange()" style="margin-top:3px;accent-color:var(--cp);flex-shrink:0;">
+          <div>
+            <span style="font-weight:600;font-size:.82rem;">Usa impostazioni default</span>
+            <span id="evVisibDefaultHint" style="font-size:.74rem;color:var(--text2);"></span>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+          <input type="radio" name="evVisib" value="custom" onchange="onEvVisibChange()" style="margin-top:3px;accent-color:var(--cp);flex-shrink:0;">
+          <span style="font-weight:600;font-size:.82rem;">Personalizza per questo evento</span>
+        </label>
+        <div id="evVisibCustomFields" style="display:none;margin-left:22px;background:var(--bg);border-radius:8px;padding:9px 11px;gap:10px;flex-wrap:wrap;">
+          <div class="fg" style="flex:1;min-width:130px;margin-bottom:0;">
+            <label class="fl" style="font-size:.73rem;">Fase 1 — mostra data/ora da (giorni prima)</label>
+            <input class="fi" type="number" id="evVisibFase1" min="0" max="365" placeholder="es. 7" style="max-width:100px;">
+          </div>
+          <div class="fg" style="flex:1;min-width:130px;margin-bottom:0;">
+            <label class="fl" style="font-size:.73rem;">Fase 2 — dettagli completi da (giorni prima)</label>
+            <input class="fi" type="number" id="evVisibFase2" min="0" max="365" placeholder="es. 2" style="max-width:100px;">
+          </div>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+          <input type="radio" name="evVisib" value="subito" onchange="onEvVisibChange()" style="margin-top:3px;accent-color:var(--cp);flex-shrink:0;">
+          <div>
+            <span style="font-weight:600;font-size:.82rem;">🟢 Visibile subito</span>
+            <span style="font-size:.74rem;color:var(--text2);"> — i genitori vedono già tutti i dettagli e possono rispondere</span>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;">
+          <input type="radio" name="evVisib" value="nascosto" onchange="onEvVisibChange()" style="margin-top:3px;accent-color:var(--cp);flex-shrink:0;">
+          <div>
+            <span style="font-weight:600;font-size:.82rem;">🔒 Nascosto</span>
+            <span style="font-size:.74rem;color:var(--text2);"> — non visibile ai genitori fino a quando non lo attivi manualmente</span>
+          </div>
+        </label>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
       <button class="btn btn-p" style="flex:1;min-width:120px;" onclick="saveEvento()">💾 Salva</button>
       <button class="btn" id="btnOpenPres" onclick="openPresenzeFromEvento()" style="display:none;background:var(--green);color:white;border-color:var(--green);">✅ Apri presenze</button>
@@ -5631,18 +5672,27 @@ function notifyConvocazione(ev, conv) {
 // ─── VISIBILITÀ A DUE FASI ────────────────────────────
 
 function getConvFase(conv, ev) {
-  // Fase manuale ha priorità (solo se conv esiste)
+  // Visibilità a livello di evento (priorità massima)
+  if (ev && ev.visibilitaMode === 'nascosto') return 'none';
+  if (ev && ev.visibilitaMode === 'subito')   return 'fase2';
+  // Fase manuale della convocazione (seconda priorità)
   if (conv && conv.fase2Active) return 'fase2';
   if (conv && conv.fase1Active) return 'fase1';
   // Determina la leva per leggere i default
   const lv = (conv && conv.leva) || (Array.isArray(ev.leve) ? ev.leve[0] : '') || '';
   const def = levaConvSettings[lv] || {};
-  // f1/f2 dalla convocazione (se esiste) oppure dai default leva
-  const f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
-  const f2Raw = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
+  // f1/f2: se custom sull'evento usa quelli, altrimenti dalla conv o dai default leva
+  let f1Raw, f2Raw;
+  if (ev && ev.visibilitaMode === 'custom') {
+    f1Raw = ev.visibilitaFase1Days != null ? ev.visibilitaFase1Days : def.fase1Days;
+    f2Raw = ev.visibilitaFase2Days != null ? ev.visibilitaFase2Days : def.fase2Days;
+  } else {
+    f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
+    f2Raw = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
+  }
   const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
   const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
-  if (f1 == null) return 'none'; // nessuna configurazione di fase
+  if (f1 == null) return 'none';
   const giorniMancanti = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
   if (f2 != null && giorniMancanti <= f2) return 'fase2';
   if (giorniMancanti <= f1) return 'fase1';
@@ -10205,7 +10255,7 @@ function openEventoModal(eventId, prefillDate){
     chip.style.cursor = 'pointer';
     chip.textContent = l;
     chip.dataset.leva = l;
-    chip.onclick = () => { chip.classList.toggle('on'); };
+    chip.onclick = () => { chip.classList.toggle('on'); onEvVisibChange(); };
     box.appendChild(chip);
   });
   // Date / orari
@@ -10226,6 +10276,12 @@ function openEventoModal(eventId, prefillDate){
     luogoSel.value = ''; luogoMan.style.display = 'none'; luogoMan.value = '';
   }
   document.getElementById('evNote').value = ev ? (ev.note || '') : '';
+  // Visibilità genitori
+  const _vm = ev ? (ev.visibilitaMode || 'default') : 'default';
+  document.querySelectorAll('input[name="evVisib"]').forEach(r => { r.checked = r.value === _vm; });
+  document.getElementById('evVisibFase1').value = (ev && ev.visibilitaFase1Days != null) ? ev.visibilitaFase1Days : '';
+  document.getElementById('evVisibFase2').value = (ev && ev.visibilitaFase2Days != null) ? ev.visibilitaFase2Days : '';
+  onEvVisibChange();
   // Ricorrenza semplice
   document.getElementById('evRecur').value = ev ? (ev.recur || 'none') : 'none';
   document.getElementById('evRecurUntil').value = ev ? (ev.recurUntil || '') : '';
@@ -10253,6 +10309,21 @@ function onEvTipoChange(){
   document.getElementById('evRecurSimpleBox').style.display = isAll ? 'none' : '';
   document.getElementById('evRicorrenzaBox').style.display = isAll ? '' : 'none';
 }
+function onEvVisibChange(){
+  const v = (document.querySelector('input[name="evVisib"]:checked') || {}).value || 'default';
+  const cf = document.getElementById('evVisibCustomFields');
+  if (cf) cf.style.display = v === 'custom' ? 'flex' : 'none';
+  // Update default hint with current leva's settings
+  const hint = document.getElementById('evVisibDefaultHint');
+  if (hint) {
+    const box = document.getElementById('evLeveBox');
+    const firstLeva = box ? (box.querySelector('.lp.on') || {}).dataset?.leva || '' : '';
+    const def = (typeof levaConvSettings !== 'undefined' && levaConvSettings[firstLeva]) || {};
+    const f1 = def.fase1Days != null ? def.fase1Days + 'gg' : '—';
+    const f2 = def.fase2Days != null ? def.fase2Days + 'gg' : '—';
+    hint.textContent = ` (Fase 1: ${f1}, Fase 2: ${f2})`;
+  }
+}
 function saveEvento(){
   const id = document.getElementById('evId').value;
   const title = document.getElementById('evTitolo').value.trim();
@@ -10272,6 +10343,10 @@ function saveEvento(){
   const recurUntil = _isTrainType ? null : (document.getElementById('evRecurUntil').value || null);
   const box = document.getElementById('evLeveBox');
   const leveSel = Array.from(box.querySelectorAll('.lp.on')).map(c => c.dataset.leva);
+  // Visibilità custom
+  const visibilitaMode = (document.querySelector('input[name="evVisib"]:checked') || {}).value || 'default';
+  const visibilitaFase1Days = visibilitaMode === 'custom' ? (document.getElementById('evVisibFase1').value !== '' ? Number(document.getElementById('evVisibFase1').value) : null) : null;
+  const visibilitaFase2Days = visibilitaMode === 'custom' ? (document.getElementById('evVisibFase2').value !== '' ? Number(document.getElementById('evVisibFase2').value) : null) : null;
   if (!title) { toast('⚠️ Inserisci il titolo'); return; }
   if (!date) { toast('⚠️ Inserisci la data'); return; }
   if (start && end && end < start) { toast('⚠️ L\'ora di fine deve essere dopo quella di inizio'); return; }
@@ -10285,11 +10360,11 @@ function saveEvento(){
     const ev = events.find(e => e.id === Number(id));
     if (!ev || !canEditEvent(ev)) { toast('⛔ Non puoi modificare questo evento'); return; }
     if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel });
+    Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
     toast('✅ Evento aggiornato');
   } else {
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email };
+    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days, createdBy: me.email };
     events.push(_newEv);
     // Notifica ai genitori/nonni delle leve coinvolte
     (function(){
