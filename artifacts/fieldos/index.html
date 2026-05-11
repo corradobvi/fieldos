@@ -7701,72 +7701,114 @@ function srStep2Next(){
 function renderSrRoster(){
   const host = document.getElementById('srRoster');
   if (!host) return;
-  const q = (document.getElementById('srSearch').value || '').toLowerCase().trim();
+  const q = (document.getElementById('srSearch')?.value || '').toLowerCase().trim();
   let list = players.slice();
   if (q) list = list.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
   list.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
-  if (!list.length) {
-    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:12px;text-align:center;">Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.</div>';
-  } else {
-    host.innerHTML = list.map(p => {
-      const sel = _selfRegSelectedIds.includes(p.id);
-      // ontouchstart="" forza iOS Safari a riconoscere :active e a innescare onclick senza delay 300ms
-      return `<div data-pid="${p.id}"
-        ontouchstart=""
-        style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:9px;
-               background:${sel?'#d1fae5':'#fff'};border:2px solid ${sel?'#059669':'var(--border)'};
-               touch-action:manipulation;-webkit-tap-highlight-color:transparent;
-               user-select:none;-webkit-user-select:none;min-height:52px;transition:opacity .1s;">
-        <div style="width:22px;height:22px;border-radius:5px;border:2px solid ${sel?'#059669':'#ccc'};
-             background:${sel?'#059669':'#fff'};display:flex;align-items:center;justify-content:center;
-             flex-shrink:0;transition:all .15s;">
-          ${sel?'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
-        </div>
-        <div style="flex:1;">
-          <div style="font-weight:700;font-size:.9rem;color:#111;">${escapeHtml(p.nome+' '+p.cogn)}</div>
-          <div style="font-size:.72rem;color:var(--text2);margin-top:1px;">${escapeHtml(p.leva||'')}${p.num?' · #'+p.num:''}${p.ruolo?' · '+escapeHtml(p.ruolo):''}</div>
-        </div>
-      </div>`;
-    }).join('');
 
-    host.querySelectorAll('[data-pid]').forEach(row => {
-      function _toggle(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const pid = parseInt(row.dataset.pid);
-        const idx = _selfRegSelectedIds.indexOf(pid);
-        if (idx >= 0) _selfRegSelectedIds.splice(idx,1);
-        else _selfRegSelectedIds.push(pid);
-        // Feedback visivo immediato prima del re-render
-        const isNowSel = _selfRegSelectedIds.includes(pid);
-        row.style.background = isNowSel ? '#d1fae5' : '#fff';
-        row.style.borderColor = isNowSel ? '#059669' : 'var(--border)';
-        renderSrRoster();
+  // Svuota il contenitore senza usare innerHTML = '' (più compatibile)
+  while (host.firstChild) host.removeChild(host.firstChild);
+
+  if (!list.length) {
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:.78rem;color:#94a3b8;padding:16px;text-align:center;line-height:1.5;';
+    msg.textContent = 'Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.';
+    host.appendChild(msg);
+  } else {
+    list.forEach(function(p) {
+      const sel = _selfRegSelectedIds.includes(p.id);
+
+      // <button> è un elemento interattivo nativo: iOS Safari lo tratta sempre come tappabile
+      // senza delay e senza bisogno di touchend + preventDefault
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.style.cssText = [
+        'cursor:pointer',
+        'display:flex',
+        'align-items:center',
+        'gap:12px',
+        'padding:14px 16px',
+        'border-radius:10px',
+        'width:100%',
+        'text-align:left',
+        'background:' + (sel ? '#d1fae5' : '#ffffff'),
+        'border:2px solid ' + (sel ? '#059669' : '#e2e8f0'),
+        'touch-action:manipulation',
+        '-webkit-tap-highlight-color:transparent',
+        'user-select:none',
+        '-webkit-user-select:none',
+        'min-height:56px',
+        'box-sizing:border-box',
+        'transition:background .12s,border-color .12s',
+        'outline:none',
+        'font-family:inherit'
+      ].join(';');
+
+      // Checkbox visivo
+      const chk = document.createElement('div');
+      chk.style.cssText = [
+        'width:24px',
+        'height:24px',
+        'border-radius:6px',
+        'border:2px solid ' + (sel ? '#059669' : '#cbd5e1'),
+        'background:' + (sel ? '#059669' : '#ffffff'),
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'flex-shrink:0',
+        'pointer-events:none'
+      ].join(';');
+      if (sel) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '13'); svg.setAttribute('height', '10');
+        svg.setAttribute('viewBox', '0 0 13 10'); svg.setAttribute('fill', 'none');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('points', '1.5,5 5,8.5 11.5,1.5');
+        poly.setAttribute('stroke', '#fff');
+        poly.setAttribute('stroke-width', '2.2');
+        poly.setAttribute('stroke-linecap', 'round');
+        poly.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(poly);
+        chk.appendChild(svg);
       }
-      // touchend per iOS (nessun delay)
-      row.addEventListener('touchend', function(e){
-        // Evita il doppio fire con il click successivo
-        e.preventDefault();
-        _toggle(e);
-      }, { passive: false });
-      // click come fallback per desktop
-      row.addEventListener('click', _toggle);
+
+      // Testo
+      const txt = document.createElement('div');
+      txt.style.cssText = 'flex:1;min-width:0;pointer-events:none;';
+
+      const nome = document.createElement('div');
+      nome.style.cssText = 'font-weight:700;font-size:.9rem;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      nome.textContent = p.nome + ' ' + p.cogn;
+
+      const sub = document.createElement('div');
+      sub.style.cssText = 'font-size:.72rem;color:#64748b;margin-top:2px;';
+      sub.textContent = [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · ');
+
+      txt.appendChild(nome);
+      txt.appendChild(sub);
+      card.appendChild(chk);
+      card.appendChild(txt);
+
+      // Un solo listener click — i <button> su iOS Safari non hanno delay con touch-action:manipulation
+      card.addEventListener('click', function() {
+        var idx = _selfRegSelectedIds.indexOf(p.id);
+        if (idx >= 0) { _selfRegSelectedIds.splice(idx, 1); }
+        else { _selfRegSelectedIds.push(p.id); }
+        renderSrRoster();
+      });
+
+      host.appendChild(card);
     });
   }
 
-  const info = document.getElementById('srSelectedInfo');
-  const submitBtn = document.getElementById('srBtnSubmit');
-  if (info) {
-    if (_selfRegSelectedIds.length) {
-      info.style.color = '#059669';
-      info.style.fontWeight = '700';
-      info.textContent = `✅ Selezionati: ${_selfRegSelectedIds.length} figlio/a`;
-      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; }
+  const infoEl = document.getElementById('srSelectedInfo');
+  if (infoEl) {
+    if (_selfRegSelectedIds.length > 0) {
+      infoEl.style.cssText = 'font-size:.78rem;color:#059669;font-weight:700;margin-bottom:6px;min-height:18px;';
+      infoEl.textContent = '✅ Selezionati: ' + _selfRegSelectedIds.length + ' figlio/a';
     } else {
-      info.style.color = 'var(--text2)';
-      info.style.fontWeight = '400';
-      info.textContent = 'Seleziona almeno un figlio/a per continuare.';
-      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; } // non disabilitare: toast spiega
+      infoEl.style.cssText = 'font-size:.78rem;color:var(--text2);font-weight:400;margin-bottom:6px;min-height:18px;';
+      infoEl.textContent = 'Seleziona almeno un figlio/a per continuare.';
     }
   }
 }
