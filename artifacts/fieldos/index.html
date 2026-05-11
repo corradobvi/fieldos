@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MyVivaio</title>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -704,8 +704,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
    ═══════════════════════════════════════════ */
 #asstBtn{
   position:fixed;
-  /* mobile: sopra la barra di navigazione (72px) + safe area + margine */
-  bottom:calc(72px + env(safe-area-inset-bottom,0px) + 10px);
+  /* mobile: sopra la barra di navigazione — almeno 90px */
+  bottom:max(90px, calc(72px + env(safe-area-inset-bottom,0px) + 10px));
   right:16px;z-index:2000;
   width:52px;height:52px;border-radius:50%;
   background:linear-gradient(135deg,#047857,#059669);
@@ -869,6 +869,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   /* Calendario: nascondi griglia mese, mostra settimana */
   #calWeekView{display:block!important;}
   #calMonthView{display:none!important;}
+  /* Overflow-x globale: impedisce scroll orizzontale */
+  html,body{overflow-x:hidden;max-width:100vw;}
+  #app,main.main,.page{overflow-x:hidden;box-sizing:border-box;}
+  #pg-impostazioni{width:100%;overflow-x:hidden;}
+  #pg-impostazioni .card{width:100%;box-sizing:border-box;}
 }
 @media(min-width:641px){
   .mob-nav{display:none!important;}
@@ -1183,6 +1188,48 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   border-radius:10px;font-size:.8rem;color:#065f46;
   display:flex;align-items:flex-start;gap:8px;
 }
+
+/* ── PWA Standalone: topbar sempre visibile con safe area ── */
+@media all and (display-mode: standalone) {
+  .topbar{
+    position:fixed!important;top:0;left:0;right:0;
+    padding-top:env(safe-area-inset-top,0px);
+    height:calc(52px + env(safe-area-inset-top,0px))!important;
+    z-index:300;
+  }
+  .app-body{
+    margin-top:calc(52px + env(safe-area-inset-top,0px));
+  }
+  .sidebar{
+    top:calc(52px + env(safe-area-inset-top,0px))!important;
+    height:calc(100vh - 52px - env(safe-area-inset-top,0px))!important;
+  }
+}
+
+/* ── SW Update banner ── */
+#swUpdateBanner{
+  display:none;position:fixed;
+  top:calc(52px + env(safe-area-inset-top,0px));
+  left:0;right:0;z-index:5000;
+  background:#047857;color:#fff;
+  padding:10px 16px;
+  flex-direction:row;align-items:center;justify-content:space-between;gap:12px;
+  font-size:.85rem;font-weight:600;
+  box-shadow:0 4px 16px rgba(4,120,87,.4);
+}
+#swUpdateBanner.show{display:flex;}
+#swUpdateBanner button{
+  background:#fff;color:#047857;border:none;border-radius:8px;
+  padding:7px 16px;font-size:.82rem;font-weight:700;cursor:pointer;
+  white-space:nowrap;flex-shrink:0;font-family:inherit;
+}
+
+/* ── Users: tabella solo desktop, cards su mobile ── */
+.users-mob-list{display:none;}
+@media(max-width:640px){
+  .users-desktop-table{display:none!important;}
+  .users-mob-list{display:block;}
+}
 </style>
 </head>
 <body>
@@ -1212,6 +1259,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <button class="pwa-btn-install" id="pwa-install-btn" onclick="pwaInstall()">⬇ Installa</button>
     <button class="pwa-btn-later" onclick="pwaDismiss()">Non ora</button>
   </div>
+</div>
+
+<!-- ══════ SW UPDATE BANNER ══════ -->
+<div id="swUpdateBanner">
+  <span>🔄 Aggiornamento disponibile</span>
+  <button onclick="pwaApplyUpdate()">Aggiorna ora</button>
 </div>
 
 <!-- ══════ LOGIN ══════ -->
@@ -1580,9 +1633,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div id="setCodiceStato" style="font-size:.75rem;margin-top:4px;"></div>
           </div>
           <div class="card" id="usersCard" style="grid-column:span 2;">
-            <div class="ch"><div class="ct">👥 Gestione utenti</div><div style="display:flex;gap:6px;"><button class="btn btn-g btn-sm" onclick="openInvitaGenitore()">📧 Invita genitore</button><button class="btn btn-p btn-sm" onclick="openUserModal(null)">+ Aggiungi utente</button></div></div>
+            <div class="ch"><div class="ct">👥 Gestione utenti</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-g btn-sm" onclick="openInvitaGenitore()">📧 Invita genitore</button><button class="btn btn-p btn-sm" onclick="openUserModal(null)">+ Aggiungi utente</button></div></div>
             <div id="pendingUsersBox" style="display:none;"></div>
-            <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Utente</th><th>Email</th><th>Ruolo</th><th>Leva</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+            <!-- Desktop: tabella -->
+            <div class="users-desktop-table" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Utente</th><th>Email</th><th>Ruolo</th><th>Leva</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="usersBody"></tbody></table></div>
+            <!-- Mobile: cards -->
+            <div class="users-mob-list" id="usersMobList"></div>
           </div>
           <div class="card" id="quoteCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">💰 Impostazioni quote</div></div>
@@ -3168,8 +3224,11 @@ function goTo(pgId) {
     const _iAccento = document.getElementById('impAccento');
     if (_iNome)    _iNome.value    = _iSoc ? _iSoc.nome  : nomeSocieta;
     if (_iCitta)   _iCitta.value   = _iSoc ? _iSoc.citta : '';
-    if (_iColore)  _iColore.value  = _iSoc ? (_iSoc.colori || coloriPrimari) : coloriPrimari;
-    if (_iAccento) _iAccento.value = _iSoc ? (_iSoc.coloriAccento || coloriAccento) : coloriAccento;
+    const _hexRe = /^#[0-9a-fA-F]{6}$/;
+    const _cpVal = (_iSoc?.colori || coloriPrimari || '#047857');
+    const _caVal = (_iSoc?.coloriAccento || coloriAccento || '#FFD93D');
+    if (_iColore)  _iColore.value  = _hexRe.test(_cpVal) ? _cpVal : '#047857';
+    if (_iAccento) _iAccento.value = _hexRe.test(_caVal) ? _caVal : '#FFD93D';
     renderColorPreview();
     const _colorCardEl = document.getElementById('colorCard');
     if (_colorCardEl) _colorCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente') ? '' : 'none';
@@ -6512,40 +6571,83 @@ function renderUsersTable() {
   renderPendingUsersBox();
   refreshCodiceUI();
   const tbody = document.getElementById('usersBody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  USERS_DB.forEach(u => {
-    const tr = document.createElement('tr');
-    const pillCls = ROLE_PILL[u.role] || '';
-    const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
-    const statoHtml = u.stato === 'attivo'
-      ? '<span class="pill pill-g">Attivo</span>'
-      : '<span class="pill pill-r">Sospeso</span>';
-    const figliList = getFigliOf(u);
-    const figlioNote = figliList.length
-      ? `<div style="font-size:.67rem;color:var(--text3);">👨‍👩‍👦 ${figliList.join(', ')}</div>`
-      : '';
-    tr.innerHTML = `
-      <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
-      <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
-      <td><span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span></td>
-      <td>${u.leva}</td>
-      <td>${statoHtml}</td>
-      <td style="display:flex;gap:5px;">
-        <button class="btn btn-g btn-xs" id="editU${u.id}">✏️</button>
-        <button class="btn btn-r btn-xs" id="delU${u.id}">🗑</button>
-      </td>`;
-    tbody.appendChild(tr);
+  if (tbody) {
+    tbody.innerHTML = '';
+    USERS_DB.forEach(u => {
+      const tr = document.createElement('tr');
+      const pillCls = ROLE_PILL[u.role] || '';
+      const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
+      const statoHtml = u.stato === 'attivo'
+        ? '<span class="pill pill-g">Attivo</span>'
+        : '<span class="pill pill-r">Sospeso</span>';
+      const figliList = getFigliOf(u);
+      const figlioNote = figliList.length
+        ? `<div style="font-size:.67rem;color:var(--text3);">👨‍👩‍👦 ${figliList.join(', ')}</div>` : '';
+      tr.innerHTML = `
+        <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
+        <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
+        <td><span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span></td>
+        <td>${u.leva}</td>
+        <td>${statoHtml}</td>
+        <td style="display:flex;gap:5px;">
+          <button class="btn btn-g btn-xs" id="editU${u.id}">✏️</button>
+          <button class="btn btn-r btn-xs" id="delU${u.id}">🗑</button>
+        </td>`;
+      tbody.appendChild(tr);
+      document.getElementById('editU' + u.id).onclick = () => openUserModal(u.id);
+      document.getElementById('delU' + u.id).onclick  = () => {
+        if (confirm(`Eliminare ${u.nome} ${u.cogn}?`)) {
+          const idx = USERS_DB.findIndex(x => x.id === u.id);
+          if (idx !== -1) { USERS_DB.splice(idx,1); renderUsersTable(); toast('🗑 Utente eliminato'); }
+        }
+      };
+    });
+  }
 
-    // Bind buttons after appending
-    document.getElementById('editU' + u.id).onclick = () => openUserModal(u.id);
-    document.getElementById('delU' + u.id).onclick  = () => {
-      if (confirm(`Eliminare ${u.nome} ${u.cogn}?`)) {
-        const idx = USERS_DB.findIndex(x => x.id === u.id);
-        if (idx !== -1) { USERS_DB.splice(idx,1); renderUsersTable(); toast('🗑 Utente eliminato'); }
-      }
-    };
-  });
+  // Mobile cards
+  const mobList = document.getElementById('usersMobList');
+  if (mobList) {
+    if (!USERS_DB.length) {
+      mobList.innerHTML = '<div style="font-size:.85rem;color:var(--text2);">Nessun utente.</div>';
+    } else {
+      mobList.innerHTML = USERS_DB.map(u => {
+        const pillCls = ROLE_PILL[u.role] || '';
+        const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
+        const statoHtml = u.stato === 'attivo' ? '<span class="pill pill-g">Attivo</span>' : '<span class="pill pill-r">Sospeso</span>';
+        const figliList = getFigliOf(u);
+        const figlioNote = figliList.length ? `<div style="font-size:.73rem;color:var(--text3);margin-top:2px;">👨‍👩‍👦 ${figliList.join(', ')}</div>` : '';
+        return `<div style="border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:9px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+            <div style="min-width:0;">
+              <div style="font-weight:700;font-size:.92rem;">${escapeHtml(u.nome)} ${escapeHtml(u.cogn)}</div>
+              <div style="font-size:.75rem;color:var(--text2);margin-top:1px;word-break:break-all;">${escapeHtml(u.email)}</div>
+              ${figlioNote}
+            </div>
+            ${statoHtml}
+          </div>
+          <div style="display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+            <span class="pill ${pillCls}" ${pillStyle}>${ROLE_LABELS[u.role]}</span>
+            ${u.leva ? `<span style="font-size:.78rem;color:var(--text2);">${escapeHtml(u.leva)}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-g btn-sm" style="flex:1;" id="mEditU${u.id}">✏️ Modifica</button>
+            <button class="btn btn-r btn-sm" style="min-width:48px;" id="mDelU${u.id}">🗑</button>
+          </div>
+        </div>`;
+      }).join('');
+      USERS_DB.forEach(u => {
+        const eb = document.getElementById('mEditU' + u.id);
+        const db = document.getElementById('mDelU' + u.id);
+        if (eb) eb.onclick = () => openUserModal(u.id);
+        if (db) db.onclick = () => {
+          if (confirm(`Eliminare ${u.nome} ${u.cogn}?`)) {
+            const idx = USERS_DB.findIndex(x => x.id === u.id);
+            if (idx !== -1) { USERS_DB.splice(idx,1); renderUsersTable(); toast('🗑 Utente eliminato'); }
+          }
+        };
+      });
+    }
+  }
 }
 
 function openUserModal(id) {
@@ -14661,10 +14763,33 @@ async function registerSW() {
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     _swReg = reg;
+
+    // Se c'è già un SW in attesa (aggiornamento pronto), mostra subito il banner
+    if (reg.waiting) showSwUpdateBanner();
+
+    // Quando viene trovato un nuovo SW
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          showSwUpdateBanner();
+        }
+      });
+    });
+
+    // Quando il controller cambia (skipWaiting applicato) → ricarica
+    let _reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!_reloading) { _reloading = true; window.location.reload(); }
+    });
+
+    // Controlla aggiornamenti ogni 60 secondi
+    setInterval(() => reg.update().catch(() => {}), 60000);
+
     // Listen for SW push messages (navigate to section)
     navigator.serviceWorker.addEventListener('message', evt => {
       if (evt.data && evt.data.type === 'PUSH_NAVIGATE' && evt.data.url) {
-        // Extract section from URL hash
         const hash = evt.data.url.replace(/^.*#/, '');
         if (hash && typeof goTo === 'function') goTo(hash);
       }
@@ -14673,6 +14798,21 @@ async function registerSW() {
   } catch (e) {
     console.warn('[PWA] SW registration failed:', e);
     return null;
+  }
+}
+
+function showSwUpdateBanner() {
+  const b = document.getElementById('swUpdateBanner');
+  if (b) b.classList.add('show');
+  // Auto-aggiornamento dopo 60 secondi
+  setTimeout(pwaApplyUpdate, 60000);
+}
+
+function pwaApplyUpdate() {
+  if (_swReg && _swReg.waiting) {
+    _swReg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  } else {
+    window.location.reload();
   }
 }
 
