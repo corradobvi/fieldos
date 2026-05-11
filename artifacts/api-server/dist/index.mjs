@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router7;
+    module.exports = Router8;
     module.exports.Route = Route;
-    function Router7(options) {
-      if (!(this instanceof Router7)) {
-        return new Router7(options);
+    function Router8(options) {
+      if (!(this instanceof Router8)) {
+        return new Router8(options);
       }
       const opts = options || {};
-      function router7(req, res, next) {
-        router7.handle(req, res, next);
+      function router8(req, res, next) {
+        router8.handle(req, res, next);
       }
-      Object.setPrototypeOf(router7, this);
-      router7.caseSensitive = opts.caseSensitive;
-      router7.mergeParams = opts.mergeParams;
-      router7.params = {};
-      router7.strict = opts.strict;
-      router7.stack = [];
-      return router7;
+      Object.setPrototypeOf(router8, this);
+      router8.caseSensitive = opts.caseSensitive;
+      router8.mergeParams = opts.mergeParams;
+      router8.params = {};
+      router8.strict = opts.strict;
+      router8.stack = [];
+      return router8;
     }
-    Router7.prototype = function() {
+    Router8.prototype = function() {
     };
-    Router7.prototype.param = function param(name, fn) {
+    Router8.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router7.prototype.handle = function handle(req, res, callback) {
+    Router8.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router7.prototype.use = function use(handler) {
+    Router8.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router7.prototype.route = function route(path2) {
+    Router8.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router7.prototype[method] = function(path2) {
+      Router8.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router7 = require_router();
+    var Router8 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router7 = null;
+      var router8 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router7 === null) {
-            router7 = new Router7({
+          if (router8 === null) {
+            router8 = new Router8({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router7;
+          return router8;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router7 = this.router;
+      var router8 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router7.use(path2, fn2);
+          return router8.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router7.use(path2, function mounted_app(req, res, next) {
+        router8.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router7 = require_router();
+    var Router8 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router7.Route;
-    exports.Router = Router7;
+    exports.Route = Router8.Route;
+    exports.Router = Router8;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // src/app.ts
-var import_express7 = __toESM(require_express2(), 1);
+var import_express8 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express6 = __toESM(require_express2(), 1);
+var import_express7 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -60876,58 +60876,89 @@ var logger = (0, import_pino.default)({
 var router2 = (0, import_express2.Router)();
 var CREATE_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
-    \`key\`     VARCHAR(255) PRIMARY KEY,
+    \`key\`      VARCHAR(255) PRIMARY KEY,
     state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
 var MIN_STATE_BYTES = 200;
+function wouldDowngrade(newJson, existingJson) {
+  try {
+    const n = JSON.parse(newJson);
+    const e = JSON.parse(existingJson);
+    const existingHasRealData = Array.isArray(e.players) && e.players.length > 0 || Array.isArray(e.USERS_DB) && e.USERS_DB.length > 6 || typeof e.nextUserId === "number" && e.nextUserId > 7;
+    const newIsEmpty = (!Array.isArray(n.players) || n.players.length === 0) && (!Array.isArray(n.USERS_DB) || n.USERS_DB.length <= 6) && (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
+    return existingHasRealData && newIsEmpty;
+  } catch {
+    return false;
+  }
+}
 router2.get("/state/:key", async (req, res) => {
   try {
-    const result = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ?",
+    await pool.execute(CREATE_TABLE_SQL);
+    const [rows] = await pool.execute(
+      "SELECT state_json, is_demo FROM `society_state` WHERE `key` = ?",
       [req.params.key]
     );
-    const rows = result[0];
     if (!rows.length) return res.status(404).json({ error: "not found" });
-    return res.json({ key: req.params.key, stateJson: rows[0].state_json });
+    return res.json({
+      key: req.params.key,
+      stateJson: rows[0].state_json,
+      isDemo: rows[0].is_demo === 1
+    });
   } catch (e) {
     logger.error({ err: e }, "state GET failed");
     return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
   }
 });
 router2.put("/state/:key", async (req, res) => {
-  const { stateJson } = req.body;
+  const { stateJson, isDemo } = req.body;
   if (typeof stateJson !== "string") {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
-  if (stateJson.length < MIN_STATE_BYTES) {
-    try {
-      await pool.execute(CREATE_TABLE_SQL);
-      const [existing] = await pool.execute(
-        "SELECT LENGTH(state_json) as sz FROM `society_state` WHERE `key` = ?",
-        [req.params.key]
-      );
-      if (existing.length && Number(existing[0].sz) >= MIN_STATE_BYTES) {
+  const isDemoWrite = isDemo === true;
+  const isDemoVal = isDemoWrite ? 1 : 0;
+  try {
+    await pool.execute(CREATE_TABLE_SQL);
+    const [existing] = await pool.execute(
+      "SELECT state_json, LENGTH(state_json) as sz, is_demo FROM `society_state` WHERE `key` = ?",
+      [req.params.key]
+    );
+    if (existing.length) {
+      const existingSz = Number(existing[0].sz);
+      const existingIsReal = existing[0].is_demo === 0;
+      if (stateJson.length < MIN_STATE_BYTES && existingSz >= MIN_STATE_BYTES) {
         logger.warn(
-          { key: req.params.key, newSize: stateJson.length, existingSize: existing[0].sz },
-          "state PUT rejected: would overwrite real data with near-empty state"
+          { key: req.params.key, newSize: stateJson.length, existingSize: existingSz },
+          "PUT rejected: near-empty would overwrite real data"
         );
         return res.status(409).json({
           error: "would_overwrite_real_data",
-          detail: "Il nuovo stato \xE8 troppo piccolo per sovrascrivere dati esistenti. Operazione annullata a protezione dei dati."
+          detail: "Il nuovo stato \xE8 troppo piccolo per sovrascrivere dati esistenti."
         });
       }
-    } catch (e) {
-      logger.error({ err: e }, "state PUT safety-check failed");
-      return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
+      if (isDemoWrite && existingIsReal) {
+        logger.warn({ key: req.params.key }, "PUT rejected: demo write on real-data row");
+        return res.status(409).json({
+          error: "demo_cannot_overwrite_real",
+          detail: "Dati demo non possono sovrascrivere dati reali."
+        });
+      }
+      if (!isDemoWrite && existingIsReal && wouldDowngrade(stateJson, existing[0].state_json)) {
+        logger.warn({ key: req.params.key }, "PUT rejected: would downgrade data");
+        return res.status(409).json({
+          error: "would_downgrade_data",
+          detail: "Il nuovo stato ha meno dati di quelli esistenti. Operazione annullata."
+        });
+      }
     }
-  }
-  try {
-    await pool.execute(CREATE_TABLE_SQL);
     await pool.execute(
-      "INSERT INTO `society_state` (`key`, `state_json`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `state_json` = ?",
-      [req.params.key, stateJson, stateJson]
+      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         \`state_json\` = ?,
+         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?)`,
+      [req.params.key, stateJson, isDemoVal, stateJson, isDemoVal]
     );
     return res.json({ key: req.params.key, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
   } catch (e) {
@@ -60942,8 +60973,9 @@ var import_express3 = __toESM(require_express2(), 1);
 var router3 = (0, import_express3.Router)();
 var CREATE_TABLE_SQL2 = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
-    \`key\`     VARCHAR(255) PRIMARY KEY,
+    \`key\`      VARCHAR(255) PRIMARY KEY,
     state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
@@ -60967,29 +60999,62 @@ router3.post("/login", async (req, res) => {
       } catch {
       }
     }
-    for (const soc of societies) {
-      if (soc.stato !== "attivo") continue;
-      const stateKey = soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
+    async function searchKey(stateKey, societyId) {
       const [stateRows] = await pool.execute(
         "SELECT state_json FROM `society_state` WHERE `key` = ?",
         [stateKey]
       );
-      if (!stateRows.length) continue;
+      if (!stateRows.length) return null;
       let state;
       try {
         state = JSON.parse(stateRows[0].state_json);
       } catch {
-        continue;
+        return null;
       }
       const users = state.USERS_DB || [];
       const user = users.find(
         (u) => typeof u.email === "string" && u.email.toLowerCase() === normalizedEmail && u.pass === password
       );
-      if (!user) continue;
-      if (user.stato === "sospeso") {
+      if (!user) return null;
+      return { state, stateKey, societyId, user, stateJson: stateRows[0].state_json };
+    }
+    const checkedKeys = /* @__PURE__ */ new Set();
+    for (const soc of societies) {
+      const stato = soc.stato ?? "attivo";
+      const stateKey = soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
+      checkedKeys.add(stateKey);
+      const found = await searchKey(stateKey, soc.id);
+      if (!found) continue;
+      if (found.user.stato === "sospeso") {
         return res.status(403).json({ error: "suspended" });
       }
-      return res.json({ societyId: soc.id, stateKey, user });
+      if (stato === "sospeso") {
+        return res.status(403).json({ error: "society_suspended", message: "La societ\xE0 \xE8 sospesa. Contatta il supporto." });
+      }
+      if (stato === "archiviato") {
+        return res.status(403).json({ error: "society_archived", message: "La societ\xE0 \xE8 archiviata. Contatta il supporto." });
+      }
+      if (stato === "eliminato") {
+        return res.status(403).json({ error: "society_deleted", message: "La societ\xE0 \xE8 stata eliminata." });
+      }
+      logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
+      return res.json({ societyId: soc.id, stateKey, user: found.user, stateJson: found.stateJson });
+    }
+    const [allKeys] = await pool.execute(
+      "SELECT `key` FROM `society_state` WHERE (`key` LIKE 'fieldos_state_soc_%' OR `key` = 'fieldos_state_v1') AND `key` NOT LIKE 'fieldos_demo%'"
+    );
+    for (const row of allKeys) {
+      const stateKey = row.key;
+      if (checkedKeys.has(stateKey)) continue;
+      const socIdMatch = stateKey.match(/fieldos_state_soc_(\d+)$/);
+      const societyId = socIdMatch ? parseInt(socIdMatch[1]) : 0;
+      const found = await searchKey(stateKey, societyId);
+      if (!found) continue;
+      if (found.user.stato === "sospeso") {
+        return res.status(403).json({ error: "suspended" });
+      }
+      logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
+      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson });
     }
     return res.status(401).json({ error: "invalid_credentials" });
   } catch (e) {
@@ -60999,15 +61064,65 @@ router3.post("/login", async (req, res) => {
 });
 var login_default = router3;
 
-// src/routes/assist.ts
+// src/routes/auth.ts
 var import_express4 = __toESM(require_express2(), 1);
 var router4 = (0, import_express4.Router)();
+var CREATE_TABLE_SQL3 = `
+  CREATE TABLE IF NOT EXISTS \`society_state\` (
+    \`key\`      VARCHAR(255) PRIMARY KEY,
+    state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )
+`;
+router4.post("/auth/verify-code", async (req, res) => {
+  const { code } = req.body;
+  if (typeof code !== "string" || !code.trim()) {
+    return res.status(400).json({ valid: false, error: "missing_code" });
+  }
+  const upperCode = code.trim().toUpperCase();
+  try {
+    await pool.execute(CREATE_TABLE_SQL3);
+    const [rows] = await pool.execute(
+      `SELECT \`key\`, state_json FROM \`society_state\`
+       WHERE (\`key\` LIKE 'fieldos_state_soc_%' OR \`key\` = 'fieldos_state_v1')
+         AND \`key\` NOT LIKE 'fieldos_demo%'`
+    );
+    for (const row of rows) {
+      let state;
+      try {
+        state = JSON.parse(row.state_json);
+      } catch {
+        continue;
+      }
+      const rowCode = (state.codiceSocieta ?? "").trim().toUpperCase();
+      if (!rowCode || rowCode !== upperCode) continue;
+      const stateKey = row.key;
+      let societyId = 0;
+      const match = stateKey.match(/fieldos_state_soc_(\d+)$/);
+      if (match) societyId = parseInt(match[1], 10);
+      const societyName = state.nomeSocieta || "MyVivaio";
+      logger.info({ code: upperCode, societyId, stateKey }, "verify-code: found");
+      return res.json({ valid: true, societyId, stateKey, societyName });
+    }
+    logger.info({ code: upperCode }, "verify-code: not found");
+    return res.json({ valid: false });
+  } catch (e) {
+    logger.error({ err: e }, "verify-code error");
+    return res.status(500).json({ valid: false, error: "server_error" });
+  }
+});
+var auth_default = router4;
+
+// src/routes/assist.ts
+var import_express5 = __toESM(require_express2(), 1);
+var router5 = (0, import_express5.Router)();
 var ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 var SYSTEM_PROMPT = `Sei l'assistente di MyVivaio, piattaforma italiana di gestione per societ\xE0 di calcio giovanile.
 Rispondi in italiano semplice e diretto, massimo 3-4 frasi.
 Conosci tutte le funzioni dell'app: rosa giocatori, presenze, convocazioni, comunicazioni, chat interna, campionati, tornei, amichevoli, calendario, quote, documenti, impostazioni.
 Non inventare funzioni che non esistono. Se non sai rispondere, dillo chiaramente.`;
-router4.post("/ai-assist", async (req, res) => {
+router5.post("/ai-assist", async (req, res) => {
   const { question, section, role } = req.body;
   if (typeof question !== "string" || !question.trim()) {
     return res.status(400).json({ error: "missing_question" });
@@ -61049,12 +61164,12 @@ router4.post("/ai-assist", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var assist_default = router4;
+var assist_default = router5;
 
 // src/routes/push.ts
-var import_express5 = __toESM(require_express2(), 1);
+var import_express6 = __toESM(require_express2(), 1);
 var import_web_push = __toESM(require_src2(), 1);
-var router5 = (0, import_express5.Router)();
+var router6 = (0, import_express6.Router)();
 var VAPID_PUBLIC = process.env["VAPID_PUBLIC_KEY"] ?? "";
 var VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "";
 var VAPID_SUBJECT = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
@@ -61074,11 +61189,11 @@ var CREATE_SUBS_TABLE = `
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
 }
-router5.get("/push/vapid-public", (_req, res) => {
+router6.get("/push/vapid-public", (_req, res) => {
   if (!VAPID_PUBLIC) return res.status(503).json({ error: "push_not_configured" });
   return res.json({ publicKey: VAPID_PUBLIC });
 });
-router5.post("/push/subscribe", async (req, res) => {
+router6.post("/push/subscribe", async (req, res) => {
   const { userId, societyKey, subscription } = req.body;
   if (typeof userId !== "number" || typeof societyKey !== "string" || !societyKey || !subscription) {
     return res.status(400).json({ error: "missing_fields" });
@@ -61098,7 +61213,7 @@ router5.post("/push/subscribe", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router5.post("/push/send", async (req, res) => {
+router6.post("/push/send", async (req, res) => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return res.status(503).json({ error: "push_not_configured" });
   }
@@ -61145,19 +61260,20 @@ router5.post("/push/send", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var push_default = router5;
+var push_default = router6;
 
 // src/routes/index.ts
-var router6 = (0, import_express6.Router)();
-router6.use(health_default);
-router6.use(login_default);
-router6.use(state_default);
-router6.use(assist_default);
-router6.use(push_default);
-var routes_default = router6;
+var router7 = (0, import_express7.Router)();
+router7.use(health_default);
+router7.use(login_default);
+router7.use(auth_default);
+router7.use(state_default);
+router7.use(assist_default);
+router7.use(push_default);
+var routes_default = router7;
 
 // src/app.ts
-var app = (0, import_express7.default)();
+var app = (0, import_express8.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -61178,12 +61294,12 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express7.default.json({ limit: "10mb" }));
-app.use(import_express7.default.urlencoded({ extended: true }));
+app.use(import_express8.default.json({ limit: "10mb" }));
+app.use(import_express8.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express7.default.static(staticDir));
+  app.use(import_express8.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
@@ -61215,9 +61331,18 @@ async function ensureSchema() {
     CREATE TABLE IF NOT EXISTS \`society_state\` (
       \`key\`      VARCHAR(255) PRIMARY KEY,
       state_json  LONGTEXT NOT NULL,
+      is_demo     TINYINT(1) NOT NULL DEFAULT 0,
       updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+  try {
+    await pool.query(
+      "ALTER TABLE `society_state` ADD COLUMN `is_demo` TINYINT(1) NOT NULL DEFAULT 0"
+    );
+    logger.info("DB: added is_demo column");
+  } catch (e) {
+    if (e?.errno !== 1060) logger.warn({ errno: e?.errno }, "DB: is_demo migration skipped");
+  }
   logger.info("DB schema ready");
 }
 startListening();

@@ -7520,29 +7520,38 @@ function srShowStep(n){
 
 function srBackStep(n){ srShowStep(n); }
 
-// ── Cerca una società per codice (case-insensitive).
-// Controlla prima la società corrente caricata da MySQL,
-// poi fallback su localStorage (multi-società SA).
-function _srFindSocByCode(v) {
+// ── Cerca una società per codice chiamando l'API backend (legge da MySQL).
+// Fallback su in-memory se l'API non è raggiungibile.
+async function _srFindSocByCode(v) {
   const upper = (v || '').trim().toUpperCase();
   if (!upper) return null;
-  // 1. Società corrente — codiceSocieta in-memory (da MySQL via Railway)
+
+  // 1. API backend — verifica nel database (funziona su qualsiasi dispositivo)
+  try {
+    const resp = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: upper })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.valid) {
+        return {
+          socId: data.societyId,
+          stateKey: data.stateKey,
+          soc: saSocieties.find(x => x.id === data.societyId) || { nome: data.societyName, colori: null, coloriAccento: null }
+        };
+      }
+      return null; // codice non trovato nel DB
+    }
+  } catch (e) {
+    console.warn('[_srFindSocByCode] API non raggiungibile, fallback locale', e);
+  }
+
+  // 2. Fallback: in-memory (stessa sessione/dispositivo dell'admin)
   const currentCode = (codiceSocieta || '').trim().toUpperCase();
   if (currentCode && upper === currentCode) {
     return { socId: currentSocietaId, soc: saSocieties.find(x => x.id === currentSocietaId) || null };
-  }
-  // 2. Fallback: cerca su tutte le SA societies in localStorage
-  saLoadState();
-  for (const soc of saSocieties) {
-    if (soc.stato !== 'attivo') continue;
-    let socCodice = '';
-    const raw = localStorage.getItem(societyStorageKey(soc.id));
-    if (raw) {
-      try { socCodice = (JSON.parse(raw).codiceSocieta || '').toUpperCase(); } catch(e) {}
-    } else if (soc.id === currentSocietaId) {
-      socCodice = currentCode;
-    }
-    if (socCodice && upper === socCodice) return { socId: soc.id, soc };
   }
   return null;
 }
@@ -7555,7 +7564,7 @@ function _srApplySocietaContext(socId, soc) {
   if (soc && typeof applyBranding === 'function') applyBranding(soc.nome, soc.colori, soc.coloriAccento || '#FFD93D');
 }
 
-function srNextStep1(){
+async function srNextStep1(){
   const errEl = document.getElementById('srStep1Error');
   const btn   = document.getElementById('srBtnNext1');
   function _srErr(msg) {
@@ -7565,10 +7574,10 @@ function srNextStep1(){
   if (errEl) errEl.style.display='none';
   const v = (document.getElementById('srCodice').value || '').trim().toUpperCase();
   if (!v) { _srErr('⚠️ Inserisci il codice società'); return; }
-  if (btn) { btn.disabled=true; btn.textContent='⏳'; }
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Verifica…'; }
 
   try {
-    const found = _srFindSocByCode(v);
+    const found = await _srFindSocByCode(v);
     if (!found) { _srErr('❌ Codice non valido. Controlla e riprova.'); return; }
     _srApplySocietaContext(found.socId, found.soc);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
@@ -7580,7 +7589,7 @@ function srNextStep1(){
 }
 
 // Accesso genitore dal box nella schermata login
-function loginConCodice() {
+async function loginConCodice() {
   const inp = document.getElementById('loginCodiceGenitore');
   const btn = document.getElementById('btnLoginCodice');
   const msg = document.getElementById('loginCodiceMsg');
@@ -7598,10 +7607,10 @@ function loginConCodice() {
   const v = (inp.value || '').trim().toUpperCase();
   if (!v) { _lcErr('⚠️ Inserisci il codice società'); return; }
 
-  btn.disabled=true; btn.textContent='⏳';
+  btn.disabled=true; btn.textContent='⏳ Verifica…';
 
   try {
-    const found = _srFindSocByCode(v);
+    const found = await _srFindSocByCode(v);
     if (!found) { _lcErr('❌ Codice non valido. Controlla e riprova.'); return; }
 
     _lcOk('✅ Codice valido! Completa la registrazione…');
