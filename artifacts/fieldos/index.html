@@ -6626,10 +6626,21 @@ function fvUploadSquad(leva, input) {
       const canvas = document.createElement('canvas');
       canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      squadFotos[leva] = canvas.toDataURL('image/jpeg', 0.82);
-      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      const base64 = canvas.toDataURL('image/jpeg', 0.82);
+      // Mostra subito mentre upload avviene in background
+      squadFotos[leva] = base64;
       fvRenderTabBody();
-      toast('📷 Foto squadra aggiornata!');
+      toast('📷 Caricamento in corso…');
+      uploadPhotoToServer('squad_' + encodeURIComponent(leva), base64).then(function(url) {
+        if (url) {
+          squadFotos[leva] = url;
+          fvRenderTabBody();
+          toast('📷 Foto squadra aggiornata!');
+        } else {
+          toast('📷 Foto salvata (solo locale — server non raggiungibile)');
+        }
+        if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      });
     };
     img.src = e.target.result;
   };
@@ -6654,22 +6665,77 @@ function fvUploadPlayer(playerId, input) {
       const sc = Math.max(SIZE/img.width, SIZE/img.height);
       const nw = img.width*sc, nh = img.height*sc;
       ctx.drawImage(img, (SIZE-nw)/2, (SIZE-nh)/2, nw, nh);
-      playerPhotos[playerId] = canvas.toDataURL('image/jpeg', 0.82);
-      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-      // Aggiorna tutte le viste che mostrano avatar
-      if (document.getElementById('pg-rosa')?.classList.contains('on'))         renderRosa();
-      if (document.getElementById('pg-presenze')?.classList.contains('on'))     renderPresenze();
-      if (document.getElementById('pg-statistiche')?.classList.contains('on'))  renderStats();
-      if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
-      if (document.getElementById('pg-fotovideo')?.classList.contains('on'))    fvRenderTabBody();
-      renderPPhotoArea(players.find(x => x.id === playerId));
-      toast('👤 Foto profilo aggiornata!');
+      const base64 = canvas.toDataURL('image/jpeg', 0.82);
+      // Mostra subito la foto locale mentre upload avviene in background
+      playerPhotos[playerId] = base64;
+      function _refreshViews() {
+        if (document.getElementById('pg-rosa')?.classList.contains('on'))         renderRosa();
+        if (document.getElementById('pg-presenze')?.classList.contains('on'))     renderPresenze();
+        if (document.getElementById('pg-statistiche')?.classList.contains('on'))  renderStats();
+        if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+        if (document.getElementById('pg-fotovideo')?.classList.contains('on'))    fvRenderTabBody();
+        renderPPhotoArea(players.find(x => x.id === playerId));
+      }
+      _refreshViews();
+      toast('👤 Caricamento in corso…');
+      // Upload al server — sostituisce base64 con URL persistente
+      uploadPhotoToServer('player_' + playerId, base64).then(function(url) {
+        if (url) {
+          playerPhotos[playerId] = url;
+          _refreshViews();
+          toast('👤 Foto profilo aggiornata!');
+        } else {
+          toast('👤 Foto salvata (solo locale — server non raggiungibile)');
+        }
+        if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      });
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
   input.value = '';
 }
+
+// ─── UPLOAD FOTO AL SERVER ────────────────────────────────
+// Carica una foto sul server MySQL e restituisce l'URL pubblico.
+// photoKey: es. 'player_5' | 'squad_U12'
+async function uploadPhotoToServer(photoKey, dataBase64) {
+  const societyKey = window._mvSocietaKey || 'fieldos_state_v1';
+  try {
+    const resp = await fetch(API_BASE + '/api/upload/photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ societyKey, photoKey, dataBase64 })
+    });
+    if (!resp.ok) return null;
+    const d = await resp.json();
+    return d.url || null;
+  } catch { return null; }
+}
+
+// Migrazione automatica: converte le foto base64 già in localStorage → URL server.
+// Viene chiamata una volta dopo il login. Idempotente (salta le già migrate).
+async function migratePhotosToServer() {
+  let migrated = 0;
+  for (const [pid, foto] of Object.entries(playerPhotos)) {
+    if (foto && typeof foto === 'string' && foto.startsWith('data:')) {
+      const url = await uploadPhotoToServer('player_' + pid, foto);
+      if (url) { playerPhotos[pid] = url; migrated++; }
+    }
+  }
+  for (const [leva, foto] of Object.entries(squadFotos)) {
+    if (foto && typeof foto === 'string' && foto.startsWith('data:')) {
+      const url = await uploadPhotoToServer('squad_' + encodeURIComponent(leva), foto);
+      if (url) { squadFotos[leva] = url; migrated++; }
+    }
+  }
+  if (migrated > 0) {
+    if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+    console.log('[FieldOS] Migrate', migrated, 'foto al server completata');
+    if (typeof toast === 'function') toast('📷 ' + migrated + ' foto sincronizzate nel cloud');
+  }
+}
+// ──────────────────────────────────────────────────────────
 
 function fvOpenLightbox(itemId) {
   const item = mediaItems.find(m => m.id === itemId);
@@ -14498,10 +14564,14 @@ function saveNewPassword() {
 
   let _syncPollTimer = null;
 
-  // Applica stato dal server preservando le foto locali (non inviate al server per risparmiare spazio)
+  // Applica stato dal server.
+  // Le URL-foto (/api/photo/...) sono già nel blob server → arrivano via restoreState.
+  // Preserviamo solo le foto base64 locali (ancora non migrate al server).
   function applyServerState(serverJson) {
-    const savedPhotos = Object.assign({}, playerPhotos);
-    const savedSquad  = Object.assign({}, squadFotos);
+    const savedPhotos = {};
+    const savedSquad  = {};
+    Object.entries(playerPhotos).forEach(function([k,v]){ if (v && typeof v === 'string' && v.startsWith('data:')) savedPhotos[k] = v; });
+    Object.entries(squadFotos).forEach(function([k,v]){ if (v && typeof v === 'string' && v.startsWith('data:')) savedSquad[k] = v; });
     localStorage.setItem(KEY, serverJson);
     lastSnap = serverJson;
     restoreState();
@@ -14582,6 +14652,8 @@ function saveNewPassword() {
           }
         }
         // null = rete assente → i dati locali vanno bene, il sync riprenderà al prossimo poll
+        // Migrazione foto base64 → server (solo se ci sono foto legacy)
+        setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
       });
     } else {
       // ── SLOW PATH: nessun dato locale → aspetta il server (primo accesso nuovo dispositivo) ──
@@ -14611,6 +14683,8 @@ function saveNewPassword() {
         me = user; // aggiorna il riferimento globale con l'utente fresco dal server
         _origBoot(user);
         startSyncPoll();
+        // Migrazione foto base64 → server (solo se ci sono foto legacy)
+        setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
       });
     }
   };
