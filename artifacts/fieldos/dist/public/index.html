@@ -1295,8 +1295,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
         Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
       </div>
-      <div style="text-align:center;margin-top:6px;font-size:.78rem;color:var(--text2);">
-        Sei un genitore? <a href="#" onclick="event.preventDefault();openSelfReg()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il codice società →</a>
+      <!-- Card genitore con codice società -->
+      <div style="border:2px solid rgba(var(--cp-rgb),.35);border-radius:12px;padding:14px 16px;margin-top:16px;background:var(--cl);">
+        <div style="font-weight:800;font-size:1rem;color:var(--cp);margin-bottom:3px;">👨‍👧 Sei un genitore?</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-bottom:10px;line-height:1.4;">Entra con il codice fornito dalla tua società sportiva.</div>
+        <div style="display:flex;gap:8px;align-items:stretch;">
+          <input class="fi" id="loginCodiceGenitore" placeholder="Es. POLIS18"
+            style="flex:1;text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;min-height:48px;"
+            autocorrect="off" autocapitalize="characters" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();loginConCodice();}">
+          <button class="btn btn-p" id="btnLoginCodice"
+            style="min-height:48px;font-size:.95rem;white-space:nowrap;padding:0 18px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;"
+            onclick="loginConCodice()">Accedi →</button>
+        </div>
+        <div id="loginCodiceMsg" style="display:none;font-size:.84rem;font-weight:600;margin-top:8px;padding:8px 11px;border-radius:8px;"></div>
       </div>
       <!-- Demo interna: visibile solo con ?demo=true nell'URL -->
       <div id="demoQuickPanel" style="display:none;margin-top:14px;">
@@ -2151,9 +2163,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <!-- STEP 1: codice società -->
     <div id="srStep1">
-      <div class="fg"><label class="fl">Codice società</label><input class="fi" id="srCodice" placeholder="Es. POLIS-K3F9" style="text-transform:uppercase;font-family:monospace;letter-spacing:1px;"></div>
-      <div style="font-size:.72rem;color:var(--text2);margin:-6px 0 12px;line-height:1.4;">Il codice ti viene fornito dalla società (volantino, modulo iscrizione o gruppo WhatsApp).</div>
-      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" onclick="closeM('mSelfReg')">Annulla</button></div>
+      <div class="fg"><label class="fl">Codice società</label><input class="fi" id="srCodice" placeholder="Es. POLIS18" style="text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;min-height:48px;" autocorrect="off" autocapitalize="characters" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();srNextStep1();}"></div>
+      <div style="font-size:.78rem;color:var(--text2);margin:-4px 0 12px;line-height:1.4;">Il codice ti viene fornito dalla società (volantino, modulo iscrizione o gruppo WhatsApp).</div>
+      <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
     <!-- STEP 2: dati account -->
     <div id="srStep2" style="display:none;">
@@ -7331,39 +7344,109 @@ function srShowStep(n){
 
 function srBackStep(n){ srShowStep(n); }
 
-function srNextStep1(){
-  const v = (document.getElementById('srCodice').value || '').trim().toUpperCase();
-  if (!v) { toast('⚠️ Inserisci il codice società'); return; }
-
-  // Cerca il codice su tutte le società attive
+// ── Cerca una società per codice (case-insensitive).
+// Controlla prima la società corrente caricata da MySQL,
+// poi fallback su localStorage (multi-società SA).
+function _srFindSocByCode(v) {
+  const upper = (v || '').trim().toUpperCase();
+  if (!upper) return null;
+  // 1. Società corrente — codiceSocieta in-memory (da MySQL via Railway)
+  const currentCode = (codiceSocieta || '').trim().toUpperCase();
+  if (currentCode && upper === currentCode) {
+    return { socId: currentSocietaId, soc: saSocieties.find(x => x.id === currentSocietaId) || null };
+  }
+  // 2. Fallback: cerca su tutte le SA societies in localStorage
   saLoadState();
-  let foundSocId = null;
   for (const soc of saSocieties) {
     if (soc.stato !== 'attivo') continue;
-    const key = societyStorageKey(soc.id);
     let socCodice = '';
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(societyStorageKey(soc.id));
     if (raw) {
       try { socCodice = (JSON.parse(raw).codiceSocieta || '').toUpperCase(); } catch(e) {}
-    } else if (soc.id === 0) {
-      socCodice = (codiceSocieta || '').toUpperCase();
+    } else if (soc.id === currentSocietaId) {
+      socCodice = currentCode;
     }
-    if (socCodice && v === socCodice) { foundSocId = soc.id; break; }
+    if (socCodice && upper === socCodice) return { socId: soc.id, soc };
   }
+  return null;
+}
 
-  if (foundSocId === null) { toast('⛔ Codice non corretto o non attivo'); return; }
-
-  // Carica il contesto della società trovata
-  currentSocietaId = foundSocId;
-  if (typeof window.__fieldosSetSocietaKey === 'function') {
-    window.__fieldosSetSocietaKey(societyStorageKey(foundSocId));
-  }
-  // Aggiorna nome società nel modal e applica branding
-  const foundSoc = saSocieties.find(x => x.id === foundSocId);
+function _srApplySocietaContext(socId, soc) {
+  currentSocietaId = socId;
+  if (typeof window.__fieldosSetSocietaKey === 'function') window.__fieldosSetSocietaKey(societyStorageKey(socId));
   const _srSN = document.getElementById('srSocNome');
-  if (_srSN && foundSoc) _srSN.textContent = foundSoc.nome.toUpperCase();
-  if (foundSoc && typeof applyBranding === 'function') applyBranding(foundSoc.nome, foundSoc.colori, foundSoc.coloriAccento || '#FFD93D');
-  srShowStep(2);
+  if (_srSN && soc) _srSN.textContent = soc.nome.toUpperCase();
+  if (soc && typeof applyBranding === 'function') applyBranding(soc.nome, soc.colori, soc.coloriAccento || '#FFD93D');
+}
+
+function srNextStep1(){
+  const errEl = document.getElementById('srStep1Error');
+  const btn   = document.getElementById('srBtnNext1');
+  function _srErr(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
+    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+  }
+  if (errEl) errEl.style.display='none';
+  const v = (document.getElementById('srCodice').value || '').trim().toUpperCase();
+  if (!v) { _srErr('⚠️ Inserisci il codice società'); return; }
+  if (btn) { btn.disabled=true; btn.textContent='⏳'; }
+
+  try {
+    const found = _srFindSocByCode(v);
+    if (!found) { _srErr('❌ Codice non valido. Controlla e riprova.'); return; }
+    _srApplySocietaContext(found.socId, found.soc);
+    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+    srShowStep(2);
+  } catch(e) {
+    console.error('[srNextStep1]', e);
+    _srErr('❌ Errore imprevisto. Riprova.');
+  }
+}
+
+// Accesso genitore dal box nella schermata login
+function loginConCodice() {
+  const inp = document.getElementById('loginCodiceGenitore');
+  const btn = document.getElementById('btnLoginCodice');
+  const msg = document.getElementById('loginCodiceMsg');
+  if (!inp || !btn || !msg) return;
+
+  function _lcErr(text) {
+    msg.style.display='block'; msg.style.background='#fef2f2'; msg.style.color='#c0392b'; msg.textContent=text;
+    btn.disabled=false; btn.textContent='Accedi →';
+  }
+  function _lcOk(text) {
+    msg.style.display='block'; msg.style.background='#ecfdf5'; msg.style.color='#065f46'; msg.textContent=text;
+  }
+
+  msg.style.display='none';
+  const v = (inp.value || '').trim().toUpperCase();
+  if (!v) { _lcErr('⚠️ Inserisci il codice società'); return; }
+
+  btn.disabled=true; btn.textContent='⏳';
+
+  try {
+    const found = _srFindSocByCode(v);
+    if (!found) { _lcErr('❌ Codice non valido. Controlla e riprova.'); return; }
+
+    _lcOk('✅ Codice valido! Completa la registrazione…');
+    _srApplySocietaContext(found.socId, found.soc);
+
+    // Pre-popola il modal e vai direttamente allo step 2
+    _selfRegSelectedIds = [];
+    const srCod = document.getElementById('srCodice');
+    if (srCod) srCod.value = v;
+    ['srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    setTimeout(() => {
+      btn.disabled=false; btn.textContent='Accedi →';
+      srShowStep(2);
+      openM('mSelfReg');
+    }, 700);
+  } catch(e) {
+    console.error('[loginConCodice]', e);
+    _lcErr('❌ Errore imprevisto. Riprova.');
+  }
 }
 
 function srNextStep2(){
