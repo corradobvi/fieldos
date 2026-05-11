@@ -2355,7 +2355,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="fg"><label class="fl">Password (min. 6 caratteri)</label><input class="fi" id="srPass" type="password" placeholder="••••••••"></div>
         <div class="fg"><label class="fl">Ripeti password</label><input class="fi" id="srPass2" type="password" placeholder="••••••••"></div>
       </div>
-      <div style="display:flex;gap:8px;"><button class="btn btn-g" onclick="srBackStep(1)">← Indietro</button><button class="btn btn-p" style="flex:1;" onclick="srNextStep2()">Avanti → Seleziona figli</button></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srNextStep2()">Avanti → Seleziona figli</button>
+      </div>
     </div>
     <!-- STEP 3: scelta figli -->
     <div id="srStep3" style="display:none;">
@@ -2363,7 +2366,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()"></div>
       <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
       <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:10px;"></div>
-      <div style="display:flex;gap:8px;"><button class="btn btn-g" onclick="srBackStep(2)">← Indietro</button><button class="btn btn-p" style="flex:1;" onclick="submitSelfReg()">📨 Invia richiesta</button></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(2)">← Indietro</button>
+        <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">📨 Invia richiesta</button>
+      </div>
     </div>
     <!-- STEP 4: conferma in attesa -->
     <div id="srStep4" style="display:none;text-align:center;">
@@ -2605,6 +2611,8 @@ let _currentInvitoToken = null;
 let _onboardSelectedIds = [];
 let _onboardCurrentInvito = null;
 let _selfRegSelectedIds = [];
+let _srVerifiedCode  = ''; // codice società verificato dall'API
+let _srVerifiedState = ''; // stateKey per caricare la società
 // Calendario & eventi
 const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO','LUGLIO','AGOSTO','SETTEMBRE','OTTOBRE','NOVEMBRE','DICEMBRE'];
 const DAYNAMES = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
@@ -7498,6 +7506,8 @@ function openSelfReg(){
   document.getElementById('srPass').value = '';
   document.getElementById('srPass2').value = '';
   document.getElementById('srSearch').value = '';
+  _srVerifiedCode  = '';
+  _srVerifiedState = '';
   srShowStep(1);
   openM('mSelfReg');
 }
@@ -7580,6 +7590,26 @@ async function srNextStep1(){
   try {
     const found = await _srFindSocByCode(v);
     if (!found) { _srErr('❌ Codice non valido. Controlla e riprova.'); return; }
+
+    // Salva il codice verificato
+    _srVerifiedCode  = v;
+    _srVerifiedState = found.stateKey || '';
+
+    // Carica lo stato della società da MySQL per popolare la rosa
+    if (found.stateKey && typeof window.__fieldosSetSocietaKey === 'function') {
+      try {
+        if (btn) btn.textContent = '⏳ Carico la rosa…';
+        const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(found.stateKey));
+        if (r.ok) {
+          const data = await r.json();
+          if (data.stateJson) localStorage.setItem(found.stateKey, data.stateJson);
+        }
+        window.__fieldosSetSocietaKey(found.stateKey);
+      } catch(fetchErr) {
+        console.warn('[srNextStep1] caricamento stato fallito', fetchErr);
+      }
+    }
+
     _srApplySocietaContext(found.socId, found.soc);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
     srShowStep(2);
@@ -7614,7 +7644,30 @@ async function loginConCodice() {
     const found = await _srFindSocByCode(v);
     if (!found) { _lcErr('❌ Codice non valido. Controlla e riprova.'); return; }
 
-    _lcOk('✅ Codice valido! Completa la registrazione…');
+    // Salva il codice verificato — usato come fallback in submitSelfReg()
+    _srVerifiedCode  = v;
+    _srVerifiedState = found.stateKey || '';
+
+    _lcOk('✅ Codice valido! Carico la rosa…');
+
+    // Carica lo stato della società da MySQL — necessario per mostrare la lista giocatori
+    // e per avere codiceSocieta popolato su qualsiasi dispositivo.
+    if (found.stateKey && typeof window.__fieldosSetSocietaKey === 'function') {
+      try {
+        btn.textContent = '⏳ Carico la rosa…';
+        const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(found.stateKey));
+        if (r.ok) {
+          const data = await r.json();
+          if (data.stateJson) {
+            localStorage.setItem(found.stateKey, data.stateJson);
+          }
+        }
+        window.__fieldosSetSocietaKey(found.stateKey);
+      } catch(fetchErr) {
+        console.warn('[loginConCodice] caricamento stato fallito, continuo comunque', fetchErr);
+      }
+    }
+
     _srApplySocietaContext(found.socId, found.soc);
 
     // Pre-popola il modal e vai direttamente allo step 2
@@ -7628,7 +7681,7 @@ async function loginConCodice() {
       btn.disabled=false; btn.textContent='Accedi →';
       srShowStep(2);
       openM('mSelfReg');
-    }, 700);
+    }, 300);
   } catch(e) {
     console.error('[loginConCodice]', e);
     _lcErr('❌ Errore imprevisto. Riprova.');
@@ -7664,34 +7717,77 @@ function renderSrRoster(){
   if (q) list = list.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
   list.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
   if (!list.length) {
-    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:8px;text-align:center;">Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.</div>';
+    host.innerHTML = '<div style="font-size:.78rem;color:var(--text3);padding:12px;text-align:center;">Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.</div>';
   } else {
     host.innerHTML = list.map(p => {
       const sel = _selfRegSelectedIds.includes(p.id);
-      return `<div data-pid="${p.id}" style="cursor:pointer;display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;background:${sel?'var(--gbg)':'white'};border:1.5px solid ${sel?'var(--green)':'var(--border)'};">
-        <input type="checkbox" ${sel?'checked':''} style="width:16px;height:16px;accent-color:var(--green);pointer-events:none;">
-        <div style="flex:1;"><div style="font-weight:700;font-size:.85rem;">${escapeHtml(p.nome+' '+p.cogn)}</div><div style="font-size:.7rem;color:var(--text2);">${escapeHtml(p.leva||'')} · #${p.num||'-'} · ${escapeHtml(p.ruolo||'')}</div></div>
+      // ontouchstart="" forza iOS Safari a riconoscere :active e a innescare onclick senza delay 300ms
+      return `<div data-pid="${p.id}"
+        ontouchstart=""
+        style="cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:9px;
+               background:${sel?'#d1fae5':'#fff'};border:2px solid ${sel?'#059669':'var(--border)'};
+               touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+               user-select:none;-webkit-user-select:none;min-height:52px;transition:opacity .1s;">
+        <div style="width:22px;height:22px;border-radius:5px;border:2px solid ${sel?'#059669':'#ccc'};
+             background:${sel?'#059669':'#fff'};display:flex;align-items:center;justify-content:center;
+             flex-shrink:0;transition:all .15s;">
+          ${sel?'<svg width="13" height="10" viewBox="0 0 13 10" fill="none"><polyline points="1.5,5 5,8.5 11.5,1.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':''}
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.9rem;color:#111;">${escapeHtml(p.nome+' '+p.cogn)}</div>
+          <div style="font-size:.72rem;color:var(--text2);margin-top:1px;">${escapeHtml(p.leva||'')}${p.num?' · #'+p.num:''}${p.ruolo?' · '+escapeHtml(p.ruolo):''}</div>
+        </div>
       </div>`;
     }).join('');
+
     host.querySelectorAll('[data-pid]').forEach(row => {
-      row.onclick = () => {
+      function _toggle(e) {
+        e.preventDefault();
+        e.stopPropagation();
         const pid = parseInt(row.dataset.pid);
         const idx = _selfRegSelectedIds.indexOf(pid);
-        if (idx >= 0) _selfRegSelectedIds.splice(idx,1); else _selfRegSelectedIds.push(pid);
+        if (idx >= 0) _selfRegSelectedIds.splice(idx,1);
+        else _selfRegSelectedIds.push(pid);
+        // Feedback visivo immediato prima del re-render
+        const isNowSel = _selfRegSelectedIds.includes(pid);
+        row.style.background = isNowSel ? '#d1fae5' : '#fff';
+        row.style.borderColor = isNowSel ? '#059669' : 'var(--border)';
         renderSrRoster();
-      };
+      }
+      // touchend per iOS (nessun delay)
+      row.addEventListener('touchend', function(e){
+        // Evita il doppio fire con il click successivo
+        e.preventDefault();
+        _toggle(e);
+      }, { passive: false });
+      // click come fallback per desktop
+      row.addEventListener('click', _toggle);
     });
   }
+
   const info = document.getElementById('srSelectedInfo');
-  if (info) info.textContent = _selfRegSelectedIds.length
-    ? `Selezionati: ${_selfRegSelectedIds.length} figlio/i`
-    : 'Devi selezionare almeno un figlio/a per continuare.';
+  const submitBtn = document.getElementById('srBtnSubmit');
+  if (info) {
+    if (_selfRegSelectedIds.length) {
+      info.style.color = '#059669';
+      info.style.fontWeight = '700';
+      info.textContent = `✅ Selezionati: ${_selfRegSelectedIds.length} figlio/a`;
+      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; }
+    } else {
+      info.style.color = 'var(--text2)';
+      info.style.fontWeight = '400';
+      info.textContent = 'Seleziona almeno un figlio/a per continuare.';
+      if (submitBtn) { submitBtn.disabled=false; submitBtn.style.opacity='1'; } // non disabilitare: toast spiega
+    }
+  }
 }
 
 function submitSelfReg(){
   // Refresh stato condiviso (race con altre tab che approvano/rifiutano/aggiungono utenti)
   if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
-  if (!codiceSocieta) { toast('⛔ Registrazione disattivata'); closeM('mSelfReg'); return; }
+  // Controlla codiceSocieta con fallback al codice verificato al login (su nuovo dispositivo codiceSocieta può essere vuoto)
+  const _activeCode = codiceSocieta || _srVerifiedCode;
+  if (!_activeCode) { toast('⛔ Registrazione disattivata'); closeM('mSelfReg'); return; }
   if (_selfRegSelectedIds.length === 0) { toast('⚠️ Seleziona almeno un figlio/a'); return; }
   const nome = document.getElementById('srNome').value.trim();
   const cogn = document.getElementById('srCogn').value.trim();
