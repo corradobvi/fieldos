@@ -1528,9 +1528,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="fg">
       <label class="fl">Ruolo principale *</label>
       <select class="fi" id="rRuolo" style="appearance:auto;-webkit-appearance:auto;">
-        <option value="admin">Admin società</option>
-        <option value="allenatore">Mister / Allenatore</option>
-        <option value="dirigente">Dirigente</option>
+        <option value="admin">🛡️ Admin società</option>
+        <option value="allenatore">⚽ Mister / Allenatore</option>
+        <option value="dirigente">👔 Dirigente</option>
       </select>
     </div>
     <button class="btn-login" style="margin-top:8px;" onclick="doSelfRegister()">Inizia 14 giorni gratuiti →</button>
@@ -1986,13 +1986,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Ruolo</label>
         <select class="fs" id="uRuolo" onchange="onUtenteRuolo()">
           <option value="">— Seleziona —</option>
-          <option value="admin">Amministratore</option>
-          <option value="allenatore">Mister</option>
-          <option value="preparatore_portieri">🧤 Preparatore portieri</option>
-          <option value="dirigente">Dirigente</option>
-          <option value="genitore">Genitore</option>
-          <option value="nonno">Nonno/Nonna</option>
-          <option value="giocatore">Giocatore</option>
+          <option value="admin">🛡️ Admin</option>
+          <option value="allenatore">⚽ Mister</option>
+          <option value="preparatore_portieri">🧤 Prep. Portieri</option>
+          <option value="dirigente">👔 Dirigente</option>
+          <option value="genitore">👨 Papà / 👩 Mamma</option>
+          <option value="nonno">👴 Nonno / 👵 Nonna</option>
+          <option value="giocatore">🏃 Giocatore</option>
         </select>
       </div>
       <div class="fg"><label class="fl">Leva</label>
@@ -2843,7 +2843,7 @@ function applyBranding(nome, hex, accento) {
 
 const ROLE_CFG = {
   admin: {
-    label:'🛡️ Amministratore', color:'#047857', bg:'#e8effe',
+    label:'🛡️ Admin', color:'#047857', bg:'#e8effe',
     nav:[
       {s:'Società'},{id:'panoramica',ic:'🏟️',lb:'Panoramica'},
       {s:'Generale'},{id:'dashboard',ic:'🏠',lb:'Dashboard'},
@@ -2882,7 +2882,7 @@ const ROLE_CFG = {
     ], leve:true
   },
   dirigente: {
-    label:'📋 Dirigente', color:'#0e6e9c', bg:'#e6f2fa',
+    label:'👔 Dirigente', color:'#0e6e9c', bg:'#e6f2fa',
     nav:[
       {s:'Società'},{id:'panoramica',ic:'🏟️',lb:'Panoramica'},
       {s:'Squadra'},{id:'dashboard',ic:'🏠',lb:'Dashboard'},
@@ -3403,9 +3403,10 @@ function bootApp(user) {
   // Topbar
   document.getElementById('tbAv').textContent   = user.nome[0] + user.cogn[0];
   document.getElementById('tbName').textContent  = user.nome + ' ' + user.cogn;
-  document.getElementById('tbRole').textContent  = cfg.label.replace(/^[^\s]+\s/, '');
+  const _tbLabel = userRoleLabel(user) || cfg.label;
+  document.getElementById('tbRole').textContent  = _tbLabel.replace(/^[^\w]*\S+\s/, '');
   const tb = document.getElementById('tbBadge');
-  tb.textContent = cfg.label;
+  tb.textContent = _tbLabel;
   const _useCP = (user.role === 'admin' || user.role === 'allenatore' || user.role === 'preparatore_portieri' || user.role === 'dirigente');
   tb.style.background   = _useCP ? 'var(--cl)'  : cfg.bg;
   tb.style.color        = _useCP ? 'var(--cp)'  : cfg.color;
@@ -3666,7 +3667,7 @@ function renderProfilo() {
   if ((me.role === 'genitore' || me.role === 'nonno') && window.innerWidth <= 640) {
     renderProfiloFiglio(el); return;
   }
-  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
+  const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'👔',genitore:'👨‍👧',nonno:'👴',giocatore:'🏃'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
   const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
   const leva = me.leva ? `<div style="font-size:.8rem;color:var(--text3);margin-top:4px;">Leva ${me.leva}</div>` : '';
@@ -6551,7 +6552,7 @@ function renderCommentiSheet() {
   if (!cont) return;
   const commenti = Array.isArray(c.commenti) ? c.commenti : [];
   const canManageAll = me.role === 'admin' || c.mittenteId === me.id;
-  const ROLE_IC = {admin:'🔑',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'📋',genitore:'👨‍👧',nonno:'👴',giocatore:'🎽'};
+  const ROLE_IC = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'👔',genitore:'👨‍👧',nonno:'👴',giocatore:'🏃'};
   const titleEl = document.getElementById('commentiSheetTitle');
   if (titleEl) titleEl.textContent = '💬 ' + escapeHtml(c.titolo);
   let html = '';
@@ -6565,7 +6566,7 @@ function renderCommentiSheet() {
       const ic = ROLE_IC[cm.ruolo] || '👤';
       html += `<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:9px 12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:.78rem;font-weight:700;">${ic} ${escapeHtml(cm.nome)} <span style="font-weight:400;color:var(--text3);font-size:.73rem;">${escapeHtml(cm.ruolo)}</span></span>
+          <span style="font-size:.78rem;font-weight:700;">${ic} ${escapeHtml(cm.nome)} <span style="font-weight:400;color:var(--text3);font-size:.73rem;">${escapeHtml(ROLE_LABELS[cm.ruolo] || cm.ruolo)}</span></span>
           <div style="display:flex;gap:5px;align-items:center;">
             <span style="font-size:.69rem;color:var(--text3);">${when}</span>
             ${canDel ? `<button class="btn btn-xs" style="background:#fee2e2;color:var(--red);border:1px solid var(--red);padding:1px 5px;font-size:.68rem;line-height:1.2;" onclick="deleteCommento(${c.id},${cm.id})">✕</button>` : ''}
@@ -7312,7 +7313,7 @@ function renderStatsTornei(el){
 // USERS (impostazioni)
 // ═══════════════════════════════════
 
-const ROLE_LABELS = {admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', genitore:'Genitore', nonno:'Nonno/Nonna', giocatore:'Giocatore'};
+const ROLE_LABELS = {admin:'🛡️ Admin', allenatore:'⚽ Mister', preparatore_portieri:'🧤 Prep. Portieri', dirigente:'👔 Dirigente', genitore:'👨‍👧 Genitore', nonno:'👴 Nonno/Nonna', giocatore:'🏃 Giocatore'};
 const TITOLO_FAM_LABELS = { papa:'👨 Papà', mamma:'👩 Mamma', nonno:'👴 Nonno', nonna:'👵 Nonna' };
 function userRoleLabel(u) { return (u && u.titoloFamiliare && TITOLO_FAM_LABELS[u.titoloFamiliare]) ? TITOLO_FAM_LABELS[u.titoloFamiliare] : ROLE_LABELS[u && u.role] || (u && u.role) || ''; }
 const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
