@@ -10456,7 +10456,7 @@ function renderCampiSettings(){
   });
 }
 function openCampoModal(id){
-  if (me.role !== 'admin' && me.role !== 'dirigente') { toast('⛔ Solo admin e dirigenti possono gestire i campi'); return; }
+  if (me.role !== 'admin' && me.role !== 'dirigente' && me.role !== 'allenatore') { toast('⛔ Solo admin, dirigenti e allenatori possono gestire i campi'); return; }
   const c = id ? campi.find(x => x.id === id) : null;
   document.getElementById('mCampoTitle').textContent = c ? '✏️ Modifica campo' : '🏟️ Nuovo campo';
   document.getElementById('campoId').value    = c ? c.id : '';
@@ -10774,9 +10774,10 @@ function renderPtAmichevoli() {
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const editBtn = canEditPt(m.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id});event.stopPropagation();">✏️</button>` : '';
+    const delBtn  = canEditPt(m.leva) ? `<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id});event.stopPropagation();" title="Elimina">🗑</button>` : '';
     const risBtn  = (!m.annullata && canEditPt(m.leva)) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   };
   let html = '';
   if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
@@ -11183,9 +11184,10 @@ function renderGcAmichevoli() {
       ? `<span class="mc-tag" style="background:#fef2f2;color:var(--red);">Annullata</span>`
       : `<span class="mc-tag amic">Amichevole</span>`;
     const editBtn = canEditPt(m.leva)?`<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id})">✏️</button>`:'';
+    const delBtn  = canEditPt(m.leva)?`<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id})" title="Elimina">🗑</button>`:'';
     const risBtn  = (!m.annullata && canEditPt(m.leva))?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   }).join('');
 }
 
@@ -11857,6 +11859,16 @@ function savePtAmich() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
+}
+
+function deletePtAmich(id) {
+  const m = amichevoli.find(x => x.id === id);
+  if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
+  if (!confirm('Eliminare l\'amichevole contro ' + m.avversario + '?')) return;
+  amichevoli = amichevoli.filter(x => x.id !== id);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderPartite(); renderCal();
+  toast('🗑 Amichevole eliminata');
 }
 
 // ─── MODALI CAMPIONATO ───
