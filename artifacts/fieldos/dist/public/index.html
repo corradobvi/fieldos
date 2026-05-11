@@ -1475,7 +1475,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
       <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
       <div style="text-align:center;margin-top:8px;font-size:.78rem;color:var(--text2);">
-        <a href="#" onclick="event.preventDefault();openForgotPass()" style="color:var(--cp);font-weight:600;text-decoration:none;">Hai dimenticato la password?</a>
+        <a href="#" onclick="event.preventDefault();openForgotPass()" style="color:var(--cp);font-weight:600;text-decoration:none;">🔑 Password dimenticata?</a>
       </div>
       <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
@@ -1587,7 +1587,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <div class="tb-av" id="tbAv" onclick="if(window.innerWidth<=640){const _r=me&&me.role;goTo((_r==='genitore'||_r==='nonno'||_r==='giocatore')?'profilo':'impostazioni');}" title="Profilo">?</div>
+        <div class="tb-av" id="tbAv" onclick="goTo('profilo')" title="Vai al profilo" style="cursor:pointer;">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
       </div>
       <button class="btn-out" onclick="logout()">Esci</button>
@@ -3120,6 +3120,17 @@ function togglePassVis() {
 }
 
 // ── Validazione password robusta ────────────────────────────────
+function _toggleEye(id, btn) {
+  var i = document.getElementById(id);
+  if (!i) return;
+  var show = i.type === 'password';
+  i.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.querySelector('svg').innerHTML = show
+    ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
 function _pwCheck(val) {
   val = val || '';
   const len     = val.length >= 8;
@@ -3546,7 +3557,7 @@ const MOB_NAV_ITEMS = [
   {id:'chat',         ic:'💬', lb:'Chat',    badge:'mn-chat'},
   {id:'comunicazioni',ic:'📣', lb:'Avvisi',  badge:'mn-comm'},
   {id:'calendario',   ic:'📅', lb:'Cal'},
-  {id:'impostazioni', ic:'👤', lb:'Profilo'},
+  {id:'profilo',      ic:'👤', lb:'Profilo'},
 ];
 function buildMobNav(role) {
   const nav = document.getElementById('mobNav');
@@ -3577,7 +3588,7 @@ function buildMobNav(role) {
       {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
       {id:'comunicazioni',ic:'📣', lb:'Avvisi', badge:'mn-comm'},
       {id:'presenze',     ic:'✅', lb:'Presenze'},
-      {id:'impostazioni', ic:'👤', lb:'Profilo'},
+      {id:'profilo',      ic:'👤', lb:'Profilo'},
     ];
   } else {
     items = MOB_NAV_ITEMS;
@@ -3764,7 +3775,9 @@ function renderProfilo() {
   const el = document.getElementById('profiloContent');
   if (!el || !me) return;
   if ((me.role === 'genitore' || me.role === 'nonno') && window.innerWidth <= 640) {
-    renderProfiloFiglio(el); return;
+    renderProfiloFiglio(el);
+    setTimeout(() => { initPwField('cpProfNew', 'cpProfConf'); }, 50);
+    return;
   }
   const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'👔',genitore:'👨‍👧',nonno:'👴',giocatore:'🏃'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
@@ -3779,20 +3792,21 @@ function renderProfilo() {
       <div style="font-size:.77rem;color:var(--text3);margin-top:6px;">${escapeHtml(me.email||'')}</div>
     </div>
     <div class="card" style="margin-top:12px;">
-      <div class="ch"><div class="ct">🔑 Cambia password</div></div>
+      <div class="ch"><div class="ct">🔐 Sicurezza</div></div>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div class="fg" style="margin:0;">
           <label class="fl">Password attuale</label>
-          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"></div>
+          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"><button type="button" class="fi-eye" onclick="_toggleEye('cpProfOld',this)" tabindex="-1" aria-label="Mostra/nascondi password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
         </div>
         <div class="fg" style="margin:0;">
           <label class="fl">Nuova password</label>
-          <div class="fi-wrap"><input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
+          <input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password">
         </div>
         <div class="fg" style="margin:0;">
           <label class="fl">Conferma nuova password</label>
-          <div class="fi-wrap"><input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password"></div>
+          <input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password">
         </div>
+        <div id="cpProfMsg" style="display:none;font-size:.83rem;padding:8px 11px;border-radius:8px;font-weight:600;"></div>
         <button class="btn btn-p" style="margin-top:4px;" onclick="changePasswordProfile()">💾 Aggiorna password</button>
       </div>
     </div>
@@ -3891,6 +3905,18 @@ function renderProfiloFiglio(el) {
       <div class="mob-dash-card-hd">Il tuo account</div>
       <div style="font-size:.84rem;color:var(--text2);margin-bottom:12px;">${escapeHtml(me.email||'')}</div>
       <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
+    </div>
+    <div class="mob-dash-card" style="margin-top:8px;">
+      <div class="mob-dash-card-hd">🔐 Sicurezza</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="fg" style="margin:0;"><label class="fl">Password attuale</label>
+          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"><button type="button" class="fi-eye" onclick="_toggleEye('cpProfOld',this)" tabindex="-1" aria-label="Mostra/nascondi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+        </div>
+        <div class="fg" style="margin:0;"><label class="fl">Nuova password</label><input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
+        <div class="fg" style="margin:0;"><label class="fl">Conferma nuova password</label><input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password"></div>
+        <div id="cpProfMsg" style="display:none;font-size:.83rem;padding:8px 11px;border-radius:8px;font-weight:600;"></div>
+        <button class="btn btn-p" onclick="changePasswordProfile()">💾 Aggiorna password</button>
+      </div>
     </div>`;
 }
 
@@ -15308,10 +15334,19 @@ function changePasswordProfile() {
   const oldVal  = (document.getElementById('cpProfOld')  || {}).value || '';
   const newVal  = (document.getElementById('cpProfNew')  || {}).value || '';
   const confVal = (document.getElementById('cpProfConf') || {}).value || '';
+  const msgEl   = document.getElementById('cpProfMsg');
+  function _cpMsg(txt, ok) {
+    if (!msgEl) { toast(txt); return; }
+    msgEl.style.display = '';
+    msgEl.style.background = ok ? '#ecfdf5' : '#fef2f2';
+    msgEl.style.color = ok ? '#065f46' : '#c0392b';
+    msgEl.textContent = txt;
+    if (ok) setTimeout(() => { msgEl.style.display = 'none'; }, 3500);
+  }
   if (!me) return;
-  if (oldVal !== me.pass) { toast('❌ La password attuale non è corretta'); return; }
-  if (!_pwCheck(newVal).valid) { toast('❌ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un simbolo'); return; }
-  if (newVal !== confVal) { toast('❌ Le due password non coincidono'); return; }
+  if (oldVal !== me.pass) { _cpMsg('❌ La password attuale non è corretta', false); return; }
+  if (!_pwCheck(newVal).valid) { _cpMsg('❌ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un simbolo', false); return; }
+  if (newVal !== confVal) { _cpMsg('❌ Le due password non coincidono', false); return; }
   const u = USERS_DB.find(x => x.id === me.id);
   if (u) u.pass = newVal;
   me.pass = newVal;
@@ -15319,7 +15354,7 @@ function changePasswordProfile() {
   document.getElementById('cpProfOld').value  = '';
   document.getElementById('cpProfNew').value  = '';
   document.getElementById('cpProfConf').value = '';
-  toast('✅ Password aggiornata con successo');
+  _cpMsg('✅ Password aggiornata con successo', true);
 }
 
 // ═══════════════════════════════════
@@ -15341,33 +15376,60 @@ function closeForgotPass() {
   if (el) el.style.display = 'none';
 }
 
-function doForgotPass() {
+async function doForgotPass() {
   const emailVal = ((document.getElementById('fpEmail') || {}).value || '').trim().toLowerCase();
   const result   = document.getElementById('fpResult');
-  if (!emailVal) { if (result) { result.style.display='block'; result.style.color='#c0392b'; result.textContent='⚠️ Inserisci la tua email.'; } return; }
-  // Cerca in TUTTE le società SA (non solo quella corrente) per trovare l'utente
-  let found = null;
-  for (const soc of saSocieties) {
-    if (soc.stato === 'archiviato' || soc.stato === 'eliminato') continue;
-    try {
-      const key   = societyStorageKey(soc.id);
-      const raw   = localStorage.getItem(key);
-      if (!raw) continue;
-      const data  = JSON.parse(raw);
-      const users = data.USERS_DB || [];
-      const u     = users.find(x => (x.email || '').toLowerCase() === emailVal);
-      if (u) { found = u; break; }
-    } catch(e) {}
-  }
-  if (!result) return;
-  if (!found) {
-    result.style.display='block'; result.style.color='#c0392b';
-    result.textContent='❌ Nessun account trovato con questa email.';
+  if (!emailVal) {
+    if (result) { result.style.display='block'; result.style.background=''; result.style.padding=''; result.style.color='#c0392b'; result.textContent='⚠️ Inserisci la tua email.'; }
     return;
   }
-  result.style.display='block'; result.style.color='#065f46'; result.style.background='#ecfdf5';
-  result.style.padding='10px 12px'; result.style.borderRadius='8px';
-  result.innerHTML = `✅ Account trovato: <strong>${escapeHtml(found.nome)} ${escapeHtml(found.cogn)}</strong><br>La tua password è: <strong style="font-family:monospace;font-size:1rem;letter-spacing:1px;">${escapeHtml(found.pass || '—')}</strong>`;
+  if (result) { result.style.display='block'; result.style.background=''; result.style.padding=''; result.style.color='var(--text2)'; result.textContent='🔄 Ricerca in corso...'; }
+
+  try {
+    const resp = await fetch(API_BASE + '/api/public/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailVal })
+    });
+    if (!resp.ok) throw new Error('server_error');
+    const data = await resp.json();
+    if (!result) return;
+    if (!data.found) {
+      result.style.display='block'; result.style.background=''; result.style.padding=''; result.style.color='#c0392b';
+      result.textContent='❌ Nessun account trovato con questa email.';
+      return;
+    }
+    result.style.display='block'; result.style.color='#065f46'; result.style.background='#ecfdf5';
+    result.style.padding='10px 12px'; result.style.borderRadius='8px';
+    result.innerHTML = `✅ <strong>${escapeHtml(data.nome||'')} ${escapeHtml(data.cogn||'')}</strong><br>
+      Password temporanea:<br>
+      <code style="display:block;font-size:1.1rem;font-family:monospace;letter-spacing:2px;font-weight:700;padding:6px 8px;background:#d1fae5;border-radius:6px;margin:5px 0;">${escapeHtml(data.tempPass||'')}</code>
+      <span style="font-size:.75rem;color:#047857;">Accedi con questa password — ti verrà chiesto di cambiarla subito.</span>`;
+  } catch(e) {
+    // Fallback offline: mostra la password da localStorage (senza aggiornare MySQL)
+    let found = null;
+    for (const soc of saSocieties) {
+      if (soc.stato === 'archiviato' || soc.stato === 'eliminato') continue;
+      try {
+        const key = societyStorageKey(soc.id);
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const d = JSON.parse(raw);
+        const u = (d.USERS_DB || []).find(x => (x.email || '').toLowerCase() === emailVal);
+        if (u) { found = u; break; }
+      } catch(_) {}
+    }
+    if (!result) return;
+    if (!found) {
+      result.style.display='block'; result.style.background=''; result.style.padding=''; result.style.color='#c0392b';
+      result.textContent='❌ Nessun account trovato (modalità offline).';
+      return;
+    }
+    result.style.display='block'; result.style.color='#065f46'; result.style.background='#ecfdf5';
+    result.style.padding='10px 12px'; result.style.borderRadius='8px';
+    result.innerHTML = `✅ <strong>${escapeHtml(found.nome)} ${escapeHtml(found.cogn)}</strong> (offline)<br>
+      La tua password è: <code style="font-family:monospace;font-size:1rem;letter-spacing:1px;">${escapeHtml(found.pass||'—')}</code>`;
+  }
 }
 
 // ═══════════════════════════════════
@@ -16786,8 +16848,8 @@ async function doRejoinSocieta() {
 
 <div class="ov" id="mChangePass" style="z-index:10002;">
   <div class="modal" style="max-width:400px;">
-    <div class="mh"><div class="mt">🔑 Imposta la tua password</div></div>
-    <p style="color:var(--text2);font-size:.88rem;margin:0 0 16px;">Benvenuto! Questo è il tuo primo accesso. Scegli una password personale.</p>
+    <div class="mh"><div class="mt">🔐 Imposta la tua password</div></div>
+    <p style="color:var(--text2);font-size:.88rem;margin:0 0 16px;">Scegli una nuova password personale per accedere all'app. Deve avere almeno 8 caratteri, una maiuscola, un numero e un simbolo.</p>
     <div class="fg"><label class="fl">Nuova password</label><input class="fi" id="cpNewPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
@@ -16797,12 +16859,12 @@ async function doRejoinSocieta() {
 <!-- ══════ RECUPERO PASSWORD (login) ══════ -->
 <div id="mForgotPass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10003;align-items:center;justify-content:center;padding:16px;">
   <div class="modal" style="max-width:420px;">
-    <div class="mh"><div class="mt">🔑 Recupera password</div><button class="mc" onclick="closeForgotPass()">✕</button></div>
-    <p style="color:var(--text2);font-size:.88rem;margin:0 0 14px;">Inserisci la tua email: ti mostreremo la password associata al tuo account.</p>
+    <div class="mh"><div class="mt">🔑 Password dimenticata?</div><button class="mc" onclick="closeForgotPass()">✕</button></div>
+    <p style="color:var(--text2);font-size:.88rem;margin:0 0 14px;line-height:1.5;">Inserisci la tua email: ti invieremo una <strong>password temporanea</strong> da usare per accedere, poi ti verrà chiesto di cambiarla subito.</p>
     <div class="fg"><label class="fl">Email</label><input class="fi" id="fpEmail" type="email" placeholder="la-tua@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPass()"></div>
-    <div id="fpResult" style="display:none;font-size:.84rem;margin-top:10px;padding:10px 12px;border-radius:8px;line-height:1.5;"></div>
+    <div id="fpResult" style="display:none;font-size:.84rem;margin-top:10px;border-radius:8px;line-height:1.5;"></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn btn-p" style="flex:1;" onclick="doForgotPass()">🔍 Cerca account</button>
+      <button class="btn btn-p" style="flex:1;" onclick="doForgotPass()">🔑 Recupera accesso</button>
       <button class="btn btn-g" onclick="closeForgotPass()">Chiudi</button>
     </div>
   </div>

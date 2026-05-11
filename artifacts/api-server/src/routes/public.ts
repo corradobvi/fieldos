@@ -192,4 +192,73 @@ router.post("/public/join-request", async (req, res) => {
   }
 });
 
+// POST /api/public/forgot-password
+// Body: { email }
+// Genera una password temporanea, la imposta sull'utente in MySQL, la restituisce in chiaro (MVP)
+router.post("/public/forgot-password", async (req, res) => {
+  const { email } = req.body as Record<string, any>;
+  if (!email || typeof email !== "string") {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+
+  const emailLower = (email as string).toLowerCase().trim();
+
+  try {
+    await pool.execute(CREATE_TABLE_SQL);
+
+    const [rows] = (await pool.execute(
+      `SELECT \`key\`, state_json FROM \`society_state\`
+       WHERE (\`key\` LIKE 'fieldos_state_soc_%' OR \`key\` = 'fieldos_state_v1')
+         AND \`key\` NOT LIKE 'fieldos_demo%'`
+    )) as [any[], any];
+
+    for (const row of rows) {
+      let state: any;
+      try { state = JSON.parse(row.state_json as string); } catch { continue; }
+
+      const users: any[] = state.USERS_DB || [];
+      const userIdx = users.findIndex((u: any) => (u.email || "").toLowerCase() === emailLower);
+      if (userIdx === -1) continue;
+
+      const user = users[userIdx];
+      const tempPass = _generateTempPassword();
+      user.pass = tempPass;
+      user.tempPassword = true;
+
+      await pool.execute(
+        "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+        [JSON.stringify(state), row.key]
+      );
+
+      logger.info({ email: emailLower }, "forgot-password: temp password set");
+      return res.json({ found: true, tempPass, nome: user.nome, cogn: user.cogn });
+    }
+
+    return res.json({ found: false });
+  } catch (e: any) {
+    logger.error({ err: e }, "forgot-password error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+
+function _generateTempPassword(): string {
+  const upper   = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower   = "abcdefghjkmnpqrstuvwxyz";
+  const digits  = "23456789";
+  const special = "!@#$";
+  const all = upper + lower + digits + special;
+  const chars = [
+    upper[Math.floor(Math.random() * upper.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    special[Math.floor(Math.random() * special.length)],
+  ];
+  while (chars.length < 8) chars.push(all[Math.floor(Math.random() * all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
 export default router;
