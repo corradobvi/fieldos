@@ -5126,6 +5126,17 @@ function openPresenzeFromEvento(){
   closeM('mEvento');
   goTo('presenze');
 }
+function openPresenzeFromDay(evId) {
+  const ev = events.find(e => e.id === evId);
+  if (!ev) return;
+  const allowed = userLeve();
+  const target = (ev.leve || []).find(l => allowed.includes(l)) || (ev.leve || [])[0];
+  if (target) currentLeva = target;
+  currentPresDate = ev.date;
+  currentPresNavMonth = ev.date.slice(0, 7);
+  closeM('mDay');
+  goTo('presenze');
+}
 function bulkSetPres(status){
   if (!canEditPresenze() || !currentPresDate) return;
   if (!confirm(status === 'p' ? 'Segnare tutti come presenti per questa data?' : 'Azzerare le presenze di questa data?')) return;
@@ -10554,12 +10565,24 @@ function openDayModal(dateStr){
           <div style="font-size:.74rem;color:var(--text2);">📍 ${ev.luogo || '—'} · 👥 ${leveStr}</div>
           ${ev.note ? `<div style="font-size:.74rem;color:var(--text3);margin-top:2px;">${ev.note}</div>` : ''}
         `;
-        if (canEditEvent(ev)) {
+        const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+        const showEdit = canEditEvent(ev);
+        const showPres = isAllen && canEditPresenze();
+        if (showEdit || showPres) {
           const editRow = document.createElement('div');
-          editRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
-          const eb = document.createElement('button'); eb.className='btn btn-g btn-sm'; eb.textContent='✏️ Modifica';
-          eb.onclick = (e)=>{ e.stopPropagation(); closeM('mDay'); openEventoModal(ev.id); };
-          editRow.appendChild(eb);
+          editRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;';
+          if (showEdit) {
+            const eb = document.createElement('button'); eb.className='btn btn-g btn-sm'; eb.textContent='✏️ Modifica';
+            eb.onclick = (e)=>{ e.stopPropagation(); closeM('mDay'); openEventoModal(ev.id); };
+            editRow.appendChild(eb);
+          }
+          if (showPres) {
+            const pb = document.createElement('button');
+            pb.className = 'btn btn-sm'; pb.style.cssText = 'background:var(--green);color:white;border-color:var(--green);';
+            pb.textContent = '✅ Apri presenze';
+            pb.onclick = (e) => { e.stopPropagation(); openPresenzeFromDay(ev.id); };
+            editRow.appendChild(pb);
+          }
           row.appendChild(editRow);
         }
       }
@@ -10827,6 +10850,7 @@ function creaAllenamentiRicorrenti(){
   const start = document.getElementById('evOraInizio').value;
   const end   = document.getElementById('evOraFine').value;
   const note  = document.getElementById('evNote').value.trim();
+  const visibilitaMode = (document.querySelector('input[name="evVisib"]:checked') || {}).value || 'default';
   const leveSel = Array.from(document.querySelectorAll('#evLeveBox .lp.on')).map(c => c.dataset.leva);
   const giorni  = Array.from(document.querySelectorAll('#evGiorniBox .on')).map(c => parseInt(c.dataset.wd));
   const da = document.getElementById('evRicInizio').value;
@@ -10847,7 +10871,7 @@ function creaAllenamentiRicorrenti(){
   while (cur <= fin) { if (giorni.includes(cur.getDay())) dates.push(ymd(new Date(cur))); cur.setDate(cur.getDate()+1); }
   if (!dates.length) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
   if (dates.length > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
-  dates.forEach(d => events.push({ id:nextEventId++, title, type, date:d, start, end, luogo, campoId:campoIdSel||undefined, note, recur:'none', recurUntil:null, leve:leveSel.slice(), createdBy:me.email, recurGroupId:groupId }));
+  dates.forEach(d => events.push({ id:nextEventId++, title, type, date:d, start, end, luogo, campoId:campoIdSel||undefined, note, recur:'none', recurUntil:null, leve:leveSel.slice(), visibilitaMode, createdBy:me.email, recurGroupId:groupId }));
   if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+dates.length; }
   closeM('mEvento'); renderCal();
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
