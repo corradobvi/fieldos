@@ -5405,15 +5405,17 @@ function renderConvocazioneCard(ev) {
           : d.status === 'disponibile'
             ? `<span class="pill pill-g">✓ Disponibile</span>`
             : `<span class="pill pill-r">✗ Indisponibile${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
+        const btnHtml = !d
+          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Disponibile</button><button class="btn btn-sm" style="background:#e03055;color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non disponibile</button></div>`
+          : d.status === 'disponibile'
+          ? `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;pointer-events:none;">✅ Sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`
+          : `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#e03055;color:white;pointer-events:none;">❌ Non sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`;
         return `<div style="background:var(--bg);border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
-          </div>
+          ${btnHtml}
         </div>`;
       }).join('') || `<div style="font-size:.83rem;color:var(--text2);">Questo evento non riguarda nessuno dei tuoi giocatori.</div>`;
 
@@ -5449,15 +5451,17 @@ function renderConvocazioneCard(ev) {
               ? `<span class="pill pill-g" style="font-weight:800;">📋 CONVOCATO</span>`
               : `<span class="pill" style="background:var(--cl);color:var(--text2);">Non convocato</span>`)
           : `<span class="pill pill-b">In attesa convocazione</span>`;
+        const btnHtml2 = !d
+          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Disponibile</button><button class="btn btn-sm" style="background:#e03055;color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non disponibile</button></div>`
+          : d.status === 'disponibile'
+          ? `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#1A7A4A;color:white;pointer-events:none;">✅ Sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`
+          : `<div style="display:flex;flex-direction:column;gap:5px;"><button class="btn btn-sm" style="background:#e03055;color:white;pointer-events:none;">❌ Non sei disponibile</button><a href="#" style="font-size:.72rem;color:var(--text2);text-decoration:underline;" onclick="openDisponModal(${evIdJs},${p.id});return false;">Cambia risposta</a></div>`;
         return `<div style="background:${isConv ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border:${isConv ? '1.5px solid rgba(14,168,96,.35)' : '1px solid transparent'};border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge} ${convBadge}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
-          </div>
+          ${btnHtml2}
         </div>`;
       }).join('');
     }
