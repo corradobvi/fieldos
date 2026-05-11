@@ -1467,6 +1467,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Password</label><div class="fi-wrap"><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"><button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()" tabindex="-1" aria-label="Mostra/nascondi password"><svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
       <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
+      <div style="text-align:center;margin-top:8px;font-size:.78rem;color:var(--text2);">
+        <a href="#" onclick="event.preventDefault();openForgotPass()" style="color:var(--cp);font-weight:600;text-decoration:none;">Hai dimenticato la password?</a>
+      </div>
       <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
         Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
@@ -1922,8 +1925,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Anno nascita</label><input class="fi" id="pAnno" type="number" placeholder="2013"></div>
       <div class="fg"><label class="fl">Tel. genitore</label><input class="fi" id="pTel" placeholder="+39 ..."></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:4px;">
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
       <button class="btn btn-p" style="flex:1;" onclick="savePlayer()">💾 Salva</button>
+      <button class="btn" id="btnArchPlayer" onclick="archiviaCurrentPlayer()" style="display:none;background:#fef3c7;color:#b45309;border-color:#fcd34d;">📦 Archivia</button>
       <button class="btn btn-r" id="btnDelPlayer" onclick="deleteCurrentPlayer()" style="display:none;">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mPlayer')">Annulla</button>
     </div>
@@ -2014,7 +2018,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="uAgeOk" style="display:none;background:var(--gbg);border:1px solid rgba(14,168,96,.3);border-radius:8px;padding:9px 12px;font-size:.77rem;color:var(--green);margin-bottom:10px;">✅ Over 13 — login consentito (può convivere con quello del genitore).</div>
     </div>
     <div class="fg"><label class="fl">Stato</label>
-      <select class="fs" id="uStato"><option value="attivo">Attivo</option><option value="sospeso">Sospeso</option></select>
+      <select class="fs" id="uStato"><option value="attivo">Attivo</option><option value="sospeso">Sospeso</option><option value="slegato">Slegato</option></select>
     </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveUser()" id="btnSaveUser">✅ Crea account</button>
@@ -3437,6 +3441,7 @@ function bootApp(user) {
     const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
     applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
     goTo('panoramica');
+    if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
     if (typeof checkQuoteReminders === 'function') checkQuoteReminders();
@@ -3626,11 +3631,18 @@ function goTo(pgId) {
     const _quoteCardEl = document.getElementById('quoteCard');
     if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
-    if (_codiceCardEl) _codiceCardEl.style.display = _isStaff && me.role !== 'allenatore' ? '' : 'none';
-    // Gestione utenti e leve: solo admin/dirigente; campi: tutto lo staff
-    ['usersCard','leveCard'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
+    if (_codiceCardEl) _codiceCardEl.style.display = (me.role === 'admin' || me.role === 'preparatore_portieri') ? '' : 'none';
+    // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
+    // leveCard: solo admin
+    const _usersCardEl = document.getElementById('usersCard');
+    if (_usersCardEl) _usersCardEl.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
+    const _leveCardEl = document.getElementById('leveCard');
+    if (_leveCardEl) _leveCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    // Nasconde i pulsanti Aggiungi/Invita per dirigente (solo visualizza)
+    document.querySelectorAll('#usersCard .btn-p, #usersCard .btn-g').forEach(btn => {
+      if (btn.textContent.includes('Aggiungi') || btn.textContent.includes('Invita')) {
+        btn.style.display = me.role === 'dirigente' ? 'none' : '';
+      }
     });
     const _campiCardEl2 = document.getElementById('campiCard');
     if (_campiCardEl2) _campiCardEl2.style.display = _isStaff ? '' : 'none';
@@ -3649,7 +3661,7 @@ function goTo(pgId) {
     if (_iAccento) _iAccento.value = _hexRe.test(_caVal) ? _caVal : '#FFD93D';
     renderColorPreview();
     const _colorCardEl = document.getElementById('colorCard');
-    if (_colorCardEl) _colorCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente') ? '' : 'none';
+    if (_colorCardEl) _colorCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
     const _iTipoColor = document.getElementById('newTipoColor');
     if (_iTipoColor && !_iTipoColor.value) _iTipoColor.value = coloriPrimari;
   }
@@ -3685,12 +3697,27 @@ function renderProfilo() {
       <div style="font-size:.77rem;color:var(--text3);margin-top:6px;">${escapeHtml(me.email||'')}</div>
     </div>
     <div class="card" style="margin-top:12px;">
-      <div class="ch"><div class="ct">🔑 Sicurezza</div></div>
-      <p style="font-size:.82rem;color:var(--text2);margin-bottom:12px;">Per cambiare la password contatta il tuo amministratore oppure usa "Hai dimenticato la password?" dalla schermata di login.</p>
+      <div class="ch"><div class="ct">🔑 Cambia password</div></div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="fg" style="margin:0;">
+          <label class="fl">Password attuale</label>
+          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"></div>
+        </div>
+        <div class="fg" style="margin:0;">
+          <label class="fl">Nuova password</label>
+          <div class="fi-wrap"><input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
+        </div>
+        <div class="fg" style="margin:0;">
+          <label class="fl">Conferma nuova password</label>
+          <div class="fi-wrap"><input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password"></div>
+        </div>
+        <button class="btn btn-p" style="margin-top:4px;" onclick="changePasswordProfile()">💾 Aggiorna password</button>
+      </div>
     </div>
     <div style="margin-top:20px;text-align:center;">
       <button class="btn btn-r" style="width:100%;max-width:300px;" onclick="logout()">🚪 Esci dall'app</button>
     </div>`;
+  setTimeout(() => { initPwField('cpProfNew', 'cpProfConf'); }, 50);
 }
 
 function renderProfiloFiglio(el) {
@@ -3986,7 +4013,8 @@ function renderRosa() {
   const g = document.getElementById('rosaGrid');
   if (!g) return;
   const editable = me && (me.role === 'admin' || me.role === 'allenatore');
-  const baseList = players.filter(p => p.leva === currentLeva).sort(byCogn);
+  const _showArch = document.getElementById('rosaShowArchived') && document.getElementById('rosaShowArchived').checked;
+  const baseList = players.filter(p => p.leva === currentLeva && (!p.archiviato || _showArch)).sort(byCogn);
   const list = isGKCoach() ? baseList.filter(p => isGK(p)) : baseList;
 
   if (list.length === 0) {
@@ -4105,6 +4133,7 @@ function openPlayerModal(id) {
     document.getElementById('pAnno').value  = '';
     document.getElementById('pTel').value   = '';
     document.getElementById('btnDelPlayer').style.display = 'none';
+    document.getElementById('btnArchPlayer').style.display = 'none';
     document.getElementById('pPhotoArea').style.display = 'none';
     document.getElementById('pAnagStats').style.display = 'none';
     document.getElementById('pConvStats').style.display = 'none';
@@ -4123,6 +4152,9 @@ function openPlayerModal(id) {
     document.getElementById('pAnno').value  = p.anno;
     document.getElementById('pTel').value   = p.tel || '';
     document.getElementById('btnDelPlayer').style.display = 'inline-flex';
+    const _archBtn = document.getElementById('btnArchPlayer');
+    if (_archBtn) _archBtn.style.display = (me && (me.role === 'admin' || me.role === 'allenatore')) ? 'inline-flex' : 'none';
+    if (_archBtn) _archBtn.textContent = p.archiviato ? '↩️ Ripristina' : '📦 Archivia';
     renderPPhotoArea(p);
     renderPAnagStats(p);
     renderPConvStats(p);
@@ -4352,6 +4384,13 @@ function buildRosaSection() {
     el.appendChild(bi);
   }
   if (editable) {
+    const archCount = players.filter(p => p.leva === currentLeva && p.archiviato).length;
+    if (archCount > 0) {
+      const archLabel = document.createElement('label');
+      archLabel.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:.8rem;color:var(--text2);cursor:pointer;';
+      archLabel.innerHTML = `<input type="checkbox" id="rosaShowArchived" onchange="renderRosa()" style="cursor:pointer;"> Archiviati (${archCount})`;
+      el.appendChild(archLabel);
+    }
     const btn = document.createElement('button');
     btn.className = 'btn btn-p';
     btn.textContent = '+ Aggiungi giocatore';
@@ -4442,7 +4481,7 @@ function renderPresenze() {
       b.onclick = () => openAvvisaModal();
       actions.appendChild(b);
     }
-    if (me.role === 'allenatore') {
+    if (me.role === 'allenatore' || me.role === 'preparatore_portieri') {
       const gkBtn = document.createElement('button');
       gkBtn.className = 'btn btn-sm';
       gkBtn.style.cssText = currentPresPortieriMode ? 'background:#0369a1;color:white;' : 'background:var(--bg);border-color:var(--border);';
@@ -4462,7 +4501,7 @@ function renderPresenze() {
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
   } else if (me.role === 'preparatore_portieri') {
-    renderPresenzePortieri(cont);
+    renderPresenzeAllenatore(cont);
   } else if (me.role === 'genitore' || me.role === 'nonno') {
     const figliNames = getFigliOf(me);
     renderPresenzePersonale(cont, players.filter(p => figliNames.includes(p.nome+' '+p.cogn)));
@@ -7345,30 +7384,42 @@ function renderUsersTable() {
       const tr = document.createElement('tr');
       const pillCls = ROLE_PILL[u.role] || '';
       const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
-      const statoHtml = u.stato === 'attivo'
-        ? '<span class="pill pill-g">Attivo</span>'
-        : '<span class="pill pill-r">Sospeso</span>';
+      const statoHtml = u.stato === 'slegato'
+        ? '<span class="pill" style="background:#fef3c7;color:#b45309;">Slegato</span>'
+        : u.stato === 'attivo'
+          ? '<span class="pill pill-g">Attivo</span>'
+          : '<span class="pill pill-r">Sospeso</span>';
       const figliList = getFigliOf(u);
       const figlioNote = figliList.length
         ? `<div style="font-size:.67rem;color:var(--text3);">👨‍👩‍👦 ${figliList.join(', ')}</div>` : '';
+      const _canMng = canManageUser(u);
+      const _canDel = canDeleteUser(u);
+      const _canSlg = canSlegaUser(u);
+      const _editBtn  = _canMng ? `<button class="btn btn-g btn-xs" id="editU${u.id}">✏️</button>` : '';
+      const _delBtn   = _canDel ? `<button class="btn btn-r btn-xs" id="delU${u.id}">🗑</button>` : '';
+      const _slegaBtn = _canSlg && (u.role === 'genitore' || u.role === 'nonno') && u.stato !== 'slegato'
+        ? `<button class="btn btn-xs" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;" id="slegaU${u.id}">🔓 Slega</button>` : '';
+      const _riattivaBtn = _canSlg && u.stato === 'slegato'
+        ? `<button class="btn btn-xs btn-g" id="riattivaU${u.id}">↩️ Riattiva</button>` : '';
       tr.innerHTML = `
         <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
         <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
         <td><span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span></td>
         <td>${u.leva}</td>
         <td>${statoHtml}</td>
-        <td style="display:flex;gap:5px;">
-          <button class="btn btn-g btn-xs" id="editU${u.id}">✏️</button>
-          <button class="btn btn-r btn-xs" id="delU${u.id}">🗑</button>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${_editBtn}${_delBtn}${_slegaBtn}${_riattivaBtn}
         </td>`;
       tbody.appendChild(tr);
-      document.getElementById('editU' + u.id).onclick = () => openUserModal(u.id);
-      document.getElementById('delU' + u.id).onclick  = () => {
+      if (_canMng && document.getElementById('editU' + u.id)) document.getElementById('editU' + u.id).onclick = () => openUserModal(u.id);
+      if (_canDel && document.getElementById('delU' + u.id)) document.getElementById('delU' + u.id).onclick = () => {
         if (confirm(`Eliminare ${u.nome} ${u.cogn}?`)) {
           const idx = USERS_DB.findIndex(x => x.id === u.id);
           if (idx !== -1) { USERS_DB.splice(idx,1); renderUsersTable(); toast('🗑 Utente eliminato'); }
         }
       };
+      if (document.getElementById('slegaU' + u.id)) document.getElementById('slegaU' + u.id).onclick = () => slegaUtente(u.id);
+      if (document.getElementById('riattivaU' + u.id)) document.getElementById('riattivaU' + u.id).onclick = () => ripristinaUtente(u.id);
     });
   }
 
@@ -7381,9 +7432,20 @@ function renderUsersTable() {
       mobList.innerHTML = USERS_DB.map(u => {
         const pillCls = ROLE_PILL[u.role] || '';
         const pillStyle = u.role === 'genitore' ? 'style="background:#f3eeff;color:#7c3aed;"' : u.role === 'nonno' ? 'style="background:#ecfeff;color:#0e7490;"' : '';
-        const statoHtml = u.stato === 'attivo' ? '<span class="pill pill-g">Attivo</span>' : '<span class="pill pill-r">Sospeso</span>';
+        const statoHtml = u.stato === 'slegato'
+          ? '<span class="pill" style="background:#fef3c7;color:#b45309;">Slegato</span>'
+          : u.stato === 'attivo' ? '<span class="pill pill-g">Attivo</span>' : '<span class="pill pill-r">Sospeso</span>';
         const figliList = getFigliOf(u);
         const figlioNote = figliList.length ? `<div style="font-size:.73rem;color:var(--text3);margin-top:2px;">👨‍👩‍👦 ${figliList.join(', ')}</div>` : '';
+        const _mCanMng = canManageUser(u);
+        const _mCanDel = canDeleteUser(u);
+        const _mCanSlg = canSlegaUser(u);
+        const _mEditBtn = _mCanMng ? `<button class="btn btn-g btn-sm" style="flex:1;" id="mEditU${u.id}">✏️ Modifica</button>` : '';
+        const _mDelBtn  = _mCanDel ? `<button class="btn btn-r btn-sm" style="min-width:48px;" id="mDelU${u.id}">🗑</button>` : '';
+        const _mSlegaBtn = _mCanSlg && (u.role === 'genitore' || u.role === 'nonno') && u.stato !== 'slegato'
+          ? `<button class="btn btn-sm" style="background:#fef3c7;color:#b45309;border-color:#fcd34d;" id="mSlegaU${u.id}">🔓 Slega</button>` : '';
+        const _mRiattivaBtn = _mCanSlg && u.stato === 'slegato'
+          ? `<button class="btn btn-g btn-sm" id="mRiattivaU${u.id}">↩️ Riattiva</button>` : '';
         return `<div style="border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:9px;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
             <div style="min-width:0;">
@@ -7397,15 +7459,16 @@ function renderUsersTable() {
             <span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span>
             ${u.leva ? `<span style="font-size:.78rem;color:var(--text2);">${escapeHtml(u.leva)}</span>` : ''}
           </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-g btn-sm" style="flex:1;" id="mEditU${u.id}">✏️ Modifica</button>
-            <button class="btn btn-r btn-sm" style="min-width:48px;" id="mDelU${u.id}">🗑</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${_mEditBtn}${_mDelBtn}${_mSlegaBtn}${_mRiattivaBtn}
           </div>
         </div>`;
       }).join('');
       USERS_DB.forEach(u => {
         const eb = document.getElementById('mEditU' + u.id);
         const db = document.getElementById('mDelU' + u.id);
+        const sb = document.getElementById('mSlegaU' + u.id);
+        const rb = document.getElementById('mRiattivaU' + u.id);
         if (eb) eb.onclick = () => openUserModal(u.id);
         if (db) db.onclick = () => {
           if (confirm(`Eliminare ${u.nome} ${u.cogn}?`)) {
@@ -7413,6 +7476,8 @@ function renderUsersTable() {
             if (idx !== -1) { USERS_DB.splice(idx,1); renderUsersTable(); toast('🗑 Utente eliminato'); }
           }
         };
+        if (sb) sb.onclick = () => slegaUtente(u.id);
+        if (rb) rb.onclick = () => ripristinaUtente(u.id);
       });
     }
   }
@@ -10278,7 +10343,7 @@ function userLeve(){
   if (l === 'Tutte' || l === 'tutte') return leve.slice();
   return l ? [l] : [];
 }
-function canEditCalendar(){ return me && (me.role === 'admin' || me.role === 'allenatore'); }
+function canEditCalendar(){ return me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
 function canEditEvent(ev){
   if (!me) return false;
   if (me.role === 'admin') return true;
@@ -14876,6 +14941,199 @@ function saveNewPassword() {
 }
 
 // ═══════════════════════════════════
+// CAMBIO PASSWORD DAL PROFILO
+// ═══════════════════════════════════
+
+function changePasswordProfile() {
+  const oldVal  = (document.getElementById('cpProfOld')  || {}).value || '';
+  const newVal  = (document.getElementById('cpProfNew')  || {}).value || '';
+  const confVal = (document.getElementById('cpProfConf') || {}).value || '';
+  if (!me) return;
+  if (oldVal !== me.pass) { toast('❌ La password attuale non è corretta'); return; }
+  if (!_pwCheck(newVal).valid) { toast('❌ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un simbolo'); return; }
+  if (newVal !== confVal) { toast('❌ Le due password non coincidono'); return; }
+  const u = USERS_DB.find(x => x.id === me.id);
+  if (u) u.pass = newVal;
+  me.pass = newVal;
+  window.__fieldosSaveState();
+  document.getElementById('cpProfOld').value  = '';
+  document.getElementById('cpProfNew').value  = '';
+  document.getElementById('cpProfConf').value = '';
+  toast('✅ Password aggiornata con successo');
+}
+
+// ═══════════════════════════════════
+// RECUPERO PASSWORD (schermata login)
+// ═══════════════════════════════════
+
+function openForgotPass() {
+  const el = document.getElementById('mForgotPass');
+  if (!el) return;
+  const fpEmail = document.getElementById('fpEmail');
+  if (fpEmail) fpEmail.value = document.getElementById('lEmail') ? document.getElementById('lEmail').value : '';
+  const fpResult = document.getElementById('fpResult');
+  if (fpResult) fpResult.style.display = 'none';
+  el.style.display = 'flex';
+}
+
+function closeForgotPass() {
+  const el = document.getElementById('mForgotPass');
+  if (el) el.style.display = 'none';
+}
+
+function doForgotPass() {
+  const emailVal = ((document.getElementById('fpEmail') || {}).value || '').trim().toLowerCase();
+  const result   = document.getElementById('fpResult');
+  if (!emailVal) { if (result) { result.style.display='block'; result.style.color='#c0392b'; result.textContent='⚠️ Inserisci la tua email.'; } return; }
+  // Cerca in TUTTE le società SA (non solo quella corrente) per trovare l'utente
+  let found = null;
+  for (const soc of saSocieties) {
+    if (soc.stato === 'archiviato' || soc.stato === 'eliminato') continue;
+    try {
+      const key   = societyStorageKey(soc.id);
+      const raw   = localStorage.getItem(key);
+      if (!raw) continue;
+      const data  = JSON.parse(raw);
+      const users = data.USERS_DB || [];
+      const u     = users.find(x => (x.email || '').toLowerCase() === emailVal);
+      if (u) { found = u; break; }
+    } catch(e) {}
+  }
+  if (!result) return;
+  if (!found) {
+    result.style.display='block'; result.style.color='#c0392b';
+    result.textContent='❌ Nessun account trovato con questa email.';
+    return;
+  }
+  result.style.display='block'; result.style.color='#065f46'; result.style.background='#ecfdf5';
+  result.style.padding='10px 12px'; result.style.borderRadius='8px';
+  result.innerHTML = `✅ Account trovato: <strong>${escapeHtml(found.nome)} ${escapeHtml(found.cogn)}</strong><br>La tua password è: <strong style="font-family:monospace;font-size:1rem;letter-spacing:1px;">${escapeHtml(found.pass || '—')}</strong>`;
+}
+
+// ═══════════════════════════════════
+// PERMESSI UTENTI
+// ═══════════════════════════════════
+
+function canManageUser(u) {
+  if (!me || !u) return false;
+  if (u.id === me.id) return true; // chiunque può modificare se stesso
+  if (me.role === 'admin') return true;
+  if (me.role === 'allenatore') return ['dirigente','preparatore_portieri'].includes(u.role);
+  return false;
+}
+
+function canDeleteUser(u) {
+  if (!me || !u) return false;
+  if (u.id === me.id) return false; // nessuno può eliminare se stesso
+  return me.role === 'admin';
+}
+
+function canSlegaUser(u) {
+  if (!me || !u) return false;
+  return me.role === 'admin' || me.role === 'allenatore';
+}
+
+// ═══════════════════════════════════
+// SLEGA UTENTE / RIPRISTINA
+// ═══════════════════════════════════
+
+function slegaUtente(id) {
+  const u = USERS_DB.find(x => x.id === id);
+  if (!u) return;
+  if (!confirm(`Slegare ${u.nome} ${u.cogn} dalla società? L'utente non potrà più accedere ai contenuti della squadra.`)) return;
+  u.stato = 'slegato';
+  window.__fieldosSaveState();
+  renderUsersTable();
+  toast(`🔓 ${u.nome} ${u.cogn} slegato/a dalla società`);
+}
+
+function ripristinaUtente(id) {
+  const u = USERS_DB.find(x => x.id === id);
+  if (!u) return;
+  u.stato = 'attivo';
+  window.__fieldosSaveState();
+  renderUsersTable();
+  toast(`✅ ${u.nome} ${u.cogn} riattivato/a`);
+}
+
+// ═══════════════════════════════════
+// ARCHIVIA / RIPRISTINA GIOCATORE
+// ═══════════════════════════════════
+
+function archiviaCurrentPlayer() {
+  if (editingPlayerId === null) return;
+  const p = players.find(x => x.id === editingPlayerId);
+  if (!p) return;
+  if (p.archiviato) {
+    p.archiviato = false;
+    window.__fieldosSaveState();
+    closeM('mPlayer');
+    buildRosaSection();
+    renderRosa();
+    toast(`✅ ${p.nome} ${p.cogn} ripristinato/a nella rosa`);
+  } else {
+    if (!confirm(`Archiviare ${p.nome} ${p.cogn}? Il giocatore sarà nascosto dalla rosa attiva ma i dati saranno conservati.`)) return;
+    p.archiviato = true;
+    window.__fieldosSaveState();
+    closeM('mPlayer');
+    buildRosaSection();
+    renderRosa();
+    toast(`📦 ${p.nome} ${p.cogn} archiviato/a`);
+  }
+}
+
+// ═══════════════════════════════════
+// SCHERMATA NESSUNA SOCIETÀ (slegato)
+// ═══════════════════════════════════
+
+function showNoSocietaScreen() {
+  const el = document.getElementById('noSocietaOverlay');
+  if (el) el.style.display = 'flex';
+}
+
+function hideNoSocietaScreen() {
+  const el = document.getElementById('noSocietaOverlay');
+  if (el) el.style.display = 'none';
+}
+
+async function doRejoinSocieta() {
+  const inp = document.getElementById('nsCode');
+  const btn = document.getElementById('nsBtnEntra');
+  const msg = document.getElementById('nsMsg');
+  if (!inp || !btn || !msg) return;
+  const v = (inp.value || '').trim().toUpperCase();
+  if (!v) { msg.style.display='block'; msg.style.color='#c0392b'; msg.textContent='⚠️ Inserisci il codice società'; return; }
+  btn.disabled=true; btn.textContent='⏳ Verifica…';
+  msg.style.display='none';
+  try {
+    const found = await _srFindSocByCode(v);
+    if (!found) { msg.style.display='block'; msg.style.color='#c0392b'; msg.textContent='❌ Codice non valido. Controlla e riprova.'; btn.disabled=false; btn.textContent='Entra →'; return; }
+    _srVerifiedCode  = v;
+    _srVerifiedState = found.stateKey || '';
+    if (found.stateKey && typeof window.__fieldosSetSocietaKey === 'function') {
+      try {
+        const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(found.stateKey));
+        if (r.ok) { const data = await r.json(); if (data.stateJson) localStorage.setItem(found.stateKey, data.stateJson); }
+        window.__fieldosSetSocietaKey(found.stateKey);
+      } catch(e) {}
+    }
+    _srApplySocietaContext(found.socId, found.soc);
+    _selfRegSelectedIds = [];
+    const srCod = document.getElementById('srCodice');
+    if (srCod) srCod.value = v;
+    ['srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    btn.disabled=false; btn.textContent='Entra →';
+    hideNoSocietaScreen();
+    srShowStep(2);
+    renderSrRoster();
+    openM('mSelfReg');
+  } catch(e) {
+    msg.style.display='block'; msg.style.color='#c0392b'; msg.textContent='❌ Errore imprevisto. Riprova.';
+    btn.disabled=false; btn.textContent='Entra →';
+  }
+}
+
+// ═══════════════════════════════════
 // PERSISTENCE LAYER (localStorage)
 // Salva automaticamente lo stato condiviso
 // dell'app (utenti, giocatori, leve) tra le sessioni.
@@ -16169,6 +16427,38 @@ function saveNewPassword() {
     <div class="fg"><label class="fl">Nuova password</label><input class="fi" id="cpNewPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
+  </div>
+</div>
+
+<!-- ══════ RECUPERO PASSWORD (login) ══════ -->
+<div id="mForgotPass" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10003;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">🔑 Recupera password</div><button class="mc" onclick="closeForgotPass()">✕</button></div>
+    <p style="color:var(--text2);font-size:.88rem;margin:0 0 14px;">Inserisci la tua email: ti mostreremo la password associata al tuo account.</p>
+    <div class="fg"><label class="fl">Email</label><input class="fi" id="fpEmail" type="email" placeholder="la-tua@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')doForgotPass()"></div>
+    <div id="fpResult" style="display:none;font-size:.84rem;margin-top:10px;padding:10px 12px;border-radius:8px;line-height:1.5;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-p" style="flex:1;" onclick="doForgotPass()">🔍 Cerca account</button>
+      <button class="btn btn-g" onclick="closeForgotPass()">Chiudi</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ NESSUNA SOCIETÀ (utente slegato) ══════ -->
+<div id="noSocietaOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10004;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div style="font-size:3rem;margin-bottom:16px;">🏟️</div>
+  <div style="font-size:1.25rem;font-weight:800;margin-bottom:8px;">Non sei più collegato/a a nessuna società</div>
+  <div style="font-size:.88rem;color:var(--text2);margin-bottom:28px;max-width:340px;line-height:1.5;">Il tuo account è stato slegato dalla squadra. Puoi entrare in una nuova società inserendo il codice che ti ha fornito lo staff.</div>
+  <div style="width:100%;max-width:380px;">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input class="fi" id="nsCode" placeholder="Codice società (es. POLIS18)"
+        style="flex:1;text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;"
+        autocorrect="off" autocapitalize="characters" spellcheck="false"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();doRejoinSocieta();}">
+      <button class="btn btn-p" id="nsBtnEntra" style="white-space:nowrap;padding:0 18px;" onclick="doRejoinSocieta()">Entra →</button>
+    </div>
+    <div id="nsMsg" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:12px;"></div>
+    <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
   </div>
 </div>
 
