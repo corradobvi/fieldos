@@ -2932,7 +2932,6 @@ const ROLE_CFG = {
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
-      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -2953,7 +2952,6 @@ const ROLE_CFG = {
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
-      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -2972,7 +2970,6 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
-      {id:'gestcomp',ic:'🗂️',lb:'Gestione Competizioni'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -11569,15 +11566,15 @@ function renderPartite() {
     } else { ltEl.innerHTML = ''; }
   }
 
-  // Actions — solo link a Gestione Competizioni per manager
+  // Actions — bottone Gestione Competizioni per manager (non più nel menu laterale)
   const actEl = document.getElementById('ptActions');
   if (actEl) {
     actEl.innerHTML = '';
     const isManager = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
     if (isManager) {
       const gc = document.createElement('button');
-      gc.className = 'btn btn-g btn-sm';
-      gc.textContent = '🗂️ Gestione Competizioni';
+      gc.className = 'btn btn-p btn-sm';
+      gc.innerHTML = '⚙️ Gestione Competizioni';
       gc.onclick = () => goTo('gestcomp');
       actEl.appendChild(gc);
     }
