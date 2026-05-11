@@ -5263,32 +5263,20 @@ function renderConvocazioni() {
 
   let html = '';
 
-  // DEBUG: pannello temporaneo visibile solo ai genitori — mostra calcolo fase per ogni evento
-  if (isParent && allList.length) {
-    const today0 = new Date(); today0.setHours(0,0,0,0);
-    const rows = allList.map(ev => {
+  // DEBUG temporaneo visibile solo al genitore
+  if (isParent) {
+    const _dbgLines = allList.map(ev => {
       const conv = getConvocazione(ev.id);
-      const evDate = parseYmd(ev.date);
-      const daysUntil = Math.floor((evDate - today0) / 86400000);
-      const fase = getConvFase(conv, ev);
-      const lv = conv ? (conv.leva || '') : ((ev.leve||[])[0]||'');
+      const lv = (conv && conv.leva) || (ev.leve||[])[0] || '';
       const def = levaConvSettings[lv] || {};
-      const f1 = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
-      const f2 = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
-      const faseColor = fase==='fase2'?'#059669':fase==='fase1'?'#2563eb':'#dc2626';
-      return `<div style="font-size:.75rem;padding:3px 0;border-bottom:1px solid #e5e7eb;">
-        <strong>${escapeHtml(ev.title||ev.type)}</strong> &nbsp;
-        📅 ${ev.date} &nbsp;
-        ⏳ <strong>${daysUntil}gg</strong> &nbsp;
-        F1=${f1!=null?f1:'—'} F2=${f2!=null?f2:'—'} &nbsp;
-        Conv=${conv?'✓':'✗'} &nbsp;
-        <span style="color:${faseColor};font-weight:700;">→ ${fase}</span>
-      </div>`;
-    }).join('');
-    html += `<div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-family:monospace;">
-      <div style="font-weight:700;font-size:.78rem;color:#854d0e;margin-bottom:6px;">🔍 DEBUG fase visibilità (pannello temporaneo)</div>
-      ${rows}
-    </div>`;
+      const f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
+      const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
+      const giorniMancanti = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
+      const visible = f1 != null && giorniMancanti <= f1;
+      return `DEBUG: Eventi trovati: ${allList.length} | Fase1: ${f1!=null?f1:'—'} giorni | ${escapeHtml(ev.title||ev.type)} (${ev.date}): ${giorniMancanti} giorni mancanti | Visibile: ${visible?'SI':'NO'}`;
+    });
+    if (!allList.length) _dbgLines.push(`DEBUG: Nessun evento trovato per leve: [${leveFilter.join(', ')||'—'}]`);
+    html += `<div style="background:yellow;padding:10px;font-size:12px;">${_dbgLines.join('<br>') || 'DEBUG: allList vuoto'}</div>`;
   }
 
   // Sezione indisponibilità per genitori/giocatori
@@ -5662,22 +5650,21 @@ function notifyConvocazione(ev, conv) {
 // ─── VISIBILITÀ A DUE FASI ────────────────────────────
 
 function getConvFase(conv, ev) {
-  if (!conv) return 'none';
-  const today = new Date(); today.setHours(0,0,0,0);
-  const evDate = parseYmd(ev.date);
-  const daysUntil = Math.floor((evDate - today) / (86400000));
-  // Fase manuale (pulsante attivato dal mister) ha priorità
-  if (conv.fase2Active) return 'fase2';
-  if (conv.fase1Active) return 'fase1';
-  // Fase automatica: usa i giorni della convocazione, o il default della leva se non impostati
-  const lv = conv.leva || (Array.isArray(ev.leve) ? ev.leve[0] : '') || '';
+  // Fase manuale ha priorità (solo se conv esiste)
+  if (conv && conv.fase2Active) return 'fase2';
+  if (conv && conv.fase1Active) return 'fase1';
+  // Determina la leva per leggere i default
+  const lv = (conv && conv.leva) || (Array.isArray(ev.leve) ? ev.leve[0] : '') || '';
   const def = levaConvSettings[lv] || {};
-  const f1Raw = (conv.fase1Days != null) ? conv.fase1Days : def.fase1Days;
-  const f2Raw = (conv.fase2Days != null) ? conv.fase2Days : def.fase2Days;
+  // f1/f2 dalla convocazione (se esiste) oppure dai default leva
+  const f1Raw = conv ? (conv.fase1Days != null ? conv.fase1Days : def.fase1Days) : def.fase1Days;
+  const f2Raw = conv ? (conv.fase2Days != null ? conv.fase2Days : def.fase2Days) : def.fase2Days;
   const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
   const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
-  if (f2 != null && daysUntil <= f2) return 'fase2';
-  if (f1 != null && daysUntil <= f1) return 'fase1';
+  if (f1 == null) return 'none'; // nessuna configurazione di fase
+  const giorniMancanti = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
+  if (f2 != null && giorniMancanti <= f2) return 'fase2';
+  if (giorniMancanti <= f1) return 'fase1';
   return 'none';
 }
 
