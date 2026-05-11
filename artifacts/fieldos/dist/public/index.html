@@ -9422,7 +9422,7 @@ function buildDashboard(role) {
         </div>
       </div>`;
 
-  } else { // giocatore
+  } else if (role === 'giocatore') {
     const myPlayer = players.find(p=>me.nome&&me.cogn&&p.nome===me.nome&&p.cogn===me.cogn);
     if (!myPlayer) {
       c.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2);">
