@@ -3090,12 +3090,13 @@ async function doLogin() {
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
-      // Pre-carica il DB state in localStorage — bootApp trova già i dati freschi (DB-first)
-      if (data.stateJson && typeof window.__fieldosSetSocietaKey === 'function') {
-        // Imposta la chiave PRIMA di scrivere in localStorage
-        window.__fieldosSetSocietaKey(data.stateKey);
-        localStorage.setItem(data.stateKey, data.stateJson);
-      } else if (typeof window.__fieldosSetSocietaKey === 'function') {
+      if (typeof window.__fieldosSetSocietaKey === 'function') {
+        if (data.stateJson) {
+          // ORDINE CRITICO: scrivi in localStorage PRIMA di chiamare __fieldosSetSocietaKey,
+          // perché __fieldosSetSocietaKey chiama restoreState() che legge da localStorage.
+          // Se scrivi dopo, restoreState() carica dati vecchi invece dei dati freschi da MySQL.
+          localStorage.setItem(data.stateKey, data.stateJson);
+        }
         window.__fieldosSetSocietaKey(data.stateKey);
       }
       // Carica SA state in background (per plan checks)
@@ -13912,30 +13913,53 @@ function saveNewPassword() {
     if (!bar) return;
     if (pending > 0) {
       bar.style.display = '';
-      bar.textContent = '⏳ Salvataggio in attesa…';
+      bar.style.color = '';
+      bar.textContent = '⏳ Salvataggio in corso…';
     } else {
       bar.style.display = 'none';
+      bar.style.color = '';
     }
   }
 
   function apiPush(key, json) {
     const stripped = json.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
+    const body = JSON.stringify({ stateJson: stripped });
     _pendingPushes++;
     _updateSyncBar(_pendingPushes);
-    fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stateJson: stripped }),
-      keepalive: true
-    }).then(r => {
-      _pendingPushes = Math.max(0, _pendingPushes - 1);
-      _updateSyncBar(_pendingPushes);
-      if (!r.ok && r.status !== 409) {
-        console.warn('[apiPush] server returned', r.status, 'for key', key);
-      }
-    }).catch(() => {
-      // Network error — badge stays until next successful save
-    });
+
+    let _retries = 0;
+    const _maxRetries = 4; // 0s → 4s → 12s → 36s → abbandono
+    function doFetch() {
+      fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true
+      }).then(r => {
+        if (r.ok || r.status === 409) {
+          // 200 OK oppure 409 = il server ha rifiutato (protezione downgrade) — entrambi contati come risolti
+          _pendingPushes = Math.max(0, _pendingPushes - 1);
+          _updateSyncBar(_pendingPushes);
+          if (r.status === 409) console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
+        } else if (_retries < _maxRetries) {
+          // 5xx o altro errore — riprova con backoff esponenziale
+          _retries++;
+          setTimeout(doFetch, Math.min(4000 * _retries, 36000));
+        } else {
+          console.error('[apiPush] fallito dopo', _maxRetries, 'tentativi per key', key);
+          // Non decrementare: il badge rimane visibile come segnale di errore
+          const bar = document.getElementById('syncStatusBar');
+          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+        }
+      }).catch(() => {
+        if (_retries < _maxRetries) { _retries++; setTimeout(doFetch, Math.min(4000 * _retries, 36000)); }
+        else {
+          const bar = document.getElementById('syncStatusBar');
+          if (bar) { bar.style.display = ''; bar.textContent = '⚠️ Sincronizzazione fallita — controlla la connessione'; bar.style.color = '#c0392b'; }
+        }
+      });
+    }
+    doFetch();
   }
 
   // Sentinella: il server risponde esplicitamente "chiave non trovata" (DB vuoto per questa società)
@@ -14093,21 +14117,22 @@ function saveNewPassword() {
     if (pgId && typeof goTo === 'function') goTo(pgId);
   }
 
-  // Poll server ogni 60s per ricevere modifiche da altri dispositivi
+  // Poll server ogni 30s per ricevere modifiche da altri dispositivi
   function startSyncPoll() {
     clearInterval(_syncPollTimer);
     _autoBackupCheck(); // controlla auto-backup all'avvio della sessione
     _syncPollTimer = setInterval(() => {
       if (document.hidden) return;
+      if (_pendingPushes > 0) return; // non tirare dal server se ci sono push in attesa
       apiPull(KEY).then(serverJson => {
-        if (!serverJson) return;
+        if (!serverJson || serverJson === _PULL_EMPTY) return;
         // Confronta con la versione strippata (il server non ha foto base64)
         const strippedSnap = lastSnap.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
         if (serverJson === strippedSnap) return;
         applyServerState(serverJson);
         if (typeof toast === 'function') toast('🔄 Dati aggiornati dal cloud');
       });
-    }, 60000);
+    }, 30000);
   }
 
   // Hook su bootApp: server-first (4s), localStorage come fallback
