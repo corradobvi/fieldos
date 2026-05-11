@@ -1224,6 +1224,81 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   white-space:nowrap;flex-shrink:0;font-family:inherit;
 }
 
+/* ── PWA Guide Banner (dashboard) ── */
+.pwa-guide-banner{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,var(--cp),var(--cs));
+  color:#fff;border-radius:12px;padding:12px 14px;
+  margin-bottom:14px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(var(--cp-rgb),.25);
+}
+.pwa-guide-banner-text{flex:1;font-size:.88rem;font-weight:700;line-height:1.3;}
+.pwa-guide-banner-sub{font-size:.72rem;font-weight:400;opacity:.9;margin-top:2px;}
+.pwa-guide-banner-arrow{font-size:1.2rem;flex-shrink:0;}
+.pwa-guide-banner-close{
+  background:rgba(255,255,255,.2);border:none;color:#fff;
+  border-radius:50%;width:28px;height:28px;font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── PWA Guide Modal (full-screen) ── */
+#pwaGuideModal{
+  display:none;position:fixed;inset:0;z-index:6000;
+  background:rgba(0,0,0,.55);align-items:flex-end;justify-content:center;
+}
+#pwaGuideModal.open{display:flex;}
+.pwa-guide-panel{
+  background:#fff;width:100%;max-width:480px;
+  max-height:92vh;border-radius:20px 20px 0 0;
+  display:flex;flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  overflow:hidden;
+}
+.pwa-guide-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 12px;border-bottom:1px solid #e2e8f0;
+  flex-shrink:0;
+}
+.pwa-guide-hd-title{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--cp);}
+.pwa-guide-close{
+  background:#f1f5f9;border:none;border-radius:50%;
+  width:36px;height:36px;font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.pwa-guide-body{flex:1;overflow-y:auto;padding:16px 18px 20px;-webkit-overflow-scrolling:touch;}
+.pwa-guide-tabs{display:flex;gap:6px;margin-bottom:18px;background:#f1f5f9;border-radius:10px;padding:4px;}
+.pwa-guide-tab{
+  flex:1;padding:8px;border-radius:7px;font-size:.85rem;font-weight:700;
+  border:none;background:none;cursor:pointer;font-family:inherit;
+  color:var(--text2);transition:all .15s;touch-action:manipulation;
+}
+.pwa-guide-tab.active{background:#fff;color:var(--cp);box-shadow:0 1px 6px rgba(0,0,0,.1);}
+.pwa-guide-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;}
+.pwa-guide-step-n{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--cp);color:#fff;
+  font-size:.8rem;font-weight:800;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.pwa-guide-step-body{flex:1;}
+.pwa-guide-step-title{font-size:.9rem;font-weight:700;margin-bottom:2px;}
+.pwa-guide-step-desc{font-size:.8rem;color:var(--text2);line-height:1.4;}
+.pwa-guide-step-img{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  padding:8px 12px;font-size:.78rem;font-family:monospace;
+  margin-top:6px;color:var(--text2);
+}
+.pwa-guide-hero{
+  background:linear-gradient(135deg,var(--cp),var(--cs));
+  border-radius:12px;padding:16px;margin-bottom:18px;text-align:center;color:#fff;
+}
+.pwa-guide-hero-ico{font-size:2.4rem;margin-bottom:6px;}
+.pwa-guide-hero-title{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;}
+.pwa-guide-hero-sub{font-size:.78rem;opacity:.9;margin-top:3px;line-height:1.4;}
+
 /* ── Users: tabella solo desktop, cards su mobile ── */
 .users-mob-list{display:none;}
 @media(max-width:640px){
@@ -1258,6 +1333,107 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="pwa-banner-btns">
     <button class="pwa-btn-install" id="pwa-install-btn" onclick="pwaInstall()">⬇ Installa</button>
     <button class="pwa-btn-later" onclick="pwaDismiss()">Non ora</button>
+  </div>
+</div>
+
+<!-- ══════ PWA GUIDE MODAL ══════ -->
+<div id="pwaGuideModal" onclick="if(event.target===this)closePwaGuide()">
+  <div class="pwa-guide-panel">
+    <div class="pwa-guide-hd">
+      <div class="pwa-guide-hd-title">📱 Installa MyVivaio</div>
+      <button class="pwa-guide-close" onclick="closePwaGuide()">✕</button>
+    </div>
+    <div class="pwa-guide-body">
+      <div class="pwa-guide-hero">
+        <div class="pwa-guide-hero-ico">⚽</div>
+        <div class="pwa-guide-hero-title">Installa l'app sul tuo telefono</div>
+        <div class="pwa-guide-hero-sub">Accesso rapido dalla Home · Notifiche push · Funziona offline</div>
+      </div>
+      <div class="pwa-guide-tabs">
+        <button class="pwa-guide-tab active" id="pwaTabIos" onclick="pwaGuideTab('ios')">🍎 iPhone / iPad</button>
+        <button class="pwa-guide-tab" id="pwaTabAnd" onclick="pwaGuideTab('android')">🤖 Android</button>
+      </div>
+
+      <!-- iOS steps -->
+      <div id="pwaStepsIos">
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">1</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Apri in Safari</div>
+            <div class="pwa-guide-step-desc">Assicurati di usare <strong>Safari</strong> (non Chrome o altri browser). L'installazione funziona solo da Safari su iPhone.</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">2</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Tocca il tasto Condividi</div>
+            <div class="pwa-guide-step-desc">In basso al centro trovi il tasto <strong>⬆ Condividi</strong> (icona quadrato con freccia). Toccalo.</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">3</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Scorri e tocca "Aggiungi alla schermata Home"</div>
+            <div class="pwa-guide-step-desc">Nel menu che appare, scorri verso il basso fino a trovare <strong>"Aggiungi alla schermata Home"</strong> con icona +.</div>
+            <div class="pwa-guide-step-img">⊕ Aggiungi alla schermata Home</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">4</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Tocca "Aggiungi"</div>
+            <div class="pwa-guide-step-desc">In alto a destra tocca <strong>"Aggiungi"</strong>. L'icona di MyVivaio apparirà sulla tua schermata Home!</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">5</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Apri l'app dalla Home</div>
+            <div class="pwa-guide-step-desc">Tocca l'icona MyVivaio dalla schermata Home. Accedi con le tue credenziali e attiva le notifiche quando richiesto.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Android steps -->
+      <div id="pwaStepsAnd" style="display:none;">
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">1</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Apri in Chrome</div>
+            <div class="pwa-guide-step-desc">Usa <strong>Google Chrome</strong> per visitare l'app. L'installazione è supportata anche da Edge e Samsung Internet.</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">2</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Tocca i tre puntini ⋮</div>
+            <div class="pwa-guide-step-desc">In alto a destra tocca il menu <strong>⋮</strong> (tre puntini verticali).</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">3</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Tocca "Installa app" o "Aggiungi alla schermata Home"</div>
+            <div class="pwa-guide-step-desc">Cerca la voce <strong>"Installa app"</strong> o <strong>"Aggiungi alla schermata Home"</strong> nel menu.</div>
+            <div class="pwa-guide-step-img">⬇ Installa app</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">4</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Conferma con "Installa"</div>
+            <div class="pwa-guide-step-desc">Tocca <strong>"Installa"</strong> nella finestra di conferma. L'icona apparirà sulla Home!</div>
+          </div>
+        </div>
+        <div class="pwa-guide-step">
+          <div class="pwa-guide-step-n">5</div>
+          <div class="pwa-guide-step-body">
+            <div class="pwa-guide-step-title">Attiva le notifiche</div>
+            <div class="pwa-guide-step-desc">Apri l'app dalla Home, accedi e quando appare la richiesta di notifiche tocca <strong>"Consenti"</strong>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -8038,7 +8214,7 @@ function buildMobDashboard(role, c) {
       <div class="mob-qi-sub">${qi.sub||''}</div>
     </div>`).join('')}</div>`;
 
-  c.innerHTML = `
+  c.innerHTML = pwaBannerHtml() + `
     ${nextEvHtml}
     <div class="mob-dash-card">
       <div class="mob-dash-card-hd">Accesso rapido</div>
@@ -8181,10 +8357,15 @@ function buildMobDashboardGenitore(c) {
     </div>`;
   }
 
-  c.innerHTML = heroHtml + quotaHtml + impegnoHtml + avvisoHtml;
+  c.innerHTML = pwaBannerHtml() + heroHtml + quotaHtml + impegnoHtml + avvisoHtml;
 }
 
 function buildDashboard(role) {
+  // Standalone welcome — shown once when app is first opened as PWA
+  if (_isStandalone && !localStorage.getItem('pwa_welcome_shown')) {
+    localStorage.setItem('pwa_welcome_shown', '1');
+    setTimeout(() => toast('🎉 App installata! Ora puoi ricevere le notifiche.'), 1500);
+  }
   const c = document.getElementById('dashContent');
   if (!c) return;
   // Mobile: render simplified dashboard
@@ -14969,6 +15150,57 @@ if (_origPushNotifica) {
       url:   extra.url,
     });
   };
+}
+
+// ── PWA Installation Guide
+const _PWA_GUIDE_KEY = 'pwa_guide_shown_ts';
+const _PWA_GUIDE_DAYS = 3;
+
+function openPwaGuide() {
+  const m = document.getElementById('pwaGuideModal');
+  if (m) { m.classList.add('open'); document.body.style.overflow = 'hidden'; }
+}
+function closePwaGuide() {
+  const m = document.getElementById('pwaGuideModal');
+  if (m) { m.classList.remove('open'); document.body.style.overflow = ''; }
+  localStorage.setItem(_PWA_GUIDE_KEY, Date.now().toString());
+}
+function pwaGuideTab(tab) {
+  const ios = document.getElementById('pwaStepsIos');
+  const and = document.getElementById('pwaStepsAnd');
+  const tIos = document.getElementById('pwaTabIos');
+  const tAnd = document.getElementById('pwaTabAnd');
+  if (tab === 'ios') {
+    if (ios) ios.style.display = ''; if (and) and.style.display = 'none';
+    if (tIos) tIos.classList.add('active'); if (tAnd) tAnd.classList.remove('active');
+  } else {
+    if (ios) ios.style.display = 'none'; if (and) and.style.display = '';
+    if (tIos) tIos.classList.remove('active'); if (tAnd) tAnd.classList.add('active');
+  }
+}
+function _shouldShowPwaGuideBanner() {
+  if (_isStandalone) return false;
+  if (window.innerWidth > 767) return false;
+  const ts = localStorage.getItem(_PWA_GUIDE_KEY);
+  if (!ts) return true;
+  const elapsed = Date.now() - parseInt(ts, 10);
+  if (elapsed > _PWA_GUIDE_DAYS * 86400000) { localStorage.removeItem(_PWA_GUIDE_KEY); return true; }
+  return false;
+}
+function pwaBannerHtml() {
+  if (!_shouldShowPwaGuideBanner()) return '';
+  return `<div class="pwa-guide-banner" onclick="openPwaGuide()">
+    <span style="font-size:1.4rem;flex-shrink:0;">📱</span>
+    <div class="pwa-guide-banner-text">Installa l'app per le notifiche
+      <div class="pwa-guide-banner-sub">Aggiungi MyVivaio alla schermata Home →</div>
+    </div>
+    <span class="pwa-guide-banner-arrow">›</span>
+    <button class="pwa-guide-banner-close" onclick="event.stopPropagation();closePwaBanner()" aria-label="Chiudi">✕</button>
+  </div>`;
+}
+function closePwaBanner() {
+  document.querySelectorAll('.pwa-guide-banner').forEach(b => b.remove());
+  localStorage.setItem(_PWA_GUIDE_KEY, Date.now().toString());
 }
 
 // ── Install Banner
