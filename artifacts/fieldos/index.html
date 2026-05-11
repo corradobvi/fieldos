@@ -3549,11 +3549,13 @@ function goTo(pgId) {
     if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = _isStaff && me.role !== 'allenatore' ? '' : 'none';
-    // Gestione utenti, leve e campi: solo staff
-    ['usersCard','leveCard','campiCard'].forEach(id => {
+    // Gestione utenti e leve: solo admin/dirigente; campi: tutto lo staff
+    ['usersCard','leveCard'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.style.display = _isStaff ? '' : 'none';
+      if (el) el.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
     });
+    const _campiCardEl2 = document.getElementById('campiCard');
+    if (_campiCardEl2) _campiCardEl2.style.display = _isStaff ? '' : 'none';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
     const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _iNome = document.getElementById('impSocNome');
@@ -5159,11 +5161,10 @@ function getConvocazione(eventId) {
 }
 function autoCreateConvocazione(eventId, leva) {
   if (getConvocazione(eventId)) return;
-  const allPlayers = players.filter(p => p.leva === leva).map(p => p.id);
   convocazioni.push({
     id: nextConvocazioneId++, eventId, leva,
     ritrovo: '', divisa: '', note: '',
-    playerIds: allPlayers,
+    playerIds: [],
     createdBy: me?.id || 0, createdAt: Date.now(), sentAt: Date.now()
   });
 }
@@ -5220,13 +5221,13 @@ function recipientsForPlayer(p) {
   return [...ids];
 }
 
-// Allenatori della leva indicata + admin (destinatari avvisi famiglia)
+// Allenatori e dirigenti della leva indicata (destinatari avvisi famiglia — NO admin)
 function recipientsForCoachesOfLeva(leva) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
-    if (u.role === 'admin') ids.add(u.id);
-    else if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
   });
   return [...ids];
 }
@@ -5405,8 +5406,8 @@ function renderConvocazioneCard(ev) {
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✓ Disponibile</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">✗ Indisponibile…</button>
+            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
           </div>
         </div>`;
       }).join('') || `<div style="font-size:.83rem;color:var(--text2);">Questo evento non riguarda nessuno dei tuoi giocatori.</div>`;
@@ -5449,8 +5450,8 @@ function renderConvocazioneCard(ev) {
             <div style="display:flex;gap:6px;flex-wrap:wrap;">${dispBadge} ${convBadge}</div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
-            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✓ Disponibile</button>
-            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">✗ Indisponibile…</button>
+            <button class="btn btn-sm" style="background:var(--green);color:white;" onclick="quickSetDispon(${evIdJs},${p.id},'disponibile')">✅ Saremo presenti</button>
+            <button class="btn btn-sm" style="background:var(--red);color:white;" onclick="openDisponModal(${evIdJs},${p.id})">❌ Non possiamo venire</button>
           </div>
         </div>`;
       }).join('');
@@ -5625,8 +5626,14 @@ function getConvFase(conv, ev) {
   const today = new Date(); today.setHours(0,0,0,0);
   const evDate = parseYmd(ev.date);
   const daysUntil = Math.floor((evDate - today) / (86400000));
-  if (conv.fase2Active || (conv.fase2Days != null && !isNaN(conv.fase2Days) && daysUntil <= conv.fase2Days)) return 'fase2';
-  if (conv.fase1Active || (conv.fase1Days != null && !isNaN(conv.fase1Days) && daysUntil <= conv.fase1Days)) return 'fase1';
+  // Fase manuale (pulsante attivato dal mister) ha priorità
+  if (conv.fase2Active) return 'fase2';
+  if (conv.fase1Active) return 'fase1';
+  // Fase automatica: fase2Days < fase1Days (es. fase1=14gg, fase2=3gg prima dell'evento)
+  const f1 = (conv.fase1Days != null && !isNaN(conv.fase1Days)) ? Number(conv.fase1Days) : null;
+  const f2 = (conv.fase2Days != null && !isNaN(conv.fase2Days)) ? Number(conv.fase2Days) : null;
+  if (f2 != null && daysUntil <= f2) return 'fase2';
+  if (f1 != null && daysUntil <= f1) return 'fase1';
   return 'none';
 }
 
@@ -10180,7 +10187,15 @@ function saveEvento(){
     toast('✅ Evento aggiornato');
   } else {
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    events.push({ id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email });
+    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, createdBy: me.email };
+    events.push(_newEv);
+    // Notifica ai genitori/nonni delle leve coinvolte
+    (function(){
+      const _tl = { allenamento:'Allenamento', allenamento_portieri:'Allenamento portieri', partita:'Partita', torneo:'Torneo', altro:'Evento' };
+      const _pids = new Set();
+      USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
+      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:'📅 Nuovo '+(_tl[type]||'evento')+': '+title, body: fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
+    })();
     toast('✅ Evento creato');
   }
   closeM('mEvento');
@@ -10633,8 +10648,10 @@ function renderPtAmichevoli() {
   if (!c) return;
   const today = ymd(new Date());
   const all = amichevoli.filter(m => m.leva === currentLeva);
-  const future = all.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
-  const past   = all.filter(m => m.played || m.data < today).sort((a,b) => b.data.localeCompare(a.data));
+  const active = all.filter(m => !m.annullata);
+  const annullate = all.filter(m => m.annullata);
+  const future = active.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
+  const past   = active.filter(m => m.played || m.data < today).sort((a,b) => b.data.localeCompare(a.data));
   if (all.length === 0) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🤝</div><div class="empty-txt">Nessuna amichevole per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Aggiungi la prima amichevole con "+ Amichevole" in alto.':'Nessuna amichevole disponibile.'}</div></div>`;
     return;
@@ -10644,19 +10661,25 @@ function renderPtAmichevoli() {
     const isHome = (m.tipo || 'casa') === 'casa';
     const home = isHome ? polis : m.avversario;
     const away = isHome ? m.avversario : polis;
-    const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-    const tag = isHome
-      ? '<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>'
-      : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
+    const score = m.annullata
+      ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
+      : m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+    const tag = m.annullata
+      ? '<span class="mc-tag" style="background:#fef2f2;color:var(--red);font-size:.65rem;">Annullata</span>'
+      : isHome
+        ? '<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>'
+        : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const editBtn = canEditPt(m.leva) ? `<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id});event.stopPropagation();">✏️</button>` : '';
-    const risBtn  = canEditPt(m.leva) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(home)}</span>${score}<span class="mc-team away">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    const risBtn  = (!m.annullata && canEditPt(m.leva)) ? `<button class="btn btn-p btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">${m.played?'📊':'⚽ Risultato'}</button>` : '';
+    const opacity = m.annullata ? 'opacity:.55;' : '';
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
   };
   let html = '';
   if (future.length) html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Prossime amichevoli</div></div>${future.map(mkAmich).join('')}</div>`;
-  if (past.length)   html += `<div class="card"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
+  if (past.length)   html += `<div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📋 Amichevoli giocate</div></div>${past.map(mkAmich).join('')}</div>`;
+  if (annullate.length) html += `<div class="card"><div class="ch"><div class="ct" style="color:var(--red);">🚫 Amichevoli annullate</div></div>${annullate.map(mkAmich).join('')}</div>`;
   c.innerHTML = html;
 }
 
@@ -11051,10 +11074,16 @@ function renderGcAmichevoli() {
   }
   const polis = polisName(currentLeva);
   c.innerHTML = list.map(m => {
-    const score = m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    const score = m.annullata
+      ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
+      : m.played ? `<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+    const tag = m.annullata
+      ? `<span class="mc-tag" style="background:#fef2f2;color:var(--red);">Annullata</span>`
+      : `<span class="mc-tag amic">Amichevole</span>`;
     const editBtn = canEditPt(m.leva)?`<button class="btn btn-g btn-sm" onclick="openPtAmich(${m.id})">✏️</button>`:'';
-    const risBtn  = canEditPt(m.leva)?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag amic">Amichevole</span><div class="mc-teams"><span class="mc-team">${escapeHtml(polis)}</span>${score}<span class="mc-team away">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
+    const risBtn  = (!m.annullata && canEditPt(m.leva))?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
+    const opacity = m.annullata ? 'opacity:.55;' : '';
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${risBtn}</div></div>`;
   }).join('');
 }
 
@@ -11693,12 +11722,14 @@ function openPtAmich(id) {
     leva_sel.value = m.leva;
     document.getElementById('ptAmichAvv').value = m.avversario || '';
     document.getElementById('ptAmichLuogo').value = m.luogo || '';
+    document.getElementById('ptAmichAnnullata').checked = !!m.annullata;
   } else {
     document.getElementById('ptAmichData').value = today;
     document.getElementById('ptAmichOrario').value = '';
     document.getElementById('ptAmichTipo').value = 'casa';
     document.getElementById('ptAmichAvv').value = '';
     document.getElementById('ptAmichLuogo').value = '';
+    document.getElementById('ptAmichAnnullata').checked = false;
   }
   openM('mPtAmich');
 }
@@ -11710,13 +11741,14 @@ function savePtAmich() {
   const orario = document.getElementById('ptAmichOrario').value.trim() || null;
   const tipo   = document.getElementById('ptAmichTipo').value || 'casa';
   if (!avv) { toast('⚠️ Inserisci il nome dell\'avversario'); return; }
+  const annullata = document.getElementById('ptAmichAnnullata').checked;
   const idRaw = document.getElementById('ptAmichId').value;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
-    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; }
+    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; m.annullata = annullata; }
   } else {
     const newId = nextAmichevoleId++;
-    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, golCasa:0, golOspiti:0, stats:[]});
+    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[]});
     autoCreateConvocazione(newId, leva);
   }
   closeM('mPtAmich');
@@ -14708,6 +14740,10 @@ function saveNewPassword() {
     </div>
     <div class="fg"><label class="fl">Avversario *</label><input class="fi" id="ptAmichAvv" placeholder="Nome squadra avversaria"></div>
     <div class="fg"><label class="fl">Luogo</label><input class="fi" id="ptAmichLuogo" placeholder="es. Campo Primavera — Genova"></div>
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;">
+      <input type="checkbox" id="ptAmichAnnullata" style="width:16px;height:16px;accent-color:var(--red);">
+      <span style="font-size:.88rem;color:var(--red);font-weight:600;">Segna come annullata</span>
+    </label>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtAmich')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtAmich()">💾 Salva</button>
