@@ -9536,7 +9536,16 @@ function coachAvvisiCardHTML() {
 
 function panoVisibleLeve() {
   if (!me) return [];
-  if (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente') return leve.slice();
+  // Admin: vede sempre tutte le leve della società
+  if (me.role === 'admin') return leve.slice();
+  // Mister/dirigente: solo le leve assegnate (me.leva), o tutte se 'Tutte'
+  if (me.role === 'allenatore' || me.role === 'dirigente') {
+    const ml = me.leva;
+    if (!ml) return leve.slice();
+    if (Array.isArray(ml)) return ml.length ? ml : leve.slice();
+    if (ml === 'Tutte' || ml === 'tutte') return leve.slice();
+    return [ml];
+  }
   // Genitore/giocatore: solo le proprie leve. Se vuote, restituisce [] (non fallback a tutte
   // le leve, per non esporre dati di altre leve a chi non dovrebbe vederli).
   return userLeve();
@@ -9594,10 +9603,10 @@ function _campPolis(lv) {
   return found || current;
 }
 
-function panoAllNextMatchesAcrossLeve(leve) {
+function panoAllNextMatchesAcrossLeve(leveArr) {
   const todayStr = ymd(new Date());
   const results = [];
-  leve.forEach(lv => {
+  leveArr.forEach(lv => {
     const polis = _campPolis(lv);
     (amichevoli||[]).filter(m => m.leva === lv && !m.annullata && m.data >= todayStr).forEach(m => {
       const isHome = (m.tipo || 'casa') === 'casa';
@@ -9613,6 +9622,19 @@ function panoAllNextMatchesAcrossLeve(leve) {
         const isHome = m.casa === polis;
         results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome });
       }));
+    });
+    // Fallback: eventi calendario di tipo partita/amichevole non già coperti dai dati strutturati
+    const coveredDates = new Set(results.filter(r => r.leva === lv).map(r => r.data));
+    (events||[]).filter(e =>
+      (e.type === 'partita' || e.type === 'amichevole' || e.type === 'torneo') &&
+      Array.isArray(e.leve) && e.leve.includes(lv) &&
+      e.date >= todayStr &&
+      !coveredDates.has(e.date)
+    ).forEach(e => {
+      const titleClean = (e.title || '').replace(/^[🤝⚽🏆]\s*/,'');
+      const parts = titleClean.split(/\s+vs\s+/i);
+      const avv = parts.length > 1 ? parts[1].trim() : titleClean;
+      results.push({ leva: lv, tipo: e.type === 'torneo' ? 'torneo' : 'amichevole', data: e.date, orario: e.start||'', avversario: avv||e.title||'?', casa: true, luogo: e.luogo||'' });
     });
   });
   return results.sort((a,b) => (a.data||'').localeCompare(b.data||'') || (a.orario||'').localeCompare(b.orario||''));
@@ -9727,15 +9749,17 @@ function renderPanoramica() {
       const casaCol = m.casa ? '#0b7a3e' : '#e65100';
       const casaLb  = m.casa ? 'Casa' : 'Trasferta';
       const sub = m.giornata ? ` · G${m.giornata}` : m.torneoNome ? ` · ${escapeHtml(m.torneoNome)}` : '';
+      const levaChip = _multiLeva
+        ? `<span style="display:inline-block;font-size:.65rem;font-weight:700;background:var(--cl);color:var(--cp);border-radius:5px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">${escapeHtml(m.leva)}</span>`
+        : '';
       const meta = [
         `📅 ${escapeHtml(panoFmtDateShort(m.data))}${m.orario ? ' ' + m.orario : ''}`,
-        m.luogo ? `📍 ${escapeHtml(m.luogo)}` : '',
-        _multiLeva ? escapeHtml(m.leva) : ''
+        m.luogo ? `📍 ${escapeHtml(m.luogo)}` : ''
       ].filter(Boolean).join(' · ');
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 11px;background:#f8fafc;border-radius:9px;border:1px solid var(--bd);border-left:3px solid ${t.col};">
         <div style="font-size:1.15rem;line-height:1;flex-shrink:0;">${t.ic}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ${escapeHtml(m.avversario)}<span style="font-weight:400;font-size:.75rem;color:var(--text3);">${sub}</span></div>
+          <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ${escapeHtml(m.avversario)}${levaChip}<span style="font-weight:400;font-size:.75rem;color:var(--text3);">${sub}</span></div>
           <div style="font-size:.74rem;color:var(--text2);margin-top:1px;">${meta}</div>
         </div>
         <span style="font-size:.65rem;font-weight:700;background:${casaCol};color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;">${casaLb}</span>
