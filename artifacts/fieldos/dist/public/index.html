@@ -13794,7 +13794,7 @@ function getChatsForUser(user) {
   if (isAdmin || user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'preparatore_portieri') {
     const members = USERS_DB.filter(u => ['admin','allenatore','dirigente','preparatore_portieri'].includes(u.role)).map(u => u.id);
     if (members.length > 0) {
-      out.push({ id: 'allenatori', name: '📋 Staff', avatar: '📋', color: '#374151', members, kind: 'staff' });
+      out.push({ id: 'allenatori', name: '🏢 Staff', avatar: '🏢', color: '#374151', members, kind: 'staff' });
     }
   }
 
@@ -13815,7 +13815,7 @@ function getChatsForUser(user) {
       || (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
       || ((user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id));
     if (belongs && members.length > 0) {
-      out.push({ id: 'leva_' + lv, name: '👨‍👧 Famiglie ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
+      out.push({ id: 'leva_' + lv, name: '👥 Leva ' + lv, avatar: '👥', color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
     }
   });
 
@@ -13830,7 +13830,7 @@ function getChatsForUser(user) {
     const members = [...new Set([...giocatoriInLeva, ...allenatori, ...preparatori])];
     const belongs = isAdmin || allenatori.includes(user.id) || preparatori.includes(user.id) || giocatoriInLeva.includes(user.id);
     if (belongs && members.length > 0) {
-      out.push({ id: 'squadra_' + lv, name: '⚽ Squadra ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'squadra', leva: lv });
+      out.push({ id: 'squadra_' + lv, name: '⚽ Squadra ' + lv, avatar: '⚽', color: coloriPrimari, members, kind: 'squadra', leva: lv });
     }
   });
 
@@ -14028,7 +14028,7 @@ function selectChat(chatId, skipListRefresh) {
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
   document.getElementById('chatName').textContent = c.name;
-  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':c.kind==='leva-famiglie'?'Famiglie':c.kind==='squadra'?'Squadra':c.kind==='torneo'?'Torneo':c.kind==='adhoc'?'Chat':'');
+  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':c.kind==='leva-famiglie'?'Leva':c.kind==='squadra'?'Squadra':c.kind==='torneo'?'Torneo':c.kind==='adhoc'?'Chat':'');
   // show/hide read-only notice and input
   const noticeEl = document.getElementById('chatNotice');
   const inpArea = document.querySelector('.cm-inp');
