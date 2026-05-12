@@ -3565,7 +3565,7 @@ function bootApp(user) {
     // PWA: nascondi splash, richiedi push permission dopo 2s
     if (typeof window._pwaSplashHide === 'function') window._pwaSplashHide();
     const _sk = window._mvSocietaKey || null;
-    if (_sk && me) setTimeout(() => requestPushPermission(me.id, _sk), 2000);
+    if (_sk && me) { const _uid = me.id; setTimeout(() => { if (me) requestPushPermission(_uid, _sk); }, 2000); }
   }, 380);
 }
 
@@ -9170,38 +9170,61 @@ function panoVisibleLeve() {
 
 function panoNextMatchForLeva(lv) {
   const todayStr = ymd(new Date());
-  // Prima cerca negli eventi calendario
-  const calList = events
-    .filter(e => (e.type === 'partita' || e.type === 'torneo' || e.type === 'amichevole')
-                  && Array.isArray(e.leve) && e.leve.includes(lv)
-                  && e.date >= todayStr)
-    .sort((a,b) => a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||''));
-  if (calList.length) return calList[0];
-  // Fallback: legge da amichevoli/campionato/tornei
-  const polis = polisName(lv);
+  const polis = _campPolis(lv);
   const cands = [];
+  // Amichevoli
   (amichevoli||[]).filter(m => m.leva === lv && !m.annullata && m.data >= todayStr).forEach(m => {
-    cands.push({ date: m.data, start: m.orario||'', title: 'vs '+m.avversario, type: 'amichevole', luogo: m.luogo||'' });
+    const isH = (m.tipo || 'casa') === 'casa';
+    cands.push({ date: m.data, start: m.orario||'', title: (isH ? polisName(lv) : m.avversario) + ' vs ' + (isH ? m.avversario : polisName(lv)), type: 'amichevole', luogo: m.luogo||'' });
   });
+  // Campionato
   const camp = campionato[lv];
   if (camp) (camp.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa === polis || m.ospite === polis)).forEach(m => {
-    cands.push({ date: m.data, start: m.orario||'', title: 'vs '+(m.casa===polis?m.ospite:m.casa), type: 'partita', luogo: m.luogo||'' });
+    const avv = (m.casa===polis ? m.ospite : m.casa) || '—';
+    cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv, type: 'partita', luogo: m.luogo||'' });
   });
+  // Tornei
   (tornei||[]).filter(t => t.leva === lv).forEach(t => {
     (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
-      cands.push({ date: m.data, start: m.orario||'', title: 'vs '+(m.casa===polis?m.ospite:m.casa)+' ('+t.nome+')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
+      const avv = (m.casa===polis ? m.ospite : m.casa) || '—';
+      cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
     }));
   });
+  // Fallback a eventi calendario se nessun dato strutturato
+  if (!cands.length) {
+    const calList = events
+      .filter(e => (e.type === 'partita' || e.type === 'torneo' || e.type === 'amichevole')
+                    && Array.isArray(e.leve) && e.leve.includes(lv)
+                    && e.date >= todayStr)
+      .sort((a,b) => a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||''));
+    if (calList.length) return calList[0];
+  }
   cands.sort((a,b) => a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||''));
   return cands[0] || null;
 }
 
 // Restituisce tutte le partite future per le leve indicate, dalle sorgenti dati gestionali
+// Trova il nome della propria squadra nel campionato della leva — resistente al cambio del nome società
+function _campPolis(lv) {
+  const camp = campionato[lv];
+  const current = polisName(lv);
+  if (!camp || !camp.squadre || !camp.squadre.length) return current;
+  if (camp.squadre.includes(current)) return current;
+  // Cerca una squadra che contenga il nome della società (case-insensitive) + leva
+  const ns = (nomeSocieta || '').toLowerCase();
+  const lvL = lv.toLowerCase();
+  const found = camp.squadre.find(s => {
+    const sl = s.toLowerCase();
+    return sl.includes(ns) || sl.includes(lvL);
+  });
+  return found || current;
+}
+
 function panoAllNextMatchesAcrossLeve(leve) {
   const todayStr = ymd(new Date());
   const results = [];
   leve.forEach(lv => {
-    const polis = polisName(lv);
+    const polis = _campPolis(lv);
     (amichevoli||[]).filter(m => m.leva === lv && !m.annullata && m.data >= todayStr).forEach(m => {
       const isHome = (m.tipo || 'casa') === 'casa';
       results.push({ leva: lv, tipo: 'amichevole', data: m.data, orario: m.orario||'', avversario: m.avversario||'?', casa: isHome, luogo: m.luogo||'' });
@@ -9209,12 +9232,12 @@ function panoAllNextMatchesAcrossLeve(leve) {
     const camp = campionato[lv];
     if (camp) (camp.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
       const isHome = m.casa === polis;
-      results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: isHome ? m.ospite : m.casa, casa: isHome, luogo: m.luogo||'', giornata: m.giornata });
+      results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||'', giornata: m.giornata });
     });
     (tornei||[]).filter(t => t.leva === lv).forEach(t => {
       (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
         const isHome = m.casa === polis;
-        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: isHome ? m.ospite : m.casa, casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome });
+        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome });
       }));
     });
   });
@@ -9233,7 +9256,7 @@ function panoLastMatchForLeva(lv) {
 
 // Restituisce l'ultimo risultato reale (amichevoli/campionato/tornei) per la leva, solo partite Polis
 function panoLastResultForLeva(lv) {
-  const polis = polisName(lv);
+  const polis = _campPolis(lv);
   const results = [];
   amichevoli.filter(m => m.leva === lv && m.played).forEach(m => {
     results.push({ tipo:'amichevole', data:m.data, casa:polis, ospite:m.avversario, golCasa:m.golCasa, golOspiti:m.golOspiti });
@@ -9255,7 +9278,7 @@ function panoCampStatusForLeva(lv) {
   if (!advStats(lv)) return null;
   const camp = campionato[lv];
   if (!camp || !camp.squadre || camp.squadre.length === 0) return null;
-  const polis = polisName(lv);
+  const polis = _campPolis(lv);
   const standings = computeStandings(camp.squadre, camp.partite);
   const polisRow = standings.find(t => t.nome === polis);
   if (!polisRow) return null;
@@ -9521,7 +9544,7 @@ function buildMobDashboard(role, c) {
   const lastR = panoLastResultForLeva(lv);
   let lastRHtml = '';
   if (lastR) {
-    const polis=polisName(lv), isH=lastR.casa===polis;
+    const polis=_campPolis(lv), isH=lastR.casa===polis;
     const polG=isH?lastR.golCasa:lastR.golOspiti, oppG=isH?lastR.golOspiti:lastR.golCasa;
     const opp=isH?lastR.ospite:lastR.casa;
     const won=polG>oppG, drew=polG===oppG;
@@ -9722,7 +9745,7 @@ function buildDashboard(role) {
   const miniStandings = (lv) => {
     const camp = campionato[lv];
     if (!camp || !camp.squadre || !camp.squadre.length) return `<div style="font-size:.82rem;color:var(--text2);font-style:italic;">Classifica non disponibile.</div>`;
-    const polis = polisName(lv);
+    const polis = _campPolis(lv);
     const rows = computeStandings(camp.squadre, camp.partite).slice(0,6);
     return `<table style="width:100%;border-collapse:collapse;font-size:.78rem;"><thead><tr style="color:var(--text2);border-bottom:1px solid var(--border);">
       <th style="text-align:left;padding:3px 4px;width:20px;">#</th><th style="text-align:left;padding:3px 4px;">Squadra</th>
@@ -9743,7 +9766,7 @@ function buildDashboard(role) {
   const lastResultRow = (lv) => {
     const r = panoLastResultForLeva(lv);
     if (!r) return `<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun risultato disponibile.</div>`;
-    const polis=polisName(lv), isH=r.casa===polis;
+    const polis=_campPolis(lv), isH=r.casa===polis;
     const polG=isH?r.golCasa:r.golOspiti, oppG=isH?r.golOspiti:r.golCasa;
     const opp=isH?r.ospite:r.casa;
     const won=polG>oppG, drew=polG===oppG;
