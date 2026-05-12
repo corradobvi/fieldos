@@ -2222,6 +2222,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<!-- Scheda statistiche giocatore -->
+<div class="ov" id="mStatScheda">
+  <div class="modal" style="max-width:540px;padding:0;overflow:hidden;">
+    <div class="mh" style="padding:14px 18px 0;margin-bottom:0;">
+      <div class="mt" id="mStatSchedaTitle">📊 Scheda giocatore</div>
+      <button class="mx" onclick="closeM('mStatScheda')">✕</button>
+    </div>
+    <div id="mStatSchedaBody" style="overflow-y:auto;max-height:84vh;"></div>
+  </div>
+</div>
+
 <!-- Nuovo / modifica evento -->
 <div class="ov" id="mEvento">
   <div class="modal" style="max-width:560px;">
@@ -7597,25 +7608,7 @@ function renderStats() {
   }
 
   g.innerHTML = '';
-  list.slice(0,4).forEach(p => {
-    const s = calcStats(p);
-    const pc = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
-    const card = document.createElement('div');
-    card.className = 'pc';
-    card.style.cursor = 'pointer';
-    card.innerHTML = `
-      <div class="pc-top">
-        ${playerAv(p, 44, '10px', false)}
-        <div style="flex:1;min-width:0;"><div class="pc-name">${p.nome} ${p.cogn}</div>${p.soprannome?`<div style="font-size:.7rem;color:var(--text3);font-style:italic;">"${escapeHtml(p.soprannome)}"</div>`:''}<div class="pc-role">${p.ruolo}</div></div>
-        <div class="pc-num">#${p.num}</div>
-      </div>
-      <div class="pc-stats">
-        <div class="ps"><div class="ps-n" style="color:var(--cp);">${s.gol}</div><div class="ps-l">Gol</div></div>
-        <div class="ps"><div class="ps-n" style="color:var(--cp);">${s.ass}</div><div class="ps-l">Assist</div></div>
-        <div class="ps"><div class="ps-n" style="color:${pc};">${s.percAll}%</div><div class="ps-l">All.</div></div>
-      </div>`;
-    g.appendChild(card);
-  });
+  g.style.display = 'none';
 
   // Marcatori
   const sorted = list.map(p => ({...p, ...calcStats(p)})).sort((a,b) => b.gol-a.gol || b.ass-a.ass);
@@ -7623,6 +7616,9 @@ function renderStats() {
   mb.innerHTML = '';
   sorted.forEach((p,i) => {
     const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.title = 'Apri scheda giocatore';
+    tr.onclick = () => openPlayerStatsScheda(p.id);
     const _rc = ruoloColor(p.ruolo);
     tr.innerHTML = `
       <td style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;color:${i===0?'var(--gold)':'var(--text2)'};">${i+1}</td>
@@ -7648,6 +7644,220 @@ function renderStats() {
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--green);">${list.length}</span>
       </div>
     </div>`;
+}
+
+// ── Scheda statistiche giocatore ─────────────────────────────────
+
+let _statsSchedaPlayerId = null;
+let _currentStatsSchedaTab = 'stagione';
+
+function openPlayerStatsScheda(playerId) {
+  _statsSchedaPlayerId = playerId;
+  _currentStatsSchedaTab = 'stagione';
+  renderPlayerStatsScheda();
+  openM('mStatScheda');
+}
+
+function statsSchedaSetTab(tab) {
+  _currentStatsSchedaTab = tab;
+  renderPlayerStatsScheda();
+}
+
+function renderPlayerStatsScheda() {
+  const el = document.getElementById('mStatSchedaBody');
+  if (!el) return;
+  const p = players.find(x => x.id === _statsSchedaPlayerId);
+  if (!p) { el.innerHTML = '<div style="padding:16px;color:var(--text2);">Giocatore non trovato.</div>'; return; }
+
+  const s   = calcStats(p);
+  const ms  = playerMatchStats(p.id, p.leva);
+  const tot = {
+    pres:   ms.a.pres   + ms.c.pres   + ms.t.pres,
+    gol:    ms.a.gol    + ms.c.gol    + ms.t.gol,
+    assist: ms.a.assist + ms.c.assist + ms.t.assist,
+    minuti: ms.a.minuti + ms.c.minuti + ms.t.minuti,
+    gialli: ms.a.gialli + ms.c.gialli + ms.t.gialli,
+    rossi:  ms.a.rossi  + ms.c.rossi  + ms.t.rossi,
+    golSub: ms.a.golSub + ms.c.golSub + ms.t.golSub,
+    cs:     ms.a.cs     + ms.c.cs     + ms.t.cs
+  };
+  const showAdv = advStats(p.leva);
+  const showGK  = isGK(p);
+  const pcAll   = s.percAll;
+  const pcAllC  = pcAll >= 80 ? 'var(--green)' : pcAll >= 60 ? 'var(--gold)' : 'var(--red)';
+  const pcPar   = s.parTot ? Math.round(s.parPres / s.parTot * 100) : 0;
+  const pcParC  = pcPar >= 80 ? 'var(--green)' : pcPar >= 60 ? 'var(--gold)' : 'var(--red)';
+  const canEditNotes = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+  const rc = ruoloColor(p.ruolo);
+  const tabS = _currentStatsSchedaTab === 'stagione';
+  let html = '';
+
+  // Breadcrumb / back strip
+  html += `<div style="background:var(--bg);padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+    <button class="btn btn-g btn-sm" onclick="closeM('mStatScheda')" style="font-size:.75rem;">← Indietro</button>
+    <span style="font-size:.78rem;color:var(--text3);">📊 Statistiche · ${escapeHtml(p.leva)}</span>
+  </div>`;
+
+  // Player header
+  html += `<div style="padding:15px 18px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+    ${playerAv(p, 60, '50%', false)}
+    <div style="flex:1;min-width:0;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;line-height:1.1;">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
+      ${p.soprannome ? `<div style="font-size:.78rem;color:var(--text3);font-style:italic;margin-top:1px;">"${escapeHtml(p.soprannome)}"</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;">
+        <span class="pill" style="background:${rc}22;color:${rc};font-size:.7rem;">${escapeHtml(p.ruolo)}</span>
+        <span class="pill" style="font-size:.7rem;">#${p.num}</span>
+        <span class="pill" style="font-size:.7rem;">${escapeHtml(p.leva)}</span>
+        ${p.anno ? `<span class="pill" style="font-size:.7rem;">Cl. ${p.anno}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  // Tabs
+  html += `<div style="display:flex;border-bottom:2px solid var(--border);">
+    <button type="button" onclick="statsSchedaSetTab('stagione')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'var(--cp)':'transparent'};color:${tabS?'var(--cp)':'var(--text2)'};margin-bottom:-2px;">📊 Stagione corrente</button>
+    <button type="button" onclick="statsSchedaSetTab('precedenti')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'transparent':'var(--cp)'};color:${tabS?'var(--text2)':'var(--cp)'};margin-bottom:-2px;">📁 Stagioni precedenti</button>
+  </div>`;
+
+  html += `<div style="padding:14px 16px 20px;">`;
+
+  if (tabS) {
+    // Stat boxes grid
+    const boxes = [
+      {lbl:'⚽ Gol',      val:tot.gol,    c:'var(--cp)'},
+      {lbl:'🅰️ Assist',   val:tot.assist, c:'var(--cp)'},
+      {lbl:'🏃 Presenze',  val:tot.pres,   c:'var(--text)'},
+      {lbl:'📅 % All.',    val:pcAll+'%',  c:pcAllC},
+    ];
+    if (s.parTot > 0) boxes.push({lbl:'📋 % Partite', val:pcPar+'%', c:pcParC});
+    if (showAdv) {
+      boxes.push({lbl:'⏱ Minuti',    val:tot.minuti, c:'var(--text)'});
+      boxes.push({lbl:'🟨 Ammon.',   val:tot.gialli, c:tot.gialli>3?'var(--red)':'var(--gold)'});
+      boxes.push({lbl:'🟥 Espuls.',  val:tot.rossi,  c:tot.rossi>0?'var(--red)':'var(--text2)'});
+    }
+    if (showGK) {
+      boxes.push({lbl:'🥅 Gol sub.', val:tot.golSub, c:'var(--text)'});
+      boxes.push({lbl:'🧤 Clean sh.',val:tot.cs,     c:'var(--green)'});
+    }
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px;margin-bottom:13px;">`;
+    boxes.forEach(b => {
+      html += `<div style="background:var(--bg);border-radius:9px;padding:10px 8px;text-align:center;">
+        <div style="font-size:1.2rem;font-weight:900;color:${b.c};font-family:'Barlow Condensed',sans-serif;">${b.val}</div>
+        <div style="font-size:.67rem;color:var(--text3);margin-top:2px;">${b.lbl}</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    // Per-competition breakdown
+    html += `<div style="background:var(--bg);border-radius:9px;padding:11px;margin-bottom:12px;">
+      <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">Dettaglio per competizione</div>
+      <div style="overflow-x:auto;"><table class="tbl" style="font-size:.79rem;">
+        <thead><tr><th></th><th>Amich.</th><th>Camp.</th><th>Torn.</th></tr></thead>
+        <tbody>
+          <tr><td>⚽ Gol</td><td>${ms.a.gol}</td><td>${ms.c.gol}</td><td>${ms.t.gol}</td></tr>
+          <tr><td>🅰️ Assist</td><td>${ms.a.assist}</td><td>${ms.c.assist}</td><td>${ms.t.assist}</td></tr>
+          <tr><td>🏃 Presenze</td><td>${ms.a.pres}</td><td>${ms.c.pres}</td><td>${ms.t.pres}</td></tr>`;
+    if (showAdv) {
+      html += `<tr><td>⏱ Minuti</td><td>${ms.a.minuti}</td><td>${ms.c.minuti}</td><td>${ms.t.minuti}</td></tr>
+          <tr><td>🟨 Ammon.</td><td>${ms.a.gialli}</td><td>${ms.c.gialli}</td><td>${ms.t.gialli}</td></tr>
+          <tr><td>🟥 Espuls.</td><td>${ms.a.rossi}</td><td>${ms.c.rossi}</td><td>${ms.t.rossi}</td></tr>`;
+    }
+    if (showGK) {
+      html += `<tr><td>🥅 Gol sub.</td><td>${ms.a.golSub}</td><td>${ms.c.golSub}</td><td>${ms.t.golSub}</td></tr>
+          <tr><td>🧤 Clean sh.</td><td>${ms.a.cs}</td><td>${ms.c.cs}</td><td>${ms.t.cs}</td></tr>`;
+    }
+    html += `</tbody></table></div></div>`;
+
+    // Training attendance bar
+    html += `<div style="background:var(--bg);border-radius:9px;padding:11px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <div style="font-size:.8rem;font-weight:700;">📅 Presenze allenamenti</div>
+        <div style="font-size:.83rem;font-weight:800;color:${pcAllC};">${pcAll}% <span style="font-size:.72rem;font-weight:400;color:var(--text2);">(${s.allPres}P · ${s.allAss}A · ${s.allGiust}G / ${s.allTot})</span></div>
+      </div>
+      <div class="bar"><div class="bar-f" style="width:${pcAll}%;background:${pcAllC};"></div></div>
+    </div>`;
+
+    // Note Mister (staff only)
+    if (canEditNotes) {
+      const nota = p.noteMister || '';
+      html += `<div style="background:var(--bg);border-radius:9px;padding:11px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">📝 Note Mister <span style="text-transform:none;font-weight:400;opacity:.6;">(visibili solo allo staff)</span></div>
+        <textarea id="scNoteInput" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.83rem;resize:vertical;background:var(--white);box-sizing:border-box;" placeholder="Es. Ottimo nei calci piazzati, lavora sulla fase difensiva, pronto per leva superiore...">${escapeHtml(nota)}</textarea>
+        <button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="savePlayerStatNotes(${p.id})">💾 Salva note</button>
+      </div>`;
+    }
+  } else {
+    // Stagioni precedenti
+    const stagPrec = Array.isArray(p.stagioniPrec) ? p.stagioniPrec : [];
+    if (!stagPrec.length) {
+      html += `<div style="text-align:center;padding:30px 16px;">
+        <div style="font-size:2.2rem;margin-bottom:8px;">🌱</div>
+        <div style="font-weight:700;font-size:.95rem;">Prima stagione con la squadra</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-top:4px;">Non ci sono statistiche di stagioni precedenti.</div>
+      </div>`;
+    } else {
+      html += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">`;
+      stagPrec.forEach((st, idx) => {
+        html += `<div style="background:var(--bg);border-radius:9px;padding:11px;display:flex;align-items:center;gap:10px;">
+          <div style="font-weight:800;font-size:.88rem;min-width:72px;">📅 ${escapeHtml(st.stagione||'—')}</div>
+          <div style="display:flex;gap:16px;flex:1;">
+            <div style="text-align:center;"><div style="font-size:1.05rem;font-weight:900;color:var(--cp);">${st.gol||0}</div><div style="font-size:.68rem;color:var(--text3);">Gol</div></div>
+            <div style="text-align:center;"><div style="font-size:1.05rem;font-weight:900;color:var(--cp);">${st.assist||0}</div><div style="font-size:.68rem;color:var(--text3);">Assist</div></div>
+            <div style="text-align:center;"><div style="font-size:1.05rem;font-weight:900;">${st.presenze||0}</div><div style="font-size:.68rem;color:var(--text3);">Presenze</div></div>
+          </div>
+          ${canEditNotes ? `<button class="btn btn-r btn-sm" style="flex-shrink:0;" onclick="removePlayerPrevSeason(${p.id},${idx})">🗑</button>` : ''}
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    if (canEditNotes) {
+      html += `<div style="background:var(--bg);border-radius:9px;padding:11px;">
+        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">➕ Aggiungi stagione precedente</div>
+        <div style="display:grid;grid-template-columns:1fr 56px 56px 60px;gap:6px;align-items:center;">
+          <input class="fi" id="spStagione" placeholder="2023/24" style="font-size:.82rem;padding:6px 8px;">
+          <input class="fi" id="spGol"      type="number" min="0" placeholder="Gol"  style="font-size:.82rem;padding:6px 8px;">
+          <input class="fi" id="spAssist"   type="number" min="0" placeholder="Ass." style="font-size:.82rem;padding:6px 8px;">
+          <input class="fi" id="spPresenze" type="number" min="0" placeholder="Pres." style="font-size:.82rem;padding:6px 8px;">
+        </div>
+        <button class="btn btn-p btn-sm" style="margin-top:8px;width:100%;" onclick="addPlayerPrevSeason(${p.id})">➕ Aggiungi stagione</button>
+      </div>`;
+    }
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function savePlayerStatNotes(playerId) {
+  const p = players.find(x => x.id === playerId);
+  if (!p) return;
+  p.noteMister = (document.getElementById('scNoteInput')?.value || '').trim();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast('📝 Note salvate');
+}
+
+function addPlayerPrevSeason(playerId) {
+  const p = players.find(x => x.id === playerId);
+  if (!p) return;
+  const stagione = (document.getElementById('spStagione')?.value || '').trim();
+  if (!stagione) { toast('⚠️ Inserisci la stagione (es. 2023/24)'); return; }
+  const gol      = parseInt(document.getElementById('spGol')?.value)      || 0;
+  const assist   = parseInt(document.getElementById('spAssist')?.value)   || 0;
+  const presenze = parseInt(document.getElementById('spPresenze')?.value) || 0;
+  if (!Array.isArray(p.stagioniPrec)) p.stagioniPrec = [];
+  p.stagioniPrec.unshift({ stagione, gol, assist, presenze });
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderPlayerStatsScheda();
+  toast('✅ Stagione aggiunta');
+}
+
+function removePlayerPrevSeason(playerId, idx) {
+  const p = players.find(x => x.id === playerId);
+  if (!p || !Array.isArray(p.stagioniPrec)) return;
+  p.stagioniPrec.splice(idx, 1);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderPlayerStatsScheda();
+  toast('🗑 Stagione rimossa');
 }
 
 // ── Statistiche tornei (solo allenatore) ─────────────────────────
