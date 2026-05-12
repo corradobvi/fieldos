@@ -3479,6 +3479,7 @@ async function doLogin() {
 }
 
 function logout() {
+  localStorage.removeItem('mv_session');
   me = null;
   document.getElementById('app').classList.remove('on');
   const ls = document.getElementById('loginScreen');
@@ -3500,6 +3501,15 @@ function logout() {
 // ═══════════════════════════════════
 
 function bootApp(user) {
+  // Persist session so a page refresh doesn't force re-login
+  try {
+    localStorage.setItem('mv_session', JSON.stringify({
+      userId: user.id,
+      societaId: currentSocietaId,
+      stateKey: window._mvSocietaKey || societyStorageKey(currentSocietaId)
+    }));
+  } catch(_) {}
+
   const cfg = ROLE_CFG[user.role];
 
   // Topbar
@@ -17489,6 +17499,49 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // ── Init PWA on page load
+// ─── SESSION RESTORE ──────────────────────────────────────────────────────────
+// Ripristina automaticamente il login dopo F5 / chiusura e riapertura della PWA.
+// La sessione viene salvata in mv_session al momento del login (in bootApp).
+// Viene cancellata dal logout esplicito.
+function tryRestoreSession() {
+  try {
+    const raw = localStorage.getItem('mv_session');
+    if (!raw) return false;
+    const sess = JSON.parse(raw);
+    if (!sess || !sess.stateKey || typeof sess.userId !== 'number') return false;
+
+    // Verifica che lo stato esista in localStorage
+    if (!localStorage.getItem(sess.stateKey)) {
+      localStorage.removeItem('mv_session');
+      return false;
+    }
+
+    // Imposta la chiave attiva → chiama restoreState() che popola USERS_DB, players, ecc.
+    currentSocietaId = typeof sess.societaId === 'number' ? sess.societaId : 0;
+    if (typeof window.__fieldosSetSocietaKey === 'function') {
+      window.__fieldosSetSocietaKey(sess.stateKey);
+    }
+
+    // Carica SA state (necessario per controllo piano, ecc.)
+    saLoadState();
+
+    // Trova l'utente nel USERS_DB appena ripristinato
+    const user = USERS_DB.find(u => u.id === sess.userId);
+    if (!user || user.stato === 'sospeso') {
+      localStorage.removeItem('mv_session');
+      return false;
+    }
+
+    me = user;
+    bootApp(me);
+    return true;
+  } catch(e) {
+    console.warn('[tryRestoreSession]', e);
+    localStorage.removeItem('mv_session');
+    return false;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
   // Widget password: occhio + barra forza + requisiti + match conferma
@@ -17496,6 +17549,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initPwField('srPass',     'srPass2');     // registrazione genitore con codice
   initPwField('onbPass',    'onbPass2');    // onboarding via invito
   initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
+
+  // Ripristina sessione se disponibile (evita logout al refresh)
+  tryRestoreSession();
 });
 </script>
 
