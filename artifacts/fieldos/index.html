@@ -3557,7 +3557,7 @@ function bootApp(user) {
     checkPianoOnBoot(_bootSoc);
     // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
     const _cb = document.getElementById('asstBtn');
-    const _isMobFam = window.innerWidth <= 640 && (me.role === 'genitore' || me.role === 'nonno');
+    const _isMobFam = window.innerWidth <= 640 && me && (me.role === 'genitore' || me.role === 'nonno');
     if (_cb && !_isMobFam) _cb.classList.add('visible');
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
@@ -3721,6 +3721,7 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
+    if (!me) return;
     const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
@@ -5613,10 +5614,14 @@ function upcomingPartiteEvents(leveFilter) {
   Object.entries(campionato || {}).forEach(([lv, camp]) => {
     if (!camp?.partite) return;
     if (leveFilter && leveFilter.length && !leveFilter.includes(lv)) return;
-    const polis = polisName(lv);
+    const polis = _campPolis(lv);
     camp.partite
       .filter(m => !m.played && m.data && m.data >= today && (m.casa === polis || m.ospite === polis))
-      .forEach(m => fromCampionato.push({ id: `camp_${lv}_${m.id}`, type: 'partita', title: `⚽ ${m.casa} vs ${m.ospite}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' }));
+      .forEach(m => {
+        const isHome = m.casa === polis;
+        const avv = (isHome ? m.ospite : m.casa) || '—';
+        fromCampionato.push({ id: `camp_${lv}_${m.id}`, type: 'partita', title: `⚽ ${polis} vs ${avv}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' });
+      });
   });
   const fromAmichevoli = (Array.isArray(amichevoli) ? amichevoli : [])
     .filter(m => !m.played && m.data && m.data >= today)
@@ -13579,7 +13584,7 @@ function renderChatList() {
   const container = document.getElementById('chatList');
   const panel = document.getElementById('chatPanel');
   const empty = document.getElementById('chatEmpty');
-  if (!container) return;
+  if (!container || !me) return;
   const btnNew = document.getElementById('btnNewChat');
   if (btnNew) btnNew.style.display = (me && (me.role==='admin'||me.role==='allenatore'||me.role==='dirigente')) ? '' : 'none';
   const chats = getChatsForUser(me);
