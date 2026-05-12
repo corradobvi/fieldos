@@ -2171,6 +2171,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="mh"><div class="mt" id="mIndispTitle">🗓️ Indisponibilità</div><button class="mx" onclick="closeM('mIndisp')">✕</button></div>
     <input type="hidden" id="indispId">
     <input type="hidden" id="indispPlayerId">
+    <input type="hidden" id="indispEventId">
+    <input type="hidden" id="indispEventDate">
     <div id="mIndispPlayerInfo" style="background:var(--cl);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:.83rem;font-weight:600;"></div>
     <div id="indispTipoRow" style="display:none;" class="fg">
       <label class="fl">Tipo</label>
@@ -2181,7 +2183,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <option value="altro">📝 Altro</option>
       </select>
     </div>
-    <div class="fr">
+    <div id="indispScadenzaRow" style="display:none;" class="fg">
+      <label class="fl">Durata</label>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0;">
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;">
+          <input type="radio" name="indispTipoScad" value="periodo" onchange="onIndispScadChange()" checked>
+          <span style="font-size:.86rem;">📅 Per un periodo (dal … al …)</span>
+        </label>
+        <label id="indispScadEventoRow" style="display:flex;align-items:center;gap:9px;cursor:pointer;display:none;">
+          <input type="radio" name="indispTipoScad" value="evento" onchange="onIndispScadChange()">
+          <span style="font-size:.86rem;" id="indispScadEventoLabel">📍 Solo per questo evento</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer;">
+          <input type="radio" name="indispTipoScad" value="indefinita" onchange="onIndispScadChange()">
+          <span style="font-size:.86rem;">🚫 Fino a nuovo avviso</span>
+        </label>
+      </div>
+    </div>
+    <div id="indispDateRange" class="fr">
       <div class="fg"><label class="fl">Dal giorno</label><input class="fi" type="date" id="indispDataI"></div>
       <div class="fg"><label class="fl">Al giorno</label><input class="fi" type="date" id="indispDataF"></div>
     </div>
@@ -2191,6 +2210,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <button class="btn btn-r" id="btnDelIndisp" style="display:none;" onclick="deleteIndisp()">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mIndisp')">Annulla</button>
     </div>
+  </div>
+</div>
+
+<!-- Pannello Indisponibilità Staff per evento -->
+<div class="ov" id="mIndispPanel">
+  <div class="modal" style="max-width:520px;">
+    <div class="mh"><div class="mt" id="mIPTitle">⚠️ Indisponibilità</div><button class="mx" onclick="closeM('mIndispPanel')">✕</button></div>
+    <input type="hidden" id="mIPEventId">
+    <div id="mIPBody" style="max-height:65vh;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -5826,6 +5854,10 @@ function renderConvocazioneCard(ev) {
 
   if (canCreateConvocazione()) {
     // Vista Mister/admin
+    const roster = rosterForEvent(ev);
+    const staffIndispList = roster.filter(p => playerIndispForEvent(p.id, ev.id, ev.date));
+    const staffIndispCount = staffIndispList.length;
+    const dispCount = roster.length - staffIndispCount;
     const convocatiCount = conv ? conv.playerIds.length : 0;
 
     // Fase status badge
@@ -5835,45 +5867,41 @@ function renderConvocazioneCard(ev) {
       fase === 'fase1' ? `<span class="pill pill-b" style="font-size:.7rem;">👁 Fase 1 attiva</span>` :
       `<span class="pill" style="background:var(--cl);color:var(--text2);font-size:.7rem;">👁 Non visibile</span>`;
 
-    // Indisponibilità da calendario per i giocatori convocati/disponibili
-    const indispWarnings = bucket.disp.concat(bucket.senza).filter(p => playerIndispOnDate(p.id, ev.date));
-    const indispWarnHtml = indispWarnings.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:.78rem;">
-      <strong style="color:#c2410c;">⚠️ Indisponibili segnalati:</strong> ${indispWarnings.map(p => {
-        const i = playerIndispOnDate(p.id, ev.date);
-        const tipoStr = i && i.tipo ? _indispTipoLabel(i.tipo) : (i && i.byStaff ? '' : '');
-        return escapeHtml(p.nome+' '+p.cogn) + (i ? ` <span style="color:var(--text2);">(${[tipoStr, i.motivo].filter(Boolean).join(' · ') || (i.byStaff ? 'staff' : 'famiglia')})</span>` : '');
-      }).join(', ')}
-    </div>` : '';
-
     body = `
-      <div class="g2" style="margin-bottom:11px;">
-        <div style="background:var(--gbg);border-radius:8px;padding:8px 10px;">
-          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">✅ Disponibili</div>
-          <div style="font-size:1.15rem;font-weight:800;color:var(--green);">${bucket.disp.length + bucket.senza.length}</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;">
+        <div style="background:var(--gbg);border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
+          <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">✅ Disponibili</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--green);">${dispCount}</div>
         </div>
-        <div style="background:#fff7ed;border-radius:8px;padding:8px 10px;">
-          <div style="font-size:.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;">⚠️ Indisponibili segnalati</div>
-          <div style="font-size:1.15rem;font-weight:800;color:#c2410c;">${bucket.indisp.length}</div>
+        <div style="background:${staffIndispCount ? '#fee2e2' : 'var(--bg)'};border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
+          <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">⚠️ Indisponibili</div>
+          <div style="font-size:1.1rem;font-weight:800;color:${staffIndispCount ? '#b91c1c' : 'var(--text2)'};">${staffIndispCount}</div>
+        </div>
+        <div style="background:${convocatiCount ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
+          <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">📋 Convocati</div>
+          <div style="font-size:1.1rem;font-weight:800;color:${convocatiCount ? 'var(--green)' : 'var(--text2)'};">${convocatiCount}</div>
         </div>
       </div>`;
 
+    // Family-reported indisponibili (small summary)
     if (bucket.indisp.length) {
-      body += `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:.78rem;">
-        <strong style="color:#c2410c;">Indisponibili comunicati:</strong> ${bucket.indisp.map(p => `${escapeHtml(p.nome+' '+p.cogn)}${(getDispon(ev.id,p.id)||{}).motivo ? ' <span style=\"color:var(--text2);\">('+escapeHtml((getDispon(ev.id,p.id)||{}).motivo)+')</span>':''}`).join(', ')}
+      body += `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:7px 11px;margin-bottom:10px;font-size:.77rem;">
+        <strong style="color:#92400e;">👨‍👩‍👧 Famiglie:</strong> ${bucket.indisp.map(p => {
+          const d = getDispon(ev.id, p.id);
+          return escapeHtml(p.nome+' '+p.cogn) + (d && d.motivo ? ` <span style="color:var(--text2);">(${escapeHtml(d.motivo)})</span>` : '');
+        }).join(', ')} ha segnalato indisponibilità
       </div>`;
     }
-
-    body += indispWarnHtml;
 
     if (conv) {
       const names = conv.playerIds.map(pid => {
         const p = players.find(x => x.id === pid);
         if (!p) return '?';
-        const indispW = playerIndispOnDate(p.id, ev.date);
+        const indispW = playerIndispForEvent(p.id, ev.id, ev.date);
         const indispEv = getDispon(ev.id, p.id);
         const indispEvFlag = indispEv && indispEv.status === 'indisponibile';
         const warn = (indispW || indispEvFlag)
-          ? ` <span style="color:#f59e0b;font-size:.72rem;" title="${indispEvFlag ? '⚠️ Indisponibile (genitore)' + (indispEv.motivo ? ': '+escapeHtml(indispEv.motivo) : '') : '⚠️ ' + (indispW && indispW.tipo ? _indispTipoLabel(indispW.tipo) : 'Indisponibile') + (indispW && indispW.motivo ? ': '+escapeHtml(indispW.motivo) : '')}">⚠️</span>`
+          ? ` <span style="color:#f59e0b;font-size:.72rem;" title="${indispEvFlag ? '⚠️ Famiglia' + (indispEv.motivo ? ': '+escapeHtml(indispEv.motivo) : '') : '⚠️ ' + (indispW && indispW.tipo ? _indispTipoLabel(indispW.tipo) : 'Indisponibile') + (indispW && indispW.motivo ? ': '+escapeHtml(indispW.motivo) : '')}">⚠️</span>`
           : '';
         return escapeHtml(p.soprannome || (p.nome + ' ' + p.cogn)) + warn;
       });
@@ -5884,8 +5912,9 @@ function renderConvocazioneCard(ev) {
     }
 
     body += `<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
-      <button class="btn btn-p btn-sm" onclick="openConvocazioneModal(${evIdJs})">${conv ? '✏️ Modifica convocazione' : '📋 Crea convocazione'}</button>
-      ${conv ? `<button class="btn btn-g btn-sm" onclick="resendConvocazione(${evIdJs})">📤 Reinvia notifica</button>` : ''}
+      <button class="btn btn-p btn-sm" onclick="openConvocazioneModal(${evIdJs})">${conv ? '📋 Gestisci convocazione' : '📋 Crea convocazione'}</button>
+      <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.8rem;" onclick="openIndispPanel(${evIdJs})">⚠️ Indisponibilità${staffIndispCount ? `<span style="background:#dc2626;color:white;border-radius:99px;padding:0 5px;font-size:.7rem;margin-left:4px;display:inline-block;">${staffIndispCount}</span>` : ''}</button>
+      ${conv ? `<button class="btn btn-g btn-sm" onclick="resendConvocazione(${evIdJs})">📤 Reinvia</button>` : ''}
       ${faseBadge}
     </div>`;
 
@@ -6250,6 +6279,13 @@ function toggleConvFase(n) {
 function playerIndispOnDate(playerId, dateStr) {
   return indisponibilita.find(i => i.playerId === playerId && i.dataInizio <= dateStr && i.dataFine >= dateStr) || null;
 }
+function playerIndispForEvent(playerId, eventId, dateStr) {
+  const evSpecific = indisponibilita.find(i =>
+    i.playerId === playerId && i.tipoScadenza === 'evento' && String(i.eventId) === String(eventId)
+  );
+  if (evSpecific) return evSpecific;
+  return playerIndispOnDate(playerId, dateStr);
+}
 function _indispTipoLabel(tipo) {
   return { infortunio: '🤕 Infortunio', squalifica: '🟥 Squalifica', verbale: '📞 Verbale', altro: '📝 Altro' }[tipo] || '';
 }
@@ -6258,59 +6294,104 @@ function playerIndispInRange(playerId, dataI, dataF) {
   return indisponibilita.filter(i => i.playerId === playerId && i.dataInizio <= dataF && i.dataFine >= dataI);
 }
 
-function openIndispModal(playerId, indispId) {
+function openIndispModal(playerId, indispId, eventId, eventDate) {
   const p = players.find(x => x.id === playerId);
   if (!p && !indispId) return;
   const existing = indispId ? indisponibilita.find(i => i.id === indispId) : null;
   const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   document.getElementById('indispId').value = indispId || '';
   document.getElementById('indispPlayerId').value = playerId || (existing ? existing.playerId : '');
+  document.getElementById('indispEventId').value = eventId != null ? eventId : (existing ? (existing.eventId || '') : '');
+  document.getElementById('indispEventDate').value = eventDate || '';
   document.getElementById('mIndispTitle').textContent = existing ? '✏️ Modifica indisponibilità' : (isStaff ? '⚠️ Segna indisponibile' : '🗓️ Nuova indisponibilità');
   const pid = playerId || existing?.playerId;
   const pp = players.find(x => x.id === pid);
   document.getElementById('mIndispPlayerInfo').textContent = pp ? `👤 ${pp.nome} ${pp.cogn} — ${pp.leva}` : '';
   const today = ymd(new Date());
-  document.getElementById('indispDataI').value = existing ? existing.dataInizio : today;
-  document.getElementById('indispDataF').value = existing ? existing.dataFine : today;
-  document.getElementById('indispMotivo').value = existing ? (existing.motivo || '') : '';
-  document.getElementById('btnDelIndisp').style.display = existing ? '' : 'none';
+
   const tipoRow = document.getElementById('indispTipoRow');
+  const scadRow = document.getElementById('indispScadenzaRow');
   if (tipoRow) tipoRow.style.display = isStaff ? '' : 'none';
+  if (scadRow) scadRow.style.display = isStaff ? '' : 'none';
   const tipoEl = document.getElementById('indispTipo');
   if (tipoEl && isStaff) tipoEl.value = (existing && existing.tipo) || 'infortunio';
+
+  // Scadenza radio
+  const hasEventCtx = isStaff && (eventId != null && eventId !== '');
+  const evRow = document.getElementById('indispScadEventoRow');
+  if (evRow) evRow.style.display = hasEventCtx ? 'flex' : 'none';
+  const evLabel = document.getElementById('indispScadEventoLabel');
+  if (evLabel && eventDate) evLabel.textContent = `📍 Solo per questo evento (${fmtDateShort(eventDate)})`;
+
+  const scadVal = (existing && existing.tipoScadenza) || (hasEventCtx ? 'evento' : 'periodo');
+  const scadRadio = document.querySelector(`input[name="indispTipoScad"][value="${scadVal}"]`);
+  if (scadRadio) scadRadio.checked = true;
+
+  const dateRange = document.getElementById('indispDateRange');
+  if (dateRange) dateRange.style.display = scadVal === 'periodo' ? '' : 'none';
+  document.getElementById('indispDataI').value = existing ? existing.dataInizio : (eventDate || today);
+  document.getElementById('indispDataF').value = existing ? (existing.tipoScadenza === 'indefinita' ? today : existing.dataFine) : (eventDate || today);
+  document.getElementById('indispMotivo').value = existing ? (existing.motivo || '') : '';
+  document.getElementById('btnDelIndisp').style.display = existing ? '' : 'none';
   openM('mIndisp');
 }
 
 function saveIndisp() {
   const rawPid = document.getElementById('indispPlayerId').value;
   const playerId = parseInt(rawPid);
-  const dataI = document.getElementById('indispDataI').value;
-  const dataF = document.getElementById('indispDataF').value;
   const motivo = document.getElementById('indispMotivo').value.trim();
-  if (!dataI || !dataF) { toast('⚠️ Inserisci le date'); return; }
-  if (dataF < dataI) { toast('⚠️ La data fine deve essere uguale o successiva alla data inizio'); return; }
   const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   const tipo = (isStaff && document.getElementById('indispTipo')) ? document.getElementById('indispTipo').value : null;
   const rawId = document.getElementById('indispId').value;
+  const rawEvId = document.getElementById('indispEventId').value;
+  const evDate = document.getElementById('indispEventDate').value;
+  const tipoScadenza = (isStaff && document.querySelector('input[name="indispTipoScad"]:checked')?.value) || 'periodo';
+  const today = ymd(new Date());
+
+  let dataI, dataF, eventId;
+  if (tipoScadenza === 'evento') {
+    dataI = evDate || today;
+    dataF = evDate || today;
+    eventId = rawEvId !== '' ? (isNaN(parseInt(rawEvId)) ? rawEvId : parseInt(rawEvId)) : null;
+  } else if (tipoScadenza === 'indefinita') {
+    dataI = today;
+    dataF = '2099-12-31';
+    eventId = null;
+  } else {
+    dataI = document.getElementById('indispDataI').value;
+    dataF = document.getElementById('indispDataF').value;
+    eventId = null;
+    if (!dataI || !dataF) { toast('⚠️ Inserisci le date'); return; }
+    if (dataF < dataI) { toast('⚠️ La data fine deve essere uguale o successiva alla data inizio'); return; }
+  }
+
   if (rawId) {
     const i = indisponibilita.find(x => x.id === parseInt(rawId));
-    if (i) { i.dataInizio = dataI; i.dataFine = dataF; i.motivo = motivo; if (tipo) i.tipo = tipo; i.byStaff = isStaff||false; }
+    if (i) {
+      i.dataInizio = dataI; i.dataFine = dataF; i.motivo = motivo;
+      if (tipo) i.tipo = tipo;
+      i.byStaff = isStaff || false;
+      i.tipoScadenza = tipoScadenza;
+      i.eventId = eventId;
+    }
   } else {
-    indisponibilita.push({ id: nextIndispId++, playerId, dataInizio: dataI, dataFine: dataF, tipo: tipo||null, motivo, byUserId: me.id, byStaff: isStaff||false, createdAt: Date.now() });
+    indisponibilita.push({ id: nextIndispId++, playerId, dataInizio: dataI, dataFine: dataF, tipo: tipo || null, motivo, byUserId: me.id, byStaff: isStaff || false, tipoScadenza, eventId: eventId || null, createdAt: Date.now() });
   }
   closeM('mIndisp');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
-  // Refresh mConv roster if open
   if (document.getElementById('mConv')?.classList.contains('on')) {
-    const rawEvId = document.getElementById('convEventId')?.value;
-    if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
+    const rawEvId2 = document.getElementById('convEventId')?.value;
+    if (rawEvId2) openConvocazioneModal(/^\d+$/.test(rawEvId2) ? parseInt(rawEvId2) : rawEvId2);
   }
-  // Refresh player modal if open (pIndispSection)
   if (document.getElementById('mPlayer')?.classList.contains('on') && playerId) {
     const pp = players.find(x => x.id === playerId);
     if (pp) renderPIndispSection(pp);
+  }
+  if (document.getElementById('mIndispPanel')?.classList.contains('on')) {
+    const panelEvId = document.getElementById('mIPEventId')?.value;
+    if (panelEvId) renderIndispPanel(isNaN(parseInt(panelEvId)) ? panelEvId : parseInt(panelEvId));
   }
   toast('✅ Indisponibilità salvata');
 }
@@ -6318,23 +6399,86 @@ function saveIndisp() {
 function deleteIndisp() {
   const rawId = document.getElementById('indispId').value;
   if (!rawId) return;
-  const deletedPid = (() => { const r = indisponibilita.find(i => i.id === parseInt(rawId)); return r ? r.playerId : null; })();
+  const deletedRec = indisponibilita.find(i => i.id === parseInt(rawId));
+  const deletedPid = deletedRec ? deletedRec.playerId : null;
   indisponibilita = indisponibilita.filter(i => i.id !== parseInt(rawId));
   closeM('mIndisp');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
-  // Refresh mConv roster if open
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId = document.getElementById('convEventId')?.value;
     if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
   }
-  // Refresh player modal if open
   if (document.getElementById('mPlayer')?.classList.contains('on') && deletedPid) {
     const pp = players.find(x => x.id === deletedPid);
     if (pp) renderPIndispSection(pp);
   }
+  if (document.getElementById('mIndispPanel')?.classList.contains('on')) {
+    const panelEvId = document.getElementById('mIPEventId')?.value;
+    if (panelEvId) renderIndispPanel(isNaN(parseInt(panelEvId)) ? panelEvId : parseInt(panelEvId));
+  }
   toast('🗑 Indisponibilità rimossa');
+}
+
+function onIndispScadChange() {
+  const val = document.querySelector('input[name="indispTipoScad"]:checked')?.value || 'periodo';
+  const dateRange = document.getElementById('indispDateRange');
+  if (dateRange) dateRange.style.display = val === 'periodo' ? '' : 'none';
+}
+
+function openIndispPanel(evId) {
+  const ev = getEventById(evId);
+  if (!ev) { toast('⚠️ Evento non trovato'); return; }
+  document.getElementById('mIPTitle').textContent = `⚠️ Indisponibilità — ${escapeHtml(ev.title || fmtDateShort(ev.date))}`;
+  document.getElementById('mIPEventId').value = evId;
+  renderIndispPanel(evId);
+  openM('mIndispPanel');
+}
+
+function renderIndispPanel(evId) {
+  const body = document.getElementById('mIPBody');
+  if (!body) return;
+  const ev = getEventById(evId);
+  if (!ev) { body.innerHTML = '<div style="color:var(--text2);padding:12px 0;">Evento non trovato.</div>'; return; }
+  const roster = rosterForEvent(ev);
+  if (!roster.length) {
+    body.innerHTML = '<div style="font-size:.83rem;color:var(--text2);padding:12px 0;">Nessun giocatore per questo evento.</div>';
+    return;
+  }
+  const evIdJs = isNaN(parseInt(String(evId))) ? `'${evId}'` : evId;
+  body.innerHTML = `<div style="font-size:.76rem;color:var(--text2);margin-bottom:10px;">Segna i giocatori non disponibili per questa partita. Le indisponibilità "per un periodo" si applicano automaticamente su tutti gli eventi nel range di date.</div>` +
+    roster.map(p => {
+      const rec = playerIndispForEvent(p.id, evId, ev.date);
+      const isIndisp = !!rec;
+      const tipoStr = rec && rec.tipo ? _indispTipoLabel(rec.tipo) : '';
+      const scadStr = rec ? (
+        rec.tipoScadenza === 'evento' ? '📍 solo questo evento' :
+        rec.tipoScadenza === 'indefinita' ? '🚫 indefinita' :
+        `📅 fino al ${fmtDateShort(rec.dataFine)}`
+      ) : '';
+      const parts = [tipoStr, scadStr, rec && rec.motivo ? escapeHtml(rec.motivo) : ''].filter(Boolean);
+      return `<div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;margin-bottom:5px;background:${isIndisp ? '#fee2e2' : 'var(--bg)'};border:1px solid ${isIndisp ? '#fecdd3' : 'transparent'};">
+        ${playerAv(p, 30, '50%', false)}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}</div>
+          ${isIndisp ? `<div style="font-size:.73rem;color:#b91c1c;margin-top:1px;">${parts.join(' · ')}</div>` : `<div style="font-size:.73rem;color:var(--text3);">${escapeHtml(p.leva)}</div>`}
+        </div>
+        ${isIndisp
+          ? `<button class="btn btn-g btn-sm" style="flex-shrink:0;" onclick="openIndispModal(${p.id},${rec.id},${evIdJs},'${ev.date}')">✏️</button>
+             <button class="btn btn-r btn-sm" style="flex-shrink:0;" onclick="removeIndispForEvent(${rec.id},${evIdJs})">🗑</button>`
+          : `<button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.77rem;padding:5px 9px;white-space:nowrap;flex-shrink:0;" onclick="openIndispModal(${p.id},null,${evIdJs},'${ev.date}')">⚠️ Segna</button>`
+        }
+      </div>`;
+    }).join('');
+}
+
+function removeIndispForEvent(indispId, evId) {
+  indisponibilita = indisponibilita.filter(i => i.id !== indispId);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderIndispPanel(evId);
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+  toast('✅ Indisponibilità rimossa');
 }
 
 // ─── IMPOSTAZIONI VISIBILITÀ CONV PER LEVA ────────────
