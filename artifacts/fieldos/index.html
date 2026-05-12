@@ -13378,6 +13378,9 @@ function openPtAmich(id) {
   const leva_sel = document.getElementById('ptAmichLeva');
   leva_sel.innerHTML = leve.map(l => `<option value="${l}"${l===currentLeva?' selected':''}>${l}</option>`).join('');
   const today = new Date().toISOString().slice(0,10);
+  updatePtAmichLuogoSelect();
+  const luogoSel  = document.getElementById('ptAmichLuogoSel');
+  const luogoText = document.getElementById('ptAmichLuogoText');
   if (id) {
     const m = amichevoli.find(x => x.id === id);
     if (!m) return;
@@ -13386,7 +13389,15 @@ function openPtAmich(id) {
     document.getElementById('ptAmichTipo').value = m.tipo || 'casa';
     leva_sel.value = m.leva;
     document.getElementById('ptAmichAvv').value = m.avversario || '';
-    document.getElementById('ptAmichLuogo').value = m.luogo || '';
+    if (m.campoId && campi.find(x => x.id === m.campoId)) {
+      luogoSel.value = String(m.campoId);
+      luogoText.style.display = 'none'; luogoText.value = '';
+    } else if (m.luogo) {
+      luogoSel.value = '__manuale';
+      luogoText.style.display = ''; luogoText.value = m.luogo;
+    } else {
+      luogoSel.value = ''; luogoText.style.display = 'none'; luogoText.value = '';
+    }
     document.getElementById('ptAmichAnnullata').checked = !!m.annullata;
     document.querySelectorAll('input[name="ptAmichVisib"]').forEach(r => { r.checked = r.value === (m.visibilitaSubito ? 'subito' : 'default'); });
   } else {
@@ -13394,7 +13405,13 @@ function openPtAmich(id) {
     document.getElementById('ptAmichOrario').value = '';
     document.getElementById('ptAmichTipo').value = 'casa';
     document.getElementById('ptAmichAvv').value = '';
-    document.getElementById('ptAmichLuogo').value = '';
+    if (campi.length > 0) {
+      const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
+      luogoSel.value = String(sorted[0].id);
+    } else {
+      luogoSel.value = '';
+    }
+    luogoText.style.display = 'none'; luogoText.value = '';
     document.getElementById('ptAmichAnnullata').checked = false;
     document.querySelectorAll('input[name="ptAmichVisib"]').forEach(r => { r.checked = r.value === 'default'; });
   }
@@ -13404,25 +13421,58 @@ function savePtAmich() {
   const data   = document.getElementById('ptAmichData').value;
   const leva   = document.getElementById('ptAmichLeva').value;
   const avv    = document.getElementById('ptAmichAvv').value.trim();
-  const luogo  = document.getElementById('ptAmichLuogo').value.trim();
   const orario = document.getElementById('ptAmichOrario').value.trim() || null;
   const tipo   = document.getElementById('ptAmichTipo').value || 'casa';
+  const luogoSelVal   = document.getElementById('ptAmichLuogoSel').value;
+  const luogoCampoId  = (luogoSelVal && luogoSelVal !== '__manuale') ? parseInt(luogoSelVal) : null;
+  const luogo = luogoCampoId
+    ? (() => { const c = campi.find(x => x.id === luogoCampoId); return c ? (c.nome + (c.indirizzo ? ' — ' + c.indirizzo : '')) : ''; })()
+    : (luogoSelVal === '__manuale' ? document.getElementById('ptAmichLuogoText').value.trim() : '');
   if (!avv) { toast('⚠️ Inserisci il nome dell\'avversario'); return; }
   const annullata = document.getElementById('ptAmichAnnullata').checked;
   const visibilitaSubito = document.querySelector('input[name="ptAmichVisib"]:checked')?.value === 'subito';
   const idRaw = document.getElementById('ptAmichId').value;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
-    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.orario = orario; m.tipo = tipo; m.annullata = annullata; m.visibilitaSubito = visibilitaSubito; }
+    if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.campoId = luogoCampoId||undefined; m.orario = orario; m.tipo = tipo; m.annullata = annullata; m.visibilitaSubito = visibilitaSubito; }
   } else {
     const newId = nextAmichevoleId++;
-    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
+    amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, campoId: luogoCampoId||undefined, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
     autoCreateConvocazione('amich_' + newId, leva);
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
+}
+
+function updatePtAmichLuogoSelect() {
+  const sel = document.getElementById('ptAmichLuogoSel'); if (!sel) return;
+  const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
+  sel.innerHTML = '<option value="">— Nessun luogo —</option>' +
+    sorted.map(c => `<option value="${c.id}">🏟️ ${escapeHtml(c.nome)}${c.indirizzo ? ' — ' + escapeHtml(c.indirizzo) : ''}</option>`).join('') +
+    '<option value="__manuale">📍 Altro — inserisci manualmente</option>';
+}
+function onPtAmichLuogoChange() {
+  const v = document.getElementById('ptAmichLuogoSel').value;
+  const man = document.getElementById('ptAmichLuogoText');
+  man.style.display = v === '__manuale' ? '' : 'none';
+  if (v !== '__manuale') man.value = '';
+}
+function onPtAmichTipoChange() {
+  const tipo = document.getElementById('ptAmichTipo').value;
+  const sel = document.getElementById('ptAmichLuogoSel'); if (!sel) return;
+  if (tipo === 'casa') {
+    if (campi.length > 0) {
+      const sorted = [...campi].sort((a,b) => (b.usageCount||0) - (a.usageCount||0));
+      sel.value = String(sorted[0].id);
+    } else {
+      sel.value = '';
+    }
+  } else {
+    sel.value = '__manuale';
+  }
+  onPtAmichLuogoChange();
 }
 
 function deletePtAmich(id) {
@@ -16850,14 +16900,17 @@ async function doRejoinSocieta() {
     <div class="g2">
       <div class="fg"><label class="fl">Leva</label><select class="fs" id="ptAmichLeva"></select></div>
       <div class="fg"><label class="fl">Casa / Trasferta</label>
-        <select class="fs" id="ptAmichTipo">
+        <select class="fs" id="ptAmichTipo" onchange="onPtAmichTipoChange()">
           <option value="casa">🏠 Casa</option>
           <option value="trasferta">🚌 Trasferta</option>
         </select>
       </div>
     </div>
     <div class="fg"><label class="fl">Avversario *</label><input class="fi" id="ptAmichAvv" placeholder="Nome squadra avversaria"></div>
-    <div class="fg"><label class="fl">Luogo</label><input class="fi" id="ptAmichLuogo" placeholder="es. Campo Primavera — Genova"></div>
+    <div class="fg"><label class="fl">Luogo</label>
+      <select class="fs" id="ptAmichLuogoSel" onchange="onPtAmichLuogoChange()"></select>
+      <input class="fi" id="ptAmichLuogoText" placeholder="Inserisci luogo manualmente" style="margin-top:6px;display:none;">
+    </div>
     <label style="display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer;">
       <input type="checkbox" id="ptAmichAnnullata" style="width:16px;height:16px;accent-color:var(--red);">
       <span style="font-size:.88rem;color:var(--red);font-weight:600;">Segna come annullata</span>
