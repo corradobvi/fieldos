@@ -10425,6 +10425,16 @@ function buildDashboard(role) {
     const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
     const childLeve = [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
     const nextMatchEv = childLeve.length ? panoNextMatchForLeva(childLeve[0]) : null;
+    const _nextFase = nextMatchEv ? getFasePt(nextMatchEv.date, childLeve[0]||'', nextMatchEv) : 'none';
+    const nextMatchEvForDisplay = _nextFase !== 'none' ? nextMatchEv : null;
+    const nextMatchCardHtml = _nextFase === 'fase1'
+      ? `<div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--cl);border-radius:9px;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:.84rem;">⚽ ${nextMatchEv.type==='torneo'?'Torneo':nextMatchEv.type==='amichevole'?'Amichevole':'Partita'}</div>
+            <div style="font-size:.72rem;color:var(--text2);">📅 ${escapeHtml(panoFmtDateShort(nextMatchEv.date))} · ⏳ Dettagli disponibili a breve</div>
+          </div>
+        </div>`
+      : nextMatchRow(nextMatchEvForDisplay, '');
 
     const childCards = figliPlayers.length ? figliPlayers.map(p=>{
       const ms = playerMatchStats(p.id, p.leva);
@@ -10475,7 +10485,7 @@ function buildDashboard(role) {
       ${avvisaGenitoreBtn}
       <div class="g2">
         <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card"><div class="ch"><div class="ct">⚽ Prossima partita</div></div>${nextMatchRow(nextMatchEv,'')}</div>
+          <div class="card"><div class="ch"><div class="ct">⚽ Prossima partita</div></div>${nextMatchCardHtml}</div>
           <div class="card"><div class="ch"><div class="ct">📣 Avvisi non letti</div><button class="btn btn-g btn-sm" onclick="goTo('comunicazioni')">Tutti →</button></div>${avvisiDeskHtml}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
@@ -11507,8 +11517,7 @@ function renderCal() {
     let filteredDayEvs = dayEvs;
     if (isFamily()) {
       filteredDayEvs = dayEvs.map(ev => {
-        const conv = getConvocazione(ev.id);
-        const fase = getConvFase(conv, ev);
+        const fase = getFaseForFamily(ev);
         if (fase === 'none') return null;
         if (fase === 'fase1') return Object.assign({}, ev, {_fase1: true});
         return ev;
@@ -11558,8 +11567,7 @@ function openDayModal(dateStr){
   let calList = list;
   if (isFamily()) {
     calList = list.map(ev => {
-      const conv = getConvocazione(ev.id);
-      const fase = getConvFase(conv, ev);
+      const fase = getFaseForFamily(ev);
       if (fase === 'none') return null;
       if (fase === 'fase1') return Object.assign({}, ev, {_fase1: true});
       return ev;
