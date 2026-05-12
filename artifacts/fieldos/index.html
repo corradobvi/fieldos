@@ -1933,6 +1933,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <div id="pIndispSection" style="display:none;background:linear-gradient(135deg,#fff1f2,#fff);border:1px solid #fecdd3;border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div class="fr">
       <div class="fg"><label class="fl">Nome</label><input class="fi" id="pNome" placeholder="Nome"></div>
       <div class="fg"><label class="fl">Cognome</label><input class="fi" id="pCogn" placeholder="Cognome"></div>
@@ -4277,6 +4278,7 @@ function openPlayerModal(id) {
     document.getElementById('pAnagStats').style.display = 'none';
     document.getElementById('pConvStats').style.display = 'none';
     document.getElementById('pMatchStats').style.display = 'none';
+    document.getElementById('pIndispSection').style.display = 'none';
   } else {
     // EDIT
     const p = players.find(x => x.id === id);
@@ -4298,6 +4300,7 @@ function openPlayerModal(id) {
     renderPAnagStats(p);
     renderPConvStats(p);
     renderPMatchStats(p);
+    renderPIndispSection(p);
   }
   openM('mPlayer');
 }
@@ -4440,6 +4443,43 @@ function fmtDateShort(ymdStr){
   if (!ymdStr) return '';
   const [y,m,d] = ymdStr.split('-');
   return `${d}/${m}`;
+}
+
+function renderPIndispSection(p) {
+  const box = document.getElementById('pIndispSection');
+  if (!box || !p) return;
+  const canManage = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const today = ymd(new Date());
+  const records = (Array.isArray(indisponibilita) ? indisponibilita : [])
+    .filter(i => i.playerId === p.id)
+    .sort((a, b) => (a.dataInizio || '').localeCompare(b.dataInizio || ''));
+  const active = records.filter(i => i.dataFine >= today);
+  const past = records.filter(i => i.dataFine < today);
+  if (!active.length && !past.length && !canManage) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const addBtn = canManage
+    ? `<button class="btn btn-p btn-sm" onclick="openIndispModal(${p.id},null)" style="margin-top:8px;font-size:.78rem;">➕ Aggiungi indisponibilità</button>`
+    : '';
+  const rowHtml = (list, isPast) => list.map(i => {
+    const tl = i.tipo ? _indispTipoLabel(i.tipo) : '⚠️ Indisponibile';
+    const dateRange = `${fmtDateShort(i.dataInizio)}–${fmtDateShort(i.dataFine)}`;
+    const byLabel = i.byStaff ? ' (staff)' : ' (famiglia)';
+    const editBtn = canManage
+      ? `<button class="btn btn-g btn-xs" style="padding:2px 7px;font-size:.7rem;" onclick="openIndispModal(${p.id},${i.id})">✏️</button>`
+      : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:${isPast?'var(--bg)':'#fee2e2'};margin-bottom:4px;opacity:${isPast?.65:1};">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.82rem;font-weight:700;">${tl}<span style="font-weight:400;color:var(--text2);"> · ${dateRange}${byLabel}</span></div>
+        ${i.motivo ? `<div style="font-size:.75rem;color:var(--text2);margin-top:1px;">${escapeHtml(i.motivo)}</div>` : ''}
+      </div>
+      ${editBtn}
+    </div>`;
+  }).join('');
+  box.innerHTML = `
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;margin-bottom:8px;">🚫 INDISPONIBILITÀ</div>
+    ${active.length ? rowHtml(active, false) : `<div style="font-size:.78rem;color:var(--text3);margin-bottom:4px;">Nessuna indisponibilità attiva.</div>`}
+    ${past.length ? `<div style="font-size:.72rem;font-weight:700;color:var(--text2);margin:6px 0 4px;">Passate</div>${rowHtml(past, true)}` : ''}
+    ${addBtn}`;
 }
 
 function savePlayer() {
@@ -5987,15 +6027,16 @@ function openConvocazioneModal(eventId) {
       const indisp = d && d.status === 'indisponibile';
       const isSel = selected.has(p.id) && !indisp;
       const calIndisp = playerIndispOnDate(p.id, ev.date);
-      const bg = (indisp || calIndisp) ? '#fff7ed' : 'var(--bg)';
+      const bg = calIndisp ? '#fee2e2' : (indisp ? '#fff7ed' : 'var(--bg)');
       const opac = indisp ? 'opacity:.65;' : '';
       let statusHtml;
       if (indisp) {
         statusHtml = `<span style="font-size:.72rem;color:var(--red);">⚠️ Indisponibile (famiglia)${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
       } else if (calIndisp) {
         const tl = calIndisp.tipo ? _indispTipoLabel(calIndisp.tipo) : '⚠️ Indisponibile';
+        const fineStr = calIndisp.dataFine ? ' fino al ' + fmtDateShort(calIndisp.dataFine) : '';
         const src = calIndisp.byStaff ? ' (staff)' : ' (famiglia)';
-        statusHtml = `<span style="font-size:.72rem;color:#c2410c;">${tl}${src}${calIndisp.motivo ? ' · '+escapeHtml(calIndisp.motivo) : ''}</span>`;
+        statusHtml = `<span style="font-size:.72rem;color:#b91c1c;font-weight:600;">${tl}${fineStr}${src}${calIndisp.motivo ? ' · '+escapeHtml(calIndisp.motivo) : ''}</span>`;
       } else {
         statusHtml = `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
       }
@@ -6246,17 +6287,38 @@ function saveIndisp() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  // Refresh mConv roster if open
+  if (document.getElementById('mConv')?.classList.contains('on')) {
+    const rawEvId = document.getElementById('convEventId')?.value;
+    if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
+  }
+  // Refresh player modal if open (pIndispSection)
+  if (document.getElementById('mPlayer')?.classList.contains('on') && playerId) {
+    const pp = players.find(x => x.id === playerId);
+    if (pp) renderPIndispSection(pp);
+  }
   toast('✅ Indisponibilità salvata');
 }
 
 function deleteIndisp() {
   const rawId = document.getElementById('indispId').value;
   if (!rawId) return;
+  const deletedPid = (() => { const r = indisponibilita.find(i => i.id === parseInt(rawId)); return r ? r.playerId : null; })();
   indisponibilita = indisponibilita.filter(i => i.id !== parseInt(rawId));
   closeM('mIndisp');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  // Refresh mConv roster if open
+  if (document.getElementById('mConv')?.classList.contains('on')) {
+    const rawEvId = document.getElementById('convEventId')?.value;
+    if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
+  }
+  // Refresh player modal if open
+  if (document.getElementById('mPlayer')?.classList.contains('on') && deletedPid) {
+    const pp = players.find(x => x.id === deletedPid);
+    if (pp) renderPIndispSection(pp);
+  }
   toast('🗑 Indisponibilità rimossa');
 }
 
