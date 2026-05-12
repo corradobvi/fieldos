@@ -2166,7 +2166,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- Indisponibilità (periodo) — per genitori/giocatori e per staff -->
-<div class="ov" id="mIndisp">
+<div class="ov" id="mIndisp" style="z-index:1002;backdrop-filter:none;">
   <div class="modal">
     <div class="mh"><div class="mt" id="mIndispTitle">🗓️ Indisponibilità</div><button class="mx" onclick="closeM('mIndisp')">✕</button></div>
     <input type="hidden" id="indispId">
@@ -2214,7 +2214,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 </div>
 
 <!-- Pannello Indisponibilità Staff per evento -->
-<div class="ov" id="mIndispPanel">
+<div class="ov" id="mIndispPanel" style="z-index:1001;">
   <div class="modal" style="max-width:520px;">
     <div class="mh"><div class="mt" id="mIPTitle">⚠️ Indisponibilità</div><button class="mx" onclick="closeM('mIndispPanel')">✕</button></div>
     <input type="hidden" id="mIPEventId">
