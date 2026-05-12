@@ -1632,7 +1632,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="sec-h"><div class="sec-t">💬 Chat</div><div style="font-size:.72rem;color:var(--text3);">Le chat sono create automaticamente in base al tuo ruolo e alla leva.</div></div>
         <div class="chat-wrap" id="chatWrap">
           <div class="cl">
-            <div class="cl-hd">Conversazioni</div>
+            <div class="cl-hd" style="display:flex;justify-content:space-between;align-items:center;"><span>Conversazioni</span><button id="btnNewChat" class="btn btn-p btn-sm" onclick="openNewChatModal()" style="display:none;padding:3px 10px;font-size:.78rem;">➕ Nuova</button></div>
             <div class="cl-list" id="chatList"></div>
           </div>
           <div class="cm" id="chatPanel">
@@ -2704,6 +2704,8 @@ let nextChatMsgId = 1;
 let chatLastSeen = {};
 let currentChatId = null;
 let torneoChats = {};
+let adHocChats = [];
+let nextAdHocChatId = 1;
 // Assistente AI / Chatbot
 let _chatOpen = false;
 let _chatMsgs = [];
@@ -9415,8 +9417,12 @@ function buildMobDashboard(role, c) {
       <div class="mob-qi-sub">${qi.sub||''}</div>
     </div>`).join('')}</div>`;
 
+  const avvisaBtnMob = (role === 'giocatore' && canAvvisaAssenza())
+    ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
+    : '';
   c.innerHTML = pwaBannerHtml() + `
     ${nextEvHtml}
+    ${avvisaBtnMob}
     <div class="mob-dash-card">
       <div class="mob-dash-card-hd">Accesso rapido</div>
       ${quickHtml}
@@ -9488,26 +9494,18 @@ function buildMobDashboardGenitore(c) {
 
   // — Prossimo impegno —
   const childLeve = p ? [p.leva].filter(Boolean) : [];
-  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
-  const futureEv = allEv
-    .filter(e => e.date >= todayStr && (childLeve.length === 0 || childLeve.includes(e.leva) || !e.leva))
-    .sort((a, b) => a.date.localeCompare(b.date));
-  const nextEv = futureEv[0];
+  const nextMatches = panoAllNextMatchesAcrossLeve(childLeve);
+  const nextM = nextMatches[0];
 
   let impegnoHtml = '';
-  if (nextEv) {
-    const d = parseYmd(nextEv.date);
+  if (nextM) {
+    const d = parseYmd(nextM.data);
     const today = new Date(); today.setHours(0,0,0,0);
     const diffDays = Math.round((d - today) / 86400000);
-    const isMatch = nextEv.type === 'partita' || nextEv.type === 'torneo';
-    let convBadge = '';
-    if (isMatch && p) {
-      const conv = getConvocazione(nextEv.id);
-      const isConv = conv && conv.playerIds && conv.playerIds.includes(p.id);
-      convBadge = conv ? (isConv ? `<span class="mob-conv-badge conv-si">✅ Convocato</span>` : `<span class="mob-conv-badge conv-no">Non convocato</span>`) : '';
-    }
+    const tipoLabel = nextM.tipo === 'campionato' ? '🏅 Campionato' : nextM.tipo === 'torneo' ? ('🏆 ' + (nextM.torneoNome||'Torneo')) : '🤝 Amichevole';
+    const luogoLabel = nextM.casa ? '🏠 Casa' : '✈️ Trasferta';
     const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('calendario')">
+    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
       <div class="mob-impegno-hd">Prossimo impegno <span style="color:var(--cp);font-size:.65rem;">${MESI[d.getMonth()].toUpperCase()}</span></div>
       <div class="mob-impegno-row">
         <div class="mob-impegno-cd">
@@ -9515,15 +9513,15 @@ function buildMobDashboardGenitore(c) {
           <div class="mob-impegno-cd-l">${MESI[d.getMonth()]}</div>
         </div>
         <div class="mob-impegno-info">
-          <div class="mob-impegno-title">${escapeHtml(nextEv.title || nextEv.type || 'Evento')}</div>
-          <div class="mob-impegno-meta">${nextEv.start ? nextEv.start : ''}${nextEv.luogo ? (nextEv.start ? ' · ' : '') + escapeHtml(nextEv.luogo) : ''}</div>
-          ${convBadge}
+          <div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div>
+          <div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div>
+          <div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>
         </div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);text-align:center;flex-shrink:0;background:var(--cl);border-radius:10px;padding:6px 10px;">${cdStr}</div>
       </div>
     </div>`;
   } else {
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('calendario')">
+    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
       <div class="mob-impegno-hd">Prossimo impegno</div>
       <div style="font-size:.88rem;color:var(--text2);padding:4px 0;">Nessun impegno programmato</div>
     </div>`;
@@ -9558,7 +9556,10 @@ function buildMobDashboardGenitore(c) {
     </div>`;
   }
 
-  c.innerHTML = pwaBannerHtml() + heroHtml + quotaHtml + impegnoHtml + avvisoHtml;
+  const avvisaBtn = canAvvisaAssenza()
+    ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;margin-bottom:0;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
+    : '';
+  c.innerHTML = pwaBannerHtml() + heroHtml + avvisaBtn + quotaHtml + impegnoHtml + avvisoHtml;
 }
 
 function buildDashboard(role) {
@@ -9845,23 +9846,29 @@ function buildDashboard(role) {
     }).join('')
     : `<div style="background:var(--cl);border-radius:10px;padding:18px;text-align:center;color:var(--text2);"><div style="font-size:1.8rem;margin-bottom:8px;">👤</div>Nessun figlio collegato al tuo profilo.</div>`;
 
-    const myNotif = notifiche.filter(n=>n.userId===me.id).sort((a,b)=>b.ts-a.ts).slice(0,4);
-    const notifHtml = myNotif.length
-      ? myNotif.map(n=>`<div style="padding:8px 10px;background:${n.read?'var(--cl)':'#f0f6ff'};border-radius:8px;border-left:3px solid ${n.read?'var(--border)':'var(--cp)'};margin-bottom:5px;">
-          <div style="font-size:.83rem;font-weight:${n.read?'400':'700'};">${escapeHtml(n.title||n.text||'')}</div>
-          ${n.body?`<div style="font-size:.73rem;color:var(--text2);margin-top:2px;">${escapeHtml(n.body)}</div>`:''}
+    const visScopes = commVisibleScopes().map(s=>s.id);
+    const avvisiNonLetti = comunicazioni.filter(cv => visScopes.includes(cv.scope) && !commIsRead(cv)).slice(0,5);
+    const avvisiDeskHtml = avvisiNonLetti.length
+      ? avvisiNonLetti.map(n=>`<div style="padding:8px 10px;background:#f0f6ff;border-radius:8px;border-left:3px solid var(--cp);margin-bottom:5px;cursor:pointer;" onclick="goTo('comunicazioni')">
+          <div style="font-size:.83rem;font-weight:700;">${escapeHtml((n.titolo||'').slice(0,60))}</div>
+          ${n.testo?`<div style="font-size:.73rem;color:var(--text2);margin-top:2px;">${escapeHtml(n.testo.slice(0,80))}</div>`:''}
         </div>`).join('')
-      : `<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessuna notifica recente.</div>`;
+      : `<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun avviso non letto.</div>`;
 
     const standingsHtml = childLeve.map(lv=>`<div style="margin-bottom:10px;"><div style="font-size:.79rem;font-weight:700;color:var(--text2);margin-bottom:5px;">${escapeHtml(lv)}</div>${miniStandings(lv)}</div>`).join('')
       || `<div style="font-size:.82rem;color:var(--text2);font-style:italic;">Classifica non disponibile.</div>`;
 
+    const avvisaGenitoreBtn = canAvvisaAssenza()
+      ? `<div style="margin-bottom:16px;"><button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="openAvvisaModal()">📵 Avvisa assenza</button></div>`
+      : '';
+
     c.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">${childCards}</div>
+      ${avvisaGenitoreBtn}
       <div class="g2">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="card"><div class="ch"><div class="ct">⚽ Prossima partita</div></div>${nextMatchRow(nextMatchEv,'')}</div>
-          <div class="card"><div class="ch"><div class="ct">🔔 Notifiche recenti</div><button class="btn btn-g btn-sm" onclick="goTo('comunicazioni')">Tutte →</button></div>${notifHtml}</div>
+          <div class="card"><div class="ch"><div class="ct">📣 Avvisi non letti</div><button class="btn btn-g btn-sm" onclick="goTo('comunicazioni')">Tutti →</button></div>${avvisiDeskHtml}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div></div>${standingsHtml}</div>
@@ -9949,6 +9956,7 @@ function buildDashboard(role) {
         <div style="position:absolute;right:18px;bottom:10px;font-family:'Barlow Condensed',sans-serif;font-size:6rem;font-weight:900;opacity:.12;">#${myPlayer.num||'—'}</div>
       </div>
       ${convBanner}
+      ${canAvvisaAssenza()?`<div style="margin-bottom:16px;"><button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="openAvvisaModal()">📵 Avvisa assenza</button></div>`:''}
       <div class="g2">
         <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div></div>${miniStandings(lv)}</div>
         <div class="card"><div class="ch"><div class="ct">🥇 Classifica marcatori</div><button class="btn btn-g btn-sm" onclick="goTo('statistiche')">Apri →</button></div>${scorersTableHtml}</div>
@@ -13209,8 +13217,8 @@ function isSeniorLeva(lv) {
 function getChatsForUser(user) {
   if (!user) return [];
   const out = [];
+  const isAdmin = user.role === 'admin';
 
-  // helper: get leve for a user (dirigente/allenatore)
   function staffLeve(u) {
     const l = u.leva;
     if (Array.isArray(l)) return l;
@@ -13218,15 +13226,15 @@ function getChatsForUser(user) {
     return [l];
   }
 
-  // 1. Staff — allenatori + dirigenti + admin + preparatori portieri (id: 'allenatori')
-  if (user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'admin' || user.role === 'preparatore_portieri') {
-    const members = USERS_DB.filter(u => u.role === 'allenatore' || u.role === 'dirigente' || u.role === 'admin' || u.role === 'preparatore_portieri').map(u => u.id);
+  // 1. Staff — admin + allenatori + dirigenti + preparatori portieri
+  if (isAdmin || user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'preparatore_portieri') {
+    const members = USERS_DB.filter(u => ['admin','allenatore','dirigente','preparatore_portieri'].includes(u.role)).map(u => u.id);
     if (members.length > 0) {
       out.push({ id: 'allenatori', name: '📋 Staff', avatar: '📋', color: '#374151', members, kind: 'staff' });
     }
   }
 
-  // 2. Chat Leva Famiglie — genitori + dirigenti (NO admin, NO allenatori)
+  // 2. Chat Leva Famiglie — genitori + dirigenti (NO allenatori, NO giocatori)
   leve.forEach(lv => {
     const hasFigliInLeva = u => {
       const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
@@ -13236,59 +13244,39 @@ function getChatsForUser(user) {
       });
     };
     const dirigentiInLeva = USERS_DB.filter(u => u.role === 'dirigente' && staffLeve(u).includes(lv)).map(u => u.id);
-    // Dirigenti che hanno un figlio in questa leva entrano anche come genitori
     const dirigentiGenitoriInLeva = USERS_DB.filter(u => u.role === 'dirigente' && hasFigliInLeva(u)).map(u => u.id);
     const genitoriInLeva = USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && hasFigliInLeva(u)).map(u => u.id);
     const members = [...new Set([...dirigentiInLeva, ...dirigentiGenitoriInLeva, ...genitoriInLeva])];
-    const belongs = (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
+    const belongs = isAdmin
+      || (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
       || ((user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id));
     if (belongs && members.length > 0) {
       out.push({ id: 'leva_' + lv, name: '👨‍👧 Famiglie ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
     }
   });
 
-  // 3. Chat Squadra — giocatori + allenatori + dirigenti per leve senior (U14+, NO admin)
+  // 3. Chat Squadra — giocatori + allenatori + preparatori (NO dirigenti) per leve U14+
   leve.filter(isSeniorLeva).forEach(lv => {
     const giocatoriInLeva = USERS_DB.filter(u => {
       if (u.role !== 'giocatore') return false;
       return players.some(pl => pl.nome === u.nome && pl.cogn === u.cogn && pl.leva === lv);
     }).map(u => u.id);
     const allenatori = USERS_DB.filter(u => u.role === 'allenatore' && staffLeve(u).includes(lv)).map(u => u.id);
-    const dirigenti = USERS_DB.filter(u => u.role === 'dirigente' && staffLeve(u).includes(lv)).map(u => u.id);
-    const members = [...new Set([...giocatoriInLeva, ...allenatori, ...dirigenti])];
-    const belongs = allenatori.includes(user.id) || dirigenti.includes(user.id) || giocatoriInLeva.includes(user.id);
+    const preparatori = USERS_DB.filter(u => u.role === 'preparatore_portieri' && staffLeve(u).includes(lv)).map(u => u.id);
+    const members = [...new Set([...giocatoriInLeva, ...allenatori, ...preparatori])];
+    const belongs = isAdmin || allenatori.includes(user.id) || preparatori.includes(user.id) || giocatoriInLeva.includes(user.id);
     if (belongs && members.length > 0) {
       out.push({ id: 'squadra_' + lv, name: '⚽ Squadra ' + lv, avatar: lv.slice(0,3), color: coloriPrimari, members, kind: 'squadra', leva: lv });
     }
   });
 
-  // 4. Chat Amministrativa — ogni genitore/nonno con admin + dirigenti
-  if (user.role === 'admin' || user.role === 'dirigente') {
-    // admin/dirigente vedono una chat per ciascun genitore/nonno attivo
-    USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && u.stato === 'attivo').forEach(g => {
-      const admins = USERS_DB.filter(u => u.role === 'admin').map(u => u.id);
-      const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
-      const members = [...new Set([g.id, ...admins, ...dirigenti])];
-      out.push({ id: 'amm_' + g.id, name: '🔑 ' + g.nome + ' ' + g.cogn, avatar: '🔑', color: '#7c3aed', members, kind: 'amministrativa' });
-    });
-  } else if (user.role === 'genitore' || user.role === 'nonno') {
-    const admins = USERS_DB.filter(u => u.role === 'admin').map(u => u.id);
-    const dirigenti = USERS_DB.filter(u => u.role === 'dirigente').map(u => u.id);
-    const members = [...new Set([user.id, ...admins, ...dirigenti])];
-    if (members.length > 0) {
-      out.push({ id: 'amm_' + user.id, name: '🔑 Amministrazione', avatar: '🔑', color: '#7c3aed', members, kind: 'amministrativa' });
-    }
-  }
-
-  // 5. Chat Torneo — dirigenti della leva + genitori/nonni dei soli giocatori convocati
+  // 4. Chat Torneo — dirigenti + genitori convocati + giocatori convocati
   if (Array.isArray(tornei)) {
     tornei.forEach(t => {
       const convocatiSet = new Set(t.convocati || []);
-      // Dirigenti: solo quelli assegnati alla leva del torneo (o senza leva / Tutte)
       const dirigenti = USERS_DB.filter(u =>
         u.role === 'dirigente' && (!u.leva || u.leva === t.leva || u.leva === 'Tutte')
       ).map(u => u.id);
-      // Genitori/nonni: solo quelli con un figlio tra i convocati
       const genitoriConvocati = USERS_DB.filter(u => {
         if (u.role !== 'genitore' && u.role !== 'nonno') return false;
         const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
@@ -13297,12 +13285,19 @@ function getChatsForUser(user) {
           return p && convocatiSet.has(p.id);
         });
       }).map(u => u.id);
-      const members = [...new Set([...dirigenti, ...genitoriConvocati])];
+      const giocatoriConvocati = USERS_DB.filter(u => {
+        if (u.role !== 'giocatore') return false;
+        const p = players.find(pl => pl.nome === u.nome && pl.cogn === u.cogn);
+        return p && convocatiSet.has(p.id);
+      }).map(u => u.id);
+      const members = [...new Set([...dirigenti, ...genitoriConvocati, ...giocatoriConvocati])];
       const torneoState = (torneoChats && torneoChats[t.id]) || {};
       const genitoriScrivono = !!torneoState.genitoriScrivono;
       const isGenit = (user.role === 'genitore' || user.role === 'nonno') && genitoriConvocati.includes(user.id);
       const isDirig = user.role === 'dirigente' && dirigenti.includes(user.id);
-      if ((isGenit || isDirig) && members.length > 0) {
+      const isGioc = user.role === 'giocatore' && giocatoriConvocati.includes(user.id);
+      const belongs = isAdmin || isGenit || isDirig || isGioc;
+      if (belongs && members.length > 0) {
         out.push({
           id: 'torneo_' + t.id,
           name: '🏆 ' + t.nome + ' — ' + t.leva,
@@ -13317,6 +13312,21 @@ function getChatsForUser(user) {
       }
     });
   }
+
+  // 5. Chat ad hoc — create da admin/allenatore/dirigente; visibili ai membri e all'admin
+  (adHocChats || []).forEach(ch => {
+    if (isAdmin || ch.members.includes(user.id)) {
+      out.push({
+        id: 'adhoc_' + ch.id,
+        name: ch.name,
+        avatar: '💬',
+        color: '#6366f1',
+        members: ch.members,
+        kind: 'adhoc',
+        createdBy: ch.createdBy
+      });
+    }
+  });
 
   return out;
 }
@@ -13404,6 +13414,8 @@ function renderChatList() {
   const panel = document.getElementById('chatPanel');
   const empty = document.getElementById('chatEmpty');
   if (!container) return;
+  const btnNew = document.getElementById('btnNewChat');
+  if (btnNew) btnNew.style.display = (me && (me.role==='admin'||me.role==='allenatore'||me.role==='dirigente')) ? '' : 'none';
   const chats = getChatsForUser(me);
   if (chats.length === 0) {
     container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:.78rem;">Nessuna chat disponibile</div>';
@@ -13452,7 +13464,7 @@ function selectChat(chatId, skipListRefresh) {
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
   document.getElementById('chatName').textContent = c.name;
-  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':'') + (c.kind==='leva-famiglie'?'Famiglie':'') + (c.kind==='squadra'?'Squadra':'') + (c.kind==='amministrativa'?'Admin':'') + (c.kind==='torneo'?'Torneo':'');
+  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':c.kind==='leva-famiglie'?'Famiglie':c.kind==='squadra'?'Squadra':c.kind==='torneo'?'Torneo':c.kind==='adhoc'?'Chat':'');
   // show/hide read-only notice and input
   const noticeEl = document.getElementById('chatNotice');
   const inpArea = document.querySelector('.cm-inp');
@@ -13574,6 +13586,36 @@ function sendPhoto(input) {
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+function openNewChatModal() {
+  document.getElementById('ncName').value = '';
+  document.getElementById('ncErr').style.display = 'none';
+  const list = document.getElementById('ncUserList');
+  const roleLabel = { admin:'Admin', allenatore:'Mister', dirigente:'Dirigente', preparatore_portieri:'Prep. Portieri', genitore:'Genitore', nonno:'Nonno', giocatore:'Giocatore' };
+  const activeUsers = USERS_DB.filter(u => u.id !== me.id && u.stato === 'attivo').sort((a,b) => (a.cogn+a.nome).localeCompare(b.cogn+b.nome));
+  list.innerHTML = activeUsers.map(u => `<label style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--cl);cursor:pointer;">
+    <input type="checkbox" value="${u.id}" style="accent-color:var(--cp);width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+    <div style="flex:1;"><div style="font-weight:700;font-size:.86rem;">${escapeHtml(u.nome+' '+u.cogn)}</div>
+    <div style="font-size:.73rem;color:var(--text2);">${roleLabel[u.role]||u.role}</div></div>
+  </label>`).join('');
+  openM('mNewChat');
+}
+
+function createAdHocChat() {
+  const name = (document.getElementById('ncName').value||'').trim();
+  const errEl = document.getElementById('ncErr');
+  if (!name) { errEl.textContent = 'Inserisci un nome per la chat.'; errEl.style.display='block'; return; }
+  const checked = [...document.querySelectorAll('#ncUserList input[type=checkbox]:checked')].map(el => parseInt(el.value));
+  if (checked.length === 0) { errEl.textContent = 'Seleziona almeno un partecipante.'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+  const members = [...new Set([me.id, ...checked])];
+  const newChat = { id: nextAdHocChatId++, name, avatar: '💬', color: '#6366f1', members, createdBy: me.id, ts: Date.now() };
+  adHocChats.push(newChat);
+  closeM('mNewChat');
+  saveState();
+  currentChatId = 'adhoc_' + newChat.id;
+  renderChatList();
 }
 
 function refreshChatBadges() {
@@ -15640,6 +15682,8 @@ async function doRejoinSocieta() {
       nextChatMsgId: nextChatMsgId,
       chatLastSeen: chatLastSeen,
       torneoChats: torneoChats,
+      adHocChats: adHocChats,
+      nextAdHocChatId: nextAdHocChatId,
       amichevoli: amichevoli,
       nextAmichevoleId: nextAmichevoleId,
       campionato: campionato,
@@ -15839,6 +15883,8 @@ async function doRejoinSocieta() {
       if (typeof s.nextChatMsgId === 'number') nextChatMsgId = s.nextChatMsgId;
       if (s.chatLastSeen && typeof s.chatLastSeen === 'object') chatLastSeen = s.chatLastSeen;
       if (s.torneoChats && typeof s.torneoChats === 'object') torneoChats = s.torneoChats;
+      if (Array.isArray(s.adHocChats)) adHocChats = s.adHocChats;
+      if (typeof s.nextAdHocChatId === 'number') nextAdHocChatId = s.nextAdHocChatId;
       if (Array.isArray(s.amichevoli)) amichevoli = s.amichevoli;
       if (typeof s.nextAmichevoleId === 'number') nextAmichevoleId = s.nextAmichevoleId;
       if (s.campionato && typeof s.campionato === 'object') campionato = s.campionato;
@@ -17022,6 +17068,29 @@ async function doRejoinSocieta() {
         <button class="btn btn-g" onclick="raGoStep(2)" style="padding:0 14px;">← Indietro</button>
         <button class="btn btn-p" id="raBtnSubmit" style="flex:1;" onclick="submitRichiestaAccesso()">📬 Invia richiesta</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- NUOVA CHAT AD HOC -->
+<div class="ov" id="mNewChat">
+  <div class="modal" style="max-width:440px;">
+    <div class="mh">
+      <div class="mt">➕ Nuova chat</div>
+      <button class="mx" onclick="closeM('mNewChat')">✕</button>
+    </div>
+    <div class="fg">
+      <label class="fl">Nome chat</label>
+      <input class="fi" id="ncName" placeholder="Es. Riunione staff U10" autocapitalize="words">
+    </div>
+    <div class="fg" style="margin-top:10px;">
+      <label class="fl">Partecipanti</label>
+      <div id="ncUserList" style="max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;margin-top:6px;padding-right:2px;"></div>
+    </div>
+    <div id="ncErr" style="display:none;font-size:.82rem;color:#c0392b;padding:7px 10px;background:#fef2f2;border-radius:7px;margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-p" style="flex:1;" onclick="createAdHocChat()">Crea chat</button>
+      <button class="btn btn-g" onclick="closeM('mNewChat')">Annulla</button>
     </div>
   </div>
 </div>
