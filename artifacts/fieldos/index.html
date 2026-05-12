@@ -10480,7 +10480,23 @@ function buildDashboard(role) {
       ? `<div style="margin-bottom:16px;"><button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="openAvvisaModal()">📵 Avvisa assenza</button></div>`
       : '';
 
+    // DEBUG: mostra valori reali per diagnosticare Fase1/2
+    const _dbgLeva = childLeve[0] || '';
+    const _dbgSett = levaConvSettings[_dbgLeva] || {};
+    const _dbgD = nextMatchEv ? Math.ceil((parseYmd(nextMatchEv.date) - new Date()) / 86400000) : 'n/a';
+    const _debugOverlay = `<div style="background:#fef08a;border:2px solid #f59e0b;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-family:monospace;font-size:11px;line-height:1.8;">
+      <strong>🔍 DEBUG Fase1/2</strong><br>
+      <b>levaConvSettings completo:</b> ${escapeHtml(JSON.stringify(levaConvSettings))}<br>
+      <b>childLeve (figli):</b> [${childLeve.map(l=>escapeHtml(l)).join(', ')||'nessuna'}]<br>
+      <b>leva cercata:</b> "${escapeHtml(_dbgLeva)}" → <b>settings:</b> ${escapeHtml(JSON.stringify(_dbgSett))}<br>
+      <b>fase1Days:</b> ${_dbgSett.fase1Days} | <b>fase2Days:</b> ${_dbgSett.fase2Days}<br>
+      <b>nextMatch:</b> ${nextMatchEv ? escapeHtml(nextMatchEv.date+' ('+nextMatchEv.type+') '+nextMatchEv.title) : 'nessuna'}<br>
+      <b>giorni mancanti d=</b>${_dbgD} | <b>_nextFase=</b>${_nextFase}<br>
+      <b>isFamily()=</b>${isFamily()} | <b>leve sistema:</b> [${leve.map(l=>escapeHtml(l)).join(', ')}]
+    </div>`;
+
     c.innerHTML = `
+      ${_debugOverlay}
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">${childCards}</div>
       ${avvisaGenitoreBtn}
       <div class="g2">
