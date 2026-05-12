@@ -5683,7 +5683,7 @@ function upcomingPartiteEvents(leveFilter) {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(m.leva);
     })
-    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data, leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '' }; });
+    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data, leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '', visibilitaSubito: !!m.visibilitaSubito }; });
   return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
 }
@@ -5815,7 +5815,7 @@ function renderConvocazioni() {
   // Per genitori/giocatori: filtra per fase visibilità
   const isParent = !canCreateConvocazione();
   const list = isParent
-    ? allList.filter(ev => { const conv = getConvocazione(ev.id); return getConvFase(conv, ev) !== 'none'; })
+    ? allList.filter(ev => getFaseForFamily(ev) !== 'none')
     : allList;
 
   let html = '';
@@ -5961,7 +5961,7 @@ function renderConvocazioneCard(ev) {
 
   } else {
     // Vista genitore/giocatore — due fasi
-    const fase = getConvFase(conv, ev);
+    const fase = getFaseForFamily(ev);
     const myPlayers = getMyPlayers().filter(p => (ev.leve || []).includes(p.leva));
 
     if (fase === 'fase1') {
@@ -6235,6 +6235,28 @@ function getFasePt(dateStr, leva, evObj) {
   const f2 = def.fase2Days != null ? Number(def.fase2Days) : null;
   if (f1 == null) return 'fase2'; // nessuna configurazione = sempre visibile
   const d = Math.ceil((parseYmd(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+  if (f2 != null && d <= f2) return 'fase2';
+  if (d <= f1) return 'fase1';
+  return 'none';
+}
+// Visibilità per famiglia su un evento generico (calendario o match sintetico).
+// Differenza chiave da getConvFase: se non ci sono impostazioni → 'fase2' (visibile).
+// Usa ev.visibilitaMode per gli eventi calendario; ev.visibilitaSubito per i match.
+function getFaseForFamily(ev) {
+  if (!ev) return 'none';
+  if (ev.visibilitaMode === 'nascosto') return 'none';
+  if (ev.visibilitaSubito || ev.visibilitaMode === 'subito') return 'fase2';
+  const leva = (Array.isArray(ev.leve) ? ev.leve[0] : ev.leva) || '';
+  const def = levaConvSettings[leva] || {};
+  let f1Raw = def.fase1Days, f2Raw = def.fase2Days;
+  if (ev.visibilitaMode === 'custom') {
+    f1Raw = ev.visibilitaFase1Days != null ? ev.visibilitaFase1Days : def.fase1Days;
+    f2Raw = ev.visibilitaFase2Days != null ? ev.visibilitaFase2Days : def.fase2Days;
+  }
+  const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
+  const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
+  if (f1 == null) return 'fase2'; // nessuna configurazione = visibile
+  const d = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
   if (f2 != null && d <= f2) return 'fase2';
   if (d <= f1) return 'fase1';
   return 'none';
