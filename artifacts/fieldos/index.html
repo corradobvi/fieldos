@@ -2164,18 +2164,27 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<!-- Indisponibilità genitore/giocatore (periodo) -->
+<!-- Indisponibilità (periodo) — per genitori/giocatori e per staff -->
 <div class="ov" id="mIndisp">
   <div class="modal">
     <div class="mh"><div class="mt" id="mIndispTitle">🗓️ Indisponibilità</div><button class="mx" onclick="closeM('mIndisp')">✕</button></div>
     <input type="hidden" id="indispId">
     <input type="hidden" id="indispPlayerId">
     <div id="mIndispPlayerInfo" style="background:var(--cl);border-radius:9px;padding:9px 12px;margin-bottom:12px;font-size:.83rem;font-weight:600;"></div>
+    <div id="indispTipoRow" style="display:none;" class="fg">
+      <label class="fl">Tipo</label>
+      <select class="fs" id="indispTipo">
+        <option value="infortunio">🤕 Infortunio</option>
+        <option value="squalifica">🟥 Squalifica</option>
+        <option value="verbale">📞 Comunicazione verbale</option>
+        <option value="altro">📝 Altro</option>
+      </select>
+    </div>
     <div class="fr">
       <div class="fg"><label class="fl">Dal giorno</label><input class="fi" type="date" id="indispDataI"></div>
       <div class="fg"><label class="fl">Al giorno</label><input class="fi" type="date" id="indispDataF"></div>
     </div>
-    <div class="fg"><label class="fl">Motivo <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="indispMotivo" placeholder="Es. vacanza, visita medica, impegno scolastico..."></div>
+    <div class="fg"><label class="fl">Note <span style="font-weight:400;opacity:.6;">(opzionali)</span></label><input class="fi" id="indispMotivo" placeholder="Es. trauma alla caviglia, partita sospesa..."></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveIndisp()">💾 Salva</button>
       <button class="btn btn-r" id="btnDelIndisp" style="display:none;" onclick="deleteIndisp()">🗑 Elimina</button>
@@ -4146,20 +4155,27 @@ function renderRosa() {
   g.innerHTML = '';
   const _rosaSoc = saSocieties.find(x => x.id === currentSocietaId);
   const _lavaPlayers = players.filter(pl => pl.leva === currentLeva).sort((a,b) => a.id-b.id);
+  const todayRosa = ymd(new Date());
+  const canMarkIndispRosa = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
   list.forEach(p => {
     const s = calcStats(p);
     const pc = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
     const frozen = isPlayerFrozen(_rosaSoc, p, _lavaPlayers);
+    const indispNow = playerIndispOnDate(p.id, todayRosa);
     const card = document.createElement('div');
     card.className = 'pc' + (frozen ? ' frozen-card' : '');
 
     // top
     const top = document.createElement('div');
     top.className = 'pc-top';
+    const indispBadge = indispNow
+      ? ` <span style="display:inline-block;background:#fff7ed;color:#c2410c;border-radius:5px;padding:1px 5px;font-size:.68rem;font-weight:700;" title="${indispNow.tipo ? _indispTipoLabel(indispNow.tipo) : 'Indisponibile'}${indispNow.motivo ? ': '+escapeHtml(indispNow.motivo) : ''}">⚠️ ${indispNow.tipo ? _indispTipoLabel(indispNow.tipo) : 'Ind.'}</span>`
+      : '';
     top.innerHTML = `
       ${playerAv(p, 44, '10px', true)}
       <div style="flex:1;min-width:0;">
         <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.nome)} ${escapeHtml(p.cogn)}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
+        ${indispBadge}
         ${p.soprannome ? `<div style="font-size:.71rem;color:var(--text3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${escapeHtml(p.soprannome)}"</div>` : ''}
         <div class="pc-role">${escapeHtml(p.ruolo)} · ${p.anno}</div>
       </div>
@@ -4183,44 +4199,57 @@ function renderRosa() {
       <div class="pc-mini-box"><div class="pc-mini-l">Allenamenti</div><div class="pc-mini-v">${s.allPres}/${s.allTot}</div></div>`;
     card.appendChild(mini);
 
-    // buttons (only for editable roles)
-    if (editable) {
+    // buttons
+    if (editable || canMarkIndispRosa) {
       const btns = document.createElement('div');
       btns.className = 'pc-btns';
 
-      const bMsg = document.createElement('button');
-      bMsg.className = 'btn btn-g btn-xs';
-      bMsg.style.flex = '1';
-      bMsg.textContent = '✉';
-      bMsg.onclick = () => toast('✉️ Messaggio inviato alla famiglia!');
+      if (editable) {
+        const bMsg = document.createElement('button');
+        bMsg.className = 'btn btn-g btn-xs';
+        bMsg.style.flex = '1';
+        bMsg.textContent = '✉';
+        bMsg.onclick = () => toast('✉️ Messaggio inviato alla famiglia!');
 
-      const bEdit = document.createElement('button');
-      bEdit.className = 'btn btn-g btn-xs';
-      bEdit.style.flex = '1';
-      bEdit.textContent = '✏️';
-      bEdit.onclick = () => openPlayerModal(p.id);
+        const bEdit = document.createElement('button');
+        bEdit.className = 'btn btn-g btn-xs';
+        bEdit.style.flex = '1';
+        bEdit.textContent = '✏️';
+        bEdit.onclick = () => openPlayerModal(p.id);
 
-      const bDel = document.createElement('button');
-      bDel.className = 'btn btn-r btn-xs';
-      bDel.style.flex = '1';
-      bDel.textContent = '🗑';
-      bDel.onclick = () => {
-        if (confirm(`Eliminare ${p.nome} ${p.cogn} dalla rosa?`)) {
-          const idx = players.findIndex(x => x.id === p.id);
-          if (idx !== -1) {
-            purgePlayerRefs(p.id);
-            players.splice(idx, 1);
-            toast(`🗑 ${p.nome} ${p.cogn} rimosso`);
-            renderRosa();
-            renderPresenze();
-            renderStats();
+        const bDel = document.createElement('button');
+        bDel.className = 'btn btn-r btn-xs';
+        bDel.style.flex = '1';
+        bDel.textContent = '🗑';
+        bDel.onclick = () => {
+          if (confirm(`Eliminare ${p.nome} ${p.cogn} dalla rosa?`)) {
+            const idx = players.findIndex(x => x.id === p.id);
+            if (idx !== -1) {
+              purgePlayerRefs(p.id);
+              players.splice(idx, 1);
+              toast(`🗑 ${p.nome} ${p.cogn} rimosso`);
+              renderRosa();
+              renderPresenze();
+              renderStats();
+            }
           }
-        }
-      };
+        };
 
-      btns.appendChild(bMsg);
-      btns.appendChild(bEdit);
-      btns.appendChild(bDel);
+        btns.appendChild(bMsg);
+        btns.appendChild(bEdit);
+        btns.appendChild(bDel);
+      }
+
+      if (canMarkIndispRosa) {
+        const bIndisp = document.createElement('button');
+        bIndisp.className = indispNow ? 'btn btn-r btn-xs' : 'btn btn-g btn-xs';
+        bIndisp.style.flex = '1';
+        bIndisp.title = indispNow ? 'Modifica indisponibilità' : 'Segna indisponibile';
+        bIndisp.textContent = indispNow ? '⚠️ Ind.' : '⚠️';
+        bIndisp.onclick = () => openIndispModal(p.id, indispNow ? indispNow.id : null);
+        btns.appendChild(bIndisp);
+      }
+
       card.appendChild(btns);
     }
 
@@ -5485,20 +5514,29 @@ function getMyPlayers() {
 // Le partite/tornei sono trattate come eventi singoli: eventuali ricorrenze sono ignorate qui
 // (per più partite serve creare più eventi separati).
 function getEventById(id) {
-  const numId = typeof id === 'number' ? id : (/^\d+$/.test(String(id)) ? parseInt(id, 10) : NaN);
-  if (!isNaN(numId)) {
-    const ev = events.find(e => e.id === numId);
-    if (ev) return ev;
-    const am = (Array.isArray(amichevoli) ? amichevoli : []).find(x => x.id === numId);
-    if (am) { const polis = polisName(am.leva); const isH = (am.tipo||'casa')==='casa'; return { id: am.id, type: 'partita', title: `🤝 ${isH?polis:am.avversario} vs ${isH?am.avversario:polis}`, date: am.data, leve: [am.leva], luogo: am.luogo || '', start: am.orario || '', end: '' }; }
+  const idStr = String(id);
+  // amich_N — amichevole (must check before numeric fallback to avoid ID collision with calendar events)
+  const amichMatch = /^amich_(\d+)$/.exec(idStr);
+  if (amichMatch) {
+    const amId = parseInt(amichMatch[1]);
+    const am = (Array.isArray(amichevoli) ? amichevoli : []).find(x => x.id === amId);
+    if (am) { const polis = polisName(am.leva); const isH = (am.tipo||'casa')==='casa'; return { id: 'amich_' + am.id, type: 'partita', title: `🤝 ${isH?polis:am.avversario} vs ${isH?am.avversario:polis}`, date: am.data, leve: [am.leva], luogo: am.luogo || '', start: am.orario || '', end: '' }; }
   }
-  const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === String(id));
-  if (t) return { id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' };
-  const campMatch = /^camp_(.+)_(\d+)$/.exec(String(id));
+  // camp_lv_N — campionato match
+  const campMatch = /^camp_(.+)_(\d+)$/.exec(idStr);
   if (campMatch) {
     const lv = campMatch[1], mId = parseInt(campMatch[2]);
     const m = (campionato?.[lv]?.partite || []).find(x => x.id === mId);
-    if (m) return { id: String(id), type: 'partita', title: `⚽ ${m.casa} vs ${m.ospite}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' };
+    if (m) return { id: idStr, type: 'partita', title: `⚽ ${m.casa} vs ${m.ospite}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' };
+  }
+  // torneo by id
+  const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === id || String(x.id) === idStr);
+  if (t) return { id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' };
+  // numeric — calendar event only (partita/torneo types; not allenamento to avoid collision)
+  const numId = /^\d+$/.test(idStr) ? parseInt(idStr, 10) : NaN;
+  if (!isNaN(numId)) {
+    const ev = events.find(e => e.id === numId);
+    if (ev) return ev;
   }
   return null;
 }
@@ -5536,7 +5574,7 @@ function upcomingPartiteEvents(leveFilter) {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(m.leva);
     })
-    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data, leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '' }; });
+    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data, leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '' }; });
   return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
 }
@@ -5745,9 +5783,10 @@ function renderConvocazioneCard(ev) {
     // Indisponibilità da calendario per i giocatori convocati/disponibili
     const indispWarnings = bucket.disp.concat(bucket.senza).filter(p => playerIndispOnDate(p.id, ev.date));
     const indispWarnHtml = indispWarnings.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:.78rem;">
-      <strong style="color:#c2410c;">⚠️ Indisponibili (segnalato dai genitori):</strong> ${indispWarnings.map(p => {
+      <strong style="color:#c2410c;">⚠️ Indisponibili segnalati:</strong> ${indispWarnings.map(p => {
         const i = playerIndispOnDate(p.id, ev.date);
-        return escapeHtml(p.nome+' '+p.cogn) + (i && i.motivo ? ` <span style="color:var(--text2);">(${escapeHtml(i.motivo)})</span>` : '');
+        const tipoStr = i && i.tipo ? _indispTipoLabel(i.tipo) : (i && i.byStaff ? '' : '');
+        return escapeHtml(p.nome+' '+p.cogn) + (i ? ` <span style="color:var(--text2);">(${[tipoStr, i.motivo].filter(Boolean).join(' · ') || (i.byStaff ? 'staff' : 'famiglia')})</span>` : '');
       }).join(', ')}
     </div>` : '';
 
@@ -5779,7 +5818,7 @@ function renderConvocazioneCard(ev) {
         const indispEv = getDispon(ev.id, p.id);
         const indispEvFlag = indispEv && indispEv.status === 'indisponibile';
         const warn = (indispW || indispEvFlag)
-          ? ` <span style="color:#f59e0b;font-size:.72rem;" title="${indispEvFlag ? '⚠️ Indisponibile segnalato dal genitore' + (indispEv.motivo ? ': '+escapeHtml(indispEv.motivo) : '') : 'Indisponibile (calendario)'}">⚠️</span>`
+          ? ` <span style="color:#f59e0b;font-size:.72rem;" title="${indispEvFlag ? '⚠️ Indisponibile (genitore)' + (indispEv.motivo ? ': '+escapeHtml(indispEv.motivo) : '') : '⚠️ ' + (indispW && indispW.tipo ? _indispTipoLabel(indispW.tipo) : 'Indisponibile') + (indispW && indispW.motivo ? ': '+escapeHtml(indispW.motivo) : '')}">⚠️</span>`
           : '';
         return escapeHtml(p.soprannome || (p.nome + ' ' + p.cogn)) + warn;
       });
@@ -5931,6 +5970,14 @@ function openConvocazioneModal(eventId) {
 
   const roster = rosterForEvent(ev);
   const selected = new Set(conv ? conv.playerIds : []);
+  // Sort: available first, staff-indisponibili at bottom
+  roster.sort((a, b) => {
+    const ai = !!playerIndispOnDate(a.id, ev.date);
+    const bi = !!playerIndispOnDate(b.id, ev.date);
+    if (ai !== bi) return ai ? 1 : -1;
+    return 0;
+  });
+  const canMarkIndisp = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   const rosterEl = document.getElementById('convRoster');
   if (!roster.length) {
     rosterEl.innerHTML = `<div style="padding:12px;color:var(--text2);font-size:.84rem;text-align:center;">Nessun giocatore nelle leve dell'evento.</div>`;
@@ -5938,21 +5985,32 @@ function openConvocazioneModal(eventId) {
     rosterEl.innerHTML = roster.map(p => {
       const d = getDispon(ev.id, p.id);
       const indisp = d && d.status === 'indisponibile';
-      // Se diventato indisponibile dopo essere stato convocato, lo deseleziono
       const isSel = selected.has(p.id) && !indisp;
-      const motivoHtml = indisp
-        ? `<span style="font-size:.72rem;color:var(--red);">⚠️ Indisponibile segnalato${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`
-        : `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
       const calIndisp = playerIndispOnDate(p.id, ev.date);
-      const calIndispHtml = calIndisp ? `<span style="font-size:.72rem;color:#c2410c;margin-left:4px;">⚠️ Calendario: ${calIndisp.motivo ? escapeHtml(calIndisp.motivo) : 'indisponibile'}</span>` : '';
-      return `<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${indisp?'#fff7ed':calIndisp?'#fff7ed':'var(--bg)'};opacity:${indisp?'0.65':'1'};cursor:${indisp?'not-allowed':'pointer'};">
-        <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:17px;height:17px;accent-color:var(--cp);">
+      const bg = (indisp || calIndisp) ? '#fff7ed' : 'var(--bg)';
+      const opac = indisp ? 'opacity:.65;' : '';
+      let statusHtml;
+      if (indisp) {
+        statusHtml = `<span style="font-size:.72rem;color:var(--red);">⚠️ Indisponibile (famiglia)${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
+      } else if (calIndisp) {
+        const tl = calIndisp.tipo ? _indispTipoLabel(calIndisp.tipo) : '⚠️ Indisponibile';
+        const src = calIndisp.byStaff ? ' (staff)' : ' (famiglia)';
+        statusHtml = `<span style="font-size:.72rem;color:#c2410c;">${tl}${src}${calIndisp.motivo ? ' · '+escapeHtml(calIndisp.motivo) : ''}</span>`;
+      } else {
+        statusHtml = `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
+      }
+      const indispBtnHtml = canMarkIndisp
+        ? `<button class="btn btn-g btn-xs" style="flex-shrink:0;padding:3px 7px;font-size:.72rem;" title="${calIndisp ? 'Modifica indisponibilità' : 'Segna indisponibile'}" onclick="openIndispModal(${p.id},${calIndisp ? calIndisp.id : 'null'})">⚠️</button>`
+        : '';
+      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${bg};${opac}margin-bottom:3px;">
+        <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:17px;height:17px;accent-color:var(--cp);cursor:${indisp?'not-allowed':'pointer'};flex-shrink:0;">
         ${playerAv(p, 28, '50%', false)}
-        <div style="flex:1;">
+        <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="color:var(--text3);font-style:italic;font-weight:400;">"${escapeHtml(p.soprannome)}"</span>` : ''} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
-          <div>${motivoHtml}${calIndispHtml}</div>
+          <div>${statusHtml}</div>
         </div>
-      </label>`;
+        ${indispBtnHtml}
+      </div>`;
     }).join('');
   }
   updateConvCounter();
@@ -6136,6 +6194,9 @@ function toggleConvFase(n) {
 function playerIndispOnDate(playerId, dateStr) {
   return indisponibilita.find(i => i.playerId === playerId && i.dataInizio <= dateStr && i.dataFine >= dateStr) || null;
 }
+function _indispTipoLabel(tipo) {
+  return { infortunio: '🤕 Infortunio', squalifica: '🟥 Squalifica', verbale: '📞 Verbale', altro: '📝 Altro' }[tipo] || '';
+}
 
 function playerIndispInRange(playerId, dataI, dataF) {
   return indisponibilita.filter(i => i.playerId === playerId && i.dataInizio <= dataF && i.dataFine >= dataI);
@@ -6145,9 +6206,10 @@ function openIndispModal(playerId, indispId) {
   const p = players.find(x => x.id === playerId);
   if (!p && !indispId) return;
   const existing = indispId ? indisponibilita.find(i => i.id === indispId) : null;
+  const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   document.getElementById('indispId').value = indispId || '';
   document.getElementById('indispPlayerId').value = playerId || (existing ? existing.playerId : '');
-  document.getElementById('mIndispTitle').textContent = existing ? '✏️ Modifica indisponibilità' : '🗓️ Nuova indisponibilità';
+  document.getElementById('mIndispTitle').textContent = existing ? '✏️ Modifica indisponibilità' : (isStaff ? '⚠️ Segna indisponibile' : '🗓️ Nuova indisponibilità');
   const pid = playerId || existing?.playerId;
   const pp = players.find(x => x.id === pid);
   document.getElementById('mIndispPlayerInfo').textContent = pp ? `👤 ${pp.nome} ${pp.cogn} — ${pp.leva}` : '';
@@ -6156,6 +6218,10 @@ function openIndispModal(playerId, indispId) {
   document.getElementById('indispDataF').value = existing ? existing.dataFine : today;
   document.getElementById('indispMotivo').value = existing ? (existing.motivo || '') : '';
   document.getElementById('btnDelIndisp').style.display = existing ? '' : 'none';
+  const tipoRow = document.getElementById('indispTipoRow');
+  if (tipoRow) tipoRow.style.display = isStaff ? '' : 'none';
+  const tipoEl = document.getElementById('indispTipo');
+  if (tipoEl && isStaff) tipoEl.value = (existing && existing.tipo) || 'infortunio';
   openM('mIndisp');
 }
 
@@ -6167,16 +6233,19 @@ function saveIndisp() {
   const motivo = document.getElementById('indispMotivo').value.trim();
   if (!dataI || !dataF) { toast('⚠️ Inserisci le date'); return; }
   if (dataF < dataI) { toast('⚠️ La data fine deve essere uguale o successiva alla data inizio'); return; }
+  const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const tipo = (isStaff && document.getElementById('indispTipo')) ? document.getElementById('indispTipo').value : null;
   const rawId = document.getElementById('indispId').value;
   if (rawId) {
     const i = indisponibilita.find(x => x.id === parseInt(rawId));
-    if (i) { i.dataInizio = dataI; i.dataFine = dataF; i.motivo = motivo; }
+    if (i) { i.dataInizio = dataI; i.dataFine = dataF; i.motivo = motivo; if (tipo) i.tipo = tipo; i.byStaff = isStaff||false; }
   } else {
-    indisponibilita.push({ id: nextIndispId++, playerId, dataInizio: dataI, dataFine: dataF, motivo, byUserId: me.id, createdAt: Date.now() });
+    indisponibilita.push({ id: nextIndispId++, playerId, dataInizio: dataI, dataFine: dataF, tipo: tipo||null, motivo, byUserId: me.id, byStaff: isStaff||false, createdAt: Date.now() });
   }
   closeM('mIndisp');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderConvocazioni();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+  if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   toast('✅ Indisponibilità salvata');
 }
 
@@ -6186,7 +6255,8 @@ function deleteIndisp() {
   indisponibilita = indisponibilita.filter(i => i.id !== parseInt(rawId));
   closeM('mIndisp');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderConvocazioni();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+  if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   toast('🗑 Indisponibilità rimossa');
 }
 
@@ -12847,7 +12917,7 @@ function savePtAmich() {
   } else {
     const newId = nextAmichevoleId++;
     amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
-    autoCreateConvocazione(newId, leva);
+    autoCreateConvocazione('amich_' + newId, leva);
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -12860,6 +12930,7 @@ function deletePtAmich(id) {
   if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   amichevoli = amichevoli.filter(x => x.id !== id);
+  purgeEventRefs('amich_' + id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderGestComp(); renderCal();
   toast('🗑 Amichevole eliminata');
