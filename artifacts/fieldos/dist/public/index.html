@@ -119,6 +119,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .tb-urole{font-size:.65rem;color:var(--text3);}
 .btn-out{padding:6px 13px;border-radius:7px;border:1.5px solid var(--border);background:transparent;font-size:.74rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;}
 .btn-out:hover{border-color:var(--red);color:var(--red);background:var(--rbg);}
+/* TOPBAR USER DROPDOWN */
+.tb-user-btn{display:flex;align-items:center;gap:7px;cursor:pointer;padding:3px 5px;border-radius:8px;transition:background .14s;position:relative;-webkit-tap-highlight-color:transparent;}
+.tb-user-btn:hover{background:var(--bg);}
+.tb-user-dd{position:absolute;top:calc(100% + 8px);right:0;background:var(--white);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 32px rgba(13,26,58,.15);min-width:190px;padding:5px;z-index:2000;display:none;animation:mIn .15s ease;}
+.tb-user-dd.on{display:block;}
+.tb-user-dd-head{padding:7px 10px 8px;font-size:.74rem;color:var(--text2);border-bottom:1px solid var(--border);margin-bottom:4px;line-height:1.4;}
+.tb-user-dd-head strong{display:block;font-size:.86rem;color:var(--text);font-weight:700;}
+.tb-user-dd-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:.84rem;font-weight:500;color:var(--text);transition:background .12s;width:100%;background:none;border:none;text-align:left;}
+.tb-user-dd-item:hover{background:var(--bg);}
+.tb-user-dd-item.danger{color:var(--red);}
+.tb-user-dd-item.danger:hover{background:var(--rbg);}
 .ham{display:none;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--text);}
 
 /* LAYOUT */
@@ -1586,11 +1597,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div id="syncStatusBar" style="display:none;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">⏳ Salvataggio…</div>
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
-      <div style="display:flex;align-items:center;gap:7px;">
-        <div class="tb-av" id="tbAv" onclick="goTo('profilo')" title="Vai al profilo" style="cursor:pointer;">?</div>
+      <div class="tb-user-btn" id="tbUserBtn" onclick="toggleTopUserMenu()" title="Menu utente">
+        <div class="tb-av" id="tbAv">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
+        <div class="tb-user-dd" id="tbUserMenu">
+          <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
+          <button class="tb-user-dd-item" onclick="openChangePassModal();event.stopPropagation();">🔐 Cambia password</button>
+          <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
+        </div>
       </div>
-      <button class="btn-out" onclick="logout()">Esci</button>
     </div>
   </header>
   <!-- MOBILE BOTTOM NAV (popolata da buildMobNav) -->
@@ -15973,6 +15988,78 @@ function changePasswordProfile() {
 }
 
 // ═══════════════════════════════════
+// TOPBAR USER DROPDOWN
+// ═══════════════════════════════════
+
+function toggleTopUserMenu() {
+  const dd = document.getElementById('tbUserMenu');
+  if (!dd) return;
+  const isOpen = dd.classList.contains('on');
+  if (!isOpen) {
+    const nameEl = document.getElementById('tbMenuName');
+    const roleEl = document.getElementById('tbMenuRole');
+    if (nameEl) nameEl.textContent = document.getElementById('tbName')?.textContent || '—';
+    if (roleEl) roleEl.textContent = document.getElementById('tbRole')?.textContent || '—';
+    dd.classList.add('on');
+    setTimeout(() => document.addEventListener('click', _closeTopMenuOnClick), 10);
+  } else {
+    dd.classList.remove('on');
+    document.removeEventListener('click', _closeTopMenuOnClick);
+  }
+}
+
+function _closeTopMenuOnClick(e) {
+  const btn = document.getElementById('tbUserBtn');
+  if (btn && !btn.contains(e.target)) {
+    const dd = document.getElementById('tbUserMenu');
+    if (dd) dd.classList.remove('on');
+    document.removeEventListener('click', _closeTopMenuOnClick);
+  }
+}
+
+function openChangePassModal() {
+  const dd = document.getElementById('tbUserMenu');
+  if (dd) dd.classList.remove('on');
+  document.removeEventListener('click', _closeTopMenuOnClick);
+  ['cpModalOld','cpModalNew','cpModalConf'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.type = 'password'; }
+  });
+  const msg = document.getElementById('cpModalMsg');
+  if (msg) msg.style.display = 'none';
+  // Reset pw strength UI if previously inited
+  const pwui = document.getElementById('cpModalNew_pwui');
+  if (pwui) pwui.style.display = 'none';
+  openM('mPassProfile');
+  setTimeout(() => { initPwField('cpModalNew', 'cpModalConf'); }, 50);
+}
+
+function saveChangePassModal() {
+  const oldVal  = (document.getElementById('cpModalOld')  || {}).value || '';
+  const newVal  = (document.getElementById('cpModalNew')  || {}).value || '';
+  const confVal = (document.getElementById('cpModalConf') || {}).value || '';
+  const msgEl   = document.getElementById('cpModalMsg');
+  function _msg(txt, ok) {
+    if (!msgEl) { toast(txt); return; }
+    msgEl.style.display = '';
+    msgEl.style.background = ok ? '#ecfdf5' : '#fef2f2';
+    msgEl.style.color = ok ? '#065f46' : '#c0392b';
+    msgEl.textContent = txt;
+    if (ok) setTimeout(() => { msgEl.style.display = 'none'; closeM('mPassProfile'); }, 1800);
+  }
+  if (!me) return;
+  if (!oldVal) { _msg('❌ Inserisci la password attuale', false); return; }
+  if (oldVal !== me.pass) { _msg('❌ La password attuale non è corretta', false); return; }
+  if (!_pwCheck(newVal).valid) { _msg('❌ La nuova password deve avere almeno 8 caratteri, una maiuscola, un numero e un simbolo', false); return; }
+  if (newVal !== confVal) { _msg('❌ Le due password non coincidono', false); return; }
+  const u = USERS_DB.find(x => x.id === me.id);
+  if (u) u.pass = newVal;
+  me.pass = newVal;
+  window.__fieldosSaveState();
+  _msg('✅ Password aggiornata con successo!', true);
+}
+
+// ═══════════════════════════════════
 // RECUPERO PASSWORD (schermata login)
 // ═══════════════════════════════════
 
@@ -17461,6 +17548,21 @@ async function doRejoinSocieta() {
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveDocumento()">💾 Carica</button>
       <button class="btn btn-g" onclick="closeM('mDoc')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ CAMBIO PASSWORD (dal menu topbar) ══════ -->
+<div class="ov" id="mPassProfile" style="z-index:1050;">
+  <div class="modal" style="max-width:400px;">
+    <div class="mh"><div class="mt">🔐 Cambia password</div><button class="mx" onclick="closeM('mPassProfile')">✕</button></div>
+    <div class="fg"><label class="fl">Password attuale</label><div class="fi-wrap"><input class="fi" type="password" id="cpModalOld" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')saveChangePassModal()"><button type="button" class="fi-eye" onclick="_toggleEye('cpModalOld',this)" tabindex="-1" aria-label="Mostra/nascondi password"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+    <div class="fg"><label class="fl">Nuova password</label><input class="fi" type="password" id="cpModalNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveChangePassModal()"></div>
+    <div class="fg"><label class="fl">Conferma nuova password</label><input class="fi" type="password" id="cpModalConf" placeholder="Ripeti la nuova password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveChangePassModal()"></div>
+    <div id="cpModalMsg" style="display:none;font-size:.84rem;padding:9px 13px;border-radius:8px;margin-bottom:10px;font-weight:600;"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-p" style="flex:1;" onclick="saveChangePassModal()">💾 Salva</button>
+      <button class="btn btn-g" onclick="closeM('mPassProfile')">Annulla</button>
     </div>
   </div>
 </div>
