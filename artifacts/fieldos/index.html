@@ -5576,7 +5576,7 @@ function saveAvvisoAssenza(){
   });
   // Marca automaticamente il giocatore come "giustificato" per quella data nel registro presenze
   setPresenzaForDate(p, date, 'j');
-  // Notifica al/ai mister della leva (+ admin)
+  // Notifica al/ai mister e dirigente della leva (NO admin)
   const dateLong = fmtDateLong(parseYmd(date));
   const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
   coachIds.forEach(uid => {
@@ -5793,6 +5793,7 @@ function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
+    if (u.role === 'admin') return; // admin escluso esplicitamente dagli avvisi di assenza
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
@@ -6668,7 +6669,11 @@ function commTotalUnread() {
   if (!me) return 0;
   const visScopes = commVisibleScopes().map(s=>s.id);
   const unreadComm = comunicazioni.filter(c => visScopes.includes(c.scope) && !commIsRead(c)).length;
-  return unreadComm + unreadCount(me.id);
+  // Admin non conta avvisi di assenza nel badge (sono di competenza di mister/dirigente)
+  const unreadNotif = me.role === 'admin'
+    ? notifiche.filter(n => n.userId === me.id && !n.read && n.type !== 'avviso_assenza').length
+    : unreadCount(me.id);
+  return unreadComm + unreadNotif;
 }
 
 function refreshNotificheBadge() {
@@ -6770,6 +6775,8 @@ function _renderCommTabContent() {
 
   if (_commActiveTab === 'notifiche') {
     let list = userNotifiche(me.id, false);
+    // Admin non vede avvisi di assenza: sono di competenza esclusiva di mister e dirigente
+    if (me.role === 'admin') list = list.filter(n => n.type !== 'avviso_assenza');
     if (q) list = list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));
     if (!list.length) {
       cont.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text2);">Nessuna notifica.</div>';
@@ -7576,7 +7583,7 @@ function showUnreadConvToast() {
   if (!me) return;
   const unread = userNotifiche(me.id, true);
   const conv = unread.filter(n => n.type === 'convocazione');
-  const avvisi = unread.filter(n => n.type === 'avviso_assenza');
+  const avvisi = me.role === 'admin' ? [] : unread.filter(n => n.type === 'avviso_assenza');
   if (conv.length === 1) toast('🔔 ' + conv[0].title);
   else if (conv.length > 1) toast('🔔 Hai ' + conv.length + ' nuove convocazioni');
   if (avvisi.length === 1) setTimeout(() => toast('🔔 ' + avvisi[0].title), conv.length ? 1400 : 0);
