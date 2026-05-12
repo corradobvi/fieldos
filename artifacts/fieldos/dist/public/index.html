@@ -9617,17 +9617,17 @@ function panoAllNextMatchesAcrossLeve(leveArr) {
     const polis = _campPolis(lv);
     (amichevoli||[]).filter(m => m.leva === lv && !m.annullata && m.data >= todayStr).forEach(m => {
       const isHome = (m.tipo || 'casa') === 'casa';
-      results.push({ leva: lv, tipo: 'amichevole', data: m.data, orario: m.orario||'', avversario: m.avversario||'?', casa: isHome, luogo: m.luogo||'' });
+      results.push({ leva: lv, tipo: 'amichevole', data: m.data, orario: m.orario||'', avversario: m.avversario||'?', casa: isHome, luogo: m.luogo||'', visibilitaSubito: !!m.visibilitaSubito });
     });
     const camp = campionato[lv];
     if (camp) (camp.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
       const isHome = m.casa === polis;
-      results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||'', giornata: m.giornata });
+      results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||'', giornata: m.giornata, visibilitaSubito: !!m.visibilitaSubito });
     });
     (tornei||[]).filter(t => t.leva === lv).forEach(t => {
       (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
         const isHome = m.casa === polis;
-        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome });
+        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome, visibilitaSubito: !!t.visibilitaSubito });
       }));
     });
     // Fallback: eventi calendario di tipo partita/amichevole non già coperti dai dati strutturati
@@ -9745,20 +9745,33 @@ function renderPanoramica() {
     torneo:      { ic:'🏆', col:'#e03055', lb:'Torneo' }
   };
   const _multiLeva = leveVis.length > 1;
+  const _panoVisible = isFamily()
+    ? _allNext.filter(m => getFasePt(m.data, m.leva, m) !== 'none')
+    : _allNext;
   let partiteHtml = '';
   if (!leveVis.length) {
     partiteHtml = `<div class="empty"><div class="empty-ic">⚽</div><div class="empty-txt">Nessuna leva associata al tuo profilo</div></div>`;
-  } else if (!_allNext.length) {
+  } else if (!_panoVisible.length) {
     partiteHtml = `<div style="text-align:center;padding:20px;color:var(--text3);font-size:.85rem;line-height:1.6;">Nessuna partita in programma.<br><span style="font-size:.75rem;opacity:.85;">Aggiungi partite dalla sezione <a href="#" onclick="event.preventDefault();goTo('partite')" style="color:var(--cp);">Partite &amp; Tornei</a>.</span></div>`;
   } else {
-    const rows = _allNext.slice(0, _maxShow).map(m => {
+    const rows = _panoVisible.slice(0, _maxShow).map(m => {
       const t = _tipoMap[m.tipo] || { ic:'⚽', col:'var(--text2)', lb:m.tipo };
-      const casaCol = m.casa ? '#0b7a3e' : '#e65100';
-      const casaLb  = m.casa ? 'Casa' : 'Trasferta';
-      const sub = m.giornata ? ` · G${m.giornata}` : m.torneoNome ? ` · ${escapeHtml(m.torneoNome)}` : '';
       const levaChip = _multiLeva
         ? `<span style="display:inline-block;font-size:.65rem;font-weight:700;background:var(--cl);color:var(--cp);border-radius:5px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">${escapeHtml(m.leva)}</span>`
         : '';
+      const fase = isFamily() ? getFasePt(m.data, m.leva, m) : 'fase2';
+      if (fase === 'fase1') {
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 11px;background:#f8fafc;border-radius:9px;border:1px solid var(--bd);border-left:3px solid ${t.col};">
+          <div style="font-size:1.15rem;line-height:1;flex-shrink:0;">${t.ic}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:.88rem;">⚽ ${t.lb}${levaChip}</div>
+            <div style="font-size:.74rem;color:var(--text2);margin-top:1px;">📅 ${escapeHtml(panoFmtDateShort(m.data))} · ⏳ Dettagli disponibili a breve</div>
+          </div>
+        </div>`;
+      }
+      const casaCol = m.casa ? '#0b7a3e' : '#e65100';
+      const casaLb  = m.casa ? 'Casa' : 'Trasferta';
+      const sub = m.giornata ? ` · G${m.giornata}` : m.torneoNome ? ` · ${escapeHtml(m.torneoNome)}` : '';
       const meta = [
         `📅 ${escapeHtml(panoFmtDateShort(m.data))}${m.orario ? ' ' + m.orario : ''}`,
         m.luogo ? `📍 ${escapeHtml(m.luogo)}` : ''
@@ -9772,8 +9785,8 @@ function renderPanoramica() {
         <span style="font-size:.65rem;font-weight:700;background:${casaCol};color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;">${casaLb}</span>
       </div>`;
     }).join('');
-    const more = _allNext.length > _maxShow
-      ? `<div style="text-align:center;padding:4px 0;"><a href="#" onclick="event.preventDefault();goTo('partite')" style="font-size:.8rem;color:var(--cp);font-weight:600;">Vedi tutte le ${_allNext.length} partite →</a></div>`
+    const more = _panoVisible.length > _maxShow
+      ? `<div style="text-align:center;padding:4px 0;"><a href="#" onclick="event.preventDefault();goTo('partite')" style="font-size:.8rem;color:var(--cp);font-weight:600;">Vedi tutte le ${_panoVisible.length} partite →</a></div>`
       : '';
     partiteHtml = `<div style="display:flex;flex-direction:column;gap:7px;">${rows}${more}</div>`;
   }
@@ -10064,7 +10077,10 @@ function buildMobDashboardGenitore(c) {
 
   // — Prossimo impegno —
   const childLeve = p ? [p.leva].filter(Boolean) : [];
-  const nextMatches = panoAllNextMatchesAcrossLeve(childLeve);
+  const _allNextMob = panoAllNextMatchesAcrossLeve(childLeve);
+  const nextMatches = isFamily()
+    ? _allNextMob.filter(m => getFasePt(m.data, m.leva, m) !== 'none')
+    : _allNextMob;
   const nextM = nextMatches[0];
 
   let impegnoHtml = '';
@@ -10075,6 +10091,10 @@ function buildMobDashboardGenitore(c) {
     const tipoLabel = nextM.tipo === 'campionato' ? '🏅 Campionato' : nextM.tipo === 'torneo' ? ('🏆 ' + (nextM.torneoNome||'Torneo')) : '🤝 Amichevole';
     const luogoLabel = nextM.casa ? '🏠 Casa' : '✈️ Trasferta';
     const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
+    const mobFase = isFamily() ? getFasePt(nextM.data, nextM.leva, nextM) : 'fase2';
+    const mobInfoHtml = mobFase === 'fase1'
+      ? `<div class="mob-impegno-title">⚽ ${tipoLabel}</div><div class="mob-impegno-meta">⏳ Dettagli disponibili a breve</div>`
+      : `<div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div><div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div><div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>`;
     impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
       <div class="mob-impegno-hd">Prossimo impegno <span style="color:var(--cp);font-size:.65rem;">${MESI[d.getMonth()].toUpperCase()}</span></div>
       <div class="mob-impegno-row">
@@ -10082,11 +10102,7 @@ function buildMobDashboardGenitore(c) {
           <div class="mob-impegno-cd-n">${d.getDate()}</div>
           <div class="mob-impegno-cd-l">${MESI[d.getMonth()]}</div>
         </div>
-        <div class="mob-impegno-info">
-          <div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div>
-          <div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div>
-          <div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>
-        </div>
+        <div class="mob-impegno-info">${mobInfoHtml}</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);text-align:center;flex-shrink:0;background:var(--cl);border-radius:10px;padding:6px 10px;">${cdStr}</div>
       </div>
     </div>`;
