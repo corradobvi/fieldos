@@ -1649,6 +1649,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <img src="/icons/icon-512.png" alt="MyVivaio">
       <span class="rf-logo-name">MyVivaio</span>
     </div>
+    <div id="rfPrefillBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:.84rem;color:#166534;font-weight:600;line-height:1.4;">
+      ✅ Ottimo! Abbiamo già i tuoi dati — completa la registrazione per accedere alla demo.
+    </div>
     <div class="rf-title">Inizia la prova gratuita</div>
     <div class="rf-sub">Nessuna carta di credito · i tuoi dati restano tuoi per sempre</div>
 
@@ -15248,9 +15251,36 @@ function selectPiano(piano) {
   document.getElementById('rPianoSocieta').classList.toggle('sel', piano === 'societa');
 }
 
+function _prefillRegisterFromUrl() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const email = p.get('email');
+    const phone = p.get('phone');
+    const piano = p.get('piano');
+    let prefilled = false;
+
+    if (email) {
+      const el = document.getElementById('rEmail');
+      if (el) { el.value = decodeURIComponent(email); prefilled = true; }
+    }
+    if (phone) {
+      const el = document.getElementById('rPhone');
+      if (el) { el.value = decodeURIComponent(phone); prefilled = true; }
+    }
+    if (piano === 'mister' || piano === 'societa') {
+      selectPiano(piano);
+      prefilled = true;
+    }
+
+    const banner = document.getElementById('rfPrefillBanner');
+    if (banner) banner.style.display = prefilled ? 'block' : 'none';
+  } catch(e) {}
+}
+
 function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
+  _prefillRegisterFromUrl();
 }
 
 function closeRegisterScreen() {
