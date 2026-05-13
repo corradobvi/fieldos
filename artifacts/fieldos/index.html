@@ -700,34 +700,35 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ra-titolo-btn.on{border-color:var(--cp);background:rgba(var(--cp-rgb),.07);color:var(--cp);}
 /* Schermata registrazione autonoma */
 #registerScreen{
-  display:none;min-height:100vh;background:var(--bg);
-  overflow-y:auto;
-  align-items:flex-start;justify-content:center;
-  padding:24px 16px 48px;
+  display:none;height:100vh;background:var(--bg);
+  overflow:hidden;
+  align-items:center;justify-content:center;
+  padding:0 16px;
 }
 #registerScreen.on{display:flex;}
-.rf{width:100%;max-width:460px;}
+.rf{width:100%;max-width:440px;}
 .rf-back{
   display:inline-flex;align-items:center;gap:5px;
   font-size:.82rem;color:#1A7A4A;font-weight:600;cursor:pointer;
-  margin-bottom:16px;border:none;background:none;
-  padding:12px 0;-webkit-tap-highlight-color:transparent;
+  margin-bottom:10px;border:none;background:none;
+  padding:6px 0;-webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
-.rf-logo{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
-.rf-logo img{width:40px;height:40px;border-radius:9px;}
-.rf-logo-name{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:#1A7A4A;}
-.rf-title{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--text);margin-bottom:4px;}
-.rf-sub{font-size:.82rem;color:var(--text2);margin-bottom:22px;line-height:1.5;}
-.rf-piano-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
-.rf-piano-card{border:2px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;transition:all .16s;background:var(--bg);}
-.rf-piano-card.sel{border-color:#1A7A4A;background:rgba(26,122,74,.06);}
-.rf-piano-card .rpc-icon{font-size:1.5rem;margin-bottom:4px;}
-.rf-piano-card .rpc-name{font-weight:800;font-size:.95rem;color:var(--text);}
-.rf-piano-card .rpc-price{font-size:.75rem;color:var(--text2);margin-top:2px;}
-.rf-piano-card .rpc-demo{font-size:.72rem;color:#1A7A4A;font-weight:700;margin-top:3px;}
-.rf-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.rf-err{display:none;margin-top:8px;padding:9px 12px;background:#fef2f2;color:#c0392b;border-radius:8px;font-size:.83rem;font-weight:600;}
+.rf-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.rf-header img{width:34px;height:34px;border-radius:8px;flex-shrink:0;}
+.rf-title{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:900;color:var(--text);line-height:1.1;}
+.rf-sub{font-size:.75rem;color:var(--text2);line-height:1.3;}
+.rf-piano-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;
+  padding:5px 12px;font-size:.78rem;font-weight:700;color:#166534;
+  margin-bottom:12px;
+}
+.rf-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.rf .fg{margin-bottom:9px;}
+.rf .fi{height:40px;font-size:.88rem;}
+.rf .fl{font-size:.72rem;margin-bottom:3px;}
+.rf-err{display:none;margin-top:6px;padding:8px 12px;background:#fef2f2;color:#c0392b;border-radius:8px;font-size:.82rem;font-weight:600;}
 /* Schermata subscribe (demo scaduta) */
 #subscribeScreen{
   display:none;min-height:100vh;background:var(--bg);
@@ -1645,32 +1646,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <div id="registerScreen">
   <div class="rf">
     <button class="rf-back" onclick="closeRegisterScreen()">← Torna al login</button>
-    <div class="rf-logo">
+    <div class="rf-header">
       <img src="/icons/icon-512.png" alt="MyVivaio">
-      <span class="rf-logo-name">MyVivaio</span>
-    </div>
-    <div id="rfPrefillBanner" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:.84rem;color:#166534;font-weight:600;line-height:1.4;">
-      ✅ Ottimo! Abbiamo già i tuoi dati — completa la registrazione per accedere alla demo.
-    </div>
-    <div class="rf-title">Inizia la prova gratuita</div>
-    <div class="rf-sub">Nessuna carta di credito · i tuoi dati restano tuoi per sempre</div>
-
-    <!-- Selezione piano -->
-    <div class="fl" style="margin-bottom:8px;">Scegli il tuo piano *</div>
-    <div class="rf-piano-row">
-      <div class="rf-piano-card sel" id="rPianoMister" onclick="selectPiano('mister')">
-        <div class="rpc-icon">⚽</div>
-        <div class="rpc-name">Mister</div>
-        <div class="rpc-price">€9/mese</div>
-        <div class="rpc-demo">14 giorni gratis</div>
-      </div>
-      <div class="rf-piano-card" id="rPianoSocieta" onclick="selectPiano('societa')">
-        <div class="rpc-icon">🏟️</div>
-        <div class="rpc-name">Società</div>
-        <div class="rpc-price">€49/mese</div>
-        <div class="rpc-demo">10 giorni gratis</div>
+      <div>
+        <div class="rf-title">Inizia la prova gratuita</div>
+        <div class="rf-sub">Nessuna carta di credito · i tuoi dati restano tuoi</div>
       </div>
     </div>
+    <div class="rf-piano-badge" id="rfPianoBadge">⚽ Piano Mister — 14 giorni gratis</div>
     <input type="hidden" id="rPiano" value="mister">
 
     <div class="rf-row2">
@@ -1678,17 +1661,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Cognome *</label><input class="fi" type="text" id="rCogn" placeholder="Rossi" autocomplete="family-name" autocapitalize="words"></div>
     </div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;letter-spacing:0;">(min. 8 caratteri)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
-    <div class="fg"><label class="fl">📱 Numero WhatsApp *</label><input class="fi" type="tel" id="rPhone" placeholder="+39 333 000 0000" autocomplete="tel"></div>
-    <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
-    <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
-
-    <button class="btn-login" id="btnRegister" style="margin-top:8px;" onclick="doSelfRegister()">Inizia gratis →</button>
-    <div class="rf-err" id="rErrMsg"></div>
-    <div style="text-align:center;margin-top:14px;font-size:.71rem;color:var(--text2);line-height:1.6;">
-      Registrandoti accetti i <a href="https://myvivaio.app/termini" target="_blank" style="color:#1A7A4A;">termini di servizio</a>.<br>
-      I tuoi dati restano tuoi per sempre.
+    <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;">(min. 8 car.)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">📱 WhatsApp *</label><input class="fi" type="tel" id="rPhone" placeholder="+39 333 000 0000" autocomplete="tel"></div>
+    <div class="rf-row2">
+      <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
+      <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
     </div>
+
+    <button class="btn-login" id="btnRegister" style="margin-top:6px;height:46px;" onclick="doSelfRegister()">Inizia gratis →</button>
+    <div class="rf-err" id="rErrMsg"></div>
   </div>
 </div>
 
@@ -15247,8 +15228,7 @@ async function loginDemoAs(role) {
 
 function selectPiano(piano) {
   document.getElementById('rPiano').value = piano;
-  document.getElementById('rPianoMister').classList.toggle('sel', piano === 'mister');
-  document.getElementById('rPianoSocieta').classList.toggle('sel', piano === 'societa');
+  _updatePianoBadge(piano);
 }
 
 function _prefillRegisterFromUrl() {
@@ -15257,24 +15237,31 @@ function _prefillRegisterFromUrl() {
     const email = p.get('email');
     const phone = p.get('phone');
     const piano = p.get('piano');
-    let prefilled = false;
 
     if (email) {
       const el = document.getElementById('rEmail');
-      if (el) { el.value = decodeURIComponent(email); prefilled = true; }
+      if (el) el.value = decodeURIComponent(email);
     }
     if (phone) {
       const el = document.getElementById('rPhone');
-      if (el) { el.value = decodeURIComponent(phone); prefilled = true; }
+      if (el) el.value = decodeURIComponent(phone);
     }
     if (piano === 'mister' || piano === 'societa') {
       selectPiano(piano);
-      prefilled = true;
     }
-
-    const banner = document.getElementById('rfPrefillBanner');
-    if (banner) banner.style.display = prefilled ? 'block' : 'none';
+    // always update badge to reflect current piano
+    _updatePianoBadge(document.getElementById('rPiano')?.value || 'mister');
   } catch(e) {}
+}
+
+function _updatePianoBadge(piano) {
+  const badge = document.getElementById('rfPianoBadge');
+  if (!badge) return;
+  if (piano === 'societa') {
+    badge.textContent = '🏟️ Piano Società — 10 giorni gratis';
+  } else {
+    badge.textContent = '⚽ Piano Mister — 14 giorni gratis';
+  }
 }
 
 function openRegisterScreen() {
