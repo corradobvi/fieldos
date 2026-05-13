@@ -1701,7 +1701,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="sub-toggle">
       <button class="sub-toggle-btn sel" id="subToggleMensile" onclick="subSetIntervallo('mensile')">Mensile</button>
       <button class="sub-toggle-btn" id="subToggleAnnuale" onclick="subSetIntervallo('annuale')">Annuale</button>
-      <span class="sub-saving">Risparmia fino al 27%</span>
+      <span class="sub-saving" id="subSavingBadge">Risparmia fino al 27%</span>
     </div>
     <div class="sub-plans">
       <div class="sub-plan">
@@ -15308,6 +15308,7 @@ function openSubscribeScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.remove('on');
   document.getElementById('subscribeScreen').classList.add('on');
+  _subInit();
   // Controlla ?abbonato=true
   try {
     const p = new URLSearchParams(window.location.search);
@@ -15320,39 +15321,108 @@ function openSubscribeScreen() {
 }
 
 // ── Stripe subscribe screen ──────────────────────────────────────────────
+
+// Pro-rata % stagione sportiva per mese (0=Gen … 11=Dic)
+// null = piano annuale non disponibile (Giugno, Luglio)
+const _subProrata = {
+  7:100, 8:92, 9:83, 10:75, 11:67, 0:58, 1:50, 2:42, 3:33, 4:25, 5:null, 6:null
+};
+const _subFullAnnuale = { mister:79, misterPro:159, societa:419 };
+
 let _subIntervallo = 'mensile';
 
-const _subPrices = {
-  mensile:  { mister: '€9',  misterPro: '€19', societa: '€49',  suffix: '/mese' },
-  annuale:  { mister: '€79', misterPro: '€159', societa: '€419', suffix: '/anno' },
-};
-const _subSavings = {
-  mister:    'Equivale a €6,58/mese — risparmi €29',
-  mister_pro:'Equivale a €13,25/mese — risparmi €69',
-  societa:   'Equivale a €34,92/mese — risparmi €169',
-};
+// Calcola i prezzi annuali pro-rata per il mese corrente
+function _subGetAnnualeForMonth() {
+  const month = new Date().getUTCMonth();
+  const pct   = _subProrata[month];
+  if (pct === null) return null; // giugno/luglio
+  return {
+    mister:    Math.round(_subFullAnnuale.mister    * pct / 100),
+    misterPro: Math.round(_subFullAnnuale.misterPro * pct / 100),
+    societa:   Math.round(_subFullAnnuale.societa   * pct / 100),
+    pct,
+  };
+}
+
+// Restituisce nome mese italiano
+const _MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+               'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 
 function subSetIntervallo(intervallo) {
   _subIntervallo = intervallo;
   document.getElementById('subToggleMensile').classList.toggle('sel', intervallo === 'mensile');
   document.getElementById('subToggleAnnuale').classList.toggle('sel', intervallo === 'annuale');
-  const p = _subPrices[intervallo];
-  document.getElementById('subPriceMister').innerHTML    = `${p.mister} <span>${p.suffix}</span>`;
-  document.getElementById('subPriceMisterPro').innerHTML = `${p.misterPro} <span>${p.suffix}</span>`;
-  document.getElementById('subPriceSocieta').innerHTML   = `${p.societa} <span>${p.suffix}</span>`;
-  document.getElementById('subNoteMister').textContent    = intervallo === 'annuale' ? _subSavings.mister : '';
-  document.getElementById('subNoteMisterPro').textContent = intervallo === 'annuale' ? _subSavings.mister_pro : '';
-  document.getElementById('subNoteSocieta').textContent   = intervallo === 'annuale' ? _subSavings.societa : '';
+
+  if (intervallo === 'mensile') {
+    document.getElementById('subPriceMister').innerHTML    = '€9 <span>/mese</span>';
+    document.getElementById('subPriceMisterPro').innerHTML = '€19 <span>/mese</span>';
+    document.getElementById('subPriceSocieta').innerHTML   = '€49 <span>/mese</span>';
+    document.getElementById('subNoteMister').textContent    = '';
+    document.getElementById('subNoteMisterPro').textContent = '';
+    document.getElementById('subNoteSocieta').textContent   = '';
+  } else {
+    const ann = _subGetAnnualeForMonth();
+    const mese = _MESI[new Date().getUTCMonth()];
+    if (!ann) {
+      // giugno/luglio: mostra avviso
+      document.getElementById('subPriceMister').innerHTML    = '— <span></span>';
+      document.getElementById('subPriceMisterPro').innerHTML = '— <span></span>';
+      document.getElementById('subPriceSocieta').innerHTML   = '— <span></span>';
+      const nota = 'Piano annuale non disponibile in giugno e luglio';
+      document.getElementById('subNoteMister').textContent    = nota;
+      document.getElementById('subNoteMisterPro').textContent = nota;
+      document.getElementById('subNoteSocieta').textContent   = nota;
+    } else {
+      const nota = `Pro-rata ${mese} (${ann.pct}%) — rinnovo €${_subFullAnnuale.mister}/€${_subFullAnnuale.misterPro}/€${_subFullAnnuale.societa} ogni 1° agosto`;
+      document.getElementById('subPriceMister').innerHTML    = `€${ann.mister} <span>/stagione</span>`;
+      document.getElementById('subPriceMisterPro').innerHTML = `€${ann.misterPro} <span>/stagione</span>`;
+      document.getElementById('subPriceSocieta').innerHTML   = `€${ann.societa} <span>/stagione</span>`;
+      document.getElementById('subNoteMister').textContent    = `Poi €${_subFullAnnuale.mister}/anno dal 1° agosto`;
+      document.getElementById('subNoteMisterPro').textContent = `Poi €${_subFullAnnuale.misterPro}/anno dal 1° agosto`;
+      document.getElementById('subNoteSocieta').textContent   = `Poi €${_subFullAnnuale.societa}/anno dal 1° agosto`;
+      // aggiorna badge risparmio nel toggle
+      const saving = document.getElementById('subSavingBadge');
+      if (saving) saving.textContent = `Pro-rata ${mese} (${ann.pct}%) — rinnovo 1° agosto`;
+    }
+  }
+}
+
+// Inizializza la subscribe screen (chiamato da openSubscribeScreen)
+function _subInit() {
+  const month = new Date().getUTCMonth();
+  const annAvailable = _subProrata[month] !== null;
+  const annBtn = document.getElementById('subToggleAnnuale');
+  if (annBtn) {
+    annBtn.disabled = !annAvailable;
+    annBtn.style.opacity = annAvailable ? '' : '0.4';
+    annBtn.title = annAvailable ? '' : 'Non disponibile in giugno e luglio';
+  }
+  subSetIntervallo('mensile');
+}
+
+function _subBtnId(piano) {
+  // mister → subBtnMister, mister_pro → subBtnMisterPro, societa → subBtnSocieta
+  return 'subBtn' + piano.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
 }
 
 async function doStripeCheckout(piano) {
-  const btn = document.getElementById('subBtn' + piano.charAt(0).toUpperCase() + piano.slice(1).replace('_p', 'P').replace('_s', 'S'));
+  if (_subIntervallo === 'annuale' && _subProrata[new Date().getUTCMonth()] === null) {
+    alert('Il piano annuale non è disponibile in giugno e luglio. Scegli il piano mensile.');
+    return;
+  }
+  const btnId = _subBtnId(piano);
+  const btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ piano, intervallo: _subIntervallo, societyId: currentSocietaId }),
+      body: JSON.stringify({
+        piano,
+        intervallo: _subIntervallo,
+        societyId:  currentSocietaId,
+        email:      me?.email || '',
+      }),
     });
     const data = await resp.json();
     if (data.url) {

@@ -63273,6 +63273,40 @@ var PRICE_ENV = {
   mister_pro: { mensile: "STRIPE_PRICE_MISTER_PRO_MENSILE", annuale: "STRIPE_PRICE_MISTER_PRO_ANNUALE" },
   societa: { mensile: "STRIPE_PRICE_SOCIETA_MENSILE", annuale: "STRIPE_PRICE_SOCIETA_ANNUALE" }
 };
+var PRORATA_PCT = {
+  7: 100,
+  // Agosto
+  8: 92,
+  // Settembre
+  9: 83,
+  // Ottobre
+  10: 75,
+  // Novembre
+  11: 67,
+  // Dicembre
+  0: 58,
+  // Gennaio
+  1: 50,
+  // Febbraio
+  2: 42,
+  // Marzo
+  3: 33,
+  // Aprile
+  4: 25,
+  // Maggio
+  5: null,
+  // Giugno — solo mensile
+  6: null
+  // Luglio  — solo mensile
+};
+function nextAugFirst() {
+  const now = /* @__PURE__ */ new Date();
+  const month = now.getUTCMonth();
+  const day = now.getUTCDate();
+  const isToday = month === 7 && day === 1;
+  const anchorYear = month >= 7 && !isToday ? now.getUTCFullYear() + 1 : month < 7 ? now.getUTCFullYear() : now.getUTCFullYear() + 1;
+  return Math.floor(Date.UTC(anchorYear, 7, 1) / 1e3);
+}
 function getPriceId(piano, intervallo) {
   return process.env[PRICE_ENV[piano]?.[intervallo] ?? ""] || null;
 }
@@ -63295,27 +63329,41 @@ async function stripePost(path2, params) {
   return data;
 }
 router21.post("/stripe/create-checkout", async (req, res) => {
-  const { piano, intervallo, societyId } = req.body;
+  const { piano, intervallo, societyId, email } = req.body;
   if (!piano || !intervallo || !societyId) {
     return res.status(400).json({ error: "missing_fields" });
+  }
+  if (String(intervallo) === "annuale") {
+    const month = (/* @__PURE__ */ new Date()).getUTCMonth();
+    if (PRORATA_PCT[month] === null) {
+      return res.status(400).json({
+        error: "annual_not_available",
+        detail: "Il piano annuale non \xE8 disponibile in giugno e luglio. Usa il piano mensile."
+      });
+    }
   }
   const priceId = getPriceId(String(piano), String(intervallo));
   if (!priceId) {
     return res.status(400).json({ error: "invalid_plan_or_interval" });
   }
   const appUrl = process.env.APP_URL ?? "https://workspacefieldos-production.up.railway.app";
+  const params = {
+    mode: "subscription",
+    "payment_method_types[0]": "card",
+    "line_items[0][price]": priceId,
+    "line_items[0][quantity]": 1,
+    "success_url": `${appUrl}/?abbonato=true`,
+    "cancel_url": `${appUrl}/subscribe`,
+    "metadata[societyId]": String(societyId),
+    "metadata[piano]": String(piano),
+    "metadata[intervallo]": String(intervallo)
+  };
+  if (email) params["customer_email"] = String(email);
+  if (String(intervallo) === "annuale") {
+    params["subscription_data[billing_cycle_anchor]"] = nextAugFirst();
+  }
   try {
-    const session = await stripePost("/checkout/sessions", {
-      mode: "subscription",
-      "payment_method_types[0]": "card",
-      "line_items[0][price]": priceId,
-      "line_items[0][quantity]": 1,
-      "success_url": `${appUrl}/?abbonato=true`,
-      "cancel_url": `${appUrl}/subscribe`,
-      "metadata[societyId]": String(societyId),
-      "metadata[piano]": String(piano),
-      "metadata[intervallo]": String(intervallo)
-    });
+    const session = await stripePost("/checkout/sessions", params);
     logger.info({ societyId, piano, intervallo }, "stripe checkout session created");
     return res.json({ url: session.url });
   } catch (e) {
@@ -63362,9 +63410,9 @@ router21.post("/stripe/webhook", async (req, res) => {
       try {
         await pool.execute(
           `UPDATE societies
-           SET subscription_status = 'active',
-               stripe_customer_id      = ?,
-               stripe_subscription_id  = ?
+           SET subscription_status      = 'active',
+               stripe_customer_id       = ?,
+               stripe_subscription_id   = ?
            WHERE id = ?`,
           [customerId, subId ?? null, Number(societyId)]
         );
