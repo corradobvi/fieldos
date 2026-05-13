@@ -15545,17 +15545,38 @@ function saLog(action, detail) {
 // 'ok' = esiste sul server | 'local_only' = solo in localStorage | 'none' = nessun dato
 // (_syncStatus → dichiarata in cima allo script)
 
+// Stato caricamento contatori per ogni società: null=non caricato, 'loading', 'done', 'error'
+const _saCountStatus = {};
+
 async function saCheckAllSync() {
   for (const soc of saSocieties) {
     const key = soc.id === 0 ? 'fieldos_state_v1' : `fieldos_state_soc_${soc.id}`;
     _syncStatus[soc.id] = 'checking';
+    _saCountStatus[soc.id] = 'loading';
     renderSaPanel();
     const hasLocal = !!localStorage.getItem(key);
     try {
       const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key));
-      _syncStatus[soc.id] = r.ok ? 'ok' : (hasLocal ? 'local_only' : 'none');
+      if (r.ok) {
+        _syncStatus[soc.id] = 'ok';
+        try {
+          const data = await r.json();
+          if (data && data.stateJson) {
+            const st = JSON.parse(data.stateJson);
+            const users = Array.isArray(st.USERS_DB) ? st.USERS_DB : [];
+            const plrs  = Array.isArray(st.players)  ? st.players  : [];
+            soc.utenti    = users.filter(u => u.stato === 'attivo').length;
+            soc.giocatori = plrs.length;
+          }
+        } catch {}
+        _saCountStatus[soc.id] = 'done';
+      } else {
+        _syncStatus[soc.id] = hasLocal ? 'local_only' : 'none';
+        _saCountStatus[soc.id] = 'error';
+      }
     } catch {
       _syncStatus[soc.id] = hasLocal ? 'local_only' : 'none';
+      _saCountStatus[soc.id] = 'error';
     }
     renderSaPanel();
   }
@@ -15735,7 +15756,7 @@ function _renderSaPanelInner() {
         <small style="color:#94a3b8;">${escapeHtml(s.citta||'')}${s.citta&&s.email?' · ':''}${escapeHtml(s.email||'')}</small></td>
       <td>${planBadge(s)}</td>
       <td>${statoBadge(s)}</td>
-      <td style="color:#94a3b8;font-size:.82rem;">${escapeHtml(String(s.utenti||0))} utenti<br>${escapeHtml(String(s.giocatori||0))} gioc.</td>
+      <td style="color:#94a3b8;font-size:.82rem;">${_saCountStatus[s.id] === 'loading' ? '<span style="color:#60a5fa;font-size:.75rem;">⏳ carico…</span>' : `${escapeHtml(String(s.utenti||0))} utenti<br>${escapeHtml(String(s.giocatori||0))} gioc.`}</td>
       <td style="color:#94a3b8;font-size:.82rem;">${created}</td>
       <td style="color:#94a3b8;font-size:.82rem;">${lastAct}</td>
       <td>${actionBtn(s)}</td>
