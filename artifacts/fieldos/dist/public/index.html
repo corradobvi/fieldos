@@ -13905,7 +13905,6 @@ function isSeniorLeva(lv) {
 function getChatsForUser(user) {
   if (!user) return [];
   const out = [];
-  const isAdmin = user.role === 'admin';
 
   function staffLeve(u) {
     const l = u.leva;
@@ -13914,15 +13913,15 @@ function getChatsForUser(user) {
     return [l];
   }
 
-  // 1. Staff — admin + allenatori + dirigenti + preparatori portieri
-  if (isAdmin || user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'preparatore_portieri') {
-    const members = USERS_DB.filter(u => ['admin','allenatore','dirigente','preparatore_portieri'].includes(u.role)).map(u => u.id);
+  // 1. Chat Staff — allenatori + dirigenti + preparatori portieri (NO admin)
+  if (user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'preparatore_portieri') {
+    const members = USERS_DB.filter(u => ['allenatore','dirigente','preparatore_portieri'].includes(u.role) && u.stato === 'attivo').map(u => u.id);
     if (members.length > 0) {
       out.push({ id: 'allenatori', name: '🏢 Staff', avatar: '🏢', color: '#374151', members, kind: 'staff' });
     }
   }
 
-  // 2. Chat Leva Famiglie — genitori + dirigenti (NO allenatori, NO giocatori)
+  // 2. Chat Leva Famiglie — dirigenti della leva + genitori/nonni con figli nella leva (NO admin)
   leve.forEach(lv => {
     const hasFigliInLeva = u => {
       const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
@@ -13935,15 +13934,14 @@ function getChatsForUser(user) {
     const dirigentiGenitoriInLeva = USERS_DB.filter(u => u.role === 'dirigente' && hasFigliInLeva(u)).map(u => u.id);
     const genitoriInLeva = USERS_DB.filter(u => (u.role === 'genitore' || u.role === 'nonno') && hasFigliInLeva(u)).map(u => u.id);
     const members = [...new Set([...dirigentiInLeva, ...dirigentiGenitoriInLeva, ...genitoriInLeva])];
-    const belongs = isAdmin
-      || (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
+    const belongs = (user.role === 'dirigente' && (dirigentiInLeva.includes(user.id) || dirigentiGenitoriInLeva.includes(user.id)))
       || ((user.role === 'genitore' || user.role === 'nonno') && genitoriInLeva.includes(user.id));
     if (belongs && members.length > 0) {
       out.push({ id: 'leva_' + lv, name: '👥 Leva ' + lv, avatar: '👥', color: coloriPrimari, members, kind: 'leva-famiglie', leva: lv });
     }
   });
 
-  // 3. Chat Squadra — giocatori + allenatori + preparatori (NO dirigenti) per leve U14+
+  // 3. Chat Squadra — giocatori + allenatori + preparatori (NO admin, NO dirigenti) per leve U14+
   leve.filter(isSeniorLeva).forEach(lv => {
     const giocatoriInLeva = USERS_DB.filter(u => {
       if (u.role !== 'giocatore') return false;
@@ -13952,13 +13950,13 @@ function getChatsForUser(user) {
     const allenatori = USERS_DB.filter(u => u.role === 'allenatore' && staffLeve(u).includes(lv)).map(u => u.id);
     const preparatori = USERS_DB.filter(u => u.role === 'preparatore_portieri' && staffLeve(u).includes(lv)).map(u => u.id);
     const members = [...new Set([...giocatoriInLeva, ...allenatori, ...preparatori])];
-    const belongs = isAdmin || allenatori.includes(user.id) || preparatori.includes(user.id) || giocatoriInLeva.includes(user.id);
+    const belongs = allenatori.includes(user.id) || preparatori.includes(user.id) || giocatoriInLeva.includes(user.id);
     if (belongs && members.length > 0) {
       out.push({ id: 'squadra_' + lv, name: '⚽ Squadra ' + lv, avatar: '⚽', color: coloriPrimari, members, kind: 'squadra', leva: lv });
     }
   });
 
-  // 4. Chat Torneo — dirigenti + genitori convocati + giocatori convocati
+  // 4. Chat Torneo — dirigenti + genitori/nonni convocati + giocatori convocati (NO admin)
   if (Array.isArray(tornei)) {
     tornei.forEach(t => {
       const convocatiSet = new Set(t.convocati || []);
@@ -13984,7 +13982,7 @@ function getChatsForUser(user) {
       const isGenit = (user.role === 'genitore' || user.role === 'nonno') && genitoriConvocati.includes(user.id);
       const isDirig = user.role === 'dirigente' && dirigenti.includes(user.id);
       const isGioc = user.role === 'giocatore' && giocatoriConvocati.includes(user.id);
-      const belongs = isAdmin || isGenit || isDirig || isGioc;
+      const belongs = isGenit || isDirig || isGioc;
       if (belongs && members.length > 0) {
         out.push({
           id: 'torneo_' + t.id,
@@ -14001,9 +13999,9 @@ function getChatsForUser(user) {
     });
   }
 
-  // 5. Chat ad hoc — create da admin/allenatore/dirigente; visibili ai membri e all'admin
+  // 5. Chat ad hoc — visibili solo ai membri (admin incluso se aggiunto manualmente)
   (adHocChats || []).forEach(ch => {
-    if (isAdmin || ch.members.includes(user.id)) {
+    if (ch.members.includes(user.id)) {
       out.push({
         id: 'adhoc_' + ch.id,
         name: ch.name,
@@ -14103,7 +14101,7 @@ function renderChatList() {
   const empty = document.getElementById('chatEmpty');
   if (!container || !me) return;
   const btnNew = document.getElementById('btnNewChat');
-  if (btnNew) btnNew.style.display = (me && (me.role==='admin'||me.role==='allenatore'||me.role==='dirigente')) ? '' : 'none';
+  if (btnNew) btnNew.style.display = (me && ['admin','allenatore','dirigente','preparatore_portieri'].includes(me.role)) ? '' : 'none';
   const chats = getChatsForUser(me);
   if (chats.length === 0) {
     container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:.78rem;">Nessuna chat disponibile</div>';
