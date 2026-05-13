@@ -20,6 +20,6 @@ router.use(pushRouter);
 router.use(uploadRouter);
 router.use(publicRouter);
 // v2 — nuove API con tabelle relazionali (JWT auth)
-router.use("/api/v2", v2Router);
+router.use("/v2", v2Router);
 
 export default router;
