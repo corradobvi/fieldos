@@ -1,17 +1,23 @@
 # Istruzioni permanenti per Claude
 
-## DEPLOY OBBLIGATORIO DOPO OGNI MODIFICA
+## REGOLA ASSOLUTA — PUSH AUTOMATICO DOPO OGNI MODIFICA
 
-**IMPORTANTE:** dopo OGNI modifica al codice, eseguire SEMPRE:
+**Dopo OGNI modifica al codice, anche la più piccola, eseguire sempre e automaticamente:**
 
 ```bash
 cp artifacts/fieldos/index.html artifacts/fieldos/dist/public/index.html
-git add -A
-git commit -m "update: [descrizione breve]"
-git push origin main
+git add -A && git commit -m "fix: [descrizione breve]" && git push origin main
 ```
 
-**Non terminare MAI una sessione di lavoro senza aver fatto il push su GitHub.**
+- Non terminare MAI una risposta senza aver fatto il push su GitHub.
+- Non aspettare conferma dall'utente per fare il push.
+- Il push è parte integrante di ogni modifica — non un passo separato.
+- Railway fa il deploy automatico dopo ogni push — le modifiche sono live per TUTTI gli utenti entro 2-3 minuti.
+
+Se il push fallisce per credenziali:
+```bash
+git remote set-url origin https://corradobvi:[TOKEN]@github.com/corradobvi/fieldos.git
+```
 
 - **Railway** fa il deploy automatico del backend API dopo ogni push su `main`
 - **Netlify** fa il deploy automatico del frontend dopo ogni push su `main`
