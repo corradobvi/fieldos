@@ -87,6 +87,13 @@ router.post("/login", async (req, res) => {
         return res.status(403).json({ error: "society_deleted", message: "La società è stata eliminata." });
       }
 
+      // Demo scaduta
+      const scadenzaDemo = soc.scadenzaDemo as number | undefined;
+      const pianoSoc     = (soc.piano as string | undefined) ?? "demo";
+      if (pianoSoc === "demo" && scadenzaDemo && scadenzaDemo < Date.now()) {
+        return res.status(403).json({ error: "demo_expired" });
+      }
+
       logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
       return res.json({ societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson });
     }

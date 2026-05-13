@@ -701,23 +701,56 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* Schermata registrazione autonoma */
 #registerScreen{
   display:none;min-height:100vh;background:var(--bg);
-  /* scroll verticale quando la tastiera è aperta */
   overflow-y:auto;
   align-items:flex-start;justify-content:center;
-  padding:24px 16px 40px;
+  padding:24px 16px 48px;
 }
 #registerScreen.on{display:flex;}
-.rf{width:100%;max-width:440px;}
+.rf{width:100%;max-width:460px;}
 .rf-back{
   display:inline-flex;align-items:center;gap:5px;
-  font-size:.82rem;color:var(--cp);font-weight:600;cursor:pointer;
+  font-size:.82rem;color:#1A7A4A;font-weight:600;cursor:pointer;
   margin-bottom:16px;border:none;background:none;
-  /* tap target minimo 44px */
   padding:12px 0;-webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
 }
-.rf-title{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;color:var(--text);margin-bottom:2px;}
-.rf-sub{font-size:.82rem;color:var(--text2);margin-bottom:20px;}
+.rf-logo{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.rf-logo img{width:40px;height:40px;border-radius:9px;}
+.rf-logo-name{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:#1A7A4A;}
+.rf-title{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--text);margin-bottom:4px;}
+.rf-sub{font-size:.82rem;color:var(--text2);margin-bottom:22px;line-height:1.5;}
+.rf-piano-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.rf-piano-card{border:2px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;transition:all .16s;background:var(--bg);}
+.rf-piano-card.sel{border-color:#1A7A4A;background:rgba(26,122,74,.06);}
+.rf-piano-card .rpc-icon{font-size:1.5rem;margin-bottom:4px;}
+.rf-piano-card .rpc-name{font-weight:800;font-size:.95rem;color:var(--text);}
+.rf-piano-card .rpc-price{font-size:.75rem;color:var(--text2);margin-top:2px;}
+.rf-piano-card .rpc-demo{font-size:.72rem;color:#1A7A4A;font-weight:700;margin-top:3px;}
+.rf-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rf-err{display:none;margin-top:8px;padding:9px 12px;background:#fef2f2;color:#c0392b;border-radius:8px;font-size:.83rem;font-weight:600;}
+/* Schermata subscribe (demo scaduta) */
+#subscribeScreen{
+  display:none;min-height:100vh;background:var(--bg);
+  overflow-y:auto;align-items:flex-start;justify-content:center;
+  padding:32px 16px 48px;
+}
+#subscribeScreen.on{display:flex;}
+.sub-wrap{width:100%;max-width:680px;}
+.sub-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:#fef3c7;color:#92400e;border-radius:20px;font-size:.78rem;font-weight:700;margin-bottom:14px;}
+.sub-title{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;margin-bottom:6px;}
+.sub-sub{font-size:.88rem;color:var(--text2);margin-bottom:28px;}
+.sub-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
+.sub-plan{border:2px solid var(--border);border-radius:14px;padding:22px 20px;background:var(--white);}
+.sub-plan.featured{border-color:#1A7A4A;position:relative;}
+.sub-plan.featured::before{content:'Più scelto';position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#1A7A4A;color:white;font-size:.68rem;font-weight:700;padding:3px 12px;border-radius:12px;}
+.sub-plan-icon{font-size:1.8rem;margin-bottom:8px;}
+.sub-plan-name{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;margin-bottom:2px;}
+.sub-plan-price{font-size:1.7rem;font-weight:900;color:#1A7A4A;margin-bottom:4px;}
+.sub-plan-price span{font-size:.8rem;font-weight:400;color:var(--text2);}
+.sub-plan-features{font-size:.78rem;color:var(--text2);line-height:1.8;margin:10px 0 16px;}
+.sub-plan-btn{display:block;width:100%;padding:11px;border-radius:9px;background:#1A7A4A;color:white;font-weight:700;font-size:.88rem;border:none;cursor:pointer;text-align:center;text-decoration:none;transition:background .15s;}
+.sub-plan-btn:hover{background:#155c37;}
+.sub-contact{text-align:center;font-size:.82rem;color:var(--text2);}
 /* SA plan badges aggiornati */
 .sa-plan-demo{background:#fef3c7;color:#92400e;}
 .sa-plan-mister{background:#dbeafe;color:#1e40af;}
@@ -1612,24 +1645,80 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <div id="registerScreen">
   <div class="rf">
     <button class="rf-back" onclick="closeRegisterScreen()">← Torna al login</button>
-    <div class="rf-title">Inizia la tua prova gratuita</div>
-    <div class="rf-sub">14 giorni gratis · nessuna carta di credito richiesta · i tuoi dati restano per sempre.</div>
-    <div class="fg"><label class="fl">Nome e cognome *</label><input class="fi" type="text" id="rNomeCogn" placeholder="Mario Rossi" autocomplete="name" autocapitalize="words"></div>
-    <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fg"><label class="fl">Password *</label><input class="fi" type="password" id="rPass" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
-    <div class="fg"><label class="fl">Nome società *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
-    <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
-    <div class="fg">
-      <label class="fl">Ruolo principale *</label>
-      <select class="fi" id="rRuolo" style="appearance:auto;-webkit-appearance:auto;">
-        <option value="admin">🛡️ Admin società</option>
-        <option value="allenatore">⚽ Mister / Allenatore</option>
-        <option value="dirigente">👔 Dirigente</option>
-      </select>
+    <div class="rf-logo">
+      <img src="/icons/icon-512.png" alt="MyVivaio">
+      <span class="rf-logo-name">MyVivaio</span>
     </div>
-    <button class="btn-login" style="margin-top:8px;" onclick="doSelfRegister()">Inizia 14 giorni gratuiti →</button>
-    <div style="text-align:center;margin-top:12px;font-size:.71rem;color:var(--text2);line-height:1.5;">
-      Registrandoti accetti i termini di servizio.<br>I dati inseriti durante la prova restano tuoi per sempre.
+    <div class="rf-title">Inizia la prova gratuita</div>
+    <div class="rf-sub">Nessuna carta di credito · i tuoi dati restano tuoi per sempre</div>
+
+    <!-- Selezione piano -->
+    <div class="fl" style="margin-bottom:8px;">Scegli il tuo piano *</div>
+    <div class="rf-piano-row">
+      <div class="rf-piano-card sel" id="rPianoMister" onclick="selectPiano('mister')">
+        <div class="rpc-icon">⚽</div>
+        <div class="rpc-name">Mister</div>
+        <div class="rpc-price">€9/mese</div>
+        <div class="rpc-demo">14 giorni gratis</div>
+      </div>
+      <div class="rf-piano-card" id="rPianoSocieta" onclick="selectPiano('societa')">
+        <div class="rpc-icon">🏟️</div>
+        <div class="rpc-name">Società</div>
+        <div class="rpc-price">€49/mese</div>
+        <div class="rpc-demo">10 giorni gratis</div>
+      </div>
+    </div>
+    <input type="hidden" id="rPiano" value="mister">
+
+    <div class="rf-row2">
+      <div class="fg"><label class="fl">Nome *</label><input class="fi" type="text" id="rNome" placeholder="Mario" autocomplete="given-name" autocapitalize="words"></div>
+      <div class="fg"><label class="fl">Cognome *</label><input class="fi" type="text" id="rCogn" placeholder="Rossi" autocomplete="family-name" autocapitalize="words"></div>
+    </div>
+    <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+    <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;letter-spacing:0;">(min. 8 caratteri)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
+    <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
+
+    <button class="btn-login" id="btnRegister" style="margin-top:8px;" onclick="doSelfRegister()">Inizia gratis →</button>
+    <div class="rf-err" id="rErrMsg"></div>
+    <div style="text-align:center;margin-top:14px;font-size:.71rem;color:var(--text2);line-height:1.6;">
+      Registrandoti accetti i <a href="https://myvivaio.app/termini" target="_blank" style="color:#1A7A4A;">termini di servizio</a>.<br>
+      I tuoi dati restano tuoi per sempre.
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SUBSCRIBE (demo scaduta) ══════ -->
+<div id="subscribeScreen">
+  <div class="sub-wrap">
+    <div class="sub-badge">⏰ Demo scaduta</div>
+    <div class="sub-title">Scegli il piano giusto per te</div>
+    <div class="sub-sub">La tua demo è terminata. Abbonati per continuare ad usare MyVivaio.</div>
+    <div class="sub-plans">
+      <div class="sub-plan">
+        <div class="sub-plan-icon">⚽</div>
+        <div class="sub-plan-name">Mister</div>
+        <div class="sub-plan-price">€9 <span>/mese</span></div>
+        <div class="sub-plan-features">✓ 1 leva · max 25 giocatori<br>✓ Presenze & convocazioni<br>✓ Chat squadra<br>✓ Comunicazioni</div>
+        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Mister%20-%20MyVivaio" target="_blank">Abbonati →</a>
+      </div>
+      <div class="sub-plan featured">
+        <div class="sub-plan-icon">🏅</div>
+        <div class="sub-plan-name">Mister Pro</div>
+        <div class="sub-plan-price">€19 <span>/mese</span></div>
+        <div class="sub-plan-features">✓ Max 3 leve<br>✓ Giocatori illimitati<br>✓ Libreria allenamenti<br>✓ Statistiche avanzate</div>
+        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Mister%20Pro%20-%20MyVivaio" target="_blank">Abbonati →</a>
+      </div>
+      <div class="sub-plan">
+        <div class="sub-plan-icon">🏟️</div>
+        <div class="sub-plan-name">Società</div>
+        <div class="sub-plan-price">€49 <span>/mese</span></div>
+        <div class="sub-plan-features">✓ Leve illimitate<br>✓ Multi-staff<br>✓ Gestione quote<br>✓ Campionato & tornei</div>
+        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Societ%C3%A0%20-%20MyVivaio" target="_blank">Abbonati →</a>
+      </div>
+    </div>
+    <div class="sub-contact">
+      Domande? Scrivici a <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
     </div>
   </div>
 </div>
@@ -3552,11 +3641,14 @@ async function doLogin() {
       clearTimeout(tid);
     }
 
+    if (resp.status === 402) { openSubscribeScreen(); return; }
+
     if (resp.status === 403) {
       const errData = await resp.json().catch(() => ({}));
       if (errData.error === 'society_suspended') { toast('⛔ Società sospesa. Contatta il supporto.'); return; }
       if (errData.error === 'society_archived')  { toast('📦 Società archiviata. Contatta il supporto.'); return; }
       if (errData.error === 'society_deleted')   { toast('🗑️ Società eliminata.'); return; }
+      if (errData.error === 'demo_expired')      { openSubscribeScreen(); return; }
       toast('⛔ Account sospeso. Contatta la società.'); return;
     }
 
@@ -15149,6 +15241,12 @@ async function loginDemoAs(role) {
 // REGISTRAZIONE AUTONOMA
 // ═══════════════════════════════════
 
+function selectPiano(piano) {
+  document.getElementById('rPiano').value = piano;
+  document.getElementById('rPianoMister').classList.toggle('sel', piano === 'mister');
+  document.getElementById('rPianoSocieta').classList.toggle('sel', piano === 'societa');
+}
+
 function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
@@ -15159,88 +15257,131 @@ function closeRegisterScreen() {
   document.getElementById('loginScreen').style.display = '';
 }
 
+function openSubscribeScreen() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('subscribeScreen').classList.add('on');
+}
+
+function _rShowErr(msg) {
+  const el = document.getElementById('rErrMsg');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function _rClearErr() {
+  const el = document.getElementById('rErrMsg');
+  if (el) el.style.display = 'none';
+}
+
 async function doSelfRegister() {
-  const nomeCogn = (document.getElementById('rNomeCogn').value || '').trim();
-  const email    = (document.getElementById('rEmail').value || '').trim().toLowerCase();
-  const pass     = document.getElementById('rPass').value || '';
-  const societa  = (document.getElementById('rSocieta').value || '').trim();
-  const citta    = (document.getElementById('rCitta').value || '').trim();
-  const ruolo    = document.getElementById('rRuolo').value;
+  _rClearErr();
 
-  if (!nomeCogn)                  { toast('⚠️ Inserisci nome e cognome'); return; }
-  if (!email || !email.includes('@')) { toast('⚠️ Email non valida'); return; }
-  if (!_pwCheck(pass).valid)      { toast('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
-  if (!societa)                   { toast('⚠️ Inserisci il nome della società'); return; }
+  const nome    = (document.getElementById('rNome').value || '').trim();
+  const cogn    = (document.getElementById('rCogn').value || '').trim();
+  const email   = (document.getElementById('rEmail').value || '').trim().toLowerCase();
+  const pass    = document.getElementById('rPass').value || '';
+  const societa = (document.getElementById('rSocieta').value || '').trim();
+  const citta   = (document.getElementById('rCitta').value || '').trim();
+  const piano   = document.getElementById('rPiano').value || 'mister';
 
-  const parts = nomeCogn.split(' ');
-  const nome  = parts[0];
-  const cogn  = parts.slice(1).join(' ') || '';
+  if (!nome)                        { _rShowErr('⚠️ Inserisci il nome'); return; }
+  if (!cogn)                        { _rShowErr('⚠️ Inserisci il cognome'); return; }
+  if (!email || !email.includes('@')){ _rShowErr('⚠️ Email non valida'); return; }
+  if (pass.length < 8)              { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
+  if (!societa)                     { _rShowErr('⚠️ Inserisci il nome della società'); return; }
 
-  saLoadState();
+  const btn = document.getElementById('btnRegister');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Registrazione in corso…'; }
 
-  // Controlla duplicato email
-  for (const soc of saSocieties) {
-    const raw = localStorage.getItem(societyStorageKey(soc.id));
-    if (!raw) continue;
-    try {
-      const s = JSON.parse(raw);
-      if ((s.USERS_DB || []).some(u => u.email && u.email.toLowerCase() === email)) {
-        toast('⚠️ Email già registrata — accedi con le tue credenziali');
-        return;
-      }
-    } catch(e) {}
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, nomeSocieta: societa, citta, piano }),
+    });
+
+    const data = await resp.json();
+
+    if (resp.status === 409) { _rShowErr('⚠️ Email già registrata — accedi con le tue credenziali'); return; }
+    if (resp.status === 400) {
+      const msg = data.error === 'invalid_email' ? '⚠️ Email non valida'
+                : data.error === 'password_too_short' ? '⚠️ Password troppo corta (min. 8 caratteri)'
+                : '⚠️ Compila tutti i campi obbligatori';
+      _rShowErr(msg); return;
+    }
+    if (!resp.ok) { _rShowErr('❌ Errore server. Riprova tra poco.'); return; }
+
+    // ── Registrazione ok: costruiamo lo stato iniziale e avviamo l'app ──
+    const { society } = data;
+    const societyId   = society.id;
+    const stateKey    = societyStorageKey(societyId);
+
+    const adminUser = {
+      id: 1, nome, cogn, email, pass,
+      role: 'admin', leva: 'Tutte', stato: 'attivo',
+      figlio: null, figli: [], anno: null, societaId: societyId
+    };
+
+    const initialState = {
+      nomeSocieta: societa, coloriPrimari: '#047857', coloriAccento: '#FFD93D',
+      USERS_DB: [adminUser], nextUserId: 2,
+      players: [], nextPlayerId: 1, leve: ['Prima Squadra'], currentLeva: 'Prima Squadra',
+      events: [], eventTypes: [
+        {id:'partita',label:'⚽ Partita',color:'#0ea860'},
+        {id:'allenamento',label:'🏃 Allenamento',color:'#047857'},
+        {id:'evento',label:'🎉 Evento',color:'#f59e0b'},
+        {id:'riunione',label:'👥 Riunione',color:'#7c3aed'},
+        {id:'torneo',label:'🏆 Torneo',color:'#e03055'}
+      ],
+      nextEventId: 1, nextEventTypeId: 100,
+      convocazioni: [], nextConvocazioneId: 1,
+      disponibilita: [], nextDisponibilitaId: 1, notifiche: [], nextNotificaId: 1,
+      inviti: [], codiceSocieta: society.codice || '', pendingUsers: [], nextPendingUserId: 1,
+      chatMessaggi: [], nextChatMsgId: 1, chatLastSeen: {}, torneoChats: {},
+      amichevoli: [], nextAmichevoleId: 1, campionato: {}, nextCampId: 1,
+      tornei: [], nextTorneoId: 1, nextFaseId: 1, nextTornMatchId: 1,
+      comunicazioni: [], nextComunicazioneId: 1, nextCommentoId: 1,
+      mediaItems: [], nextMediaId: 1, playerPhotos: {}, squadFotos: {},
+      campi: [], nextCampoId: 1
+    };
+
+    localStorage.setItem(stateKey, JSON.stringify(initialState));
+
+    // Sincronizza sul server (legacy blob)
+    fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stateJson: JSON.stringify(initialState) })
+    }).catch(() => {});
+
+    // Aggiorna SA state
+    saLoadState();
+    const demoDays = society.demoDays || (piano === 'societa' ? 10 : 14);
+    if (!saSocieties.find(x => x.id === societyId)) {
+      saSocieties.push({
+        id: societyId, nome: societa, citta, colori: '#047857', leva: 'Prima Squadra',
+        piano, stato: 'attivo', email, note: '', utenti: 1, giocatori: 0,
+        createdAt: Date.now(), lastActivity: null,
+        scadenzaDemo: Date.now() + demoDays * 86400000
+      });
+      saSaveState();
+    }
+
+    currentSocietaId = societyId;
+    if (typeof window.__fieldosSetSocietaKey === 'function') {
+      window.__fieldosSetSocietaKey(stateKey);
+    }
+
+    closeRegisterScreen();
+    me = adminUser;
+    bootApp(adminUser);
+
+  } catch (e) {
+    console.error('[doSelfRegister]', e);
+    _rShowErr('❌ Errore di connessione. Verifica la rete e riprova.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Inizia gratis →'; }
   }
-
-  const socId = saNextSocId++;
-  const adminUser = {
-    id:1, nome, cogn, email, pass,
-    role:ruolo, leva:'Tutte', stato:'attivo',
-    figlio:null, figli:[], anno:null, societaId:socId
-  };
-  const stateKey = societyStorageKey(socId);
-  const initialState = {
-    nomeSocieta:societa, coloriPrimari:'#047857', coloriAccento:'#FFD93D',
-    USERS_DB:[adminUser], nextUserId:2,
-    players:[], nextPlayerId:1, leve:['U12'], currentLeva:'U12',
-    events:[], eventTypes:[
-      {id:'partita',label:'⚽ Partita',color:'#0ea860'},
-      {id:'allenamento',label:'🏃 Allenamento',color:'#047857'},
-      {id:'evento',label:'🎉 Evento',color:'#f59e0b'},
-      {id:'riunione',label:'👥 Riunione',color:'#7c3aed'},
-      {id:'torneo',label:'🏆 Torneo',color:'#e03055'}
-    ],
-    nextEventId:1, nextEventTypeId:100,
-    convocazioni:[], nextConvocazioneId:1,
-    disponibilita:[], nextDisponibilitaId:1, notifiche:[], nextNotificaId:1,
-    inviti:[], codiceSocieta:'', pendingUsers:[], nextPendingUserId:1,
-    chatMessaggi:[], nextChatMsgId:1, chatLastSeen:{}, torneoChats:{},
-    amichevoli:[], nextAmichevoleId:1, campionato:{}, nextCampId:1,
-    tornei:[], nextTorneoId:1, nextFaseId:1, nextTornMatchId:1,
-    comunicazioni:[], nextComunicazioneId:1, nextCommentoId:1,
-    mediaItems:[], nextMediaId:1, playerPhotos:{}, squadFotos:{},
-    campi:[], nextCampoId:1
-  };
-
-  localStorage.setItem(stateKey, JSON.stringify(initialState));
-  saSocieties.push({
-    id:socId, nome:societa, citta, colori:'#047857', leva:'U12', piano:'demo',
-    stato:'attivo', email, note:'', utenti:1, giocatori:0,
-    createdAt:Date.now(), lastActivity:null,
-    scadenzaDemo: Date.now() + DEMO_GIORNI * 86400000
-  });
-  saSaveState();
-
-  fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
-    method:'PUT', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({stateJson: JSON.stringify(initialState)})
-  }).catch(()=>{});
-
-  currentSocietaId = socId;
-  if (typeof window.__fieldosSetSocietaKey === 'function') {
-    window.__fieldosSetSocietaKey(stateKey);
-  }
-  closeRegisterScreen();
-  bootApp(adminUser);
 }
 
 // Mostra demo rapidi solo se URL contiene ?demo=true

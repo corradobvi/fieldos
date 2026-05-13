@@ -7,10 +7,11 @@ CREATE TABLE IF NOT EXISTS societies (
   colore_accento  VARCHAR(7)   DEFAULT '#FFD93D',
   logo_url        TEXT,
   codice          VARCHAR(50)  UNIQUE,
-  piano           VARCHAR(50)  DEFAULT 'demo',
-  demo_scadenza   DATETIME,
-  stato           VARCHAR(20)  DEFAULT 'attiva',
-  created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  piano               VARCHAR(50)  DEFAULT 'demo',
+  subscription_status VARCHAR(20)  DEFAULT 'demo',
+  demo_scadenza       DATETIME,
+  stato               VARCHAR(20)  DEFAULT 'attiva',
+  created_at          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -168,6 +169,11 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_push (user_id, society_key)
 );
+`;
+
+// Migrations: idempotent ALTER TABLE for existing databases
+export const MIGRATIONS_SQL = `
+ALTER TABLE societies ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'demo'
 `;
 
 export const SEED_SQL = `
