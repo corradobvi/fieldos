@@ -6231,17 +6231,14 @@ function isFamily() {
 function getFasePt(dateStr, leva, evObj) {
   if (evObj && evObj.visibilitaSubito) return 'fase2';
   const def = levaConvSettings[leva] || {};
-  const f1 = def.fase1Days != null ? Number(def.fase1Days) : null;
-  const f2 = def.fase2Days != null ? Number(def.fase2Days) : null;
-  if (f1 == null) return 'fase2'; // nessuna configurazione = sempre visibile
+  // Default: 7 giorni fase1, 2 giorni fase2 se non configurato
+  const f1 = (def.fase1Days != null && !isNaN(Number(def.fase1Days))) ? Number(def.fase1Days) : 7;
+  const f2 = (def.fase2Days != null && !isNaN(Number(def.fase2Days))) ? Number(def.fase2Days) : 2;
   const d = Math.ceil((parseYmd(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
-  if (f2 != null && d <= f2) return 'fase2';
+  if (d <= f2) return 'fase2';
   if (d <= f1) return 'fase1';
   return 'none';
 }
-// Visibilità per famiglia su un evento generico (calendario o match sintetico).
-// Differenza chiave da getConvFase: se non ci sono impostazioni → 'fase2' (visibile).
-// Usa ev.visibilitaMode per gli eventi calendario; ev.visibilitaSubito per i match.
 function getFaseForFamily(ev) {
   if (!ev) return 'none';
   if (ev.visibilitaMode === 'nascosto') return 'none';
@@ -6253,13 +6250,37 @@ function getFaseForFamily(ev) {
     f1Raw = ev.visibilitaFase1Days != null ? ev.visibilitaFase1Days : def.fase1Days;
     f2Raw = ev.visibilitaFase2Days != null ? ev.visibilitaFase2Days : def.fase2Days;
   }
-  const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : null;
-  const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : null;
-  if (f1 == null) return 'fase2'; // nessuna configurazione = visibile
-  const d = Math.ceil((parseYmd(ev.date) - new Date()) / (1000 * 60 * 60 * 24));
-  if (f2 != null && d <= f2) return 'fase2';
+  // Default: 7 giorni fase1, 2 giorni fase2 se non configurato
+  const f1 = (f1Raw != null && !isNaN(f1Raw)) ? Number(f1Raw) : 7;
+  const f2 = (f2Raw != null && !isNaN(f2Raw)) ? Number(f2Raw) : 2;
+  const dateStr = ev.date || ev.data || '';
+  if (!dateStr) return 'fase2';
+  const d = Math.ceil((parseYmd(dateStr) - new Date()) / (1000 * 60 * 60 * 24));
+  if (d <= f2) return 'fase2';
   if (d <= f1) return 'fase1';
   return 'none';
+}
+// Funzione unificata Fase1/Fase2 per tutte le sezioni del genitore.
+// Accetta sia { leva, data } (match sintetico) che { leve:[], date } (evento calendario).
+// levaOverride: forza la leva quando non è sul'oggetto (es. partite campionato con currentLeva).
+// Default: 7 giorni fase1, 2 giorni fase2 se levaConvSettings non configurato.
+function getVisibilitaGenitore(evento, levaOverride) {
+  if (!evento) return 'none';
+  if (evento.visibilitaSubito || evento.visibileSubito) return 'fase2';
+  if (evento.visibilitaMode === 'nascosto') return 'none';
+  if (evento.visibilitaMode === 'subito') return 'fase2';
+  const levaEvento = levaOverride || (Array.isArray(evento.leve) ? evento.leve[0] : (evento.leva || '')) || '';
+  const settings = levaConvSettings[levaEvento] || {};
+  const f1 = (settings.fase1Days != null && !isNaN(Number(settings.fase1Days))) ? Number(settings.fase1Days) : 7;
+  const f2 = (settings.fase2Days != null && !isNaN(Number(settings.fase2Days))) ? Number(settings.fase2Days) : 2;
+  const dateStr = evento.data || evento.date || evento.dataInizio || evento.dataFine || '';
+  if (!dateStr) return 'fase2';
+  const oggi = new Date(); oggi.setHours(0,0,0,0);
+  const dataEvento = parseYmd(dateStr);
+  const giorniMancanti = Math.ceil((dataEvento - oggi) / 86400000);
+  if (giorniMancanti > f1) return 'none';
+  if (giorniMancanti > f2) return 'fase1';
+  return 'fase2';
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -9768,7 +9789,7 @@ function renderPanoramica() {
   };
   const _multiLeva = leveVis.length > 1;
   const _panoVisible = isFamily()
-    ? _allNext.filter(m => getFasePt(m.data, m.leva, m) !== 'none')
+    ? _allNext.filter(m => getVisibilitaGenitore(m) !== 'none')
     : _allNext;
   let partiteHtml = '';
   if (!leveVis.length) {
@@ -9781,7 +9802,7 @@ function renderPanoramica() {
       const levaChip = _multiLeva
         ? `<span style="display:inline-block;font-size:.65rem;font-weight:700;background:var(--cl);color:var(--cp);border-radius:5px;padding:1px 6px;margin-left:5px;vertical-align:middle;white-space:nowrap;">${escapeHtml(m.leva)}</span>`
         : '';
-      const fase = isFamily() ? getFasePt(m.data, m.leva, m) : 'fase2';
+      const fase = isFamily() ? getVisibilitaGenitore(m) : 'fase2';
       if (fase === 'fase1') {
         return `<div style="display:flex;align-items:center;gap:10px;padding:10px 11px;background:#f8fafc;border-radius:9px;border:1px solid var(--bd);border-left:3px solid ${t.col};">
           <div style="font-size:1.15rem;line-height:1;flex-shrink:0;">${t.ic}</div>
@@ -10101,7 +10122,7 @@ function buildMobDashboardGenitore(c) {
   const childLeve = p ? [p.leva].filter(Boolean) : [];
   const _allNextMob = panoAllNextMatchesAcrossLeve(childLeve);
   const nextMatches = isFamily()
-    ? _allNextMob.filter(m => getFasePt(m.data, m.leva, m) !== 'none')
+    ? _allNextMob.filter(m => getVisibilitaGenitore(m) !== 'none')
     : _allNextMob;
   const nextM = nextMatches[0];
 
@@ -10113,7 +10134,7 @@ function buildMobDashboardGenitore(c) {
     const tipoLabel = nextM.tipo === 'campionato' ? '🏅 Campionato' : nextM.tipo === 'torneo' ? ('🏆 ' + (nextM.torneoNome||'Torneo')) : '🤝 Amichevole';
     const luogoLabel = nextM.casa ? '🏠 Casa' : '✈️ Trasferta';
     const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
-    const mobFase = isFamily() ? getFasePt(nextM.data, nextM.leva, nextM) : 'fase2';
+    const mobFase = isFamily() ? getVisibilitaGenitore(nextM) : 'fase2';
     const mobInfoHtml = mobFase === 'fase1'
       ? `<div class="mob-impegno-title">⚽ ${tipoLabel}</div><div class="mob-impegno-meta">⏳ Dettagli disponibili a breve</div>`
       : `<div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div><div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div><div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>`;
@@ -10425,7 +10446,7 @@ function buildDashboard(role) {
     const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
     const childLeve = [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
     const nextMatchEv = childLeve.length ? panoNextMatchForLeva(childLeve[0]) : null;
-    const _nextFase = nextMatchEv ? getFasePt(nextMatchEv.date, childLeve[0]||'', nextMatchEv) : 'none';
+    const _nextFase = nextMatchEv ? getVisibilitaGenitore(nextMatchEv, childLeve[0]||'') : 'none';
     const nextMatchEvForDisplay = _nextFase !== 'none' ? nextMatchEv : null;
     const nextMatchCardHtml = _nextFase === 'fase1'
       ? `<div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--cl);border-radius:9px;">
@@ -10483,16 +10504,16 @@ function buildDashboard(role) {
     // DEBUG: mostra valori reali per diagnosticare Fase1/2
     const _dbgLeva = childLeve[0] || '';
     const _dbgSett = levaConvSettings[_dbgLeva] || {};
-    const _dbgD = nextMatchEv ? Math.ceil((parseYmd(nextMatchEv.date) - new Date()) / 86400000) : 'n/a';
+    const _dbgD = nextMatchEv ? Math.ceil((parseYmd(nextMatchEv.date || nextMatchEv.data || '') - new Date()) / 86400000) : 'n/a';
+    document.title = 'DBG fase1=' + (_dbgSett.fase1Days ?? 'ND') + ' fase2=' + (_dbgSett.fase2Days ?? 'ND') + ' leva=' + _dbgLeva + ' fase=' + _nextFase;
     const _debugOverlay = `<div style="background:#fef08a;border:2px solid #f59e0b;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-family:monospace;font-size:11px;line-height:1.8;">
-      <strong>🔍 DEBUG Fase1/2</strong><br>
-      <b>levaConvSettings completo:</b> ${escapeHtml(JSON.stringify(levaConvSettings))}<br>
-      <b>childLeve (figli):</b> [${childLeve.map(l=>escapeHtml(l)).join(', ')||'nessuna'}]<br>
-      <b>leva cercata:</b> "${escapeHtml(_dbgLeva)}" → <b>settings:</b> ${escapeHtml(JSON.stringify(_dbgSett))}<br>
-      <b>fase1Days:</b> ${_dbgSett.fase1Days} | <b>fase2Days:</b> ${_dbgSett.fase2Days}<br>
-      <b>nextMatch:</b> ${nextMatchEv ? escapeHtml(nextMatchEv.date+' ('+nextMatchEv.type+') '+nextMatchEv.title) : 'nessuna'}<br>
-      <b>giorni mancanti d=</b>${_dbgD} | <b>_nextFase=</b>${_nextFase}<br>
-      <b>isFamily()=</b>${isFamily()} | <b>leve sistema:</b> [${leve.map(l=>escapeHtml(l)).join(', ')}]
+      <strong>🔍 DEBUG Fase1/2 — da rimuovere dopo verifica</strong><br>
+      <b>levaConvSettings:</b> ${escapeHtml(JSON.stringify(levaConvSettings))}<br>
+      <b>childLeve:</b> [${childLeve.map(l=>escapeHtml(l)).join(', ')||'VUOTO — figlio non collegato'}]<br>
+      <b>leva:</b> "${escapeHtml(_dbgLeva)}" | <b>fase1Days:</b> ${_dbgSett.fase1Days ?? 'ND→default 7'} | <b>fase2Days:</b> ${_dbgSett.fase2Days ?? 'ND→default 2'}<br>
+      <b>nextMatch:</b> ${nextMatchEv ? escapeHtml((nextMatchEv.date||nextMatchEv.data||'?')+' ('+nextMatchEv.type+') '+nextMatchEv.title) : 'NESSUNA PARTITA TROVATA'}<br>
+      <b>giorni mancanti:</b> ${_dbgD} | <b>getVisibilitaGenitore:</b> ${_nextFase}<br>
+      <b>isFamily():</b> ${isFamily()} | <b>leve sistema:</b> [${leve.map(l=>escapeHtml(l)).join(', ')}]
     </div>`;
 
     c.innerHTML = `
@@ -12395,10 +12416,10 @@ function renderPtCampionato() {
       })() : `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessun risultato</div>`;
       const nextBlock = polisScheduled[0] ? (() => {
         const m = polisScheduled[0];
-        if (isFamily() && getFasePt(m.data, currentLeva, m) === 'none') {
+        if (isFamily() && getVisibilitaGenitore(m, currentLeva) === 'none') {
           return `<div style="color:rgba(255,255,255,.45);font-size:.75rem;">Nessuna in programma</div>`;
         }
-        if (isFamily() && getFasePt(m.data, currentLeva, m) === 'fase1') {
+        if (isFamily() && getVisibilitaGenitore(m, currentLeva) === 'fase1') {
           return `<div><div style="font-size:.6rem;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.6px;margin-bottom:2px;">Prossima partita</div><div style="font-size:.9rem;font-weight:800;">Partita di campionato</div><div style="font-size:.65rem;opacity:.75;">${fmtMatchDate(m.data)}${m.giornata ? ' · G'+m.giornata : ''}</div></div>`;
         }
         const avv = m.casa === polis ? m.ospite : m.casa;
@@ -12441,7 +12462,7 @@ function renderPtCampionato() {
   let polisSchedHtml;
   if (isFamily()) {
     polisSchedHtml = polisScheduled.map(m => {
-      const fase = getFasePt(m.data, currentLeva, m);
+      const fase = getVisibilitaGenitore(m, currentLeva);
       if (fase === 'none') return '';
       if (fase === 'fase1') return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">Partita di campionato · ⏳ Dettagli a breve</div></div>`;
       return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div></div>`;
