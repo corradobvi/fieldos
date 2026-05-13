@@ -1676,6 +1676,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
     <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;letter-spacing:0;">(min. 8 caratteri)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">📱 Numero WhatsApp *</label><input class="fi" type="tel" id="rPhone" placeholder="+39 333 000 0000" autocomplete="tel"></div>
     <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
 
@@ -15281,6 +15282,7 @@ async function doSelfRegister() {
   const cogn    = (document.getElementById('rCogn').value || '').trim();
   const email   = (document.getElementById('rEmail').value || '').trim().toLowerCase();
   const pass    = document.getElementById('rPass').value || '';
+  const phone   = (document.getElementById('rPhone').value || '').trim();
   const societa = (document.getElementById('rSocieta').value || '').trim();
   const citta   = (document.getElementById('rCitta').value || '').trim();
   const piano   = document.getElementById('rPiano').value || 'mister';
@@ -15289,6 +15291,7 @@ async function doSelfRegister() {
   if (!cogn)                        { _rShowErr('⚠️ Inserisci il cognome'); return; }
   if (!email || !email.includes('@')){ _rShowErr('⚠️ Email non valida'); return; }
   if (pass.length < 8)              { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
+  if (phone.replace(/\D/g,'').length < 9) { _rShowErr('⚠️ Inserisci un numero WhatsApp valido'); return; }
   if (!societa)                     { _rShowErr('⚠️ Inserisci il nome della società'); return; }
 
   const btn = document.getElementById('btnRegister');
@@ -15298,7 +15301,7 @@ async function doSelfRegister() {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, nomeSocieta: societa, citta, piano }),
+      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano }),
     });
 
     const data = await resp.json();

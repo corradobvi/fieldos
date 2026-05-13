@@ -173,7 +173,8 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 
 // Migrations: idempotent ALTER TABLE for existing databases
 export const MIGRATIONS_SQL = `
-ALTER TABLE societies ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'demo'
+ALTER TABLE societies ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'demo';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
 `;
 
 export const SEED_SQL = `

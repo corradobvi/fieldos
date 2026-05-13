@@ -31,11 +31,12 @@ export async function sendWelcomeEmails(opts: {
   nome: string;
   cognome: string;
   email: string;
+  phone: string;
   nomeSocieta: string;
   piano: string;
   demoExpires: Date;
 }): Promise<void> {
-  const { nome, cognome, email, nomeSocieta, piano, demoExpires } = opts;
+  const { nome, cognome, email, phone, nomeSocieta, piano, demoExpires } = opts;
   const pianoLabel = piano === "mister" ? "Mister" : piano === "mister_pro" ? "Mister Pro" : "Società";
   const scadenza = demoExpires.toLocaleDateString("it-IT", {
     day: "2-digit",
@@ -70,6 +71,7 @@ export async function sendWelcomeEmails(opts: {
   <table style="border-collapse:collapse;">
     <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Nome</td><td><strong>${nome} ${cognome}</strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Email</td><td>${email}</td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#64748b;">WhatsApp</td><td><strong><a href="https://wa.me/${phone.replace(/\D/g,'')}" style="color:#1A7A4A;">${phone || '—'}</a></strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Società</td><td><strong>${nomeSocieta}</strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Piano</td><td>${pianoLabel}</td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Demo scade</td><td>${scadenza}</td></tr>

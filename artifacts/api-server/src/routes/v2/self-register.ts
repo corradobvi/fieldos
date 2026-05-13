@@ -18,7 +18,7 @@ const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
-  const { nome, cognome, email, password, nomeSocieta, citta, piano } =
+  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano } =
     req.body as Record<string, string | undefined>;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
@@ -65,9 +65,9 @@ router.post("/auth/self-register", async (req, res) => {
     const hash = hashPassword(password);
     const [userRes] = (await conn.execute(
       `INSERT INTO users
-         (society_id, nome, cognome, email, password_hash, ruolo, stato)
-       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo')`,
-      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash]
+         (society_id, nome, cognome, email, password_hash, ruolo, stato, phone)
+       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?)`,
+      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim()]
     )) as [any, any];
     const userId: number = userRes.insertId;
 
@@ -86,6 +86,7 @@ router.post("/auth/self-register", async (req, res) => {
       nome: nome.trim(),
       cognome: cognome.trim(),
       email: normalizedEmail,
+      phone: (phone ?? "").trim(),
       nomeSocieta: nomeSocieta.trim(),
       piano: pianoNorm,
       demoExpires,
