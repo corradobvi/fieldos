@@ -15280,12 +15280,14 @@ function _prefillRegisterFromUrl() {
 function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
+  try { if (window.location.pathname !== '/register') history.pushState(null, '', '/register'); } catch(e) {}
   _prefillRegisterFromUrl();
 }
 
 function closeRegisterScreen() {
   document.getElementById('registerScreen').classList.remove('on');
   document.getElementById('loginScreen').style.display = '';
+  try { history.pushState(null, '', '/'); } catch(e) {}
 }
 
 function openSubscribeScreen() {
@@ -18595,7 +18597,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
 
   // Ripristina sessione se disponibile (evita logout al refresh)
-  tryRestoreSession();
+  const _sessionRestored = tryRestoreSession();
+
+  // Se l'URL è /register e non c'è sessione attiva, mostra direttamente il form di registrazione
+  if (!_sessionRestored && window.location.pathname === '/register') {
+    openRegisterScreen();
+  }
 });
 </script>
 
