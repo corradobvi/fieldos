@@ -1,3 +1,4 @@
+// 2026-05-13 — force redeploy: self-register endpoint + phone column migration
 import app from "./app";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
