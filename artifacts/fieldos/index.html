@@ -62,44 +62,50 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* ── LOGIN ── */
 #loginScreen{position:fixed;inset:0;z-index:9999;display:flex;background:var(--white);transition:opacity .35s,transform .35s;}
 #loginScreen.hide{opacity:0;transform:scale(.97);pointer-events:none;}
-.ll{width:400px;flex-shrink:0;background:var(--cp);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 36px;position:relative;overflow:hidden;}
+/* Left brand column */
+.ll{width:40%;flex-shrink:0;background:#1A7A4A;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 40px;position:relative;overflow:hidden;}
 .ll::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.06);}
 .ll::after{content:'';position:absolute;bottom:-60px;left:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.04);}
-.ll-logo{width:80px;height:80px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.25);position:relative;z-index:1;}
-.ll-logo span{font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;color:var(--cp);}
-.ll-club{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:white;letter-spacing:1px;position:relative;z-index:1;}
-.ll-sub{font-size:.7rem;color:rgba(255,255,255,.55);letter-spacing:3px;text-transform:uppercase;margin-bottom:36px;position:relative;z-index:1;}
-.rc{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .18s;margin-bottom:8px;width:100%;position:relative;z-index:1;}
-.rc:hover,.rc.sel{background:white;}
-.rc:hover .rcn,.rc.sel .rcn{color:var(--cp);}
-.rc:hover .rcd,.rc.sel .rcd{color:var(--text2);}
-.rc-ic{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
-.rc.sel .rc-ic{background:var(--cp);}
-.rcn{font-weight:700;font-size:.86rem;color:white;transition:color .18s;}
-.rcd{font-size:.7rem;color:rgba(255,255,255,.5);transition:color .18s;}
-.lr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px;}
-.lf{width:100%;max-width:360px;}
-.lf-title{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;margin-bottom:4px;}
-.lf-sub{font-size:.84rem;color:var(--text2);margin-bottom:28px;}
-.lf-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 13px;border-radius:20px;font-size:.73rem;font-weight:700;border:1px solid;margin-bottom:22px;background:rgba(var(--ca-rgb),.18);color:var(--ca);border-color:rgba(var(--ca-rgb),.55);}
+.ll-inner{position:relative;z-index:1;width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;}
+.ll-logo{width:80px;height:80px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.ll-logo span{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:900;color:#1A7A4A;}
+.ll-club{font-family:'Barlow Condensed',sans-serif;font-size:2.3rem;font-weight:900;color:white;letter-spacing:1px;text-align:center;}
+.ll-slogan{font-size:.9rem;color:rgba(255,255,255,.72);text-align:center;margin:8px 0 32px;font-style:italic;}
+.ll-bullets{list-style:none;padding:0;margin:0;width:100%;}
+.ll-bullets li{color:rgba(255,255,255,.88);font-size:.9rem;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px;line-height:1.4;}
+.ll-bullets li:last-child{border-bottom:none;}
+.ll-copy{font-size:.7rem;color:rgba(255,255,255,.35);text-align:center;margin-top:44px;}
+/* Right form column */
+.lr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px;overflow-y:auto;}
+.lf{width:100%;max-width:390px;}
+.lf-mob-logo{display:none;text-align:center;margin-bottom:22px;}
+.lf-mob-logo-circle{width:56px;height:56px;background:#1A7A4A;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
+.lf-mob-logo-circle span{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:white;}
+.lf-mob-logo-name{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;color:#1A7A4A;letter-spacing:.5px;}
+.lf-title{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;margin-bottom:4px;}
+.lf-sub{font-size:.84rem;color:var(--text2);margin-bottom:24px;}
+.lf-sep{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:.75rem;margin:18px 0;}
+.lf-sep::before,.lf-sep::after{content:'';flex:1;height:1px;background:var(--border);}
+.lf-genitore-box{border:2px solid rgba(26,122,74,.25);border-radius:12px;padding:14px 16px;margin-top:12px;background:rgba(26,122,74,.04);}
+/* Shared form fields */
 .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
 .fl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text2);}
-.fi{padding:11px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.88rem;transition:border-color .15s,box-shadow .15s;width:100%;}
-.fi:focus{outline:none;border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
+.fi{padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;transition:border-color .15s,box-shadow .15s;width:100%;}
+.fi:focus{outline:none;border-color:#1A7A4A;box-shadow:0 0 0 3px rgba(26,122,74,.12);}
 .fi-wrap{display:flex;align-items:center;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);transition:border-color .15s,box-shadow .15s;}
-.fi-wrap:focus-within{border-color:var(--cp);box-shadow:0 0 0 3px rgba(var(--cp-rgb),.1);}
+.fi-wrap:focus-within{border-color:#1A7A4A;box-shadow:0 0 0 3px rgba(26,122,74,.12);}
 .fi-wrap .fi{flex:1;border:none!important;box-shadow:none!important;background:transparent;width:auto;min-width:0;}
 .fi-eye{flex-shrink:0;background:none;border:none;cursor:pointer;padding:0 13px;color:var(--text2);display:flex;align-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:color .15s;}
-.fi-eye:hover,.fi-eye.on{color:var(--cp);}
-.btn-login{width:100%;padding:13px;background:var(--cp);color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
-.btn-login:hover{background:var(--cs);transform:translateY(-1px);box-shadow:var(--shm);}
+.fi-eye:hover,.fi-eye.on{color:#1A7A4A;}
+.btn-login{width:100%;padding:14px;background:#1A7A4A;color:white;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.96rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;}
+.btn-login:hover{background:#155c37;transform:translateY(-1px);box-shadow:0 8px 24px rgba(26,122,74,.3);}
 .btn-login:active{opacity:.8;transform:scale(.98);}
 .btn-login.loading{opacity:.7;pointer-events:none;}
 .lf-hint{margin-top:20px;background:var(--bg);border-radius:9px;padding:13px 15px;font-size:.75rem;color:var(--text2);}
 .lf-hint strong{color:var(--text);}
 .demo-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .db{padding:5px 11px;border-radius:16px;border:1.5px solid var(--border2);background:white;font-size:.72rem;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;}
-.db:hover{border-color:var(--cp);color:var(--cp);background:var(--cl);}
+.db:hover{border-color:#1A7A4A;color:#1A7A4A;background:rgba(26,122,74,.05);}
 
 /* ── APP ── */
 #app{display:none;}
@@ -417,6 +423,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 @media(max-width:900px){
   .ll{display:none;}
+  .lf-mob-logo{display:block;}
   .sidebar{position:fixed;left:0;top:58px;bottom:0;z-index:150;transform:translateX(-100%);box-shadow:var(--shm);}
   .sidebar.on{transform:translateX(0);}
   .ham{display:block;}
@@ -442,7 +449,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .sec-h>*{min-width:0;}
 
   /* Login */
-  .lr{padding:28px 20px;}
+  .lr{padding:24px 20px 32px;}
   .lf-title{font-size:1.55rem;}
   .btn-login{padding:14px;font-size:.9rem;}
 
@@ -677,9 +684,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* CTA "Inizia prova gratuita" */
 .btn-demo{
   display:block;width:100%;padding:13px;border-radius:10px;
-  background:linear-gradient(135deg,#047857,#059669);
+  background:linear-gradient(135deg,#1A7A4A,#22a562);
   color:#fff;font-family:inherit;font-size:.93rem;font-weight:700;
-  border:none;cursor:pointer;margin-top:10px;
+  border:none;cursor:pointer;margin-top:0;text-align:center;
   transition:all .16s;letter-spacing:.01em;
   touch-action:manipulation;-webkit-tap-highlight-color:transparent;
 }
@@ -1463,39 +1470,79 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <!-- ══════ LOGIN ══════ -->
 <div id="loginScreen">
+
+  <!-- ── Colonna sinistra: brand ─────────────────────────────── -->
   <div class="ll">
-    <div class="ll-logo"><span>MV</span></div>
-    <div class="ll-club">MyVivaio</div>
-    <div class="ll-sub">Piattaforma per società sportive</div>
-    <div id="roleCards">
-      <div class="rc" data-role="admin"     onclick="selRole(this)"><div class="rc-ic">🛡️</div><div><div class="rcn">Amministratore</div><div class="rcd">Gestione completa società</div></div></div>
-      <div class="rc" data-role="allenatore" onclick="selRole(this)"><div class="rc-ic">⚽</div><div><div class="rcn">Mister / Staff</div><div class="rcd">Rosa, presenze, convocazioni</div></div></div>
-      <div class="rc" data-role="dirigente" onclick="selRole(this)"><div class="rc-ic">📋</div><div><div class="rcn">Dirigente</div><div class="rcd">Logistica squadra e inviti famiglie</div></div></div>
-      <div class="rc" data-role="genitore"  onclick="selRole(this)"><div class="rc-ic">👨‍👧</div><div><div class="rcn">Genitore</div><div class="rcd">Aggiornamenti e comunicazioni</div></div></div>
-      <div class="rc" data-role="nonno"     onclick="selRole(this)"><div class="rc-ic">👴</div><div><div class="rcn">Nonno/Nonna</div><div class="rcd">Aggiornamenti del nipote/a</div></div></div>
-      <div class="rc" data-role="giocatore" onclick="selRole(this)"><div class="rc-ic">🏃</div><div><div class="rcn">Giocatore</div><div class="rcd">Il mio profilo e i miei progressi</div></div></div>
+    <div class="ll-inner">
+      <div class="ll-logo"><span>MV</span></div>
+      <div class="ll-club">MyVivaio</div>
+      <div class="ll-slogan">La tua squadra, sempre con te</div>
+      <ul class="ll-bullets">
+        <li>⚡ Convocazioni in tempo reale</li>
+        <li>📊 Statistiche e presenze sempre aggiornate</li>
+        <li>💬 Chat con staff e famiglie</li>
+      </ul>
+      <div class="ll-copy">© 2026 MyVivaio</div>
     </div>
   </div>
+
+  <!-- ── Colonna destra: form ────────────────────────────────── -->
   <div class="lr">
     <div class="lf">
-      <div class="lf-title">Accedi a MyVivaio</div>
-      <div class="lf-sub">Inserisci le tue credenziali per accedere.</div>
-      <div class="lf-badge" id="lfBadge">← Seleziona ruolo</div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}"></div>
-      <div class="fg"><label class="fl">Password</label><div class="fi-wrap"><input class="fi" type="password" id="lPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}"><button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()" tabindex="-1" aria-label="Mostra/nascondi password"><svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+
+      <!-- Logo solo mobile -->
+      <div class="lf-mob-logo">
+        <div class="lf-mob-logo-circle"><span>MV</span></div>
+        <div class="lf-mob-logo-name">MyVivaio</div>
+      </div>
+
+      <div class="lf-title">Bentornato 👋</div>
+      <div class="lf-sub">Inserisci le tue credenziali</div>
+
+      <div class="fg">
+        <label class="fl">Email</label>
+        <input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"
+          autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}">
+      </div>
+      <div class="fg">
+        <label class="fl">Password</label>
+        <div class="fi-wrap">
+          <input class="fi" type="password" id="lPass" placeholder="••••••••"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}">
+          <button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()"
+            tabindex="-1" aria-label="Mostra/nascondi password">
+            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
+
       <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
-      <div style="text-align:center;margin-top:8px;font-size:.78rem;color:var(--text2);">
-        <a href="#" onclick="event.preventDefault();openForgotPass()" style="color:var(--cp);font-weight:600;text-decoration:none;">🔑 Password dimenticata?</a>
-      </div>
-      <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">🚀 Non hai un account? Inizia 14 giorni gratuiti →</button>
+
       <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
-        Hai ricevuto un invito? <a href="#" onclick="event.preventDefault();promptInvitoToken()" style="color:var(--cp);font-weight:700;text-decoration:none;">Registrati con il tuo link →</a>
+        <a href="#" onclick="event.preventDefault();openForgotPass()"
+          style="color:#1A7A4A;font-weight:600;text-decoration:none;">🔑 Password dimenticata?</a>
       </div>
-      <!-- Card genitore con codice società -->
-      <div style="border:2px solid rgba(var(--cp-rgb),.35);border-radius:12px;padding:14px 16px;margin-top:16px;background:var(--cl);">
-        <div style="font-weight:800;font-size:1rem;color:var(--cp);margin-bottom:3px;">👨‍👧 Sei un genitore?</div>
-        <div style="font-size:.82rem;color:var(--text2);margin-bottom:10px;line-height:1.4;">Entra con il codice fornito dalla tua società sportiva.</div>
+
+      <div class="lf-sep">oppure</div>
+
+      <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">
+        🚀 Non hai un account? Inizia 14 giorni gratuiti →
+      </button>
+
+      <!-- Box genitore con codice società -->
+      <div class="lf-genitore-box">
+        <div style="font-weight:800;font-size:1rem;color:#1A7A4A;margin-bottom:3px;">👨‍👩‍👧 Sei un genitore?</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-bottom:10px;line-height:1.4;">
+          Entra con il codice fornito dalla tua società sportiva.
+        </div>
         <div style="display:flex;gap:8px;align-items:stretch;">
           <input class="fi" id="loginCodiceGenitore" placeholder="Es. POLIS18"
             style="flex:1;text-transform:uppercase;font-family:monospace;letter-spacing:1.5px;font-size:.95rem;min-height:48px;"
@@ -1507,9 +1554,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
         <div id="loginCodiceMsg" style="display:none;font-size:.84rem;font-weight:600;margin-top:8px;padding:8px 11px;border-radius:8px;"></div>
         <div style="text-align:center;margin-top:10px;font-size:.8rem;color:var(--text2);">
-          Non hai il codice? <a href="#" onclick="event.preventDefault();openCercaSocieta()" style="color:var(--cp);font-weight:700;text-decoration:none;">🔍 Cerca la tua società →</a>
+          Non hai il codice?
+          <a href="#" onclick="event.preventDefault();openCercaSocieta()"
+            style="color:#1A7A4A;font-weight:700;text-decoration:none;">🔍 Cerca la tua società →</a>
         </div>
       </div>
+
       <!-- Demo interna: visibile solo con ?demo=true nell'URL -->
       <div id="demoQuickPanel" style="display:none;margin-top:14px;">
         <div class="lf-hint" style="border:1.5px solid #1a3f8f30;background:linear-gradient(135deg,#1a3f8f08,#2563eb05);margin-bottom:8px;">
@@ -1534,6 +1584,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
