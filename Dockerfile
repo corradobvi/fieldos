@@ -1,3 +1,4 @@
+# 2026-05-13 — rebuild: self-register path fix + phone column
 FROM node:20-slim
 
 WORKDIR /app
