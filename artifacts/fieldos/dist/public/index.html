@@ -729,29 +729,41 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .rf .fi{height:40px;font-size:.88rem;}
 .rf .fl{font-size:.72rem;margin-bottom:3px;}
 .rf-err{display:none;margin-top:6px;padding:8px 12px;background:#fef2f2;color:#c0392b;border-radius:8px;font-size:.82rem;font-weight:600;}
-/* Schermata subscribe (demo scaduta) */
+/* Schermata subscribe (demo scaduta / abbonamento) */
 #subscribeScreen{
   display:none;min-height:100vh;background:var(--bg);
   overflow-y:auto;align-items:flex-start;justify-content:center;
   padding:32px 16px 48px;
 }
 #subscribeScreen.on{display:flex;}
-.sub-wrap{width:100%;max-width:680px;}
+.sub-wrap{width:100%;max-width:700px;}
 .sub-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;background:#fef3c7;color:#92400e;border-radius:20px;font-size:.78rem;font-weight:700;margin-bottom:14px;}
+.sub-badge.ok{background:#dcfce7;color:#166534;}
 .sub-title{font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;margin-bottom:6px;}
-.sub-sub{font-size:.88rem;color:var(--text2);margin-bottom:28px;}
-.sub-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
-.sub-plan{border:2px solid var(--border);border-radius:14px;padding:22px 20px;background:var(--white);}
-.sub-plan.featured{border-color:#1A7A4A;position:relative;}
+.sub-sub{font-size:.88rem;color:var(--text2);margin-bottom:20px;}
+/* Toggle mensile/annuale */
+.sub-toggle{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.sub-toggle-btn{padding:7px 18px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);font-weight:600;font-size:.82rem;cursor:pointer;transition:all .15s;color:var(--text2);}
+.sub-toggle-btn.sel{background:#1A7A4A;color:white;border-color:#1A7A4A;}
+.sub-saving{background:#fef3c7;color:#92400e;border-radius:12px;padding:3px 10px;font-size:.72rem;font-weight:700;}
+/* Piano cards */
+.sub-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
+.sub-plan{border:2px solid var(--border);border-radius:14px;padding:22px 20px;background:var(--white);position:relative;}
+.sub-plan.featured{border-color:#1A7A4A;}
 .sub-plan.featured::before{content:'Più scelto';position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#1A7A4A;color:white;font-size:.68rem;font-weight:700;padding:3px 12px;border-radius:12px;}
 .sub-plan-icon{font-size:1.8rem;margin-bottom:8px;}
 .sub-plan-name{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;margin-bottom:2px;}
-.sub-plan-price{font-size:1.7rem;font-weight:900;color:#1A7A4A;margin-bottom:4px;}
+.sub-plan-price{font-size:1.7rem;font-weight:900;color:#1A7A4A;margin-bottom:2px;transition:opacity .2s;}
 .sub-plan-price span{font-size:.8rem;font-weight:400;color:var(--text2);}
+.sub-plan-annual-note{font-size:.72rem;color:#166534;font-weight:600;min-height:16px;margin-bottom:6px;}
 .sub-plan-features{font-size:.78rem;color:var(--text2);line-height:1.8;margin:10px 0 16px;}
 .sub-plan-btn{display:block;width:100%;padding:11px;border-radius:9px;background:#1A7A4A;color:white;font-weight:700;font-size:.88rem;border:none;cursor:pointer;text-align:center;text-decoration:none;transition:background .15s;}
 .sub-plan-btn:hover{background:#155c37;}
+.sub-plan-btn:disabled{background:#94a3b8;cursor:not-allowed;}
 .sub-contact{text-align:center;font-size:.82rem;color:var(--text2);}
+/* Banner successo post-pagamento */
+#subSuccessBanner{display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:center;}
+#subSuccessBanner.on{display:block;}
 /* SA plan badges aggiornati */
 .sa-plan-demo{background:#fef3c7;color:#92400e;}
 .sa-plan-mister{background:#dbeafe;color:#1e40af;}
@@ -1676,30 +1688,45 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- ══════ SUBSCRIBE (demo scaduta) ══════ -->
 <div id="subscribeScreen">
   <div class="sub-wrap">
-    <div class="sub-badge">⏰ Demo scaduta</div>
+    <div id="subSuccessBanner">
+      <div style="font-size:2rem;margin-bottom:8px;">🎉</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:#166534;margin-bottom:4px;">Abbonamento attivato!</div>
+      <div style="font-size:.88rem;color:#15803d;">Benvenuto in MyVivaio — il tuo account è ora attivo.</div>
+      <button class="sub-plan-btn" style="margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;" onclick="history.replaceState(null,'','/'); openSubscribeScreen();">Vai all'app →</button>
+    </div>
+    <div class="sub-badge" id="subBadge">⏰ Demo scaduta</div>
     <div class="sub-title">Scegli il piano giusto per te</div>
     <div class="sub-sub">La tua demo è terminata. Abbonati per continuare ad usare MyVivaio.</div>
+    <!-- Toggle mensile / annuale -->
+    <div class="sub-toggle">
+      <button class="sub-toggle-btn sel" id="subToggleMensile" onclick="subSetIntervallo('mensile')">Mensile</button>
+      <button class="sub-toggle-btn" id="subToggleAnnuale" onclick="subSetIntervallo('annuale')">Annuale</button>
+      <span class="sub-saving">Risparmia fino al 27%</span>
+    </div>
     <div class="sub-plans">
       <div class="sub-plan">
         <div class="sub-plan-icon">⚽</div>
         <div class="sub-plan-name">Mister</div>
-        <div class="sub-plan-price">€9 <span>/mese</span></div>
+        <div class="sub-plan-price" id="subPriceMister">€9 <span>/mese</span></div>
+        <div class="sub-plan-annual-note" id="subNoteMister"></div>
         <div class="sub-plan-features">✓ 1 leva · max 25 giocatori<br>✓ Presenze & convocazioni<br>✓ Chat squadra<br>✓ Comunicazioni</div>
-        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Mister%20-%20MyVivaio" target="_blank">Abbonati →</a>
+        <button class="sub-plan-btn" id="subBtnMister" onclick="doStripeCheckout('mister')">Abbonati →</button>
       </div>
       <div class="sub-plan featured">
         <div class="sub-plan-icon">🏅</div>
         <div class="sub-plan-name">Mister Pro</div>
-        <div class="sub-plan-price">€19 <span>/mese</span></div>
+        <div class="sub-plan-price" id="subPriceMisterPro">€19 <span>/mese</span></div>
+        <div class="sub-plan-annual-note" id="subNoteMisterPro"></div>
         <div class="sub-plan-features">✓ Max 3 leve<br>✓ Giocatori illimitati<br>✓ Libreria allenamenti<br>✓ Statistiche avanzate</div>
-        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Mister%20Pro%20-%20MyVivaio" target="_blank">Abbonati →</a>
+        <button class="sub-plan-btn" id="subBtnMisterPro" onclick="doStripeCheckout('mister_pro')">Abbonati →</button>
       </div>
       <div class="sub-plan">
         <div class="sub-plan-icon">🏟️</div>
         <div class="sub-plan-name">Società</div>
-        <div class="sub-plan-price">€49 <span>/mese</span></div>
+        <div class="sub-plan-price" id="subPriceSocieta">€49 <span>/mese</span></div>
+        <div class="sub-plan-annual-note" id="subNoteSocieta"></div>
         <div class="sub-plan-features">✓ Leve illimitate<br>✓ Multi-staff<br>✓ Gestione quote<br>✓ Campionato & tornei</div>
-        <a class="sub-plan-btn" href="mailto:info@myvivaio.app?subject=Abbonamento%20Societ%C3%A0%20-%20MyVivaio" target="_blank">Abbonati →</a>
+        <button class="sub-plan-btn" id="subBtnSocieta" onclick="doStripeCheckout('societa')">Abbonati →</button>
       </div>
     </div>
     <div class="sub-contact">
@@ -15281,6 +15308,63 @@ function openSubscribeScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').classList.remove('on');
   document.getElementById('subscribeScreen').classList.add('on');
+  // Controlla ?abbonato=true
+  try {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('abbonato') === 'true') {
+      document.getElementById('subSuccessBanner').classList.add('on');
+      document.getElementById('subBadge').style.display = 'none';
+      history.replaceState(null, '', '/');
+    }
+  } catch(e) {}
+}
+
+// ── Stripe subscribe screen ──────────────────────────────────────────────
+let _subIntervallo = 'mensile';
+
+const _subPrices = {
+  mensile:  { mister: '€9',  misterPro: '€19', societa: '€49',  suffix: '/mese' },
+  annuale:  { mister: '€79', misterPro: '€159', societa: '€419', suffix: '/anno' },
+};
+const _subSavings = {
+  mister:    'Equivale a €6,58/mese — risparmi €29',
+  mister_pro:'Equivale a €13,25/mese — risparmi €69',
+  societa:   'Equivale a €34,92/mese — risparmi €169',
+};
+
+function subSetIntervallo(intervallo) {
+  _subIntervallo = intervallo;
+  document.getElementById('subToggleMensile').classList.toggle('sel', intervallo === 'mensile');
+  document.getElementById('subToggleAnnuale').classList.toggle('sel', intervallo === 'annuale');
+  const p = _subPrices[intervallo];
+  document.getElementById('subPriceMister').innerHTML    = `${p.mister} <span>${p.suffix}</span>`;
+  document.getElementById('subPriceMisterPro').innerHTML = `${p.misterPro} <span>${p.suffix}</span>`;
+  document.getElementById('subPriceSocieta').innerHTML   = `${p.societa} <span>${p.suffix}</span>`;
+  document.getElementById('subNoteMister').textContent    = intervallo === 'annuale' ? _subSavings.mister : '';
+  document.getElementById('subNoteMisterPro').textContent = intervallo === 'annuale' ? _subSavings.mister_pro : '';
+  document.getElementById('subNoteSocieta').textContent   = intervallo === 'annuale' ? _subSavings.societa : '';
+}
+
+async function doStripeCheckout(piano) {
+  const btn = document.getElementById('subBtn' + piano.charAt(0).toUpperCase() + piano.slice(1).replace('_p', 'P').replace('_s', 'S'));
+  if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ piano, intervallo: _subIntervallo, societyId: currentSocietaId }),
+    });
+    const data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Errore: ' + (data.detail || data.error || 'Riprova'));
+      if (btn) { btn.disabled = false; btn.textContent = 'Abbonati →'; }
+    }
+  } catch(e) {
+    alert('Errore di connessione. Riprova.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Abbonati →'; }
+  }
 }
 
 function _rShowErr(msg) {

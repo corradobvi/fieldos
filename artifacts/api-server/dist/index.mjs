@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router23;
+    module.exports = Router24;
     module.exports.Route = Route;
-    function Router23(options) {
-      if (!(this instanceof Router23)) {
-        return new Router23(options);
+    function Router24(options) {
+      if (!(this instanceof Router24)) {
+        return new Router24(options);
       }
       const opts = options || {};
-      function router23(req, res, next) {
-        router23.handle(req, res, next);
+      function router24(req, res, next) {
+        router24.handle(req, res, next);
       }
-      Object.setPrototypeOf(router23, this);
-      router23.caseSensitive = opts.caseSensitive;
-      router23.mergeParams = opts.mergeParams;
-      router23.params = {};
-      router23.strict = opts.strict;
-      router23.stack = [];
-      return router23;
+      Object.setPrototypeOf(router24, this);
+      router24.caseSensitive = opts.caseSensitive;
+      router24.mergeParams = opts.mergeParams;
+      router24.params = {};
+      router24.strict = opts.strict;
+      router24.stack = [];
+      return router24;
     }
-    Router23.prototype = function() {
+    Router24.prototype = function() {
     };
-    Router23.prototype.param = function param(name, fn) {
+    Router24.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router23.prototype.handle = function handle(req, res, callback) {
+    Router24.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router23.prototype.use = function use(handler) {
+    Router24.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router23.prototype.route = function route(path2) {
+    Router24.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router23.prototype[method] = function(path2) {
+      Router24.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router23 = require_router();
+    var Router24 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router23 = null;
+      var router24 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router23 === null) {
-            router23 = new Router23({
+          if (router24 === null) {
+            router24 = new Router24({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router23;
+          return router24;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router23 = this.router;
+      var router24 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router23.use(path2, fn2);
+          return router24.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router23.use(path2, function mounted_app(req, res, next) {
+        router24.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router23 = require_router();
+    var Router24 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router23.Route;
-    exports.Router = Router23;
+    exports.Route = Router24.Route;
+    exports.Router = Router24;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -48705,12 +48705,12 @@ var require_jwa = __commonJS({
       };
     }
     var bufferEqual;
-    var timingSafeEqual2 = "timingSafeEqual" in crypto2 ? function timingSafeEqual3(a, b) {
+    var timingSafeEqual3 = "timingSafeEqual" in crypto2 ? function timingSafeEqual4(a, b) {
       if (a.byteLength !== b.byteLength) {
         return false;
       }
       return crypto2.timingSafeEqual(a, b);
-    } : function timingSafeEqual3(a, b) {
+    } : function timingSafeEqual4(a, b) {
       if (!bufferEqual) {
         bufferEqual = require_buffer_equal_constant_time();
       }
@@ -48719,7 +48719,7 @@ var require_jwa = __commonJS({
     function createHmacVerifier(bits) {
       return function verify(thing, signature, secret) {
         var computedSig = createHmacSigner(bits)(thing, secret);
-        return timingSafeEqual2(Buffer2.from(signature), Buffer2.from(computedSig));
+        return timingSafeEqual3(Buffer2.from(signature), Buffer2.from(computedSig));
       };
     }
     function createKeySigner(bits) {
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // artifacts/api-server/src/app.ts
-var import_express23 = __toESM(require_express2(), 1);
+var import_express24 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // artifacts/api-server/src/routes/index.ts
-var import_express22 = __toESM(require_express2(), 1);
+var import_express23 = __toESM(require_express2(), 1);
 
 // artifacts/api-server/src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -61547,7 +61547,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // artifacts/api-server/src/routes/v2/index.ts
-var import_express21 = __toESM(require_express2(), 1);
+var import_express22 = __toESM(require_express2(), 1);
 
 // artifacts/api-server/src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -61559,11 +61559,13 @@ CREATE TABLE IF NOT EXISTS societies (
   colore_accento  VARCHAR(7)   DEFAULT '#FFD93D',
   logo_url        TEXT,
   codice          VARCHAR(50)  UNIQUE,
-  piano               VARCHAR(50)  DEFAULT 'demo',
-  subscription_status VARCHAR(20)  DEFAULT 'demo',
-  demo_scadenza       DATETIME,
-  stato               VARCHAR(20)  DEFAULT 'attiva',
-  created_at          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  piano                  VARCHAR(50)  DEFAULT 'demo',
+  subscription_status    VARCHAR(20)  DEFAULT 'demo',
+  demo_scadenza          DATETIME,
+  stato                  VARCHAR(20)  DEFAULT 'attiva',
+  stripe_customer_id     VARCHAR(255),
+  stripe_subscription_id VARCHAR(255),
+  created_at             TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -61725,7 +61727,9 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 `;
 var MIGRATIONS_SQL = `
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
-ALTER TABLE users ADD COLUMN phone VARCHAR(50)
+ALTER TABLE users ADD COLUMN phone VARCHAR(50);
+ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);
+ALTER TABLE societies ADD COLUMN stripe_subscription_id VARCHAR(255)
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -63259,8 +63263,123 @@ router20.post("/migrate", requireAuth, requireRole("admin"), async (req, res) =>
 });
 var migrate_default = router20;
 
-// artifacts/api-server/src/routes/v2/index.ts
+// artifacts/api-server/src/routes/v2/stripe.ts
+var import_express21 = __toESM(require_express2(), 1);
+import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
 var router21 = (0, import_express21.Router)();
+var STRIPE_API = "https://api.stripe.com/v1";
+var PRICE_ENV = {
+  mister: { mensile: "STRIPE_PRICE_MISTER_MENSILE", annuale: "STRIPE_PRICE_MISTER_ANNUALE" },
+  mister_pro: { mensile: "STRIPE_PRICE_MISTER_PRO_MENSILE", annuale: "STRIPE_PRICE_MISTER_PRO_ANNUALE" },
+  societa: { mensile: "STRIPE_PRICE_SOCIETA_MENSILE", annuale: "STRIPE_PRICE_SOCIETA_ANNUALE" }
+};
+function getPriceId(piano, intervallo) {
+  return process.env[PRICE_ENV[piano]?.[intervallo] ?? ""] || null;
+}
+function stripeEncode(obj) {
+  return Object.entries(obj).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
+}
+async function stripePost(path2, params) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not set");
+  const resp = await fetch(`${STRIPE_API}${path2}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: stripeEncode(params)
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data?.error?.message ?? `Stripe ${resp.status}`);
+  return data;
+}
+router21.post("/stripe/create-checkout", async (req, res) => {
+  const { piano, intervallo, societyId } = req.body;
+  if (!piano || !intervallo || !societyId) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const priceId = getPriceId(String(piano), String(intervallo));
+  if (!priceId) {
+    return res.status(400).json({ error: "invalid_plan_or_interval" });
+  }
+  const appUrl = process.env.APP_URL ?? "https://workspacefieldos-production.up.railway.app";
+  try {
+    const session = await stripePost("/checkout/sessions", {
+      mode: "subscription",
+      "payment_method_types[0]": "card",
+      "line_items[0][price]": priceId,
+      "line_items[0][quantity]": 1,
+      "success_url": `${appUrl}/?abbonato=true`,
+      "cancel_url": `${appUrl}/subscribe`,
+      "metadata[societyId]": String(societyId),
+      "metadata[piano]": String(piano),
+      "metadata[intervallo]": String(intervallo)
+    });
+    logger.info({ societyId, piano, intervallo }, "stripe checkout session created");
+    return res.json({ url: session.url });
+  } catch (e) {
+    logger.error({ err: e }, "stripe create-checkout error");
+    return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
+});
+router21.post("/stripe/webhook", async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    logger.warn("STRIPE_WEBHOOK_SECRET not set \u2014 webhook skipped");
+    return res.sendStatus(200);
+  }
+  const rawBody = req.rawBody;
+  if (!sig || !rawBody) {
+    return res.status(400).json({ error: "missing_signature" });
+  }
+  const parts = Object.fromEntries(sig.split(",").map((p) => p.split("=")));
+  const timestamp2 = parts["t"];
+  const v1 = parts["v1"];
+  if (!timestamp2 || !v1) {
+    return res.status(400).json({ error: "invalid_signature_format" });
+  }
+  if (Math.abs(Date.now() / 1e3 - Number(timestamp2)) > 300) {
+    return res.status(400).json({ error: "stale_event" });
+  }
+  const signedPayload = `${timestamp2}.${rawBody.toString("utf8")}`;
+  const expected = createHmac2("sha256", secret).update(signedPayload).digest("hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  const receivedBuf = Buffer.from(v1, "hex");
+  if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual2(expectedBuf, receivedBuf)) {
+    logger.warn({ sig }, "stripe webhook signature mismatch");
+    return res.status(400).json({ error: "invalid_signature" });
+  }
+  const event = req.body;
+  logger.info({ type: event?.type }, "stripe webhook received");
+  if (event?.type === "checkout.session.completed") {
+    const session = event.data?.object;
+    const societyId = session?.metadata?.societyId;
+    const customerId = session?.customer;
+    const subId = session?.subscription;
+    if (societyId && customerId) {
+      try {
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = 'active',
+               stripe_customer_id      = ?,
+               stripe_subscription_id  = ?
+           WHERE id = ?`,
+          [customerId, subId ?? null, Number(societyId)]
+        );
+        logger.info({ societyId, customerId }, "stripe: society activated");
+      } catch (e) {
+        logger.error({ err: e }, "stripe: DB update failed");
+      }
+    }
+  }
+  return res.sendStatus(200);
+});
+var stripe_default = router21;
+
+// artifacts/api-server/src/routes/v2/index.ts
+var router22 = (0, import_express22.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -63285,7 +63404,7 @@ async function ensureSchema() {
   _schemaReady = true;
   logger.info("v2: schema ready");
 }
-router21.use(async (_req, _res, next) => {
+router22.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -63294,35 +63413,36 @@ router21.use(async (_req, _res, next) => {
     next();
   }
 });
-router21.use(auth_default2);
-router21.use(self_register_default);
-router21.use(society_default);
-router21.use(leve_default);
-router21.use(players_default);
-router21.use(users_default);
-router21.use(events_default);
-router21.use(presenze_default);
-router21.use(comunicazioni_default);
-router21.use(chat_default);
-router21.use(quote_default);
-router21.use(migrate_default);
-var v2_default = router21;
+router22.use(auth_default2);
+router22.use(self_register_default);
+router22.use(society_default);
+router22.use(leve_default);
+router22.use(players_default);
+router22.use(users_default);
+router22.use(events_default);
+router22.use(presenze_default);
+router22.use(comunicazioni_default);
+router22.use(chat_default);
+router22.use(quote_default);
+router22.use(migrate_default);
+router22.use(stripe_default);
+var v2_default = router22;
 
 // artifacts/api-server/src/routes/index.ts
-var router22 = (0, import_express22.Router)();
-router22.use(health_default);
-router22.use(login_default);
-router22.use(auth_default);
-router22.use(state_default);
-router22.use(assist_default);
-router22.use(push_default);
-router22.use(upload_default);
-router22.use(public_default);
-router22.use("/v2", v2_default);
-var routes_default = router22;
+var router23 = (0, import_express23.Router)();
+router23.use(health_default);
+router23.use(login_default);
+router23.use(auth_default);
+router23.use(state_default);
+router23.use(assist_default);
+router23.use(push_default);
+router23.use(upload_default);
+router23.use(public_default);
+router23.use("/v2", v2_default);
+var routes_default = router23;
 
 // artifacts/api-server/src/app.ts
-var app = (0, import_express23.default)();
+var app = (0, import_express24.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -63343,12 +63463,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express23.default.json({ limit: "10mb" }));
-app.use(import_express23.default.urlencoded({ extended: true }));
+app.use(import_express24.default.json({
+  limit: "10mb",
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+app.use(import_express24.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express23.default.static(staticDir));
+  app.use(import_express24.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });

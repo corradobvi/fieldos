@@ -14,6 +14,7 @@ import comunicazioniRouter from "./comunicazioni";
 import chatRouter          from "./chat";
 import quoteRouter         from "./quote";
 import migrateRouter       from "./migrate";
+import stripeRouter        from "./stripe";
 
 const router = Router();
 
@@ -69,5 +70,6 @@ router.use(comunicazioniRouter);
 router.use(chatRouter);
 router.use(quoteRouter);
 router.use(migrateRouter);
+router.use(stripeRouter);
 
 export default router;

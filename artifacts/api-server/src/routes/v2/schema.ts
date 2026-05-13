@@ -7,11 +7,13 @@ CREATE TABLE IF NOT EXISTS societies (
   colore_accento  VARCHAR(7)   DEFAULT '#FFD93D',
   logo_url        TEXT,
   codice          VARCHAR(50)  UNIQUE,
-  piano               VARCHAR(50)  DEFAULT 'demo',
-  subscription_status VARCHAR(20)  DEFAULT 'demo',
-  demo_scadenza       DATETIME,
-  stato               VARCHAR(20)  DEFAULT 'attiva',
-  created_at          TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  piano                  VARCHAR(50)  DEFAULT 'demo',
+  subscription_status    VARCHAR(20)  DEFAULT 'demo',
+  demo_scadenza          DATETIME,
+  stato                  VARCHAR(20)  DEFAULT 'attiva',
+  stripe_customer_id     VARCHAR(255),
+  stripe_subscription_id VARCHAR(255),
+  created_at             TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -176,7 +178,9 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 // Note: no IF NOT EXISTS — error 1060 (duplicate column) is caught and ignored in the migration loop
 export const MIGRATIONS_SQL = `
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
-ALTER TABLE users ADD COLUMN phone VARCHAR(50)
+ALTER TABLE users ADD COLUMN phone VARCHAR(50);
+ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);
+ALTER TABLE societies ADD COLUMN stripe_subscription_id VARCHAR(255)
 `;
 
 export const SEED_SQL = `
