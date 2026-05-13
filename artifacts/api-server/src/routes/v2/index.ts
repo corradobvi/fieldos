@@ -25,10 +25,12 @@ async function ensureSchema() {
   for (const sql of statements) {
     await pool.execute(sql);
   }
-  // Idempotent migrations (ALTER TABLE IF NOT EXISTS — MySQL 8+)
+  // Idempotent migrations — ignore errno 1060 (duplicate column) only
   const migrations = MIGRATIONS_SQL.split(";").map(s => s.trim()).filter(Boolean);
   for (const sql of migrations) {
-    await pool.execute(sql).catch(() => {}); // ignore if column already exists on older MySQL
+    await pool.execute(sql).catch((e: any) => {
+      if (e?.errno !== 1060) logger.warn({ errno: e?.errno, msg: e?.message?.slice(0, 80) }, "migration warning");
+    });
   }
 
   // Seed only if no societies exist yet

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
   stato           VARCHAR(20)  DEFAULT 'attivo',
   temp_password   BOOLEAN      DEFAULT FALSE,
   figli           TEXT,
+  phone           VARCHAR(50),
   created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_email_society (email, society_id),
   FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
@@ -171,10 +172,11 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 `;
 
-// Migrations: idempotent ALTER TABLE for existing databases
+// Migrations: idempotent for existing databases
+// Note: no IF NOT EXISTS — error 1060 (duplicate column) is caught and ignored in the migration loop
 export const MIGRATIONS_SQL = `
-ALTER TABLE societies ADD COLUMN IF NOT EXISTS subscription_status VARCHAR(20) DEFAULT 'demo';
-ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
+ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
+ALTER TABLE users ADD COLUMN phone VARCHAR(50)
 `;
 
 export const SEED_SQL = `
