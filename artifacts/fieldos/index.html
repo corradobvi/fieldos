@@ -3127,7 +3127,7 @@ const ROLE_CFG = {
 };
 
 // ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
-function isAdminLike() { return !!(me && (isAdminLike() || me.role === 'mister_admin')); }
+function isAdminLike() { return !!(me && (me.role === 'admin' || me.role === 'mister_admin')); }
 
 // ─── Ordinamento giocatori per cognome (usato in tutta l'app) ───
 function byCogn(a, b) {
