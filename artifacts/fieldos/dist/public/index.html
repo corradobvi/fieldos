@@ -1871,6 +1871,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div class="card" id="usersCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">👥 Gestione utenti</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-g btn-sm" onclick="openInvitaGenitore()">📧 Invita genitore</button><button class="btn btn-p btn-sm" onclick="openUserModal(null)">+ Aggiungi utente</button></div></div>
             <div id="pendingUsersBox" style="display:none;"></div>
+            <!-- Contatore collaboratori (visibile solo con piano limitato) -->
+            <div id="collabCounter" style="display:none;background:var(--cl);border-radius:8px;padding:9px 13px;margin-bottom:10px;border:1px solid var(--border);"></div>
             <!-- Desktop: tabella -->
             <div class="users-desktop-table" style="overflow-x:auto"><table class="tbl"><thead><tr><th>Utente</th><th>Email</th><th>Ruolo</th><th>Leva</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="usersBody"></tbody></table></div>
             <!-- Mobile: cards -->
@@ -2632,13 +2634,13 @@ window.addEventListener('unhandledrejection', function(e) {
 // COSTANTI GLOBALI — dichiarate in cima per evitare TDZ su mobile
 // ═══════════════════════════════════
 const PIANI_DEF = {
-  demo:       { nome:'Demo',        leve:Infinity, giocatori:Infinity, prezzoMese:0,  prezzoAnno:0   },
-  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
-  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
-  societa:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
-  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79  },
-  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159 },
-  premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419 },
+  demo:       { nome:'Demo',        leve:Infinity, giocatori:Infinity, prezzoMese:0,  prezzoAnno:0,   collab:null },
+  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ allenatore:1, dirigente:2, preparatore_portieri:1 } },
+  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:5 } },
+  societa:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419, collab:null },
+  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ allenatore:1, dirigente:2, preparatore_portieri:1 } },
+  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:5 } },
+  premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419, collab:null },
 };
 const PIANO_TIERS = ['mister','mister_pro','societa'];
 const SECTION_LOCKS = {
@@ -3101,8 +3103,31 @@ const ROLE_CFG = {
       {id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
     ], leve:true
+  },
+  mister_admin: {
+    label:'⚽🛡️ Mister-Admin', color:'#047857', bg:'#e8effe',
+    nav:[
+      {s:'Società'},{id:'panoramica',ic:'🏟️',lb:'Panoramica'},
+      {s:'Generale'},{id:'dashboard',ic:'🏠',lb:'Dashboard'},
+      {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
+      {id:'chat',ic:'💬',lb:'Chat'},
+      {s:'Squadra'},{id:'rosa',ic:'👥',lb:'Rosa'},
+      {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
+      {id:'presenze',ic:'✅',lb:'Presenze'},
+      {id:'statistiche',ic:'📊',lb:'Statistiche'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
+      {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
+      {id:'calendario',ic:'📅',lb:'Calendario'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'documenti',ic:'📄',lb:'Documenti'},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true},
+      {id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
+    ], leve:true
   }
 };
+
+// ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
+function isAdminLike() { return !!(me && (isAdminLike() || me.role === 'mister_admin')); }
 
 // ─── Ordinamento giocatori per cognome (usato in tutta l'app) ───
 function byCogn(a, b) {
@@ -3573,7 +3598,7 @@ function bootApp(user) {
   document.getElementById('tbRole').textContent  = _tbLabel.replace(/^[^\w]*\S+\s/, '');
   const tb = document.getElementById('tbBadge');
   tb.textContent = _tbLabel;
-  const _useCP = (user.role === 'admin' || user.role === 'allenatore' || user.role === 'preparatore_portieri' || user.role === 'dirigente');
+  const _useCP = (user.role === 'admin' || user.role === 'mister_admin' || user.role === 'allenatore' || user.role === 'preparatore_portieri' || user.role === 'dirigente');
   tb.style.background   = _useCP ? 'var(--cl)'  : cfg.bg;
   tb.style.color        = _useCP ? 'var(--cp)'  : cfg.color;
   tb.style.borderColor  = _useCP ? 'var(--cp)'  : cfg.color;
@@ -3776,32 +3801,32 @@ function goTo(pgId) {
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
     if (!me) return;
-    const _isStaff = me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
+    const _isStaff = isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
     renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
     ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
     });
     const _convVisibCardEl = document.getElementById('convVisibCard');
-    if (_convVisibCardEl) _convVisibCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
+    if (_convVisibCardEl) _convVisibCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
     const _backupCardEl = document.getElementById('backupCard');
-    if (_backupCardEl) _backupCardEl.style.display = me.role === 'admin' ? '' : 'none';
-    if (me.role === 'admin' && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
+    if (_backupCardEl) _backupCardEl.style.display = isAdminLike() ? '' : 'none';
+    if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _quoteCardEl = document.getElementById('quoteCard');
     if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
-    if (_codiceCardEl) _codiceCardEl.style.display = (me.role === 'admin' || me.role === 'preparatore_portieri') ? '' : 'none';
+    if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
     // leveCard: solo admin
     const _usersCardEl = document.getElementById('usersCard');
-    if (_usersCardEl) _usersCardEl.style.display = (me.role === 'admin' || me.role === 'dirigente') ? '' : 'none';
+    if (_usersCardEl) _usersCardEl.style.display = (isAdminLike() || me.role === 'dirigente') ? '' : 'none';
     const _leveCardEl = document.getElementById('leveCard');
-    if (_leveCardEl) _leveCardEl.style.display = me.role === 'admin' ? '' : 'none';
+    if (_leveCardEl) _leveCardEl.style.display = isAdminLike() ? '' : 'none';
     // ricercaCard: solo admin
     const _ricercaCardEl = document.getElementById('ricercaCard');
     if (_ricercaCardEl) {
-      _ricercaCardEl.style.display = me.role === 'admin' ? '' : 'none';
-      if (me.role === 'admin') {
+      _ricercaCardEl.style.display = isAdminLike() ? '' : 'none';
+      if (isAdminLike()) {
         const _tRP = document.getElementById('toggleRicercaPubblica');
         const _tAR = document.getElementById('toggleAccettaRichieste');
         if (_tRP) _tRP.checked = ricercaPubblica !== false;
@@ -3831,7 +3856,7 @@ function goTo(pgId) {
     if (_iAccento) _iAccento.value = _hexRe.test(_caVal) ? _caVal : '#FFD93D';
     renderColorPreview();
     const _colorCardEl = document.getElementById('colorCard');
-    if (_colorCardEl) _colorCardEl.style.display = (me.role === 'admin' || me.role === 'allenatore') ? '' : 'none';
+    if (_colorCardEl) _colorCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
     const _iTipoColor = document.getElementById('newTipoColor');
     if (_iTipoColor && !_iTipoColor.value) _iTipoColor.value = coloriPrimari;
   }
@@ -4004,9 +4029,9 @@ function renderProfiloFiglio(el) {
 function renderLevaTabs(containerId, showAdd) {
   const el = document.getElementById(containerId);
   if (!el) return;
-  const editable = me && (me.role === 'admin' || me.role === 'allenatore');
+  const editable = me && (isAdminLike() || me.role === 'allenatore');
   // Genitore/giocatore vedono solo le proprie leve (figli o personali)
-  const isStaff = me && (me.role === 'admin' || me.role === 'allenatore');
+  const isStaff = me && (isAdminLike() || me.role === 'allenatore');
   const visibleLeve = isStaff ? leve : (userLeve().length ? userLeve() : leve);
   el.innerHTML = '';
   if (visibleLeve.length <= 1 && !showAdd) { el.style.display = 'none'; return; }
@@ -4197,7 +4222,7 @@ function calcStats(p) {
 function renderRosa() {
   const g = document.getElementById('rosaGrid');
   if (!g) return;
-  const editable = me && (me.role === 'admin' || me.role === 'allenatore');
+  const editable = me && (isAdminLike() || me.role === 'allenatore');
   const _showArch = document.getElementById('rosaShowArchived') && document.getElementById('rosaShowArchived').checked;
   const baseList = players.filter(p => p.leva === currentLeva && (!p.archiviato || _showArch)).sort(byCogn);
   const list = isGKCoach() ? baseList.filter(p => isGK(p)) : baseList;
@@ -4222,7 +4247,7 @@ function renderRosa() {
   const _rosaSoc = saSocieties.find(x => x.id === currentSocietaId);
   const _lavaPlayers = players.filter(pl => pl.leva === currentLeva).sort((a,b) => a.id-b.id);
   const todayRosa = ymd(new Date());
-  const canMarkIndispRosa = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+  const canMarkIndispRosa = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
   list.forEach(p => {
     const s = calcStats(p);
     const pc = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
@@ -4359,7 +4384,7 @@ function openPlayerModal(id) {
     document.getElementById('pTel').value   = p.tel || '';
     document.getElementById('btnDelPlayer').style.display = 'inline-flex';
     const _archBtn = document.getElementById('btnArchPlayer');
-    if (_archBtn) _archBtn.style.display = (me && (me.role === 'admin' || me.role === 'allenatore')) ? 'inline-flex' : 'none';
+    if (_archBtn) _archBtn.style.display = (me && (isAdminLike() || me.role === 'allenatore')) ? 'inline-flex' : 'none';
     if (_archBtn) _archBtn.textContent = p.archiviato ? '↩️ Ripristina' : '📦 Archivia';
     renderPPhotoArea(p);
     renderPAnagStats(p);
@@ -4513,7 +4538,7 @@ function fmtDateShort(ymdStr){
 function renderPIndispSection(p) {
   const box = document.getElementById('pIndispSection');
   if (!box || !p) return;
-  const canManage = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const canManage = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   const today = ymd(new Date());
   const records = (Array.isArray(indisponibilita) ? indisponibilita : [])
     .filter(i => i.playerId === p.id)
@@ -4615,8 +4640,8 @@ function deleteCurrentPlayer() {
 function buildRosaSection() {
   const el = document.getElementById('rosaActions');
   if (!el) return;
-  const editable = me && (me.role === 'admin' || me.role === 'allenatore');
-  const canInvite = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+  const editable = me && (isAdminLike() || me.role === 'allenatore');
+  const canInvite = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
   el.innerHTML = '';
   el.style.display = 'flex';
   el.style.gap = '6px';
@@ -4740,7 +4765,7 @@ function renderPresenze() {
     }
   }
 
-  if (me.role === 'admin' || me.role === 'dirigente') {
+  if (isAdminLike() || me.role === 'dirigente') {
     renderPresenzeOverview(cont, me.role === 'dirigente' ? userLeve() : leve);
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
@@ -5596,7 +5621,7 @@ function saveAvvisoAssenza(){
 // CONVOCAZIONI + DISPONIBILITÀ + NOTIFICHE
 // ═══════════════════════════════════
 
-function canCreateConvocazione(){ return me && (me.role === 'admin' || me.role === 'allenatore'); }
+function canCreateConvocazione(){ return me && (isAdminLike() || me.role === 'allenatore'); }
 function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
@@ -5793,7 +5818,7 @@ function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
-    if (u.role === 'admin') return; // admin escluso esplicitamente dagli avvisi di assenza
+    if (u.role === 'admin' || u.role === 'mister_admin') return; // admin escluso esplicitamente dagli avvisi di assenza
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
@@ -6088,7 +6113,7 @@ function openConvocazioneModal(eventId) {
     if (ai !== bi) return ai ? 1 : -1;
     return 0;
   });
-  const canMarkIndisp = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const canMarkIndisp = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   const rosterEl = document.getElementById('convRoster');
   if (!roster.length) {
     rosterEl.innerHTML = `<div style="padding:12px;color:var(--text2);font-size:.84rem;text-align:center;">Nessun giocatore nelle leve dell'evento.</div>`;
@@ -6368,7 +6393,7 @@ function openIndispModal(playerId, indispId, eventId, eventDate) {
   const p = players.find(x => x.id === playerId);
   if (!p && !indispId) return;
   const existing = indispId ? indisponibilita.find(i => i.id === indispId) : null;
-  const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const isStaff = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   document.getElementById('indispId').value = indispId || '';
   document.getElementById('indispPlayerId').value = playerId || (existing ? existing.playerId : '');
   document.getElementById('indispEventId').value = eventId != null ? eventId : (existing ? (existing.eventId || '') : '');
@@ -6410,7 +6435,7 @@ function saveIndisp() {
   const rawPid = document.getElementById('indispPlayerId').value;
   const playerId = parseInt(rawPid);
   const motivo = document.getElementById('indispMotivo').value.trim();
-  const isStaff = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
+  const isStaff = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'preparatore_portieri');
   const tipo = (isStaff && document.getElementById('indispTipo')) ? document.getElementById('indispTipo').value : null;
   const rawId = document.getElementById('indispId').value;
   const rawEvId = document.getElementById('indispEventId').value;
@@ -6684,7 +6709,7 @@ function commVisibleScopes() {
 
 function commWritableScopes() {
   if (!me) return [];
-  if (me.role === 'admin') {
+  if (isAdminLike()) {
     return [{id:'pubblica', label:'🏠 Pubblica'}].concat(leve.map(lv=>({id:'leva:'+lv, label:'⚽ '+lv})));
   }
   if (me.role === 'allenatore' || me.role === 'dirigente') {
@@ -6713,7 +6738,7 @@ function commTotalUnread() {
   const visScopes = commVisibleScopes().map(s=>s.id);
   const unreadComm = comunicazioni.filter(c => visScopes.includes(c.scope) && !commIsRead(c)).length;
   // Admin non conta avvisi di assenza nel badge (sono di competenza di mister/dirigente)
-  const unreadNotif = me.role === 'admin'
+  const unreadNotif = isAdminLike()
     ? notifiche.filter(n => n.userId === me.id && !n.read && n.type !== 'avviso_assenza').length
     : unreadCount(me.id);
   return unreadComm + unreadNotif;
@@ -6739,7 +6764,7 @@ function refreshNotificheBadge() {
 
 function refreshPendingUsersBadge() {
   if (!me) return;
-  const n = (me.role === 'admin' && Array.isArray(pendingUsers)) ? pendingUsers.length : 0;
+  const n = (isAdminLike() && Array.isArray(pendingUsers)) ? pendingUsers.length : 0;
   document.querySelectorAll('.ni[data-pg="impostazioni"]').forEach(el => {
     let badge = el.querySelector('.nb');
     if (n > 0) {
@@ -6819,7 +6844,7 @@ function _renderCommTabContent() {
   if (_commActiveTab === 'notifiche') {
     let list = userNotifiche(me.id, false);
     // Admin non vede avvisi di assenza: sono di competenza esclusiva di mister e dirigente
-    if (me.role === 'admin') list = list.filter(n => n.type !== 'avviso_assenza');
+    if (isAdminLike()) list = list.filter(n => n.type !== 'avviso_assenza');
     if (q) list = list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));
     if (!list.length) {
       cont.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text2);">Nessuna notifica.</div>';
@@ -6845,7 +6870,7 @@ function _renderCommTabContent() {
 
   const scope = _commActiveTab;
   const canWrite = canWriteToScope(scope);
-  const canDelete = me.role === 'admin';
+  const canDelete = isAdminLike();
   const scopeInfo = commVisibleScopes().find(s=>s.id===scope);
 
   let msgs = comunicazioni.filter(c=>c.scope===scope);
@@ -6985,7 +7010,7 @@ function saveNuovaComunicazione() {
 }
 
 function deleteComunicazione(id) {
-  if (!me || me.role !== 'admin') { toast('⚠️ Solo l\'admin può eliminare'); return; }
+  if (!me || !isAdminLike()) { toast('⚠️ Solo l\'admin può eliminare'); return; }
   if (!confirm('Eliminare questa comunicazione?')) return;
   comunicazioni = comunicazioni.filter(c => c.id !== id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -6995,7 +7020,7 @@ function deleteComunicazione(id) {
 
 function canComment(c) {
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente') return true;
   return c.commentiAbilitati === true;
 }
 function renderSondaggio(c) {
@@ -7006,7 +7031,7 @@ function renderSondaggio(c) {
   const myVote = s.voti.find(v => v.userId === me.id);
   const hasVotedAlready = !!myVote;
   const totalVoti = s.voti.length;
-  const canManage = me.role === 'admin' || c.mittenteId === me.id;
+  const canManage = isAdminLike() || c.mittenteId === me.id;
   let html = `<div style="margin-top:10px;padding:11px 13px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;">
     <div style="font-weight:700;font-size:.84rem;margin-bottom:9px;">📊 ${escapeHtml(s.domanda)}</div>`;
   if (hasVotedAlready || isClosed) {
@@ -7056,7 +7081,7 @@ function votaSondaggio(commId, opzioneIdx) {
 function chiudiSondaggio(commId) {
   const c = comunicazioni.find(x => x.id === commId);
   if (!c || !c.sondaggio) return;
-  if (me.role !== 'admin' && c.mittenteId !== me.id) { toast('⚠️ Non autorizzato'); return; }
+  if (!isAdminLike() && c.mittenteId !== me.id) { toast('⚠️ Non autorizzato'); return; }
   if (!confirm('Chiudere il sondaggio? Non sarà più possibile votare.')) return;
   c.sondaggio.chiuso = true;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -7084,7 +7109,7 @@ function renderCommentiSheet() {
   const cont = document.getElementById('commentiSheetBody');
   if (!cont) return;
   const commenti = Array.isArray(c.commenti) ? c.commenti : [];
-  const canManageAll = me.role === 'admin' || c.mittenteId === me.id;
+  const canManageAll = isAdminLike() || c.mittenteId === me.id;
   const ROLE_IC = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'👔',genitore:'👨‍👧',nonno:'👴',giocatore:'🏃'};
   const titleEl = document.getElementById('commentiSheetTitle');
   if (titleEl) titleEl.textContent = '💬 ' + escapeHtml(c.titolo);
@@ -7132,7 +7157,7 @@ function addCommento(commId) {
 function deleteCommento(commId, commentoId) {
   const c = comunicazioni.find(x => x.id === commId);
   if (!c) return;
-  const canManageAll = me.role === 'admin' || c.mittenteId === me.id;
+  const canManageAll = isAdminLike() || c.mittenteId === me.id;
   const cm = (c.commenti||[]).find(x => x.id === commentoId);
   if (!cm) return;
   if (!canManageAll && cm.userId !== me.id) { toast('⚠️ Non autorizzato'); return; }
@@ -7148,28 +7173,28 @@ function renderNotificheInComm() { renderComunicazioni(); }
 
 function fvVisibleLeve() {
   if (!me) return [];
-  if (me.role === 'admin') return leve.slice();
+  if (isAdminLike()) return leve.slice();
   if (me.role === 'allenatore' || me.role === 'dirigente') return userLeve().length ? userLeve() : leve.slice();
   return userLeve();
 }
 
 function fvCanUpload() {
-  return me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'genitore' || me.role === 'nonno');
+  return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente' || me.role === 'genitore' || me.role === 'nonno');
 }
 
 function fvCanDelete(item) {
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'dirigente') return true;
   return item.uploadedBy === me.id;
 }
 
 function fvCanUploadUfficiali() {
-  return me && (me.role === 'admin' || me.role === 'dirigente');
+  return me && (isAdminLike() || me.role === 'dirigente');
 }
 
 function fvCanUploadPlayerPhoto(player) {
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return userLeve().includes(player.leva);
   if (me.role === 'genitore' || me.role === 'nonno') {
     return getMyPlayers().some(p => p.id === player.id);
@@ -7626,7 +7651,7 @@ function showUnreadConvToast() {
   if (!me) return;
   const unread = userNotifiche(me.id, true);
   const conv = unread.filter(n => n.type === 'convocazione');
-  const avvisi = me.role === 'admin' ? [] : unread.filter(n => n.type === 'avviso_assenza');
+  const avvisi = isAdminLike() ? [] : unread.filter(n => n.type === 'avviso_assenza');
   if (conv.length === 1) toast('🔔 ' + conv[0].title);
   else if (conv.length > 1) toast('🔔 Hai ' + conv.length + ' nuove convocazioni');
   if (avvisi.length === 1) setTimeout(() => toast('🔔 ' + avvisi[0].title), conv.length ? 1400 : 0);
@@ -7752,7 +7777,7 @@ function renderPlayerStatsScheda() {
   const pcAllC  = pcAll >= 80 ? 'var(--green)' : pcAll >= 60 ? 'var(--gold)' : 'var(--red)';
   const pcPar   = s.parTot ? Math.round(s.parPres / s.parTot * 100) : 0;
   const pcParC  = pcPar >= 80 ? 'var(--green)' : pcPar >= 60 ? 'var(--gold)' : 'var(--red)';
-  const canEditNotes = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+  const canEditNotes = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
   const rc = ruoloColor(p.ruolo);
   const tabS = _currentStatsSchedaTab === 'stagione';
   let html = '';
@@ -8045,14 +8070,47 @@ function renderStatsTornei(el){
 // USERS (impostazioni)
 // ═══════════════════════════════════
 
-const ROLE_LABELS = {admin:'🛡️ Admin', allenatore:'⚽ Mister', preparatore_portieri:'🧤 Prep. Portieri', dirigente:'👔 Dirigente', genitore:'👨‍👧 Genitore', nonno:'👴 Nonno/Nonna', giocatore:'🏃 Giocatore'};
+const ROLE_LABELS = {admin:'🛡️ Admin', mister_admin:'⚽🛡️ Mister-Admin', allenatore:'⚽ Mister', preparatore_portieri:'🧤 Prep. Portieri', dirigente:'👔 Dirigente', genitore:'👨‍👧 Genitore', nonno:'👴 Nonno/Nonna', giocatore:'🏃 Giocatore'};
 const TITOLO_FAM_LABELS = { papa:'👨 Papà', mamma:'👩 Mamma', nonno:'👴 Nonno', nonna:'👵 Nonna' };
 function userRoleLabel(u) { return (u && u.titoloFamiliare && TITOLO_FAM_LABELS[u.titoloFamiliare]) ? TITOLO_FAM_LABELS[u.titoloFamiliare] : ROLE_LABELS[u && u.role] || (u && u.role) || ''; }
-const ROLE_PILL   = {admin:'pill-b', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
+const ROLE_PILL   = {admin:'pill-b', mister_admin:'pill-go', allenatore:'pill-go', dirigente:'pill-b', genitore:'', nonno:'', giocatore:'pill-g'};
+
+function renderCollabCounter() {
+  const el = document.getElementById('collabCounter');
+  if (!el) return;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const lim = getCollabLimiti(soc);
+  if (!lim) { el.style.display = 'none'; return; }
+  const staffRoles = ['allenatore','dirigente','preparatore_portieri'];
+  if (lim.total != null) {
+    const used = countCollab();
+    el.style.display = '';
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:.82rem;font-weight:600;">👥 Collaboratori staff:</span>
+      <span style="font-size:.9rem;font-weight:800;color:${used>=lim.total?'#dc2626':'var(--cp)'};">${used}/${lim.total}</span>
+      <span style="font-size:.75rem;color:var(--text2);">Piano ${getPianoDef(soc).nome}</span>
+      ${used>=lim.total?'<span style="font-size:.75rem;color:#dc2626;font-weight:600;">⚠ Limite raggiunto</span>':''}
+    </div>`;
+  } else {
+    const rows = staffRoles.map(r => {
+      const limit = lim[r];
+      if (limit == null) return '';
+      const used = countCollab(r);
+      const label = {allenatore:'Mister', dirigente:'Dirigenti', preparatore_portieri:'Prep. Portieri'}[r];
+      return `<span style="font-size:.8rem;">${label}: <strong style="color:${used>=limit?'#dc2626':'var(--cp)'};">${used}/${limit}</strong>${used>=limit?' ⚠':''}</span>`;
+    }).filter(Boolean).join('<span style="color:var(--text3);margin:0 4px;">·</span>');
+    el.style.display = '';
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:.82rem;font-weight:600;">👥 Collaboratori:</span>${rows}
+      <span style="font-size:.73rem;color:var(--text2);">Piano ${getPianoDef(soc).nome}</span>
+    </div>`;
+  }
+}
 
 function renderUsersTable() {
   renderPendingUsersBox();
   refreshCodiceUI();
+  renderCollabCounter();
   const tbody = document.getElementById('usersBody');
   if (tbody) {
     tbody.innerHTML = '';
@@ -8390,6 +8448,24 @@ function saveUser() {
   }
 
   if (editingUserId === null) {
+    // Verifica limiti collaboratori per il piano attivo
+    const _collabRoles = ['allenatore','dirigente','preparatore_portieri'];
+    if (_collabRoles.includes(role)) {
+      const _soc = saSocieties.find(x => x.id === currentSocietaId);
+      if (!canAddCollab(_soc, role)) {
+        const _lim = getCollabLimiti(_soc);
+        const _piano = getPianoDef(_soc);
+        let _msg = `⛔ Hai raggiunto il limite del Piano ${_piano.nome}.\n\n`;
+        if (_lim && _lim.total != null) {
+          _msg += `Massimo ${_lim.total} collaboratori staff totali.\nUpgrade a Piano Società per collaboratori illimitati.`;
+        } else if (_lim) {
+          const _roleNames = {allenatore:'Mister aggiuntivo (1)',dirigente:'Dirigenti (2)',preparatore_portieri:'Preparatore Portieri (1)'};
+          _msg += `Limite: ${_roleNames[role] || role}.\nUpgrade a Piano Mister Pro per 5 collaboratori totali.`;
+        }
+        alert(_msg);
+        return;
+      }
+    }
     USERS_DB.push({ id: nextUserId++, nome, cogn, email, pass, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno });
     closeM('mNewUser');
     renderUsersTable();
@@ -8459,7 +8535,7 @@ function buildInvitoUrl(token){
 }
 
 function openInvitaGenitore(){
-  if (!me || !(me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente')) {
+  if (!me || !(isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente')) {
     toast('⛔ Solo admin, Mister e dirigenti possono inviare inviti');
     return;
   }
@@ -8472,7 +8548,7 @@ function openInvitaGenitore(){
   const sel = document.getElementById('invFiglio');
   sel.innerHTML = '<option value="">— Lascia scegliere al genitore —</option>';
   // Per allenatore/dirigente filtra alla propria leva
-  const visiblePlayers = (me.role === 'admin')
+  const visiblePlayers = (isAdminLike())
     ? players
     : players.filter(p => p.leva === me.leva);
   visiblePlayers
@@ -9218,7 +9294,7 @@ function submitSelfReg(){
   USERS_DB.push(newUser);
 
   // Notifica admin del nuovo genitore registrato
-  USERS_DB.filter(u => u.role === 'admin').forEach(adm => {
+  USERS_DB.filter(u => u.role === 'admin' || u.role === 'mister_admin').forEach(adm => {
     if (typeof pushNotifica === 'function') {
       pushNotifica(adm.id, {
         type: 'nuovo_genitore',
@@ -9532,6 +9608,7 @@ function saveRicercaSettings() {
 // ═══════════════════════════════════
 
 function buildRoleContent(role) {
+  if (role === 'mister_admin') role = 'admin';
   buildDashboard(role);
   buildRosaSection();
   buildConvocazioni(role);
@@ -9546,7 +9623,7 @@ function coachAvvisiCardHTML() {
   if (!me) return '';
   const todayStr = ymd(new Date());
   // Filtra giocatori visibili (admin = tutti, allenatore = solo sua leva)
-  const visiblePlayers = (me.role === 'admin')
+  const visiblePlayers = (isAdminLike())
     ? players
     : players.filter(p => p.leva === me.leva);
   // Raccoglie tutti gli avvisi futuri o di oggi
@@ -9587,7 +9664,7 @@ function coachAvvisiCardHTML() {
 function panoVisibleLeve() {
   if (!me) return [];
   // Admin: vede sempre tutte le leve della società
-  if (me.role === 'admin') return leve.slice();
+  if (isAdminLike()) return leve.slice();
   // Mister/dirigente: solo le leve assegnate (me.leva), o tutte se 'Tutte'
   if (me.role === 'allenatore' || me.role === 'dirigente') {
     const ml = me.leva;
@@ -9970,6 +10047,7 @@ function renderPanoramica() {
 }
 
 function buildMobDashboard(role, c) {
+  if (role === 'mister_admin') role = 'admin';
   if (role === 'genitore' || role === 'nonno') { buildMobDashboardGenitore(c); return; }
   const todayStr = ymd(new Date());
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
@@ -10192,6 +10270,7 @@ function buildMobDashboardGenitore(c) {
 }
 
 function buildDashboard(role) {
+  if (role === 'mister_admin') role = 'admin';
   // Standalone welcome — shown once when app is first opened as PWA
   if (_isStandalone && !localStorage.getItem('pwa_welcome_shown')) {
     localStorage.setItem('pwa_welcome_shown', '1');
@@ -10644,6 +10723,7 @@ function buildConvActions(role) {
 }
 
 function buildCommForm(role) {
+  if (role === 'mister_admin') role = 'admin';
   const el = document.getElementById('commForm');
   if (!el) return;
   const aEl = document.getElementById('commActions');
@@ -10672,7 +10752,7 @@ function buildPagamenti(role) { /* rimpiazzata da renderPagamenti() */ }
 // ═══════════════════════════════════
 
 function quoteCanManage() {
-  return me && (me.role === 'admin' || me.role === 'dirigente');
+  return me && (isAdminLike() || me.role === 'dirigente');
 }
 
 function quoteSettingsForLeva(leva) {
@@ -11107,7 +11187,7 @@ const DOC_TYPES = {
 
 function docCanManage(player) {
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return !player || userLeve().includes(player.leva);
   if (me.role === 'genitore' || me.role === 'nonno')  return !!player && getMyPlayers().some(p => p.id === player.id);
   return false;
@@ -11115,7 +11195,7 @@ function docCanManage(player) {
 
 function docVisiblePlayers() {
   if (!me) return [];
-  if (me.role === 'admin' || me.role === 'dirigente') return players.slice().sort(byCogn);
+  if (isAdminLike() || me.role === 'dirigente') return players.slice().sort(byCogn);
   if (me.role === 'allenatore') return players.filter(p => userLeve().includes(p.leva)).sort(byCogn);
   return getMyPlayers().sort(byCogn);
 }
@@ -11135,7 +11215,7 @@ function certExpiryStatus(playerId) {
 function checkDocumentiReminders() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const todayStr = ymd(today);
-  const admins = USERS_DB.filter(u => u.role === 'admin');
+  const admins = USERS_DB.filter(u => u.role === 'admin' || u.role === 'mister_admin');
   players.forEach(p => {
     const certs = documenti.filter(d => d.playerId === p.id && d.tipo === 'cert_medico' && d.dataScadenza);
     if (!certs.length) return;
@@ -11338,7 +11418,7 @@ function fmtDateLong(d){ return DAYNAMES[d.getDay()] + ' ' + d.getDate() + ' ' +
 // ── Permessi
 function userLeve(){
   if (!me) return [];
-  if (me.role === 'admin') return leve.slice();
+  if (isAdminLike()) return leve.slice();
   // Per genitore/nonno: leve derivate dai figli/nipoti
   if (me.role === 'genitore' || me.role === 'nonno') {
     const figli = getFigliOf(me);
@@ -11353,10 +11433,10 @@ function userLeve(){
   if (l === 'Tutte' || l === 'tutte') return leve.slice();
   return l ? [l] : [];
 }
-function canEditCalendar(){ return me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
+function canEditCalendar(){ return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
 function canEditEvent(ev){
   if (!me) return false;
-  if (me.role === 'admin') return true;
+  if (isAdminLike()) return true;
   if (me.role === 'allenatore') {
     const my = userLeve();
     if (!ev.leve || ev.leve.length === 0) return false;
@@ -11366,7 +11446,7 @@ function canEditEvent(ev){
 }
 function canSeeEvent(ev){
   if (!me) return false;
-  if (me.role === 'admin') return true;
+  if (isAdminLike()) return true;
   const my = userLeve();
   if (!ev.leve || ev.leve.length === 0) return true; // evento "per tutti"
   return ev.leve.some(l => my.includes(l));
@@ -11690,7 +11770,7 @@ function openEventoModal(eventId, prefillDate){
   // Leve box
   const allowed = userLeve();
   const box = document.getElementById('evLeveBox'); box.innerHTML = '';
-  const selectedLeve = new Set(ev ? (ev.leve || []) : ((me.role === 'allenatore' || me.role === 'admin') ? allowed : []));
+  const selectedLeve = new Set(ev ? (ev.leve || []) : ((me.role === 'allenatore' || isAdminLike()) ? allowed : []));
   allowed.forEach(l => {
     const chip = document.createElement('span');
     const isOn = selectedLeve.has(l);
@@ -12046,7 +12126,7 @@ function renderCampiSettings(){
   });
 }
 function openCampoModal(id){
-  if (me.role !== 'admin' && me.role !== 'dirigente' && me.role !== 'allenatore') { toast('⛔ Solo admin, dirigenti e allenatori possono gestire i campi'); return; }
+  if (!isAdminLike() && me.role !== 'dirigente' && me.role !== 'allenatore') { toast('⛔ Solo admin, dirigenti e allenatori possono gestire i campi'); return; }
   const c = id ? campi.find(x => x.id === id) : null;
   document.getElementById('mCampoTitle').textContent = c ? '✏️ Modifica campo' : '🏟️ Nuovo campo';
   document.getElementById('campoId').value    = c ? c.id : '';
@@ -12116,7 +12196,7 @@ function renderTipoList(){
       <span style="flex:1;font-size:.85rem;font-weight:600;">${t.label}</span>
       <span style="font-size:.7rem;color:var(--text3);">${used} eventi</span>
     `;
-    if (me.role === 'admin') {
+    if (isAdminLike()) {
       const del = document.createElement('button');
       del.className = 'mx'; del.title = 'Elimina tipo'; del.textContent = '✕';
       del.onclick = () => deleteTipoEvento(t.id);
@@ -12138,7 +12218,7 @@ function addTipoEvento(){
   toast('✅ Tipo evento aggiunto');
 }
 function deleteTipoEvento(tipoId){
-  if (me.role !== 'admin') return;
+  if (!isAdminLike()) return;
   const used = events.filter(e => e.type === tipoId).length;
   if (used > 0) {
     if (!confirm(`Questo tipo è usato da ${used} eventi. Eliminandolo, gli eventi verranno conservati ma senza categoria. Continuare?`)) return;
@@ -12165,7 +12245,7 @@ function isGK(p) { return /portiere|goalkeeper|gk/i.test(p.ruolo || ''); }
 function canEditPt(leva) {
   if (saViewMode) return false;
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
   return false;
 }
@@ -12173,7 +12253,7 @@ function canEditPt(leva) {
 function canEnterResult(leva) {
   if (saViewMode) return false;
   if (!me) return false;
-  if (me.role === 'admin' || me.role === 'dirigente') return true;
+  if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore' || me.role === 'preparatore_portieri') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
   return false;
 }
@@ -12277,7 +12357,7 @@ function renderPartite() {
   // Leva tabs
   const ltEl = document.getElementById('ptLevaTabs');
   if (ltEl) {
-    const visLeve = (me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente')) ? leve : (userLeve().length ? userLeve() : leve);
+    const visLeve = (me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente')) ? leve : (userLeve().length ? userLeve() : leve);
     if (visLeve.length > 1) {
       ltEl.innerHTML = '<div class="leva-tabs">' + visLeve.map(l =>
         `<button class="lt${l===currentLeva?' on':''}" onclick="switchLeva('${escapeHtml(l)}')">${escapeHtml(l)}</button>`
@@ -12289,7 +12369,7 @@ function renderPartite() {
   const actEl = document.getElementById('ptActions');
   if (actEl) {
     actEl.innerHTML = '';
-    const isManager = me && (me.role === 'admin' || me.role === 'allenatore' || me.role === 'dirigente');
+    const isManager = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
     if (isManager) {
       const gc = document.createElement('button');
       gc.className = 'btn btn-p btn-sm';
@@ -14054,7 +14134,7 @@ function saveTorneoConvocati() {
 }
 
 function toggleTorneoScrivono(torneoId) {
-  if (!me || (me.role !== 'admin' && me.role !== 'dirigente')) return;
+  if (!me || (!isAdminLike() && me.role !== 'dirigente')) return;
   if (!torneoChats[torneoId]) torneoChats[torneoId] = {};
   torneoChats[torneoId].genitoriScrivono = !torneoChats[torneoId].genitoriScrivono;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -14159,7 +14239,7 @@ function selectChat(chatId, skipListRefresh) {
       noticeEl.style.display = 'block';
       noticeEl.innerHTML = '<span style="font-size:.78rem;">👁️ Sei in sola lettura — i genitori non possono scrivere in questa chat</span>';
       if (inpArea) inpArea.style.display = 'none';
-    } else if (c.kind === 'torneo' && (me.role === 'dirigente' || me.role === 'admin')) {
+    } else if (c.kind === 'torneo' && (me.role === 'dirigente' || isAdminLike())) {
       noticeEl.style.display = 'block';
       const gsCurrent = c.genitoriScrivono;
       noticeEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;"><span>Genitori: ${gsCurrent ? '✅ possono scrivere' : '🔒 sola lettura'}</span><button class="btn btn-xs btn-sm" onclick="toggleTorneoScrivono('${c.torneoId}')">${gsCurrent ? '🔒 Disabilita' : '✅ Abilita'} scrittura</button></div>`;
@@ -14500,6 +14580,34 @@ function canAddPlayer(soc, levaName) {
   const lim = getLimiti(soc);
   if (lim.giocatori === Infinity) return true;
   return players.filter(p=>p.leva===levaName).length < lim.giocatori;
+}
+
+// ─── Limiti collaboratori per piano ────────────────────────────────────────
+// Ritorna { allenatore, dirigente, preparatore_portieri, total } o null (illimitato)
+function getCollabLimiti(soc) {
+  if (!soc) return null;
+  if (getPianoStatus(soc) === 'active_demo') return null;
+  return getPianoDef(soc).collab || null;
+}
+
+// Conta i collaboratori staff attivi (esclude admin, mister_admin, genitore, nonno, giocatore)
+function countCollab(roleFilter) {
+  const staffRoles = ['allenatore','dirigente','preparatore_portieri'];
+  const users = USERS_DB.filter(u => u.stato === 'attivo' && staffRoles.includes(u.role));
+  if (roleFilter) return users.filter(u => u.role === roleFilter).length;
+  return users.length;
+}
+
+// Verifica se si può aggiungere un collaboratore del ruolo dato per il piano soc
+function canAddCollab(soc, role) {
+  const lim = getCollabLimiti(soc);
+  if (!lim) return true; // piano società o demo: illimitato
+  if (lim.total != null) {
+    return countCollab() < lim.total;
+  }
+  const roleLimit = lim[role];
+  if (roleLimit == null) return true; // ruolo non limitato
+  return countCollab(role) < roleLimit;
 }
 
 function isSectionLocked(sectionId, soc) {
@@ -15969,7 +16077,7 @@ function saEditSociety(id) {
   const loadAdminFields = (rawJson) => {
     try {
       const st = JSON.parse(rawJson);
-      const admin = (st.USERS_DB || []).find(u => u.role === 'admin');
+      const admin = (st.USERS_DB || []).find(u => u.role === 'admin' || u.role === 'mister_admin');
       if (admin) {
         document.getElementById('saAdminNome').value = admin.nome || '';
         document.getElementById('saAdminCogn').value = admin.cogn || '';
@@ -16058,7 +16166,7 @@ async function saSaveEditFull() {
       const st = JSON.parse(raw);
       st.nomeSocieta = nome;
       st.coloriPrimari = colori;
-      const admin = (st.USERS_DB || []).find(u => u.role === 'admin');
+      const admin = (st.USERS_DB || []).find(u => u.role === 'admin' || u.role === 'mister_admin');
       if (admin) { admin.nome=aNome; admin.cogn=aCogn; admin.email=aEmail; admin.pass=aPass; }
       else {
         // Admin non trovato: crea utente admin con i dati forniti
@@ -16287,7 +16395,7 @@ async function doForgotPass() {
 function canManageUser(u) {
   if (!me || !u) return false;
   if (u.id === me.id) return true; // chiunque può modificare se stesso
-  if (me.role === 'admin') return true;
+  if (isAdminLike()) return true;
   if (me.role === 'allenatore') return ['dirigente','preparatore_portieri'].includes(u.role);
   return false;
 }
@@ -16295,12 +16403,12 @@ function canManageUser(u) {
 function canDeleteUser(u) {
   if (!me || !u) return false;
   if (u.id === me.id) return false; // nessuno può eliminare se stesso
-  return me.role === 'admin';
+  return isAdminLike();
 }
 
 function canSlegaUser(u) {
   if (!me || !u) return false;
-  return me.role === 'admin' || me.role === 'allenatore';
+  return isAdminLike() || me.role === 'allenatore';
 }
 
 // ═══════════════════════════════════
