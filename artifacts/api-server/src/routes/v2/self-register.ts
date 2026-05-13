@@ -81,6 +81,9 @@ router.post("/auth/self-register", async (req, res) => {
 
     const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
 
+    // Webhook Superchat in background — non blocca la risposta
+    _superchatWebhook({ phone: (phone ?? "").trim(), nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {});
+
     // Email in background — non blocca la risposta
     sendWelcomeEmails({
       nome: nome.trim(),
@@ -122,6 +125,21 @@ router.post("/auth/self-register", async (req, res) => {
     if (conn) conn.release();
   }
 });
+
+async function _superchatWebhook(opts: { phone: string; nome: string; email: string; piano: string }): Promise<void> {
+  const url = process.env.SUPERCHAT_WEBHOOK_URL;
+  if (!url) return; // non configurato — salta silenziosamente
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phone: opts.phone, name: opts.nome, email: opts.email, piano: opts.piano }),
+  });
+  if (!resp.ok) {
+    logger.warn({ status: resp.status, email: opts.email }, "superchat webhook failed");
+  } else {
+    logger.info({ email: opts.email }, "superchat webhook ok");
+  }
+}
 
 function _generateCode(nome: string): string {
   const clean = nome.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5).padEnd(3, "X");
