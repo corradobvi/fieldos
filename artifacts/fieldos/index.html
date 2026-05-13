@@ -3579,7 +3579,45 @@ function logout() {
 // BOOT APP
 // ═══════════════════════════════════
 
+// Migrazione retroattiva: rimuove admin da chat automatiche (eseguita una sola volta al login)
+function migraChatAdmin(user) {
+  if (!user || !['admin','mister_admin'].includes(user.role)) return;
+  if (user.chat_admin_migrated_v2) return;
+
+  const adminId = user.id;
+  const AUTO_PREFIXES = ['allenatori', 'leva_', 'squadra_', 'torneo_'];
+  const isAutoChat = id => AUTO_PREFIXES.some(p => String(id).startsWith(p));
+
+  let changed = false;
+
+  // 1. Rimuovi admin dagli adHocChats con ID che somigliano a chat automatiche (caso raro ma difensivo)
+  (adHocChats || []).forEach(ch => {
+    const idx = ch.members ? ch.members.indexOf(adminId) : -1;
+    if (idx !== -1 && isAutoChat(String(ch.id))) {
+      ch.members.splice(idx, 1);
+      changed = true;
+    }
+  });
+
+  // 2. Rimuovi messaggi inviati dall'admin nelle chat automatiche
+  //    (messaggi storici — li spostiamo fuori riscrivendo chatMessaggi senza quelli dell'admin in chat auto)
+  const before = chatMessaggi.length;
+  chatMessaggi = chatMessaggi.filter(m => !(m.userId === adminId && isAutoChat(String(m.chatId))));
+  if (chatMessaggi.length !== before) changed = true;
+
+  // 3. Segna migrazione completata sul profilo utente
+  user.chat_admin_migrated_v2 = true;
+  changed = true;
+
+  if (changed) {
+    window.__fieldosSaveState && window.__fieldosSaveState();
+  }
+}
+
 function bootApp(user) {
+  // Migrazione retroattiva chat admin (una-tantum)
+  migraChatAdmin(user);
+
   // Persist session so a page refresh doesn't force re-login
   try {
     localStorage.setItem('mv_session', JSON.stringify({
