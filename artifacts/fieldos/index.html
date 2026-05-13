@@ -67,8 +67,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ll::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.06);}
 .ll::after{content:'';position:absolute;bottom:-60px;left:-60px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,.04);}
 .ll-inner{position:relative;z-index:1;width:100%;max-width:300px;display:flex;flex-direction:column;align-items:center;}
-.ll-logo{width:80px;height:80px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,.25);}
-.ll-logo span{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:900;color:#1A7A4A;}
+.ll-logo{width:88px;height:88px;border-radius:22px;overflow:hidden;margin-bottom:14px;box-shadow:0 8px 32px rgba(0,0,0,.3);}
+.ll-logo img{width:100%;height:100%;display:block;object-fit:cover;}
 .ll-club{font-family:'Barlow Condensed',sans-serif;font-size:2.3rem;font-weight:900;color:white;letter-spacing:1px;text-align:center;}
 .ll-slogan{font-size:.9rem;color:rgba(255,255,255,.72);text-align:center;margin:8px 0 32px;font-style:italic;}
 .ll-bullets{list-style:none;padding:0;margin:0;width:100%;}
@@ -79,8 +79,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .lr{flex:1;display:flex;align-items:center;justify-content:center;padding:48px;overflow-y:auto;}
 .lf{width:100%;max-width:390px;}
 .lf-mob-logo{display:none;text-align:center;margin-bottom:22px;}
-.lf-mob-logo-circle{width:56px;height:56px;background:#1A7A4A;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;}
-.lf-mob-logo-circle span{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:white;}
+.lf-mob-logo-circle{width:60px;height:60px;border-radius:14px;overflow:hidden;margin:0 auto 8px;}
+.lf-mob-logo-circle img{width:100%;height:100%;display:block;object-fit:cover;}
 .lf-mob-logo-name{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;color:#1A7A4A;letter-spacing:.5px;}
 .lf-title{font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:900;margin-bottom:4px;}
 .lf-sub{font-size:.84rem;color:var(--text2);margin-bottom:24px;}
@@ -1163,11 +1163,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 #pwa-splash.hide{opacity:0;pointer-events:none;}
 .pwa-splash-logo{
   width:96px;height:96px;border-radius:22px;
-  background:rgba(255,255,255,.15);
-  display:flex;align-items:center;justify-content:center;
-  font-size:3.2rem;
+  overflow:hidden;
   box-shadow:0 8px 40px rgba(0,0,0,.25);
 }
+.pwa-splash-logo img{width:100%;height:100%;display:block;object-fit:cover;}
 .pwa-splash-name{
   font-family:'Barlow Condensed',sans-serif;
   font-size:2.4rem;font-weight:900;color:#fff;letter-spacing:.5px;
@@ -1336,7 +1335,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <!-- ══════ PWA SPLASH SCREEN ══════ -->
 <div id="pwa-splash">
-  <div class="pwa-splash-logo">⚽</div>
+  <div class="pwa-splash-logo"><img src="/icons/icon-512.png" alt="MyVivaio"></div>
   <div class="pwa-splash-name">MyVivaio</div>
   <div class="pwa-splash-sub">La tua squadra, sempre con te</div>
   <div class="pwa-splash-spin"></div>
@@ -1474,7 +1473,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <!-- ── Colonna sinistra: brand ─────────────────────────────── -->
   <div class="ll">
     <div class="ll-inner">
-      <div class="ll-logo"><span>MV</span></div>
+      <div class="ll-logo"><img src="/icons/icon-512.png" alt="MyVivaio"></div>
       <div class="ll-club">MyVivaio</div>
       <div class="ll-slogan">La tua squadra, sempre con te</div>
       <ul class="ll-bullets">
@@ -1492,7 +1491,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
       <!-- Logo solo mobile -->
       <div class="lf-mob-logo">
-        <div class="lf-mob-logo-circle"><span>MV</span></div>
+        <div class="lf-mob-logo-circle"><img src="/icons/icon-512.png" alt="MyVivaio"></div>
         <div class="lf-mob-logo-name">MyVivaio</div>
       </div>
 
