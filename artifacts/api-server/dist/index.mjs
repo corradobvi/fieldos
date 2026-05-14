@@ -34,6 +34,977 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
+// node_modules/.pnpm/object-assign@4.1.1/node_modules/object-assign/index.js
+var require_object_assign = __commonJS({
+  "node_modules/.pnpm/object-assign@4.1.1/node_modules/object-assign/index.js"(exports, module) {
+    "use strict";
+    var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+    var hasOwnProperty = Object.prototype.hasOwnProperty;
+    var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+    function toObject(val) {
+      if (val === null || val === void 0) {
+        throw new TypeError("Object.assign cannot be called with null or undefined");
+      }
+      return Object(val);
+    }
+    function shouldUseNative() {
+      try {
+        if (!Object.assign) {
+          return false;
+        }
+        var test1 = new String("abc");
+        test1[5] = "de";
+        if (Object.getOwnPropertyNames(test1)[0] === "5") {
+          return false;
+        }
+        var test2 = {};
+        for (var i = 0; i < 10; i++) {
+          test2["_" + String.fromCharCode(i)] = i;
+        }
+        var order2 = Object.getOwnPropertyNames(test2).map(function(n) {
+          return test2[n];
+        });
+        if (order2.join("") !== "0123456789") {
+          return false;
+        }
+        var test3 = {};
+        "abcdefghijklmnopqrst".split("").forEach(function(letter) {
+          test3[letter] = letter;
+        });
+        if (Object.keys(Object.assign({}, test3)).join("") !== "abcdefghijklmnopqrst") {
+          return false;
+        }
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+    module.exports = shouldUseNative() ? Object.assign : function(target, source) {
+      var from;
+      var to = toObject(target);
+      var symbols;
+      for (var s = 1; s < arguments.length; s++) {
+        from = Object(arguments[s]);
+        for (var key in from) {
+          if (hasOwnProperty.call(from, key)) {
+            to[key] = from[key];
+          }
+        }
+        if (getOwnPropertySymbols) {
+          symbols = getOwnPropertySymbols(from);
+          for (var i = 0; i < symbols.length; i++) {
+            if (propIsEnumerable.call(from, symbols[i])) {
+              to[symbols[i]] = from[symbols[i]];
+            }
+          }
+        }
+      }
+      return to;
+    };
+  }
+});
+
+// node_modules/.pnpm/vary@1.1.2/node_modules/vary/index.js
+var require_vary = __commonJS({
+  "node_modules/.pnpm/vary@1.1.2/node_modules/vary/index.js"(exports, module) {
+    "use strict";
+    module.exports = vary;
+    module.exports.append = append;
+    var FIELD_NAME_REGEXP = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/;
+    function append(header, field) {
+      if (typeof header !== "string") {
+        throw new TypeError("header argument is required");
+      }
+      if (!field) {
+        throw new TypeError("field argument is required");
+      }
+      var fields = !Array.isArray(field) ? parse(String(field)) : field;
+      for (var j = 0; j < fields.length; j++) {
+        if (!FIELD_NAME_REGEXP.test(fields[j])) {
+          throw new TypeError("field argument contains an invalid header name");
+        }
+      }
+      if (header === "*") {
+        return header;
+      }
+      var val = header;
+      var vals = parse(header.toLowerCase());
+      if (fields.indexOf("*") !== -1 || vals.indexOf("*") !== -1) {
+        return "*";
+      }
+      for (var i = 0; i < fields.length; i++) {
+        var fld = fields[i].toLowerCase();
+        if (vals.indexOf(fld) === -1) {
+          vals.push(fld);
+          val = val ? val + ", " + fields[i] : fields[i];
+        }
+      }
+      return val;
+    }
+    function parse(header) {
+      var end = 0;
+      var list = [];
+      var start = 0;
+      for (var i = 0, len = header.length; i < len; i++) {
+        switch (header.charCodeAt(i)) {
+          case 32:
+            if (start === end) {
+              start = end = i + 1;
+            }
+            break;
+          case 44:
+            list.push(header.substring(start, end));
+            start = end = i + 1;
+            break;
+          default:
+            end = i + 1;
+            break;
+        }
+      }
+      list.push(header.substring(start, end));
+      return list;
+    }
+    function vary(res, field) {
+      if (!res || !res.getHeader || !res.setHeader) {
+        throw new TypeError("res argument is required");
+      }
+      var val = res.getHeader("Vary") || "";
+      var header = Array.isArray(val) ? val.join(", ") : String(val);
+      if (val = append(header, field)) {
+        res.setHeader("Vary", val);
+      }
+    }
+  }
+});
+
+// node_modules/.pnpm/cors@2.8.6/node_modules/cors/lib/index.js
+var require_lib = __commonJS({
+  "node_modules/.pnpm/cors@2.8.6/node_modules/cors/lib/index.js"(exports, module) {
+    (function() {
+      "use strict";
+      var assign = require_object_assign();
+      var vary = require_vary();
+      var defaults = {
+        origin: "*",
+        methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+        preflightContinue: false,
+        optionsSuccessStatus: 204
+      };
+      function isString(s) {
+        return typeof s === "string" || s instanceof String;
+      }
+      function isOriginAllowed(origin, allowedOrigin) {
+        if (Array.isArray(allowedOrigin)) {
+          for (var i = 0; i < allowedOrigin.length; ++i) {
+            if (isOriginAllowed(origin, allowedOrigin[i])) {
+              return true;
+            }
+          }
+          return false;
+        } else if (isString(allowedOrigin)) {
+          return origin === allowedOrigin;
+        } else if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        } else {
+          return !!allowedOrigin;
+        }
+      }
+      function configureOrigin(options, req) {
+        var requestOrigin = req.headers.origin, headers = [], isAllowed;
+        if (!options.origin || options.origin === "*") {
+          headers.push([{
+            key: "Access-Control-Allow-Origin",
+            value: "*"
+          }]);
+        } else if (isString(options.origin)) {
+          headers.push([{
+            key: "Access-Control-Allow-Origin",
+            value: options.origin
+          }]);
+          headers.push([{
+            key: "Vary",
+            value: "Origin"
+          }]);
+        } else {
+          isAllowed = isOriginAllowed(requestOrigin, options.origin);
+          headers.push([{
+            key: "Access-Control-Allow-Origin",
+            value: isAllowed ? requestOrigin : false
+          }]);
+          headers.push([{
+            key: "Vary",
+            value: "Origin"
+          }]);
+        }
+        return headers;
+      }
+      function configureMethods(options) {
+        var methods = options.methods;
+        if (methods.join) {
+          methods = options.methods.join(",");
+        }
+        return {
+          key: "Access-Control-Allow-Methods",
+          value: methods
+        };
+      }
+      function configureCredentials(options) {
+        if (options.credentials === true) {
+          return {
+            key: "Access-Control-Allow-Credentials",
+            value: "true"
+          };
+        }
+        return null;
+      }
+      function configureAllowedHeaders(options, req) {
+        var allowedHeaders = options.allowedHeaders || options.headers;
+        var headers = [];
+        if (!allowedHeaders) {
+          allowedHeaders = req.headers["access-control-request-headers"];
+          headers.push([{
+            key: "Vary",
+            value: "Access-Control-Request-Headers"
+          }]);
+        } else if (allowedHeaders.join) {
+          allowedHeaders = allowedHeaders.join(",");
+        }
+        if (allowedHeaders && allowedHeaders.length) {
+          headers.push([{
+            key: "Access-Control-Allow-Headers",
+            value: allowedHeaders
+          }]);
+        }
+        return headers;
+      }
+      function configureExposedHeaders(options) {
+        var headers = options.exposedHeaders;
+        if (!headers) {
+          return null;
+        } else if (headers.join) {
+          headers = headers.join(",");
+        }
+        if (headers && headers.length) {
+          return {
+            key: "Access-Control-Expose-Headers",
+            value: headers
+          };
+        }
+        return null;
+      }
+      function configureMaxAge(options) {
+        var maxAge = (typeof options.maxAge === "number" || options.maxAge) && options.maxAge.toString();
+        if (maxAge && maxAge.length) {
+          return {
+            key: "Access-Control-Max-Age",
+            value: maxAge
+          };
+        }
+        return null;
+      }
+      function applyHeaders(headers, res) {
+        for (var i = 0, n = headers.length; i < n; i++) {
+          var header = headers[i];
+          if (header) {
+            if (Array.isArray(header)) {
+              applyHeaders(header, res);
+            } else if (header.key === "Vary" && header.value) {
+              vary(res, header.value);
+            } else if (header.value) {
+              res.setHeader(header.key, header.value);
+            }
+          }
+        }
+      }
+      function cors2(options, req, res, next) {
+        var headers = [], method = req.method && req.method.toUpperCase && req.method.toUpperCase();
+        if (method === "OPTIONS") {
+          headers.push(configureOrigin(options, req));
+          headers.push(configureCredentials(options));
+          headers.push(configureMethods(options));
+          headers.push(configureAllowedHeaders(options, req));
+          headers.push(configureMaxAge(options));
+          headers.push(configureExposedHeaders(options));
+          applyHeaders(headers, res);
+          if (options.preflightContinue) {
+            next();
+          } else {
+            res.statusCode = options.optionsSuccessStatus;
+            res.setHeader("Content-Length", "0");
+            res.end();
+          }
+        } else {
+          headers.push(configureOrigin(options, req));
+          headers.push(configureCredentials(options));
+          headers.push(configureExposedHeaders(options));
+          applyHeaders(headers, res);
+          next();
+        }
+      }
+      function middlewareWrapper(o) {
+        var optionsCallback = null;
+        if (typeof o === "function") {
+          optionsCallback = o;
+        } else {
+          optionsCallback = function(req, cb) {
+            cb(null, o);
+          };
+        }
+        return function corsMiddleware(req, res, next) {
+          optionsCallback(req, function(err, options) {
+            if (err) {
+              next(err);
+            } else {
+              var corsOptions = assign({}, defaults, options);
+              var originCallback = null;
+              if (corsOptions.origin && typeof corsOptions.origin === "function") {
+                originCallback = corsOptions.origin;
+              } else if (corsOptions.origin) {
+                originCallback = function(origin, cb) {
+                  cb(null, corsOptions.origin);
+                };
+              }
+              if (originCallback) {
+                originCallback(req.headers.origin, function(err2, origin) {
+                  if (err2 || !origin) {
+                    next(err2);
+                  } else {
+                    corsOptions.origin = origin;
+                    cors2(corsOptions, req, res, next);
+                  }
+                });
+              } else {
+                next();
+              }
+            }
+          });
+        };
+      }
+      module.exports = middlewareWrapper;
+    })();
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-helpers.js
+var require_err_helpers = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-helpers.js"(exports, module) {
+    "use strict";
+    var isErrorLike = (err) => {
+      return err && typeof err.message === "string";
+    };
+    var getErrorCause = (err) => {
+      if (!err) return;
+      const cause = err.cause;
+      if (typeof cause === "function") {
+        const causeResult = err.cause();
+        return isErrorLike(causeResult) ? causeResult : void 0;
+      } else {
+        return isErrorLike(cause) ? cause : void 0;
+      }
+    };
+    var _stackWithCauses = (err, seen) => {
+      if (!isErrorLike(err)) return "";
+      const stack = err.stack || "";
+      if (seen.has(err)) {
+        return stack + "\ncauses have become circular...";
+      }
+      const cause = getErrorCause(err);
+      if (cause) {
+        seen.add(err);
+        return stack + "\ncaused by: " + _stackWithCauses(cause, seen);
+      } else {
+        return stack;
+      }
+    };
+    var stackWithCauses = (err) => _stackWithCauses(err, /* @__PURE__ */ new Set());
+    var _messageWithCauses = (err, seen, skip) => {
+      if (!isErrorLike(err)) return "";
+      const message = skip ? "" : err.message || "";
+      if (seen.has(err)) {
+        return message + ": ...";
+      }
+      const cause = getErrorCause(err);
+      if (cause) {
+        seen.add(err);
+        const skipIfVErrorStyleCause = typeof err.cause === "function";
+        return message + (skipIfVErrorStyleCause ? "" : ": ") + _messageWithCauses(cause, seen, skipIfVErrorStyleCause);
+      } else {
+        return message;
+      }
+    };
+    var messageWithCauses = (err) => _messageWithCauses(err, /* @__PURE__ */ new Set());
+    module.exports = {
+      isErrorLike,
+      getErrorCause,
+      stackWithCauses,
+      messageWithCauses
+    };
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-proto.js
+var require_err_proto = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-proto.js"(exports, module) {
+    "use strict";
+    var seen = /* @__PURE__ */ Symbol("circular-ref-tag");
+    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-err-ref");
+    var pinoErrProto = Object.create({}, {
+      type: {
+        enumerable: true,
+        writable: true,
+        value: void 0
+      },
+      message: {
+        enumerable: true,
+        writable: true,
+        value: void 0
+      },
+      stack: {
+        enumerable: true,
+        writable: true,
+        value: void 0
+      },
+      aggregateErrors: {
+        enumerable: true,
+        writable: true,
+        value: void 0
+      },
+      raw: {
+        enumerable: false,
+        get: function() {
+          return this[rawSymbol];
+        },
+        set: function(val) {
+          this[rawSymbol] = val;
+        }
+      }
+    });
+    Object.defineProperty(pinoErrProto, rawSymbol, {
+      writable: true,
+      value: {}
+    });
+    module.exports = {
+      pinoErrProto,
+      pinoErrorSymbols: {
+        seen,
+        rawSymbol
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err.js
+var require_err = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err.js"(exports, module) {
+    "use strict";
+    module.exports = errSerializer;
+    var { messageWithCauses, stackWithCauses, isErrorLike } = require_err_helpers();
+    var { pinoErrProto, pinoErrorSymbols } = require_err_proto();
+    var { seen } = pinoErrorSymbols;
+    var { toString } = Object.prototype;
+    function errSerializer(err) {
+      if (!isErrorLike(err)) {
+        return err;
+      }
+      err[seen] = void 0;
+      const _err = Object.create(pinoErrProto);
+      _err.type = toString.call(err.constructor) === "[object Function]" ? err.constructor.name : err.name;
+      _err.message = messageWithCauses(err);
+      _err.stack = stackWithCauses(err);
+      if (Array.isArray(err.errors)) {
+        _err.aggregateErrors = err.errors.map((err2) => errSerializer(err2));
+      }
+      for (const key in err) {
+        if (_err[key] === void 0) {
+          const val = err[key];
+          if (isErrorLike(val)) {
+            if (key !== "cause" && !Object.prototype.hasOwnProperty.call(val, seen)) {
+              _err[key] = errSerializer(val);
+            }
+          } else {
+            _err[key] = val;
+          }
+        }
+      }
+      delete err[seen];
+      _err.raw = err;
+      return _err;
+    }
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-with-cause.js
+var require_err_with_cause = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/err-with-cause.js"(exports, module) {
+    "use strict";
+    module.exports = errWithCauseSerializer;
+    var { isErrorLike } = require_err_helpers();
+    var { pinoErrProto, pinoErrorSymbols } = require_err_proto();
+    var { seen } = pinoErrorSymbols;
+    var { toString } = Object.prototype;
+    function errWithCauseSerializer(err) {
+      if (!isErrorLike(err)) {
+        return err;
+      }
+      err[seen] = void 0;
+      const _err = Object.create(pinoErrProto);
+      _err.type = toString.call(err.constructor) === "[object Function]" ? err.constructor.name : err.name;
+      _err.message = err.message;
+      _err.stack = err.stack;
+      if (Array.isArray(err.errors)) {
+        _err.aggregateErrors = err.errors.map((err2) => errWithCauseSerializer(err2));
+      }
+      if (isErrorLike(err.cause) && !Object.prototype.hasOwnProperty.call(err.cause, seen)) {
+        _err.cause = errWithCauseSerializer(err.cause);
+      }
+      for (const key in err) {
+        if (_err[key] === void 0) {
+          const val = err[key];
+          if (isErrorLike(val)) {
+            if (!Object.prototype.hasOwnProperty.call(val, seen)) {
+              _err[key] = errWithCauseSerializer(val);
+            }
+          } else {
+            _err[key] = val;
+          }
+        }
+      }
+      delete err[seen];
+      _err.raw = err;
+      return _err;
+    }
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/req.js
+var require_req = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/req.js"(exports, module) {
+    "use strict";
+    module.exports = {
+      mapHttpRequest,
+      reqSerializer
+    };
+    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-req-ref");
+    var pinoReqProto = Object.create({}, {
+      id: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      method: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      url: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      query: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      params: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      headers: {
+        enumerable: true,
+        writable: true,
+        value: {}
+      },
+      remoteAddress: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      remotePort: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      raw: {
+        enumerable: false,
+        get: function() {
+          return this[rawSymbol];
+        },
+        set: function(val) {
+          this[rawSymbol] = val;
+        }
+      }
+    });
+    Object.defineProperty(pinoReqProto, rawSymbol, {
+      writable: true,
+      value: {}
+    });
+    function reqSerializer(req) {
+      const connection = req.info || req.socket;
+      const _req = Object.create(pinoReqProto);
+      _req.id = typeof req.id === "function" ? req.id() : req.id || (req.info ? req.info.id : void 0);
+      _req.method = req.method;
+      if (req.originalUrl) {
+        _req.url = req.originalUrl;
+      } else {
+        const path2 = req.path;
+        _req.url = typeof path2 === "string" ? path2 : req.url ? req.url.path || req.url : void 0;
+      }
+      if (req.query) {
+        _req.query = req.query;
+      }
+      if (req.params) {
+        _req.params = req.params;
+      }
+      _req.headers = req.headers;
+      _req.remoteAddress = connection && connection.remoteAddress;
+      _req.remotePort = connection && connection.remotePort;
+      _req.raw = req.raw || req;
+      return _req;
+    }
+    function mapHttpRequest(req) {
+      return {
+        req: reqSerializer(req)
+      };
+    }
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/res.js
+var require_res = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/lib/res.js"(exports, module) {
+    "use strict";
+    module.exports = {
+      mapHttpResponse,
+      resSerializer
+    };
+    var rawSymbol = /* @__PURE__ */ Symbol("pino-raw-res-ref");
+    var pinoResProto = Object.create({}, {
+      statusCode: {
+        enumerable: true,
+        writable: true,
+        value: 0
+      },
+      headers: {
+        enumerable: true,
+        writable: true,
+        value: ""
+      },
+      raw: {
+        enumerable: false,
+        get: function() {
+          return this[rawSymbol];
+        },
+        set: function(val) {
+          this[rawSymbol] = val;
+        }
+      }
+    });
+    Object.defineProperty(pinoResProto, rawSymbol, {
+      writable: true,
+      value: {}
+    });
+    function resSerializer(res) {
+      const _res = Object.create(pinoResProto);
+      _res.statusCode = res.headersSent ? res.statusCode : null;
+      _res.headers = res.getHeaders ? res.getHeaders() : res._headers;
+      _res.raw = res;
+      return _res;
+    }
+    function mapHttpResponse(res) {
+      return {
+        res: resSerializer(res)
+      };
+    }
+  }
+});
+
+// node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/index.js
+var require_pino_std_serializers = __commonJS({
+  "node_modules/.pnpm/pino-std-serializers@7.1.0/node_modules/pino-std-serializers/index.js"(exports, module) {
+    "use strict";
+    var errSerializer = require_err();
+    var errWithCauseSerializer = require_err_with_cause();
+    var reqSerializers = require_req();
+    var resSerializers = require_res();
+    module.exports = {
+      err: errSerializer,
+      errWithCause: errWithCauseSerializer,
+      mapHttpRequest: reqSerializers.mapHttpRequest,
+      mapHttpResponse: resSerializers.mapHttpResponse,
+      req: reqSerializers.reqSerializer,
+      res: resSerializers.resSerializer,
+      wrapErrorSerializer: function wrapErrorSerializer(customSerializer) {
+        if (customSerializer === errSerializer) return customSerializer;
+        return function wrapErrSerializer(err) {
+          return customSerializer(errSerializer(err));
+        };
+      },
+      wrapRequestSerializer: function wrapRequestSerializer(customSerializer) {
+        if (customSerializer === reqSerializers.reqSerializer) return customSerializer;
+        return function wrappedReqSerializer(req) {
+          return customSerializer(reqSerializers.reqSerializer(req));
+        };
+      },
+      wrapResponseSerializer: function wrapResponseSerializer(customSerializer) {
+        if (customSerializer === resSerializers.resSerializer) return customSerializer;
+        return function wrappedResSerializer(res) {
+          return customSerializer(resSerializers.resSerializer(res));
+        };
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/get-caller-file@2.0.5/node_modules/get-caller-file/index.js
+var require_get_caller_file = __commonJS({
+  "node_modules/.pnpm/get-caller-file@2.0.5/node_modules/get-caller-file/index.js"(exports, module) {
+    "use strict";
+    module.exports = function getCallerFile(position) {
+      if (position === void 0) {
+        position = 2;
+      }
+      if (position >= Error.stackTraceLimit) {
+        throw new TypeError("getCallerFile(position) requires position be less then Error.stackTraceLimit but position was: `" + position + "` and Error.stackTraceLimit was: `" + Error.stackTraceLimit + "`");
+      }
+      var oldPrepareStackTrace = Error.prepareStackTrace;
+      Error.prepareStackTrace = function(_, stack2) {
+        return stack2;
+      };
+      var stack = new Error().stack;
+      Error.prepareStackTrace = oldPrepareStackTrace;
+      if (stack !== null && typeof stack === "object") {
+        return stack[position] ? stack[position].getFileName() : void 0;
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js
+var require_logger = __commonJS({
+  "node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js"(exports, module) {
+    "use strict";
+    var { pino: pino2, symbols: { stringifySym, chindingsSym } } = __require("pino");
+    var serializers = require_pino_std_serializers();
+    var getCallerFile = require_get_caller_file();
+    var startTime = /* @__PURE__ */ Symbol("startTime");
+    var reqObject = /* @__PURE__ */ Symbol("reqObject");
+    function pinoLogger(opts, stream) {
+      if (opts && opts._writableState) {
+        stream = opts;
+        opts = null;
+      }
+      opts = Object.assign({}, opts);
+      opts.customAttributeKeys = opts.customAttributeKeys || {};
+      const reqKey = opts.customAttributeKeys.req || "req";
+      const resKey = opts.customAttributeKeys.res || "res";
+      const errKey = opts.customAttributeKeys.err || "err";
+      const requestIdKey = opts.customAttributeKeys.reqId || "reqId";
+      const responseTimeKey = opts.customAttributeKeys.responseTime || "responseTime";
+      delete opts.customAttributeKeys;
+      const customProps = opts.customProps || void 0;
+      opts.wrapSerializers = "wrapSerializers" in opts ? opts.wrapSerializers : true;
+      if (opts.wrapSerializers) {
+        opts.serializers = Object.assign({}, opts.serializers);
+        const requestSerializer = opts.serializers[reqKey] || opts.serializers.req || serializers.req;
+        const responseSerializer = opts.serializers[resKey] || opts.serializers.res || serializers.res;
+        const errorSerializer = opts.serializers[errKey] || opts.serializers.err || serializers.err;
+        opts.serializers[reqKey] = serializers.wrapRequestSerializer(requestSerializer);
+        opts.serializers[resKey] = serializers.wrapResponseSerializer(responseSerializer);
+        opts.serializers[errKey] = serializers.wrapErrorSerializer(errorSerializer);
+      }
+      delete opts.wrapSerializers;
+      if (opts.useLevel && opts.customLogLevel) {
+        throw new Error("You can't pass 'useLevel' and 'customLogLevel' together");
+      }
+      function getValidLogLevel(level, defaultValue = "info") {
+        if (level && typeof level === "string") {
+          const logLevel = level.trim();
+          if (validLogLevels.includes(logLevel) === true) {
+            return logLevel;
+          }
+        }
+        return defaultValue;
+      }
+      function getLogLevelFromCustomLogLevel(customLogLevel2, useLevel2, res, err, req) {
+        return customLogLevel2 ? getValidLogLevel(customLogLevel2(req, res, err), useLevel2) : useLevel2;
+      }
+      const customLogLevel = opts.customLogLevel;
+      delete opts.customLogLevel;
+      const theStream = opts.stream || stream;
+      delete opts.stream;
+      const autoLogging = opts.autoLogging !== false;
+      const autoLoggingIgnore = opts.autoLogging && opts.autoLogging.ignore ? opts.autoLogging.ignore : null;
+      delete opts.autoLogging;
+      const onRequestReceivedObject = getFunctionOrDefault(opts.customReceivedObject, void 0);
+      const receivedMessage = getFunctionOrDefault(opts.customReceivedMessage, void 0);
+      const onRequestSuccessObject = getFunctionOrDefault(opts.customSuccessObject, defaultSuccessfulRequestObjectProvider);
+      const successMessage = getFunctionOrDefault(opts.customSuccessMessage, defaultSuccessfulRequestMessageProvider);
+      const onRequestErrorObject = getFunctionOrDefault(opts.customErrorObject, defaultFailedRequestObjectProvider);
+      const errorMessage = getFunctionOrDefault(opts.customErrorMessage, defaultFailedRequestMessageProvider);
+      delete opts.customSuccessfulMessage;
+      delete opts.customErroredMessage;
+      const quietReqLogger = !!opts.quietReqLogger;
+      const quietResLogger = !!opts.quietResLogger;
+      const logger2 = wrapChild(opts, theStream);
+      const validLogLevels = Object.keys(logger2.levels.values).concat("silent");
+      const useLevel = getValidLogLevel(opts.useLevel);
+      delete opts.useLevel;
+      const genReqId = reqIdGenFactory(opts.genReqId);
+      const result = (req, res, next) => {
+        return loggingMiddleware(logger2, req, res, next);
+      };
+      result.logger = logger2;
+      return result;
+      function onResFinished(res, logger3, err) {
+        let log = logger3;
+        const responseTime = Date.now() - res[startTime];
+        const req = res[reqObject];
+        const level = getLogLevelFromCustomLogLevel(customLogLevel, useLevel, res, err, req);
+        if (level === "silent") {
+          return;
+        }
+        const customPropBindings = typeof customProps === "function" ? customProps(req, res) : customProps;
+        if (customPropBindings) {
+          const customPropBindingStr = logger3[stringifySym](customPropBindings).replace(/[{}]/g, "");
+          const customPropBindingsStr = logger3[chindingsSym];
+          if (!customPropBindingsStr.includes(customPropBindingStr)) {
+            log = logger3.child(customPropBindings);
+          }
+        }
+        if (err || res.err || res.statusCode >= 500) {
+          const error = err || res.err || new Error("failed with status code " + res.statusCode);
+          log[level](
+            onRequestErrorObject(req, res, error, {
+              [resKey]: res,
+              [errKey]: error,
+              [responseTimeKey]: responseTime
+            }),
+            errorMessage(req, res, error, responseTime)
+          );
+          return;
+        }
+        log[level](
+          onRequestSuccessObject(req, res, {
+            [resKey]: res,
+            [responseTimeKey]: responseTime
+          }),
+          successMessage(req, res, responseTime)
+        );
+      }
+      function loggingMiddleware(logger3, req, res, next) {
+        let shouldLogSuccess = true;
+        req.id = req.id || genReqId(req, res);
+        const log = quietReqLogger ? logger3.child({ [requestIdKey]: req.id }) : logger3;
+        let fullReqLogger = log.child({ [reqKey]: req });
+        const customPropBindings = typeof customProps === "function" ? customProps(req, res) : customProps;
+        if (customPropBindings) {
+          fullReqLogger = fullReqLogger.child(customPropBindings);
+        }
+        const responseLogger = quietResLogger ? log : fullReqLogger;
+        const requestLogger = quietReqLogger ? log : fullReqLogger;
+        if (!res.log) {
+          res.log = responseLogger;
+        }
+        if (Array.isArray(res.allLogs) === false) {
+          res.allLogs = [];
+        }
+        res.allLogs.push(responseLogger);
+        if (!req.log) {
+          req.log = requestLogger;
+        }
+        if (!req.allLogs) {
+          req.allLogs = [];
+        }
+        req.allLogs.push(requestLogger);
+        res[startTime] = res[startTime] || Date.now();
+        res[reqObject] = req;
+        const onResponseComplete = (err) => {
+          res.removeListener("close", onResponseComplete);
+          res.removeListener("finish", onResponseComplete);
+          res.removeListener("error", onResponseComplete);
+          return onResFinished(res, responseLogger, err);
+        };
+        if (autoLogging) {
+          if (autoLoggingIgnore !== null && shouldLogSuccess === true) {
+            const isIgnored = autoLoggingIgnore(req);
+            shouldLogSuccess = !isIgnored;
+          }
+          if (shouldLogSuccess) {
+            const shouldLogReceived = receivedMessage !== void 0 || onRequestReceivedObject !== void 0;
+            if (shouldLogReceived) {
+              const level = getLogLevelFromCustomLogLevel(customLogLevel, useLevel, res, void 0, req);
+              const receivedObjectResult = onRequestReceivedObject !== void 0 ? onRequestReceivedObject(req, res, void 0) : {};
+              const receivedStringResult = receivedMessage !== void 0 ? receivedMessage(req, res) : void 0;
+              requestLogger[level](receivedObjectResult, receivedStringResult);
+            }
+            res.on("close", onResponseComplete);
+            res.on("finish", onResponseComplete);
+          }
+          res.on("error", onResponseComplete);
+        }
+        if (next) {
+          next();
+        }
+      }
+    }
+    function wrapChild(opts, stream) {
+      const prevLogger = opts.logger;
+      const prevGenReqId = opts.genReqId;
+      let logger2 = null;
+      if (prevLogger) {
+        opts.logger = void 0;
+        opts.genReqId = void 0;
+        logger2 = prevLogger.child({}, opts);
+        opts.logger = prevLogger;
+        opts.genReqId = prevGenReqId;
+      } else {
+        if (opts.transport && !opts.transport.caller) {
+          opts.transport.caller = getCallerFile();
+        }
+        logger2 = pino2(opts, stream);
+      }
+      return logger2;
+    }
+    function reqIdGenFactory(func) {
+      if (typeof func === "function") return func;
+      const maxInt = 2147483647;
+      let nextReqId = 0;
+      return function genReqId(req, res) {
+        return req.id || (nextReqId = nextReqId + 1 & maxInt);
+      };
+    }
+    function getFunctionOrDefault(value, defaultValue) {
+      if (value && typeof value === "function") {
+        return value;
+      }
+      return defaultValue;
+    }
+    function defaultSuccessfulRequestObjectProvider(req, res, successObject) {
+      return successObject;
+    }
+    function defaultFailedRequestObjectProvider(req, res, error, errorObject) {
+      return errorObject;
+    }
+    function defaultFailedRequestMessageProvider() {
+      return "request errored";
+    }
+    function defaultSuccessfulRequestMessageProvider(req, res) {
+      return !req.readableAborted && res.writableEnded ? "request completed" : "request aborted";
+    }
+    module.exports = pinoLogger;
+    module.exports.stdSerializers = {
+      err: serializers.err,
+      req: serializers.req,
+      res: serializers.res
+    };
+    module.exports.startTime = startTime;
+    module.exports.default = pinoLogger;
+    module.exports.pinoHttp = pinoLogger;
+  }
+});
+
 // node_modules/.pnpm/bn.js@4.12.3/node_modules/bn.js/lib/bn.js
 var require_bn = __commonJS({
   "node_modules/.pnpm/bn.js@4.12.3/node_modules/bn.js/lib/bn.js"(exports, module) {
@@ -7398,9 +8369,9 @@ var require_src2 = __commonJS({
 });
 
 // artifacts/api-server/src/app.ts
+var import_cors = __toESM(require_lib(), 1);
+var import_pino_http = __toESM(require_logger(), 1);
 import express from "express";
-import cors from "cors";
-import pinoHttp from "pino-http";
 import path from "path";
 import { existsSync } from "node:fs";
 
@@ -20160,6 +21131,16 @@ async function stripePost(path2, params) {
   if (!resp.ok) throw new Error(data?.error?.message ?? `Stripe ${resp.status}`);
   return data;
 }
+async function stripeGet(path2) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not set");
+  const resp = await fetch(`${STRIPE_API}${path2}`, {
+    headers: { Authorization: `Bearer ${key}` }
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data?.error?.message ?? `Stripe ${resp.status}`);
+  return data;
+}
 router21.post("/stripe/create-checkout", async (req, res) => {
   const { piano, intervallo, societyId, email } = req.body;
   if (!piano || !intervallo || !societyId) {
@@ -20297,6 +21278,94 @@ router21.post("/stripe/webhook", async (req, res) => {
   }
   return res.sendStatus(200);
 });
+router21.get("/stripe/subscription", async (req, res) => {
+  const societyId = req.query.societyId;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza
+       FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    );
+    if (!rows.length) return res.status(404).json({ error: "society_not_found" });
+    const soc = rows[0];
+    let currentPeriodEnd = null;
+    let cancelAtPeriodEnd = null;
+    let intervallo = null;
+    if (soc.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const sub = await stripeGet(`/subscriptions/${soc.stripe_subscription_id}`);
+        currentPeriodEnd = sub.current_period_end ?? null;
+        cancelAtPeriodEnd = sub.cancel_at_period_end ?? null;
+        const priceId = sub.items?.data?.[0]?.price?.id;
+        if (priceId) {
+          for (const [, intervals] of Object.entries(PRICE_ENV)) {
+            if (process.env[intervals.mensile] === priceId) {
+              intervallo = "mensile";
+              break;
+            }
+            if (process.env[intervals.annuale] === priceId) {
+              intervallo = "annuale";
+              break;
+            }
+          }
+        }
+      } catch {
+      }
+    }
+    return res.json({
+      status: soc.subscription_status,
+      piano: soc.piano,
+      demoScadenza: soc.demo_scadenza,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      intervallo
+    });
+  } catch (e) {
+    logger.error({ err: e }, "stripe: subscription fetch error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router21.post("/stripe/customer-portal", async (req, res) => {
+  const { societyId } = req.body;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_customer_id FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    );
+    const customerId = rows[0]?.stripe_customer_id;
+    if (!customerId) return res.status(400).json({ error: "no_stripe_customer" });
+    const appUrl = process.env.APP_URL ?? "https://workspacefieldos-production.up.railway.app";
+    const session = await stripePost("/billing_portal/sessions", {
+      customer: customerId,
+      return_url: `${appUrl}/account`
+    });
+    logger.info({ societyId }, "stripe: customer portal session created");
+    return res.json({ url: session.url });
+  } catch (e) {
+    logger.error({ err: e }, "stripe: customer-portal error");
+    return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
+});
+router21.post("/stripe/cancel", async (req, res) => {
+  const { societyId } = req.body;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_subscription_id FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    );
+    const subId = rows[0]?.stripe_subscription_id;
+    if (!subId) return res.status(400).json({ error: "no_subscription" });
+    await stripePost(`/subscriptions/${subId}`, { cancel_at_period_end: "true" });
+    logger.info({ societyId, subId }, "stripe: subscription cancel_at_period_end set");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "stripe: cancel error");
+    return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
+});
 var stripe_default = router21;
 
 // artifacts/api-server/src/routes/v2/index.ts
@@ -20365,7 +21434,7 @@ var routes_default = router23;
 // artifacts/api-server/src/app.ts
 var app = express();
 app.use(
-  pinoHttp({
+  (0, import_pino_http.default)({
     logger,
     serializers: {
       req(req) {
@@ -20383,7 +21452,7 @@ app.use(
     }
   })
 );
-app.use(cors());
+app.use((0, import_cors.default)());
 app.use(express.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
@@ -20454,6 +21523,20 @@ if (process.env.DATABASE_URL) {
   );
 }
 /*! Bundled license information:
+
+object-assign/index.js:
+  (*
+  object-assign
+  (c) Sindre Sorhus
+  @license MIT
+  *)
+
+vary/index.js:
+  (*!
+   * vary
+   * Copyright(c) 2014-2017 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
 
 safe-buffer/index.js:
   (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)

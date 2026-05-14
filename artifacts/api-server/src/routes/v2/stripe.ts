@@ -81,6 +81,17 @@ async function stripePost(path: string, params: Record<string, string | number>)
   return data;
 }
 
+async function stripeGet(path: string): Promise<any> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("STRIPE_SECRET_KEY not set");
+  const resp = await fetch(`${STRIPE_API}${path}`, {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  const data = await resp.json() as any;
+  if (!resp.ok) throw new Error(data?.error?.message ?? `Stripe ${resp.status}`);
+  return data;
+}
+
 // POST /api/v2/stripe/create-checkout
 router.post("/stripe/create-checkout", async (req, res) => {
   const { piano, intervallo, societyId, email } = req.body as Record<string, string | number | undefined>;
@@ -246,6 +257,106 @@ router.post("/stripe/webhook", async (req, res) => {
   }
 
   return res.sendStatus(200);
+});
+
+// GET /api/v2/stripe/subscription?societyId=X
+router.get("/stripe/subscription", async (req, res) => {
+  const societyId = req.query.societyId;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza
+       FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    ) as [any[], any];
+
+    if (!rows.length) return res.status(404).json({ error: "society_not_found" });
+    const soc = rows[0];
+
+    let currentPeriodEnd: number | null = null;
+    let cancelAtPeriodEnd: boolean | null = null;
+    let intervallo: string | null = null;
+
+    if (soc.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
+      try {
+        const sub = await stripeGet(`/subscriptions/${soc.stripe_subscription_id}`);
+        currentPeriodEnd  = sub.current_period_end   ?? null;
+        cancelAtPeriodEnd = sub.cancel_at_period_end ?? null;
+        const priceId     = sub.items?.data?.[0]?.price?.id;
+        if (priceId) {
+          for (const [, intervals] of Object.entries(PRICE_ENV)) {
+            if (process.env[intervals.mensile] === priceId)  { intervallo = "mensile";  break; }
+            if (process.env[intervals.annuale] === priceId)  { intervallo = "annuale";  break; }
+          }
+        }
+      } catch { /* Stripe unreachable — return DB data only */ }
+    }
+
+    return res.json({
+      status:            soc.subscription_status,
+      piano:             soc.piano,
+      demoScadenza:      soc.demo_scadenza,
+      currentPeriodEnd,
+      cancelAtPeriodEnd,
+      intervallo,
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "stripe: subscription fetch error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/stripe/customer-portal
+router.post("/stripe/customer-portal", async (req, res) => {
+  const { societyId } = req.body as Record<string, string | undefined>;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_customer_id FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    ) as [any[], any];
+
+    const customerId = rows[0]?.stripe_customer_id;
+    if (!customerId) return res.status(400).json({ error: "no_stripe_customer" });
+
+    const appUrl = process.env.APP_URL ?? "https://workspacefieldos-production.up.railway.app";
+    const session = await stripePost("/billing_portal/sessions", {
+      customer:   customerId,
+      return_url: `${appUrl}/account`,
+    });
+
+    logger.info({ societyId }, "stripe: customer portal session created");
+    return res.json({ url: session.url });
+  } catch (e: any) {
+    logger.error({ err: e }, "stripe: customer-portal error");
+    return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
+});
+
+// POST /api/v2/stripe/cancel
+router.post("/stripe/cancel", async (req, res) => {
+  const { societyId } = req.body as Record<string, string | undefined>;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_subscription_id FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    ) as [any[], any];
+
+    const subId = rows[0]?.stripe_subscription_id;
+    if (!subId) return res.status(400).json({ error: "no_subscription" });
+
+    await stripePost(`/subscriptions/${subId}`, { cancel_at_period_end: "true" });
+
+    logger.info({ societyId, subId }, "stripe: subscription cancel_at_period_end set");
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "stripe: cancel error");
+    return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
 });
 
 export default router;

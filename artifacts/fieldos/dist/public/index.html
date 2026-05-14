@@ -802,16 +802,30 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ps-contact a{color:#1A7A4A;text-decoration:none;}
 
 /* ── Il mio account ── */
-#accountScreen{display:none;min-height:100vh;background:var(--bg);padding:0 0 64px;}
-#accountScreen.on{display:block;}
-.ac-wrap{max-width:640px;margin:0 auto;padding:0 16px 16px;}
-.ac-topbar{display:flex;align-items:center;gap:10px;padding:16px 0 18px;}
-.ac-back{background:none;border:none;cursor:pointer;font-size:.88rem;color:var(--text2);font-weight:600;padding:4px 0;flex-shrink:0;}
-.ac-page-title{font-family:'Barlow Condensed',sans-serif;font-size:1.55rem;font-weight:900;color:var(--text);}
-.ac-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;}
+#accountScreen{display:none;position:fixed;inset:0;z-index:9997;background:var(--bg);flex-direction:column;}
+#accountScreen.on{display:flex;}
+.ac-hd{height:58px;display:flex;align-items:center;gap:12px;padding:0 16px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ac-hd-back{background:none;border:none;cursor:pointer;font-size:.88rem;color:var(--text2);font-weight:600;display:flex;align-items:center;gap:5px;}
+.ac-hd-title{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--text);}
+.ac-body{display:flex;flex:1;min-height:0;overflow:hidden;}
+.ac-sidebar{width:220px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:4px;}
+@media(max-width:767px){.ac-sidebar{display:none;}}
+.ac-nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:.9rem;font-weight:600;color:var(--text2);cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:background .12s,color .12s;}
+.ac-nav-item:hover,.ac-nav-item.active{background:var(--cl);color:var(--cp);}
+.ac-nav-ic{font-size:1.05rem;}
+.ac-tabs-mob{display:none;flex-shrink:0;background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;scrollbar-width:none;}
+.ac-tabs-mob::-webkit-scrollbar{display:none;}
+@media(max-width:767px){.ac-tabs-mob{display:block;}}
+.ac-tab-mob{display:inline-flex;align-items:center;gap:6px;padding:11px 16px;font-size:.85rem;font-weight:600;color:var(--text2);background:none;border:none;border-bottom:2.5px solid transparent;cursor:pointer;transition:color .12s,border-color .12s;white-space:nowrap;}
+.ac-tab-mob.active{color:var(--cp);border-bottom-color:var(--cp);}
+.ac-content{flex:1;overflow-y:auto;padding:24px 20px;max-width:680px;margin:0 auto;width:100%;box-sizing:border-box;}
+@media(max-width:767px){.ac-content{padding:16px;}}
+.ac-panel{display:none;}
+.ac-panel.active{display:block;}
+.ac-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
 .ac-card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:16px;}
 .ac-av-wrap{display:flex;justify-content:center;margin-bottom:10px;}
-.ac-av{width:68px;height:68px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;letter-spacing:-.5px;}
+.ac-av{width:68px;height:68px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .ac-role-lbl{text-align:center;margin-bottom:18px;}
 .ac-role-lbl span{font-size:.8rem;font-weight:700;color:var(--cp);background:var(--cl);padding:4px 14px;border-radius:12px;}
 .ac-fields{display:flex;flex-direction:column;gap:10px;}
@@ -820,32 +834,55 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-save-btn{display:block;width:100%;padding:13px;background:var(--cp);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:14px;transition:background .15s;}
 .ac-save-btn:hover{filter:brightness(.9);}
 .ac-msg{display:none;font-size:.83rem;font-weight:600;padding:8px 12px;border-radius:8px;margin-top:10px;}
-.ac-plan-row{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
-.ac-plan-ic{font-size:2.2rem;flex-shrink:0;}
-.ac-plan-info{flex:1;min-width:0;}
-.ac-plan-name{font-weight:700;font-size:1rem;color:var(--text);}
-.ac-plan-sub{font-size:.8rem;color:var(--text2);margin-top:2px;}
-.ac-plan-st{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0;}
-.ac-plan-st.active{background:#dcfce7;color:#166534;}
-.ac-plan-st.demo{background:#fef3c7;color:#92400e;}
-.ac-plan-st.expired{background:#fdedf1;color:#e03055;}
-.ac-bar-wrap{margin-bottom:14px;}
-.ac-bar-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-bottom:4px;}
-.ac-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
-.ac-bar-fill{height:100%;border-radius:3px;transition:width .4s;background:#1A7A4A;}
-.ac-bar-fill.warn{background:#f59e0b;}
-.ac-bar-fill.danger{background:#e03055;}
-.ac-plan-btns{display:flex;flex-direction:column;gap:8px;}
-.ac-plan-btn{padding:11px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;text-align:center;transition:background .15s;}
-.ac-plan-btn.pri{background:var(--cp);color:#fff;}
-.ac-plan-btn.pri:hover{filter:brightness(.9);}
-.ac-plan-btn.sec{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
-.ac-plan-btn.sec:hover{background:var(--border);}
+.ac-sub-cur{display:flex;align-items:center;gap:14px;padding:16px;background:var(--cl);border-radius:12px;margin-bottom:16px;}
+.ac-sub-cur-ic{font-size:2rem;flex-shrink:0;}
+.ac-sub-cur-info{flex:1;min-width:0;}
+.ac-sub-cur-name{font-weight:700;font-size:1rem;color:var(--text);}
+.ac-sub-cur-sub{font-size:.8rem;color:var(--text2);margin-top:2px;}
+.ac-sub-badge{font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:12px;flex-shrink:0;}
+.ac-sub-badge.active{background:#dcfce7;color:#166534;}
+.ac-sub-badge.demo{background:#fef3c7;color:#92400e;}
+.ac-sub-badge.expired{background:#fdedf1;color:#e03055;}
+.ac-sub-badge.expiring{background:#fff7ed;color:#c2410c;}
+.ac-warn-banner{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;color:#c2410c;display:flex;align-items:flex-start;gap:8px;}
+.ac-sub-btns{display:flex;flex-direction:column;gap:8px;}
+.ac-sub-btn{padding:11px 16px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;text-align:center;transition:background .15s;width:100%;}
+.ac-sub-btn.pri{background:var(--cp);color:#fff;}
+.ac-sub-btn.pri:hover{filter:brightness(.9);}
+.ac-sub-btn.sec{background:var(--bg);color:var(--text);border:1.5px solid var(--border);}
+.ac-sub-btn.sec:hover{background:var(--border);}
+.ac-sub-btn.danger{background:#fef2f2;color:#e03055;border:1.5px solid #fecaca;}
+.ac-sub-btn.danger:hover{background:#fecaca;}
+.ac-plan-toggle{display:flex;align-items:center;justify-content:center;margin-bottom:20px;background:var(--bg);border-radius:10px;padding:4px;border:1px solid var(--border);}
+.ac-plan-toggle-btn{flex:1;padding:8px 12px;border-radius:7px;border:none;font-size:.85rem;font-weight:700;cursor:pointer;background:transparent;color:var(--text2);transition:all .15s;}
+.ac-plan-toggle-btn.active{background:var(--white);color:var(--cp);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.ac-plan-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:600px){.ac-plan-grid{grid-template-columns:repeat(3,1fr);}}
+.ac-plan-card{border:2px solid var(--border);border-radius:14px;padding:16px;transition:border-color .15s,box-shadow .15s;position:relative;background:var(--white);}
+.ac-plan-card.pop{border-color:var(--cp);box-shadow:0 0 0 3px var(--cl);}
+.ac-plan-card-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--cp);color:#fff;font-size:.72rem;font-weight:800;padding:2px 10px;border-radius:8px;white-space:nowrap;}
+.ac-plan-card-ic{font-size:1.8rem;text-align:center;margin-bottom:8px;}
+.ac-plan-card-name{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:900;text-align:center;color:var(--text);margin-bottom:4px;}
+.ac-plan-card-price{text-align:center;margin-bottom:10px;}
+.ac-plan-card-price .p-main{font-size:1.55rem;font-weight:800;color:var(--cp);}
+.ac-plan-card-price .p-per{font-size:.8rem;color:var(--text2);}
+.ac-plan-card-feats{font-size:.8rem;color:var(--text2);line-height:1.7;}
+.ac-plan-card-cta{display:block;width:100%;margin-top:12px;padding:10px;background:var(--cp);color:#fff;border:none;border-radius:9px;font-size:.88rem;font-weight:700;cursor:pointer;text-align:center;transition:filter .15s;}
+.ac-plan-card-cta:hover{filter:brightness(.9);}
 .ac-soc-rows{display:flex;flex-direction:column;}
 .ac-soc-r{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
 .ac-soc-r:last-child{border-bottom:none;}
 .ac-soc-lbl{font-size:.8rem;color:var(--text2);}
 .ac-soc-val{font-size:.88rem;font-weight:600;color:var(--text);text-align:right;}
+.ac-cancel-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:20px;}
+.ac-cancel-modal.on{display:flex;}
+.ac-cancel-box{background:var(--white);border-radius:16px;padding:24px;max-width:380px;width:100%;}
+.ac-cancel-box h3{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:900;color:var(--text);margin:0 0 8px;}
+.ac-cancel-box p{font-size:.87rem;color:var(--text2);margin:0 0 20px;line-height:1.55;}
+.ac-cancel-btns{display:flex;gap:10px;}
+.ac-cancel-btns button{flex:1;padding:12px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;}
+.ac-cancel-btns .keep{background:var(--cp);color:#fff;}
+.ac-cancel-btns .conf{background:#fef2f2;color:#e03055;border:1.5px solid #fecaca;}
 
 /* ═══════════════════════════════════════════
    ASSISTENTE CHAT
@@ -1845,74 +1882,185 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <!-- ══════ IL MIO ACCOUNT ══════ -->
 <div id="accountScreen">
-  <div class="ac-wrap">
-    <div class="ac-topbar">
-      <button class="ac-back" onclick="closeAccountScreen()">← Torna all'app</button>
-      <div class="ac-page-title">Il mio account</div>
+  <!-- Header -->
+  <div class="ac-hd">
+    <button class="ac-hd-back" onclick="closeAccountScreen()">← Torna</button>
+    <div class="ac-hd-title">Il mio account</div>
+  </div>
+  <!-- Mobile tabs -->
+  <div class="ac-tabs-mob">
+    <button class="ac-tab-mob active" onclick="acSetTab('profilo')">👤 Profilo</button>
+    <button class="ac-tab-mob" onclick="acSetTab('sicurezza')">🔐 Sicurezza</button>
+    <button class="ac-tab-mob" onclick="acSetTab('abbonamento')">💳 Abbonamento</button>
+  </div>
+  <!-- Body -->
+  <div class="ac-body">
+    <!-- Sidebar desktop -->
+    <div class="ac-sidebar">
+      <button class="ac-nav-item active" id="acNavProfilo" onclick="acSetTab('profilo')"><span class="ac-nav-ic">👤</span> Profilo</button>
+      <button class="ac-nav-item" id="acNavSicurezza" onclick="acSetTab('sicurezza')"><span class="ac-nav-ic">🔐</span> Sicurezza</button>
+      <button class="ac-nav-item" id="acNavAbbonamento" onclick="acSetTab('abbonamento')"><span class="ac-nav-ic">💳</span> Abbonamento</button>
     </div>
+    <!-- Content -->
+    <div class="ac-content">
 
-    <!-- 1. Profilo personale -->
-    <div class="ac-card">
-      <div class="ac-card-title">👤 Profilo personale</div>
-      <div class="ac-av-wrap"><div class="ac-av" id="acAvatar">?</div></div>
-      <div class="ac-role-lbl"><span id="acRoleBadge">—</span></div>
-      <div class="ac-fields">
-        <div class="ac-row">
-          <div class="fg" style="margin:0;"><label class="fl">Nome *</label><input class="fi" id="acNome" type="text" autocapitalize="words" autocomplete="given-name"></div>
-          <div class="fg" style="margin:0;"><label class="fl">Cognome *</label><input class="fi" id="acCogn" type="text" autocapitalize="words" autocomplete="family-name"></div>
+      <!-- ── Panel: Profilo ── -->
+      <div class="ac-panel active" id="acPanelProfilo">
+        <div class="ac-card">
+          <div class="ac-card-title">👤 Profilo personale</div>
+          <div class="ac-av-wrap"><div class="ac-av" id="acAvatar">?</div></div>
+          <div class="ac-role-lbl"><span id="acRoleBadge">—</span></div>
+          <div class="ac-fields">
+            <div class="ac-row">
+              <div class="fg" style="margin:0;"><label class="fl">Nome *</label><input class="fi" id="acNome" type="text" autocapitalize="words" autocomplete="given-name"></div>
+              <div class="fg" style="margin:0;"><label class="fl">Cognome *</label><input class="fi" id="acCogn" type="text" autocapitalize="words" autocomplete="family-name"></div>
+            </div>
+            <div class="fg" style="margin:0;"><label class="fl">Email *</label><input class="fi" id="acEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none"></div>
+            <div class="fg" style="margin:0;"><label class="fl">📱 WhatsApp</label><input class="fi" id="acPhone" type="tel" autocomplete="tel" placeholder="+39 333 000 0000"></div>
+            <div class="fg" style="margin:0;"><label class="fl">Ruolo</label><input class="fi" id="acRuolo" type="text" disabled style="background:var(--bg);color:var(--text2);cursor:default;"></div>
+          </div>
+          <button class="ac-save-btn" onclick="saveAccountProfile()">💾 Salva modifiche</button>
+          <div class="ac-msg" id="acProfMsg"></div>
         </div>
-        <div class="fg" style="margin:0;"><label class="fl">Email *</label><input class="fi" id="acEmail" type="email" autocomplete="email" autocorrect="off" autocapitalize="none"></div>
-        <div class="fg" style="margin:0;"><label class="fl">📱 WhatsApp</label><input class="fi" id="acPhone" type="tel" autocomplete="tel" placeholder="+39 333 000 0000"></div>
-        <div class="fg" style="margin:0;"><label class="fl">Ruolo</label><input class="fi" id="acRuolo" type="text" disabled style="background:var(--bg);color:var(--text2);cursor:default;"></div>
-      </div>
-      <button class="ac-save-btn" onclick="saveAccountProfile()">💾 Salva modifiche</button>
-      <div class="ac-msg" id="acProfMsg"></div>
-    </div>
-
-    <!-- 2. Sicurezza -->
-    <div class="ac-card">
-      <div class="ac-card-title">🔐 Sicurezza</div>
-      <div class="ac-fields">
-        <div class="fg" style="margin:0;">
-          <label class="fl">Password attuale</label>
-          <div class="fi-wrap"><input class="fi" id="acPassOld" type="password" autocomplete="current-password" placeholder="••••••••" style="border:none;box-shadow:none;background:transparent;flex:1;min-width:0;"><button type="button" class="fi-eye" onclick="_toggleEye('acPassOld',this)" tabindex="-1" aria-label="Mostra/nascondi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+        <!-- Società (solo admin/mister_admin) -->
+        <div class="ac-card" id="acSocCard" style="display:none;">
+          <div class="ac-card-title">🏟️ La mia società</div>
+          <div class="ac-soc-rows">
+            <div class="ac-soc-r"><span class="ac-soc-lbl">Nome</span><span class="ac-soc-val" id="acSocNome">—</span></div>
+            <div class="ac-soc-r"><span class="ac-soc-lbl">Città</span><span class="ac-soc-val" id="acSocCitta">—</span></div>
+            <div class="ac-soc-r"><span class="ac-soc-lbl">Codice società</span><span class="ac-soc-val" id="acSocCodice" style="font-family:monospace;letter-spacing:.08em;">—</span></div>
+            <div class="ac-soc-r"><span class="ac-soc-lbl">Piano</span><span class="ac-soc-val" id="acSocPiano">—</span></div>
+          </div>
         </div>
-        <div class="fg" style="margin:0;"><label class="fl">Nuova password</label><input class="fi" id="acPassNew" type="password" autocomplete="new-password" placeholder="Min. 8 car., maiuscola, numero, simbolo"></div>
-        <div class="fg" style="margin:0;"><label class="fl">Conferma nuova password</label><input class="fi" id="acPassConf" type="password" autocomplete="new-password" placeholder="Ripeti la nuova password"></div>
       </div>
-      <button class="ac-save-btn" onclick="saveAccountPassword()">🔐 Aggiorna password</button>
-      <div class="ac-msg" id="acPassMsg"></div>
-    </div>
 
-    <!-- 3. Il mio abbonamento -->
-    <div class="ac-card">
-      <div class="ac-card-title">💳 Il mio abbonamento</div>
-      <div class="ac-plan-row">
-        <div class="ac-plan-ic" id="acPlanIc">⚽</div>
-        <div class="ac-plan-info">
-          <div class="ac-plan-name" id="acPlanName">—</div>
-          <div class="ac-plan-sub"  id="acPlanSub">—</div>
+      <!-- ── Panel: Sicurezza ── -->
+      <div class="ac-panel" id="acPanelSicurezza">
+        <div class="ac-card">
+          <div class="ac-card-title">🔐 Sicurezza</div>
+          <div class="ac-fields">
+            <div class="fg" style="margin:0;">
+              <label class="fl">Password attuale</label>
+              <div class="fi-wrap"><input class="fi" id="acPassOld" type="password" autocomplete="current-password" placeholder="••••••••" style="border:none;box-shadow:none;background:transparent;flex:1;min-width:0;"><button type="button" class="fi-eye" onclick="_toggleEye('acPassOld',this)" tabindex="-1" aria-label="Mostra/nascondi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            </div>
+            <div class="fg" style="margin:0;"><label class="fl">Nuova password</label><input class="fi" id="acPassNew" type="password" autocomplete="new-password" placeholder="Min. 8 car., maiuscola, numero, simbolo"></div>
+            <div class="fg" style="margin:0;"><label class="fl">Conferma nuova password</label><input class="fi" id="acPassConf" type="password" autocomplete="new-password" placeholder="Ripeti la nuova password"></div>
+          </div>
+          <button class="ac-save-btn" onclick="saveAccountPassword()">🔐 Aggiorna password</button>
+          <div class="ac-msg" id="acPassMsg"></div>
         </div>
-        <div class="ac-plan-st" id="acPlanSt">—</div>
       </div>
-      <div class="ac-bar-wrap" id="acBarWrap" style="display:none;">
-        <div class="ac-bar-meta"><span id="acBarGiorni">—</span><span id="acBarTot"></span></div>
-        <div class="ac-bar"><div class="ac-bar-fill" id="acBarFill" style="width:0%"></div></div>
-      </div>
-      <div class="ac-plan-btns">
-        <button class="ac-plan-btn pri" id="acBtnPlan" onclick="openSubscribeScreen()">⬆️ Cambia piano</button>
-      </div>
-    </div>
 
-    <!-- 4. Società (solo admin/mister_admin) -->
-    <div class="ac-card" id="acSocCard" style="display:none;">
-      <div class="ac-card-title">🏟️ La mia società</div>
-      <div class="ac-soc-rows">
-        <div class="ac-soc-r"><span class="ac-soc-lbl">Nome</span><span class="ac-soc-val" id="acSocNome">—</span></div>
-        <div class="ac-soc-r"><span class="ac-soc-lbl">Città</span><span class="ac-soc-val" id="acSocCitta">—</span></div>
-        <div class="ac-soc-r"><span class="ac-soc-lbl">Codice società</span><span class="ac-soc-val" id="acSocCodice" style="font-family:monospace;letter-spacing:.08em;">—</span></div>
-        <div class="ac-soc-r"><span class="ac-soc-lbl">Piano</span><span class="ac-soc-val" id="acSocPiano">—</span></div>
+      <!-- ── Panel: Abbonamento ── -->
+      <div class="ac-panel" id="acPanelAbbonamento">
+        <!-- Loading -->
+        <div id="acSubLoading" style="display:none;text-align:center;padding:40px 0;">
+          <div style="font-size:1.5rem;margin-bottom:8px;">⏳</div>
+          <div style="font-size:.85rem;color:var(--text2);">Caricamento abbonamento…</div>
+        </div>
+
+        <!-- Stato A: demo / scaduto → mostra piani -->
+        <div id="acSubStateA" style="display:none;">
+          <div class="ac-card">
+            <div class="ac-card-title">💳 Scegli il tuo piano</div>
+            <div class="ac-sub-cur">
+              <div class="ac-sub-cur-ic" id="acSubCurIcA">⏳</div>
+              <div class="ac-sub-cur-info">
+                <div class="ac-sub-cur-name" id="acSubCurNameA">Demo</div>
+                <div class="ac-sub-cur-sub" id="acSubCurSubA">—</div>
+              </div>
+              <div class="ac-sub-badge demo" id="acSubBadgeA">Demo</div>
+            </div>
+            <div class="ac-plan-toggle" id="acSubToggleA">
+              <button class="ac-plan-toggle-btn active" id="acTogMens" onclick="acSetInterval('mensile')">Mensile</button>
+              <button class="ac-plan-toggle-btn" id="acTogAnn" onclick="acSetInterval('annuale')">Annuale &nbsp;<span style="color:var(--cp);font-size:.8em;">-20%</span></button>
+            </div>
+            <div class="ac-plan-grid">
+              <div class="ac-plan-card" id="acCardMister">
+                <div class="ac-plan-card-ic">⚽</div>
+                <div class="ac-plan-card-name">Mister</div>
+                <div class="ac-plan-card-price"><span class="p-main" id="acPriceMister">4,90 €</span><span class="p-per"> /mese</span></div>
+                <div class="ac-plan-card-feats">✓ 1 leva<br>✓ Presenze e allenamenti<br>✓ Chat famiglia<br>✓ Comunicazioni</div>
+                <button class="ac-plan-card-cta" onclick="acDoCheckout('mister')">Scegli Mister</button>
+              </div>
+              <div class="ac-plan-card pop" id="acCardMisterPro">
+                <div class="ac-plan-card-badge">Più scelto</div>
+                <div class="ac-plan-card-ic">🏅</div>
+                <div class="ac-plan-card-name">Mister Pro</div>
+                <div class="ac-plan-card-price"><span class="p-main" id="acPriceMisterPro">9,90 €</span><span class="p-per"> /mese</span></div>
+                <div class="ac-plan-card-feats">✓ Leve illimitate<br>✓ Tutto di Mister<br>✓ Rose multiple<br>✓ Statistiche avanzate</div>
+                <button class="ac-plan-card-cta" onclick="acDoCheckout('mister_pro')">Scegli Mister Pro</button>
+              </div>
+              <div class="ac-plan-card" id="acCardSocieta">
+                <div class="ac-plan-card-ic">🏟️</div>
+                <div class="ac-plan-card-name">Società</div>
+                <div class="ac-plan-card-price"><span class="p-main" id="acPriceSocieta">19,90 €</span><span class="p-per"> /mese</span></div>
+                <div class="ac-plan-card-feats">✓ Tutto di Mister Pro<br>✓ Multi-staff<br>✓ Gestione società<br>✓ Supporto prioritario</div>
+                <button class="ac-plan-card-cta" onclick="acDoCheckout('societa')">Scegli Società</button>
+              </div>
+            </div>
+            <div style="text-align:center;margin-top:14px;font-size:.75rem;color:var(--text2);">
+              Per domande: <a href="mailto:amministrazione@myvivaio.app" style="color:var(--cp);">amministrazione@myvivaio.app</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stato B: attivo ma in scadenza (<30 gg) o cancel_at_period_end -->
+        <div id="acSubStateB" style="display:none;">
+          <div class="ac-card">
+            <div class="ac-card-title">💳 Il mio abbonamento</div>
+            <div class="ac-warn-banner">
+              <span>⚠️</span>
+              <span id="acWarnTxt">Il tuo abbonamento scade presto.</span>
+            </div>
+            <div class="ac-sub-cur">
+              <div class="ac-sub-cur-ic" id="acSubIcB">⚽</div>
+              <div class="ac-sub-cur-info">
+                <div class="ac-sub-cur-name" id="acSubNameB">—</div>
+                <div class="ac-sub-cur-sub" id="acSubSubB">—</div>
+              </div>
+              <div class="ac-sub-badge expiring">In scadenza</div>
+            </div>
+            <div class="ac-sub-btns">
+              <button class="ac-sub-btn pri" onclick="acOpenCustomerPortal(event)">🔄 Rinnova / Gestisci</button>
+              <button class="ac-sub-btn sec" onclick="acGoChoosePlan()">⬆️ Cambia piano</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stato C: attivo, non in scadenza -->
+        <div id="acSubStateC" style="display:none;">
+          <div class="ac-card">
+            <div class="ac-card-title">💳 Il mio abbonamento</div>
+            <div class="ac-sub-cur">
+              <div class="ac-sub-cur-ic" id="acSubIcC">⚽</div>
+              <div class="ac-sub-cur-info">
+                <div class="ac-sub-cur-name" id="acSubNameC">—</div>
+                <div class="ac-sub-cur-sub" id="acSubSubC">—</div>
+              </div>
+              <div class="ac-sub-badge active">Attivo</div>
+            </div>
+            <div class="ac-sub-btns">
+              <button class="ac-sub-btn sec" onclick="acOpenCustomerPortal(event)">📄 Gestisci fatturazione</button>
+              <button class="ac-sub-btn sec" onclick="acGoChoosePlan()">⬆️ Cambia piano</button>
+              <button class="ac-sub-btn danger" onclick="acCancelSubscription()">❌ Cancella abbonamento</button>
+            </div>
+          </div>
+        </div>
       </div>
+
+    </div><!-- /.ac-content -->
+  </div><!-- /.ac-body -->
+</div>
+
+<!-- Cancel subscription modal -->
+<div class="ac-cancel-modal" id="acCancelModal">
+  <div class="ac-cancel-box">
+    <h3>Cancella abbonamento</h3>
+    <p>Sei sicuro? L'accesso rimarrà attivo fino alla fine del periodo corrente, poi verrà disattivato.</p>
+    <div class="ac-cancel-btns">
+      <button class="keep" onclick="document.getElementById('acCancelModal').classList.remove('on')">Mantieni piano</button>
+      <button class="conf" id="acCancelConfirmBtn" onclick="acCancelConfirmed()">Sì, cancella</button>
     </div>
   </div>
 </div>
@@ -15509,13 +15657,23 @@ function closeSubscribeScreen() {
 
 // ── Il mio account ───────────────────────────────────────────────────────
 
-function openAccountScreen() {
+let _acCurrentTab = 'profilo';
+let _acSubInterval = 'mensile';
+let _acSubData = null;
+
+const _AC_PRICES = {
+  mister:     { mensile: '4,90 €', annuale: '3,90 €' },
+  mister_pro: { mensile: '9,90 €', annuale: '7,90 €' },
+  societa:    { mensile: '19,90 €', annuale: '15,90 €' },
+};
+
+function openAccountScreen(tab) {
   document.getElementById('app').classList.remove('on');
   document.getElementById('subscribeScreen').classList.remove('on');
   document.getElementById('accountScreen').classList.add('on');
   try { history.pushState(null, '', '/account'); } catch(e) {}
   _acInit();
-  // Init password widgets (idempotente — initPwField ha guard _pwInited)
+  acSetTab(tab || 'profilo');
   setTimeout(() => { initPwField('acPassNew', 'acPassConf'); }, 50);
 }
 
@@ -15525,11 +15683,24 @@ function closeAccountScreen() {
   try { history.pushState(null, '', '/'); } catch(e) {}
 }
 
+function acSetTab(tab) {
+  _acCurrentTab = tab;
+  const tabs = ['profilo', 'sicurezza', 'abbonamento'];
+  tabs.forEach(t => {
+    const nav = document.getElementById('acNav' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (nav) nav.classList.toggle('active', t === tab);
+    const pnl = document.getElementById('acPanel' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (pnl) pnl.classList.toggle('active', t === tab);
+  });
+  document.querySelectorAll('.ac-tab-mob').forEach((btn, i) => {
+    btn.classList.toggle('active', tabs[i] === tab);
+  });
+  if (tab === 'abbonamento') _acLoadSub();
+}
+
 function _acInit() {
   if (!me) return;
   const roleCfg = ROLE_CFG[me.role] || {};
-
-  // Avatar + colore ruolo
   const avEl = document.getElementById('acAvatar');
   if (avEl) {
     avEl.textContent = ((me.nome||'?')[0] + (me.cogn||'?')[0]).toUpperCase();
@@ -15539,80 +15710,18 @@ function _acInit() {
   if (roleEl) roleEl.textContent = userRoleLabel(me) || me.role || '—';
   const ruoloEl = document.getElementById('acRuolo');
   if (ruoloEl) ruoloEl.value = userRoleLabel(me) || me.role || '';
-
-  // Campi profilo
   const fset = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
   fset('acNome',  me.nome);
   fset('acCogn',  me.cogn);
   fset('acEmail', me.email);
   fset('acPhone', me.phone || '');
-
-  // Reset messaggi
-  ['acProfMsg','acPassMsg'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-
-  // Reset campi password
-  ['acPassOld','acPassNew','acPassConf'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-
-  // Abbonamento
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
-  _acInitPlan(soc);
-
-  // Società (solo admin/mister_admin)
+  ['acProfMsg','acPassMsg'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+  ['acPassOld','acPassNew','acPassConf'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const socCard = document.getElementById('acSocCard');
   if (socCard) {
     const isAdmin = me.role === 'admin' || me.role === 'mister_admin';
     socCard.style.display = isAdmin ? '' : 'none';
-    if (isAdmin && soc) _acFillSoc(soc);
-  }
-}
-
-function _acInitPlan(soc) {
-  if (!soc) return;
-  const status  = getPianoStatus(soc);
-  const def     = getPianoDef(soc);
-  const icMap   = { demo:'⏳', mister:'⚽', mister_pro:'🏅', societa:'🏟️' };
-  const pianoKey = ['mister','mister_pro','societa'].includes(soc.piano) ? soc.piano : 'demo';
-
-  const ic = document.getElementById('acPlanIc');
-  const nm = document.getElementById('acPlanName');
-  const sb = document.getElementById('acPlanSub');
-  const st = document.getElementById('acPlanSt');
-  const bw = document.getElementById('acBarWrap');
-  const bf = document.getElementById('acBarFill');
-  const bg = document.getElementById('acBarGiorni');
-  const bt = document.getElementById('acBarTot');
-  const bn = document.getElementById('acBtnPlan');
-
-  if (ic) ic.textContent = icMap[pianoKey] || '⚽';
-  if (nm) nm.textContent = 'Piano ' + def.nome;
-
-  if (status === 'active_paid') {
-    if (sb) sb.textContent = 'Abbonamento attivo';
-    if (st) { st.textContent = 'Attivo'; st.className = 'ac-plan-st active'; }
-    if (bw) bw.style.display = 'none';
-    if (bn) { bn.textContent = '⬆️ Cambia piano'; bn.className = 'ac-plan-btn pri'; }
-  } else if (status === 'active_demo') {
-    const g = getDemoGiorni(soc);
-    const tot = DEMO_GIORNI || 14;
-    const pct = Math.round((g / tot) * 100);
-    if (sb) sb.textContent = `Demo — ${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
-    if (st) { st.textContent = 'Demo'; st.className = 'ac-plan-st demo'; }
-    if (bw) bw.style.display = '';
-    if (bg) bg.textContent = `${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
-    if (bt) bt.textContent = `su ${tot} totali`;
-    if (bf) { bf.style.width = pct + '%'; bf.className = 'ac-bar-fill' + (pct <= 20 ? ' danger' : pct <= 40 ? ' warn' : ''); }
-    if (bn) { bn.textContent = '⬆️ Abbonati ora'; bn.className = 'ac-plan-btn pri'; }
-  } else {
-    if (sb) sb.textContent = 'Demo scaduta';
-    if (st) { st.textContent = 'Scaduta'; st.className = 'ac-plan-st expired'; }
-    if (bw) bw.style.display = 'none';
-    if (bn) { bn.textContent = '⬆️ Abbonati ora'; bn.className = 'ac-plan-btn pri'; }
+    if (isAdmin) { const soc = saSocieties.find(x => x.id === currentSocietaId); if (soc) _acFillSoc(soc); }
   }
 }
 
@@ -15625,13 +15734,201 @@ function _acFillSoc(soc) {
   s('acSocPiano',  def.nome   || '');
 }
 
+async function _acLoadSub() {
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  if (!soc) return;
+  ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const loadEl = document.getElementById('acSubLoading');
+  if (loadEl) loadEl.style.display = '';
+  try {
+    const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + soc.id);
+    _acSubData = res.ok ? await res.json() : null;
+  } catch(e) { _acSubData = null; }
+  if (loadEl) loadEl.style.display = 'none';
+  _acShowSubState(soc, _acSubData);
+}
+
+function _acShowSubState(soc, data) {
+  const icMap  = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
+  const piano  = data?.piano || soc.piano || 'demo';
+  const pianoIc = icMap[piano] || '⏳';
+  const planName = getPianoDef({ piano }).nome || 'Demo';
+  const status = data?.status || soc.subscriptionStatus || soc.piano || 'demo';
+  const isActive = status === 'active';
+  let daysLeft = null;
+  if (data?.currentPeriodEnd) {
+    daysLeft = Math.max(0, Math.floor((data.currentPeriodEnd * 1000 - Date.now()) / 86400000));
+  }
+  const isCanceling = data?.cancelAtPeriodEnd === true;
+  const isExpiringSoon = isActive && daysLeft !== null && daysLeft <= 30;
+  if (!isActive) {
+    _acShowStateA(soc, piano, pianoIc, planName);
+  } else if (isCanceling || isExpiringSoon) {
+    _acShowStateB(pianoIc, planName, daysLeft, isCanceling);
+  } else {
+    _acShowStateC(pianoIc, planName, daysLeft, data?.intervallo);
+  }
+}
+
+function _acShowStateA(soc, piano, pianoIc, planName) {
+  document.getElementById('acSubStateA').style.display = '';
+  const status = getPianoStatus(soc);
+  const el_ic  = document.getElementById('acSubCurIcA');
+  const el_nm  = document.getElementById('acSubCurNameA');
+  const el_sub = document.getElementById('acSubCurSubA');
+  const el_bdg = document.getElementById('acSubBadgeA');
+  if (el_ic) el_ic.textContent = pianoIc;
+  if (el_nm) el_nm.textContent = 'Piano ' + planName;
+  if (status === 'active_demo') {
+    const g = getDemoGiorni(soc);
+    if (el_sub) el_sub.textContent = `Demo — ${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
+    if (el_bdg) { el_bdg.textContent = 'Demo'; el_bdg.className = 'ac-sub-badge demo'; }
+  } else {
+    if (el_sub) el_sub.textContent = 'Demo scaduta — abbonati per continuare';
+    if (el_bdg) { el_bdg.textContent = 'Scaduta'; el_bdg.className = 'ac-sub-badge expired'; }
+  }
+  _acUpdatePlanPrices();
+  const month = new Date().getUTCMonth();
+  const annDisabled = month === 5 || month === 6;
+  const toggleEl = document.getElementById('acSubToggleA');
+  if (toggleEl) toggleEl.style.display = annDisabled ? 'none' : '';
+  if (annDisabled) { _acSubInterval = 'mensile'; _acUpdatePlanPrices(); }
+}
+
+function _acShowStateB(pianoIc, planName, daysLeft, isCanceling) {
+  document.getElementById('acSubStateB').style.display = '';
+  const el_ic  = document.getElementById('acSubIcB');
+  const el_nm  = document.getElementById('acSubNameB');
+  const el_sub = document.getElementById('acSubSubB');
+  const el_wrn = document.getElementById('acWarnTxt');
+  if (el_ic) el_ic.textContent = pianoIc;
+  if (el_nm) el_nm.textContent = 'Piano ' + planName;
+  if (isCanceling) {
+    if (el_sub) el_sub.textContent = daysLeft !== null ? `Accesso attivo per altri ${daysLeft} giorni` : 'Cancellazione in corso';
+    if (el_wrn) el_wrn.textContent = 'Hai richiesto la cancellazione. Puoi riattivare in qualsiasi momento dal portale fatturazione.';
+  } else {
+    if (el_sub) el_sub.textContent = daysLeft !== null ? `Scade tra ${daysLeft} giorni` : 'In scadenza presto';
+    if (el_wrn) el_wrn.textContent = `Il tuo abbonamento scade tra ${daysLeft ?? 'pochi'} giorni. Rinnova ora per continuare senza interruzioni.`;
+  }
+}
+
+function _acShowStateC(pianoIc, planName, daysLeft, intervallo) {
+  document.getElementById('acSubStateC').style.display = '';
+  const el_ic  = document.getElementById('acSubIcC');
+  const el_nm  = document.getElementById('acSubNameC');
+  const el_sub = document.getElementById('acSubSubC');
+  if (el_ic) el_ic.textContent = pianoIc;
+  if (el_nm) el_nm.textContent = 'Piano ' + planName;
+  let sub = 'Abbonamento attivo';
+  if (daysLeft !== null) sub += ` — rinnovo tra ${daysLeft} giorni`;
+  if (intervallo) sub += ` (${intervallo})`;
+  if (el_sub) el_sub.textContent = sub;
+}
+
+function acSetInterval(interval) {
+  _acSubInterval = interval;
+  document.getElementById('acTogMens').classList.toggle('active', interval === 'mensile');
+  document.getElementById('acTogAnn').classList.toggle('active', interval === 'annuale');
+  _acUpdatePlanPrices();
+}
+
+function _acUpdatePlanPrices() {
+  const iv = _acSubInterval;
+  [['acPriceMister','mister'],['acPriceMisterPro','mister_pro'],['acPriceSocieta','societa']].forEach(([elId, piano]) => {
+    const el = document.getElementById(elId);
+    if (el) el.textContent = _AC_PRICES[piano]?.[iv] || '—';
+  });
+}
+
+async function acDoCheckout(piano) {
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  if (!soc) { toast('Nessuna società selezionata'); return; }
+  const intervallo = _acSubInterval || 'mensile';
+  if (intervallo === 'annuale') {
+    const month = new Date().getUTCMonth();
+    if (month === 5 || month === 6) {
+      toast('Piano annuale non disponibile in giugno e luglio'); return;
+    }
+  }
+  toast('Preparazione checkout…');
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ piano, intervallo, societyId: soc.id, email: me?.email || '' }),
+    });
+    const data = await resp.json();
+    if (data.url) { window.location.href = data.url; }
+    else toast('Errore: ' + (data.detail || data.error || 'Riprova'));
+  } catch(e) { toast('Errore di connessione. Riprova.'); }
+}
+
+function acGoChoosePlan() {
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const piano = soc?.piano || 'demo';
+  const icMap = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
+  _acShowStateA(soc || {}, piano, icMap[piano] || '⏳', getPianoDef(soc || {}).nome || 'Demo');
+}
+
+async function acOpenCustomerPortal(evt) {
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  if (!soc) return;
+  const btn = evt?.target;
+  const origTxt = btn?.textContent;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Caricamento…'; }
+  try {
+    const res = await fetch(API_BASE + '/api/v2/stripe/customer-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ societyId: soc.id }),
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else toast('Errore: ' + (data.detail || data.error || 'sconosciuto'));
+  } catch(e) { toast('Errore di rete'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = origTxt; } }
+}
+
+function acCancelSubscription() {
+  document.getElementById('acCancelModal').classList.add('on');
+}
+
+async function acCancelConfirmed() {
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  if (!soc) return;
+  const btn = document.getElementById('acCancelConfirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
+  try {
+    const res = await fetch(API_BASE + '/api/v2/stripe/cancel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ societyId: soc.id }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('acCancelModal').classList.remove('on');
+      toast('✅ Cancellazione confermata — rimani attivo fino al termine del periodo');
+      _acSubData = null;
+      _acLoadSub();
+    } else {
+      toast('Errore: ' + (data.detail || data.error || 'sconosciuto'));
+    }
+  } catch(e) { toast('Errore di rete'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = 'Sì, cancella'; } }
+}
+
 function _acMsg(id, txt, ok) {
   const el = document.getElementById(id);
   if (!el) { toast(txt); return; }
-  el.style.display     = '';
-  el.style.background  = ok ? '#ecfdf5' : '#fef2f2';
-  el.style.color       = ok ? '#065f46' : '#c0392b';
-  el.textContent       = txt;
+  el.style.display    = '';
+  el.style.background = ok ? '#ecfdf5' : '#fef2f2';
+  el.style.color      = ok ? '#065f46' : '#c0392b';
+  el.textContent      = txt;
   if (ok) setTimeout(() => { el.style.display = 'none'; }, 3200);
 }
 
@@ -15641,22 +15938,17 @@ function saveAccountProfile() {
   const cogn  = (document.getElementById('acCogn')?.value  || '').trim();
   const email = (document.getElementById('acEmail')?.value || '').trim().toLowerCase();
   const phone = (document.getElementById('acPhone')?.value || '').trim();
-
   if (!nome)                          { _acMsg('acProfMsg', '⚠️ Inserisci il nome', false); return; }
   if (!cogn)                          { _acMsg('acProfMsg', '⚠️ Inserisci il cognome', false); return; }
   if (!email || !email.includes('@')) { _acMsg('acProfMsg', '⚠️ Email non valida', false); return; }
-
   me.nome = nome; me.cogn = cogn; me.email = email; me.phone = phone;
   const u = USERS_DB.find(x => x.id === me.id);
   if (u) { u.nome = nome; u.cogn = cogn; u.email = email; u.phone = phone; }
-
-  // Aggiorna topbar
   const av = (nome[0] + cogn[0]).toUpperCase();
-  const el_av   = document.getElementById('tbAv');   if (el_av)  el_av.textContent  = av;
-  const el_nm   = document.getElementById('tbName'); if (el_nm)  el_nm.textContent  = nome + ' ' + cogn;
-  const el_mnm  = document.getElementById('tbMenuName'); if (el_mnm) el_mnm.textContent = nome + ' ' + cogn;
-  const el_acav = document.getElementById('acAvatar');   if (el_acav) el_acav.textContent = av;
-
+  const el_av  = document.getElementById('tbAv');      if (el_av)  el_av.textContent  = av;
+  const el_nm  = document.getElementById('tbName');    if (el_nm)  el_nm.textContent  = nome + ' ' + cogn;
+  const el_mnm = document.getElementById('tbMenuName');if (el_mnm) el_mnm.textContent = nome + ' ' + cogn;
+  const el_aav = document.getElementById('acAvatar');  if (el_aav) el_aav.textContent = av;
   window.__fieldosSaveState();
   _acMsg('acProfMsg', '✅ Profilo aggiornato con successo', true);
 }
@@ -15666,19 +15958,14 @@ function saveAccountPassword() {
   const old  = document.getElementById('acPassOld')?.value  || '';
   const np   = document.getElementById('acPassNew')?.value  || '';
   const conf = document.getElementById('acPassConf')?.value || '';
-
-  if (!old)               { _acMsg('acPassMsg', '⚠️ Inserisci la password attuale', false); return; }
-  if (old !== me.pass)    { _acMsg('acPassMsg', '❌ La password attuale non è corretta', false); return; }
-  if (!_pwCheck(np).valid){ _acMsg('acPassMsg', '❌ Min. 8 caratteri, una maiuscola, un numero e un simbolo', false); return; }
-  if (np !== conf)        { _acMsg('acPassMsg', '❌ Le due password non coincidono', false); return; }
-
+  if (!old)                { _acMsg('acPassMsg', '⚠️ Inserisci la password attuale', false); return; }
+  if (old !== me.pass)     { _acMsg('acPassMsg', '❌ La password attuale non è corretta', false); return; }
+  if (!_pwCheck(np).valid) { _acMsg('acPassMsg', '❌ Min. 8 caratteri, una maiuscola, un numero e un simbolo', false); return; }
+  if (np !== conf)         { _acMsg('acPassMsg', '❌ Le due password non coincidono', false); return; }
   const u = USERS_DB.find(x => x.id === me.id);
   if (u) { u.pass = np; u.tempPassword = false; }
   me.pass = np; me.tempPassword = false;
-
-  ['acPassOld','acPassNew','acPassConf'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  ['acPassOld','acPassNew','acPassConf'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   window.__fieldosSaveState();
   _acMsg('acPassMsg', '✅ Password aggiornata con successo', true);
 }
