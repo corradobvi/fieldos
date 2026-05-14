@@ -20134,6 +20134,14 @@ function nextAugFirst() {
 function getPriceId(piano, intervallo) {
   return process.env[PRICE_ENV[piano]?.[intervallo] ?? ""] || null;
 }
+function priceIdToPiano(priceId) {
+  for (const [piano, intervals] of Object.entries(PRICE_ENV)) {
+    for (const envVar of Object.values(intervals)) {
+      if (process.env[envVar] === priceId) return piano;
+    }
+  }
+  return null;
+}
 function stripeEncode(obj) {
   return Object.entries(obj).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
 }
@@ -20176,7 +20184,7 @@ router21.post("/stripe/create-checkout", async (req, res) => {
     "payment_method_types[0]": "card",
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": 1,
-    "success_url": `${appUrl}/?abbonato=true`,
+    "success_url": `${appUrl}/payment-success?piano=${encodeURIComponent(String(piano))}&intervallo=${encodeURIComponent(String(intervallo))}`,
     "cancel_url": `${appUrl}/subscribe`,
     "metadata[societyId]": String(societyId),
     "metadata[piano]": String(piano),
@@ -20228,21 +20236,62 @@ router21.post("/stripe/webhook", async (req, res) => {
   if (event?.type === "checkout.session.completed") {
     const session = event.data?.object;
     const societyId = session?.metadata?.societyId;
+    const piano = session?.metadata?.piano;
     const customerId = session?.customer;
     const subId = session?.subscription;
     if (societyId && customerId) {
       try {
         await pool.execute(
           `UPDATE societies
-           SET subscription_status      = 'active',
-               stripe_customer_id       = ?,
-               stripe_subscription_id   = ?
+           SET subscription_status    = 'active',
+               piano                  = COALESCE(?, piano),
+               stripe_customer_id     = ?,
+               stripe_subscription_id = ?
            WHERE id = ?`,
-          [customerId, subId ?? null, Number(societyId)]
+          [piano ?? null, customerId, subId ?? null, Number(societyId)]
         );
-        logger.info({ societyId, customerId }, "stripe: society activated");
+        logger.info({ societyId, customerId, piano }, "stripe: society activated");
       } catch (e) {
-        logger.error({ err: e }, "stripe: DB update failed");
+        logger.error({ err: e }, "stripe: DB update failed on checkout.session.completed");
+      }
+    }
+  }
+  if (event?.type === "customer.subscription.updated") {
+    const sub = event.data?.object;
+    const subId = sub?.id;
+    const priceId = sub?.items?.data?.[0]?.price?.id;
+    const piano = priceId ? priceIdToPiano(priceId) : null;
+    const status = sub?.status;
+    if (subId) {
+      try {
+        const dbStatus = status === "active" ? "active" : status === "past_due" ? "past_due" : "canceled";
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = ?,
+               piano               = COALESCE(?, piano)
+           WHERE stripe_subscription_id = ?`,
+          [dbStatus, piano ?? null, subId]
+        );
+        logger.info({ subId, piano, status }, "stripe: subscription updated");
+      } catch (e) {
+        logger.error({ err: e }, "stripe: DB update failed on subscription.updated");
+      }
+    }
+  }
+  if (event?.type === "customer.subscription.deleted") {
+    const sub = event.data?.object;
+    const subId = sub?.id;
+    if (subId) {
+      try {
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = 'canceled'
+           WHERE stripe_subscription_id = ?`,
+          [subId]
+        );
+        logger.info({ subId }, "stripe: subscription canceled");
+      } catch (e) {
+        logger.error({ err: e }, "stripe: DB update failed on subscription.deleted");
       }
     }
   }

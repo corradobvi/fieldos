@@ -32,24 +32,31 @@ const PRORATA_PCT: Record<number, number | null> = {
 };
 
 // Restituisce il timestamp Unix del prossimo 1° agosto
-// Logica stagione sportiva: se siamo da ago a dic la stagione è in corso → prossimo agosto è anno+1
-//                           se siamo da gen a lug la stagione in corso termina il 31 lug → prossimo agosto è quest'anno
 function nextAugFirst(): number {
   const now = new Date();
-  const month = now.getUTCMonth(); // 0-indexed
+  const month = now.getUTCMonth();
   const day   = now.getUTCDate();
-  // Se siamo esattamente il 1° agosto: il prossimo 1° agosto è l'anno prossimo
   const isToday = month === 7 && day === 1;
   const anchorYear = (month >= 7 && !isToday)
-    ? now.getUTCFullYear() + 1   // ago(dopo 1°)–dic → anno prossimo
+    ? now.getUTCFullYear() + 1
     : (month < 7)
-      ? now.getUTCFullYear()     // gen–lug → quest'anno
-      : now.getUTCFullYear() + 1; // 1° ago esatto → anno prossimo
+      ? now.getUTCFullYear()
+      : now.getUTCFullYear() + 1;
   return Math.floor(Date.UTC(anchorYear, 7, 1) / 1000);
 }
 
 function getPriceId(piano: string, intervallo: string): string | null {
   return process.env[PRICE_ENV[piano]?.[intervallo] ?? ""] || null;
+}
+
+// Reverse lookup: Stripe price ID → piano name (mister / mister_pro / societa)
+function priceIdToPiano(priceId: string): string | null {
+  for (const [piano, intervals] of Object.entries(PRICE_ENV)) {
+    for (const envVar of Object.values(intervals)) {
+      if (process.env[envVar] === priceId) return piano;
+    }
+  }
+  return null;
 }
 
 function stripeEncode(obj: Record<string, string | number>): string {
@@ -100,27 +107,22 @@ router.post("/stripe/create-checkout", async (req, res) => {
 
   const appUrl = process.env.APP_URL ?? "https://workspacefieldos-production.up.railway.app";
 
-  // Parametri comuni
   const params: Record<string, string | number> = {
     mode: "subscription",
     "payment_method_types[0]": "card",
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": 1,
-    "success_url": `${appUrl}/?abbonato=true`,
+    "success_url": `${appUrl}/payment-success?piano=${encodeURIComponent(String(piano))}&intervallo=${encodeURIComponent(String(intervallo))}`,
     "cancel_url":  `${appUrl}/subscribe`,
     "metadata[societyId]": String(societyId),
     "metadata[piano]":     String(piano),
     "metadata[intervallo]":String(intervallo),
   };
 
-  // Pre-fill email se disponibile
   if (email) params["customer_email"] = String(email);
 
-  // Piano annuale: ancora al 1° agosto + proration automatica di Stripe
   if (String(intervallo) === "annuale") {
     params["subscription_data[billing_cycle_anchor]"] = nextAugFirst();
-    // proration_behavior default = create_prorations — Stripe calcola il pro-rata in giorni
-    // automaticamente sulla prima fattura (da oggi fino al 1° agosto)
   }
 
   try {
@@ -172,9 +174,11 @@ router.post("/stripe/webhook", async (req, res) => {
   const event = req.body as any;
   logger.info({ type: event?.type }, "stripe webhook received");
 
+  // ── checkout.session.completed ──────────────────────────────────────────
   if (event?.type === "checkout.session.completed") {
     const session    = event.data?.object;
     const societyId  = session?.metadata?.societyId;
+    const piano      = session?.metadata?.piano;
     const customerId = session?.customer;
     const subId      = session?.subscription;
 
@@ -182,15 +186,61 @@ router.post("/stripe/webhook", async (req, res) => {
       try {
         await pool.execute(
           `UPDATE societies
-           SET subscription_status      = 'active',
-               stripe_customer_id       = ?,
-               stripe_subscription_id   = ?
+           SET subscription_status    = 'active',
+               piano                  = COALESCE(?, piano),
+               stripe_customer_id     = ?,
+               stripe_subscription_id = ?
            WHERE id = ?`,
-          [customerId, subId ?? null, Number(societyId)]
+          [piano ?? null, customerId, subId ?? null, Number(societyId)]
         );
-        logger.info({ societyId, customerId }, "stripe: society activated");
+        logger.info({ societyId, customerId, piano }, "stripe: society activated");
       } catch (e: any) {
-        logger.error({ err: e }, "stripe: DB update failed");
+        logger.error({ err: e }, "stripe: DB update failed on checkout.session.completed");
+      }
+    }
+  }
+
+  // ── customer.subscription.updated ───────────────────────────────────────
+  if (event?.type === "customer.subscription.updated") {
+    const sub     = event.data?.object;
+    const subId   = sub?.id;
+    const priceId = sub?.items?.data?.[0]?.price?.id;
+    const piano   = priceId ? priceIdToPiano(priceId) : null;
+    const status  = sub?.status; // active, past_due, canceled, etc.
+
+    if (subId) {
+      try {
+        const dbStatus = status === "active" ? "active" : status === "past_due" ? "past_due" : "canceled";
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = ?,
+               piano               = COALESCE(?, piano)
+           WHERE stripe_subscription_id = ?`,
+          [dbStatus, piano ?? null, subId]
+        );
+        logger.info({ subId, piano, status }, "stripe: subscription updated");
+      } catch (e: any) {
+        logger.error({ err: e }, "stripe: DB update failed on subscription.updated");
+      }
+    }
+  }
+
+  // ── customer.subscription.deleted ───────────────────────────────────────
+  if (event?.type === "customer.subscription.deleted") {
+    const sub   = event.data?.object;
+    const subId = sub?.id;
+
+    if (subId) {
+      try {
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = 'canceled'
+           WHERE stripe_subscription_id = ?`,
+          [subId]
+        );
+        logger.info({ subId }, "stripe: subscription canceled");
+      } catch (e: any) {
+        logger.error({ err: e }, "stripe: DB update failed on subscription.deleted");
       }
     }
   }

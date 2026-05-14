@@ -786,6 +786,21 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .sa-plan-mister-pro{background:#ede9fe;color:#5b21b6;}
 .sa-plan-societa{background:#dcfce7;color:#166534;}
 
+/* ── Payment success screen ── */
+#paySuccessScreen{display:none;position:fixed;inset:0;z-index:9998;background:var(--white);align-items:center;justify-content:center;padding:32px 16px;}
+#paySuccessScreen.on{display:flex;}
+.ps-wrap{text-align:center;max-width:480px;width:100%;}
+.ps-check{font-size:4.5rem;margin-bottom:20px;display:block;animation:psIn .55s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes psIn{0%{transform:scale(0) rotate(-20deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
+.ps-title{font-family:'Barlow Condensed',sans-serif;font-size:2.1rem;font-weight:900;color:var(--text);margin-bottom:12px;line-height:1.15;}
+.ps-plan-badge{display:inline-block;background:#dcfce7;color:#166534;font-weight:700;border-radius:20px;padding:6px 20px;font-size:.95rem;margin-bottom:10px;}
+.ps-email{font-size:.86rem;color:var(--text2);margin-bottom:28px;}
+.ps-btn{display:block;width:100%;max-width:320px;margin:0 auto 14px;padding:16px 24px;background:#1A7A4A;color:#fff;border:none;border-radius:12px;font-size:1.05rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.ps-btn:hover{background:#15623c;}
+.ps-countdown{font-size:.8rem;color:var(--text3);margin-bottom:16px;}
+.ps-contact{font-size:.75rem;color:var(--text2);}
+.ps-contact a{color:#1A7A4A;text-decoration:none;}
+
 /* ═══════════════════════════════════════════
    ASSISTENTE CHAT
    ═══════════════════════════════════════════ */
@@ -1766,6 +1781,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       Hai domande sul tuo piano o sulla fatturazione?<br>
       📧 <a href="mailto:amministrazione@myvivaio.app" style="color:#1A7A4A;font-weight:600;">amministrazione@myvivaio.app</a>
     </div>
+  </div>
+</div>
+
+<!-- ══════ PAYMENT SUCCESS ══════ -->
+<div id="paySuccessScreen">
+  <div class="ps-wrap">
+    <span class="ps-check">✅</span>
+    <div class="ps-title">Pagamento completato!<br>Benvenuto in MyVivaio 🎉</div>
+    <div class="ps-plan-badge" id="psPlanbadge">Il tuo piano è ora attivo</div>
+    <div class="ps-email" id="psEmail"></div>
+    <button class="ps-btn" onclick="paySuccessGoToDashboard()">Inizia ad usare MyVivaio →</button>
+    <div class="ps-countdown" id="psCountdown">Redirect automatico in <strong id="psCdSec">5</strong> secondi…</div>
+    <div class="ps-contact">Per domande: <a href="mailto:amministrazione@myvivaio.app">amministrazione@myvivaio.app</a></div>
   </div>
 </div>
 
@@ -15351,21 +15379,81 @@ function openSubscribeScreen() {
   if (backBtn) backBtn.style.display = _subOpenedFromApp ? '' : 'none';
   try { history.pushState(null, '', '/subscribe'); } catch(e) {}
   _subInit();
-  // Controlla ?abbonato=true
-  try {
-    const p = new URLSearchParams(window.location.search);
-    if (p.get('abbonato') === 'true') {
-      document.getElementById('subSuccessBanner').classList.add('on');
-      document.getElementById('subBadge').style.display = 'none';
-      history.replaceState(null, '', '/');
-    }
-  } catch(e) {}
 }
 
 function closeSubscribeScreen() {
   document.getElementById('subscribeScreen').classList.remove('on');
   document.getElementById('app').classList.add('on');
   try { history.pushState(null, '', '/'); } catch(e) {}
+}
+
+// ── Payment success screen ───────────────────────────────────────────────
+
+const _PIANO_LABELS = { mister:'Mister', mister_pro:'Mister Pro', societa:'Società' };
+let _psCountdownTimer = null;
+
+function openPaymentSuccessScreen() {
+  // Leggi piano ed email dai parametri URL
+  let piano = '', userEmail = '';
+  try {
+    const p = new URLSearchParams(window.location.search);
+    piano     = p.get('piano')     || '';
+    userEmail = p.get('email')     || me?.email || '';
+  } catch(e) {}
+
+  // Aggiorna piano nel blob locale (ottimistico — il webhook aggiorna il DB)
+  if (piano && piano !== 'demo') {
+    const soc = saSocieties.find(x => x.id === currentSocietaId);
+    if (soc) {
+      soc.piano        = piano;
+      soc.scadenzaDemo = null;
+      saSaveState();
+    }
+  }
+
+  // Mostra schermata
+  document.getElementById('loginScreen').style.display  = 'none';
+  document.getElementById('app').classList.remove('on');
+  document.getElementById('subscribeScreen').classList.remove('on');
+  document.getElementById('paySuccessScreen').classList.add('on');
+  try { history.replaceState(null, '', '/payment-success'); } catch(e) {}
+
+  // Popola contenuto
+  const label = _PIANO_LABELS[piano] || piano;
+  const badge = document.getElementById('psPlanbadge');
+  if (badge) badge.textContent = label ? `Piano ${label} attivo` : 'Il tuo piano è ora attivo';
+  const emailEl = document.getElementById('psEmail');
+  if (emailEl) emailEl.textContent = userEmail ? `Riceverai una conferma a ${userEmail}` : '';
+
+  // Countdown 5 secondi
+  let sec = 5;
+  const cdEl = document.getElementById('psCdSec');
+  if (cdEl) cdEl.textContent = String(sec);
+  if (_psCountdownTimer) clearInterval(_psCountdownTimer);
+  _psCountdownTimer = setInterval(() => {
+    sec--;
+    if (cdEl) cdEl.textContent = String(sec);
+    if (sec <= 0) {
+      clearInterval(_psCountdownTimer);
+      _psCountdownTimer = null;
+      paySuccessGoToDashboard();
+    }
+  }, 1000);
+}
+
+function paySuccessGoToDashboard() {
+  if (_psCountdownTimer) { clearInterval(_psCountdownTimer); _psCountdownTimer = null; }
+  document.getElementById('paySuccessScreen').classList.remove('on');
+  const appEl = document.getElementById('app');
+  if (appEl.classList.contains('on') || me) {
+    appEl.classList.add('on');
+    refreshDemoBanner();
+    try { history.replaceState(null, '', '/'); } catch(e) {}
+  } else {
+    // Nessuna sessione attiva: mostra login
+    document.getElementById('loginScreen').style.display = 'flex';
+    try { history.replaceState(null, '', '/'); } catch(e) {}
+  }
 }
 
 // ── Stripe subscribe screen ──────────────────────────────────────────────
@@ -18865,13 +18953,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Se l'URL è /subscribe, apri la pagina piani (funziona solo dopo bootApp per sessione attiva)
   if (window.location.pathname === '/subscribe') {
     if (_sessionRestored) {
-      // bootApp è asincrono — aspetta che la schermata principale sia pronta
       const _origBoot2 = bootApp;
       bootApp = function(u) {
         _origBoot2(u);
         bootApp = _origBoot2;
         setTimeout(() => openSubscribeScreen(), 100);
       };
+    }
+  }
+
+  // Se l'URL è /payment-success, mostra la pagina di ringraziamento post-pagamento
+  if (window.location.pathname === '/payment-success') {
+    if (_sessionRestored) {
+      const _origBoot3 = bootApp;
+      bootApp = function(u) {
+        _origBoot3(u);
+        bootApp = _origBoot3;
+        setTimeout(() => openPaymentSuccessScreen(), 100);
+      };
+    } else {
+      // Nessuna sessione: mostra comunque la thank-you page (utente non loggato)
+      setTimeout(() => openPaymentSuccessScreen(), 50);
     }
   }
 });
