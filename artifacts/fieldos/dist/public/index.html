@@ -927,6 +927,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-inv-pdf,.ac-inv-pay{font-size:.78rem;font-weight:600;text-decoration:none;padding:3px 9px;border-radius:8px;}
 .ac-inv-pdf{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
 .ac-inv-pay{background:var(--cp);color:#fff;}
+/* Gestione società */
+.ac-gest-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.ac-gest-row:last-child{border-bottom:none;}
+.ac-gest-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff;flex-shrink:0;}
+.ac-gest-info{flex:1;min-width:0;}
+.ac-gest-name{font-weight:600;font-size:.9rem;color:var(--text);}
+.ac-gest-role{font-size:.77rem;color:var(--text2);}
+.ac-gest-badge{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--bg);color:var(--text2);border:1px solid var(--border);flex-shrink:0;}
+.ac-gest-badge.active{background:#dcfce7;color:#15803d;border-color:#86efac;}
+/* Tutorial */
+.ac-tut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:4px;}
+.ac-tut-card{border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--white);cursor:pointer;transition:box-shadow .15s;}
+.ac-tut-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.09);}
+.ac-tut-ic{font-size:1.6rem;margin-bottom:6px;}
+.ac-tut-title{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:3px;}
+.ac-tut-desc{font-size:.78rem;color:var(--text2);}
+.ac-tut-badge{display:inline-block;font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:8px;background:#fef3c7;color:#92400e;margin-top:6px;}
+/* FAQ */
+.ac-faq-item{border-bottom:1px solid var(--border);}
+.ac-faq-item:last-child{border-bottom:none;}
+.ac-faq-q{display:flex;align-items:center;justify-content:space-between;padding:13px 0;cursor:pointer;font-weight:600;font-size:.88rem;color:var(--text);gap:8px;}
+.ac-faq-q:hover{color:var(--cp);}
+.ac-faq-q .ac-faq-arr{font-size:.8rem;transition:transform .2s;flex-shrink:0;}
+.ac-faq-item.open .ac-faq-arr{transform:rotate(180deg);}
+.ac-faq-a{font-size:.85rem;color:var(--text2);line-height:1.5;padding:0 0 13px;display:none;}
+.ac-faq-item.open .ac-faq-a{display:block;}
 
 /* ═══════════════════════════════════════════
    ASSISTENTE CHAT
@@ -1931,22 +1957,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <button class="ac-hd-back" onclick="closeAccountScreen()">← Torna</button>
     <div class="ac-hd-title">Il mio account</div>
   </div>
-  <!-- Mobile tabs -->
-  <div class="ac-tabs-mob">
-    <button class="ac-tab-mob active" onclick="acSetTab('profilo')">👤 Profilo</button>
-    <button class="ac-tab-mob" onclick="acSetTab('sicurezza')">🔐 Sicurezza</button>
-    <button class="ac-tab-mob" onclick="acSetTab('piano')">⚽ Il mio piano</button>
-    <button class="ac-tab-mob" onclick="acSetTab('pagamenti')">📄 Pagamenti</button>
-  </div>
+  <!-- Mobile tabs (rebuilt by _acBuildTabs) -->
+  <div class="ac-tabs-mob" id="acTabsMob"></div>
   <!-- Body -->
   <div class="ac-body">
-    <!-- Sidebar desktop -->
-    <div class="ac-sidebar">
-      <button class="ac-nav-item active" id="acNavProfilo" onclick="acSetTab('profilo')"><span class="ac-nav-ic">👤</span> Profilo</button>
-      <button class="ac-nav-item" id="acNavSicurezza" onclick="acSetTab('sicurezza')"><span class="ac-nav-ic">🔐</span> Sicurezza</button>
-      <button class="ac-nav-item" id="acNavPiano" onclick="acSetTab('piano')"><span class="ac-nav-ic">⚽</span> Il mio piano</button>
-      <button class="ac-nav-item" id="acNavPagamenti" onclick="acSetTab('pagamenti')"><span class="ac-nav-ic">📄</span> Pagamenti</button>
-    </div>
+    <!-- Sidebar desktop (rebuilt by _acBuildTabs) -->
+    <div class="ac-sidebar" id="acSidebarNav"></div>
     <!-- Content -->
     <div class="ac-content">
 
@@ -2126,6 +2142,31 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
 
+      <!-- ── Panel: Gestione società ── -->
+      <div class="ac-panel" id="acPanelGestione">
+        <div class="ac-card">
+          <div class="ac-card-title">👥 Gestione società</div>
+          <div id="acGestLoading" style="display:none;text-align:center;padding:30px;font-size:.85rem;color:var(--text2);">⏳ Caricamento…</div>
+          <div id="acGestList"></div>
+        </div>
+      </div>
+
+      <!-- ── Panel: Tutorial ── -->
+      <div class="ac-panel" id="acPanelTutorial">
+        <div class="ac-card">
+          <div class="ac-card-title">🎓 Tutorial e guide</div>
+          <div id="acTutList"></div>
+        </div>
+      </div>
+
+      <!-- ── Panel: FAQ ── -->
+      <div class="ac-panel" id="acPanelFaq">
+        <div class="ac-card">
+          <div class="ac-card-title">❓ Domande frequenti</div>
+          <div id="acFaqList"></div>
+        </div>
+      </div>
+
     </div><!-- /.ac-content -->
   </div><!-- /.ac-body -->
 </div>
@@ -2200,7 +2241,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
           <button class="tb-user-dd-item" onclick="openAccountScreen();toggleTopUserMenu();event.stopPropagation();">👤 Il mio account</button>
-          <button class="tb-user-dd-item" onclick="openSubscribeScreen();toggleTopUserMenu();event.stopPropagation();">💳 Il mio piano</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
         </div>
       </div>
@@ -15800,6 +15840,46 @@ let _acCurrentTab = 'profilo';
 let _acSubInterval = 'mensile';
 let _acSubData = null;
 
+function acIsSubscriptionOwner() {
+  return !!(me && (me.role === 'admin' || me.role === 'mister_admin'));
+}
+function acIsSocietyAdmin() {
+  if (!me || me.role !== 'admin') return false;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  return !!(soc && pianoNorm(soc.piano) === 'societa');
+}
+function acAllowedTabs() {
+  const tabs = [
+    { id:'profilo',    ic:'👤', lb:'Profilo' },
+    { id:'sicurezza',  ic:'🔐', lb:'Sicurezza' },
+  ];
+  if (acIsSubscriptionOwner()) {
+    tabs.push({ id:'piano',     ic:'⚽', lb:'Il mio piano' });
+    tabs.push({ id:'pagamenti', ic:'📄', lb:'Pagamenti' });
+  }
+  if (acIsSocietyAdmin()) {
+    tabs.push({ id:'gestione', ic:'👥', lb:'Gestione' });
+  }
+  tabs.push({ id:'tutorial', ic:'🎓', lb:'Tutorial' });
+  tabs.push({ id:'faq',      ic:'❓', lb:'FAQ' });
+  return tabs;
+}
+function _acBuildTabs() {
+  const allowed = acAllowedTabs();
+  const mobEl = document.getElementById('acTabsMob');
+  const sideEl = document.getElementById('acSidebarNav');
+  if (mobEl) {
+    mobEl.innerHTML = allowed.map(t =>
+      `<button class="ac-tab-mob${t.id === _acCurrentTab ? ' active' : ''}" data-tab="${t.id}" onclick="acSetTab('${t.id}')">${t.ic} ${t.lb}</button>`
+    ).join('');
+  }
+  if (sideEl) {
+    sideEl.innerHTML = allowed.map(t =>
+      `<button class="ac-nav-item${t.id === _acCurrentTab ? ' active' : ''}" data-tab="${t.id}" onclick="acSetTab('${t.id}')"><span class="ac-nav-ic">${t.ic}</span> ${t.lb}</button>`
+    ).join('');
+  }
+}
+
 const _AC_PLANS = {
   mister:     { mensile: { price: 9,   label: '9 €',   per: '/mese', equiv: null,                  disc: null   },
                 annuale: { price: 79,  label: '79 €',  per: '/anno', equiv: 'equiv. 6,58 €/mese',  disc: '-27%' } },
@@ -15821,7 +15901,11 @@ function openAccountScreen(tab) {
   document.getElementById('accountScreen').classList.add('on');
   try { history.pushState(null, '', '/account'); } catch(e) {}
   _acInit();
-  acSetTab(tab || 'profilo');
+  _acCurrentTab = 'profilo';
+  _acBuildTabs();
+  const allowed = acAllowedTabs().map(t => t.id);
+  const dest = (tab && allowed.includes(tab)) ? tab : 'profilo';
+  acSetTab(dest);
   setTimeout(() => { initPwField('acPassNew', 'acPassConf'); }, 50);
 }
 
@@ -15832,20 +15916,26 @@ function closeAccountScreen() {
 }
 
 function acSetTab(tab) {
+  const allowed = acAllowedTabs().map(t => t.id);
+  if (!allowed.includes(tab)) tab = 'profilo';
   _acCurrentTab = tab;
-  const tabs = ['profilo', 'sicurezza', 'piano', 'pagamenti'];
-  tabs.forEach(t => {
+  const ALL_PANELS = ['profilo','sicurezza','piano','pagamenti','gestione','tutorial','faq'];
+  ALL_PANELS.forEach(t => {
     const key = t.charAt(0).toUpperCase() + t.slice(1);
-    const nav = document.getElementById('acNav' + key);
-    if (nav) nav.classList.toggle('active', t === tab);
     const pnl = document.getElementById('acPanel' + key);
     if (pnl) pnl.classList.toggle('active', t === tab);
   });
-  document.querySelectorAll('.ac-tab-mob').forEach((btn, i) => {
-    btn.classList.toggle('active', tabs[i] === tab);
+  document.querySelectorAll('#acSidebarNav .ac-nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
   });
-  if (tab === 'piano') _acLoadSub();
+  document.querySelectorAll('#acTabsMob .ac-tab-mob').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  if (tab === 'piano')     _acLoadSub();
   if (tab === 'pagamenti') _acLoadInvoices();
+  if (tab === 'gestione')  _acLoadGestione();
+  if (tab === 'tutorial')  _acRenderTutorial();
+  if (tab === 'faq')       _acRenderFaq();
 }
 
 function _acInit() {
@@ -16211,6 +16301,119 @@ async function _acLoadInvoices() {
     if (invLoading) invLoading.style.display = 'none';
     if (invEmpty) { invEmpty.style.display = ''; invEmpty.textContent = 'Errore nel caricamento delle fatture.'; }
   }
+}
+
+function _acLoadGestione() {
+  const listEl = document.getElementById('acGestList');
+  if (!listEl) return;
+  const members = USERS_DB.filter(u => u.societaId === currentSocietaId && u.stato !== 'eliminato');
+  if (!members.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:24px;font-size:.85rem;color:var(--text2);">Nessun membro trovato.</div>';
+    return;
+  }
+  const sorted = [...members].sort((a,b) => (a.cogn||'').localeCompare(b.cogn||'','it') || (a.nome||'').localeCompare(b.nome||'','it'));
+  listEl.innerHTML = sorted.map(u => {
+    const cfg = ROLE_CFG[u.role] || {};
+    const color = cfg.color || '#888';
+    const initials = ((u.nome||'?')[0] + (u.cogn||'?')[0]).toUpperCase();
+    const roleLabel = cfg.label || u.role || '—';
+    const stato = u.stato === 'attivo' ? 'active' : '';
+    const statoLabel = u.stato === 'attivo' ? 'Attivo' : u.stato === 'pendente' ? 'In attesa' : u.stato || '';
+    return `<div class="ac-gest-row">
+      <div class="ac-gest-av" style="background:${color}">${initials}</div>
+      <div class="ac-gest-info">
+        <div class="ac-gest-name">${u.nome||''} ${u.cogn||''}</div>
+        <div class="ac-gest-role">${roleLabel}${u.leva ? ' · ' + u.leva : ''}</div>
+      </div>
+      <div class="ac-gest-badge ${stato}">${statoLabel}</div>
+    </div>`;
+  }).join('');
+}
+
+const _AC_TUTORIAL = {
+  admin: [
+    { ic:'🏟️', title:'Creare la tua società', desc:'Configura logo, colori e leve della tua società.', badge:'Base' },
+    { ic:'👥', title:'Aggiungere giocatori', desc:'Importa o aggiungi manualmente i giocatori alla rosa.', badge:'Base' },
+    { ic:'📅', title:'Gestire il calendario', desc:'Crea eventi ricorrenti, convocazioni e partite.', badge:'Base' },
+    { ic:'💰', title:'Gestione quote iscrizione', desc:'Traccia i pagamenti e invia solleciti ai genitori.', badge:'Pro' },
+    { ic:'📄', title:'Documenti e certificati medici', desc:'Carica e monitora i certificati in scadenza.', badge:'Pro' },
+    { ic:'⚙️', title:'Impostazioni avanzate', desc:'Personalizza ruoli, accessi e notifiche.', badge:'Avanzato' },
+  ],
+  mister_admin: [
+    { ic:'🏃', title:'Programmare gli allenamenti', desc:'Crea schede di allenamento e traccia la partecipazione.', badge:'Base' },
+    { ic:'👥', title:'Gestire la rosa', desc:'Aggiungi giocatori, assegna numeri e ruoli.', badge:'Base' },
+    { ic:'📊', title:'Statistiche di squadra', desc:'Monitora presenze e performance nel tempo.', badge:'Pro' },
+    { ic:'📣', title:'Comunicazioni ai genitori', desc:'Invia comunicazioni e avvisi alle famiglie.', badge:'Base' },
+  ],
+  allenatore: [
+    { ic:'🏃', title:'Programmare gli allenamenti', desc:'Crea schede di allenamento e traccia la partecipazione.', badge:'Base' },
+    { ic:'📋', title:'Gestire le convocazioni', desc:'Convoca giocatori per partite ed eventi.', badge:'Base' },
+    { ic:'📊', title:'Statistiche di squadra', desc:'Monitora presenze e performance.', badge:'Pro' },
+  ],
+  genitore: [
+    { ic:'📋', title:'Vedere le convocazioni', desc:'Controlla se tuo figlio è convocato per la prossima partita.', badge:'Base' },
+    { ic:'✅', title:'Seguire le presenze', desc:'Tieni traccia delle presenze agli allenamenti.', badge:'Base' },
+    { ic:'💬', title:'Comunicare con lo staff', desc:'Usa la chat per contattare allenatori e dirigenti.', badge:'Base' },
+  ],
+  default: [
+    { ic:'🏠', title:'Dashboard e panoramica', desc:'Scopri le funzioni principali dell\'app.', badge:'Base' },
+    { ic:'📅', title:'Calendario eventi', desc:'Visualizza allenamenti, partite e convocazioni.', badge:'Base' },
+    { ic:'💬', title:'Chat e comunicazioni', desc:'Rimani aggiornato con messaggi e comunicati.', badge:'Base' },
+  ],
+};
+function _acRenderTutorial() {
+  const el = document.getElementById('acTutList');
+  if (!el) return;
+  const role = me?.role || 'default';
+  const cards = _AC_TUTORIAL[role] || _AC_TUTORIAL.default;
+  el.innerHTML = `<div class="ac-tut-grid">${cards.map(c =>
+    `<div class="ac-tut-card">
+      <div class="ac-tut-ic">${c.ic}</div>
+      <div class="ac-tut-title">${c.title}</div>
+      <div class="ac-tut-desc">${c.desc}</div>
+      <div class="ac-tut-badge">${c.badge}</div>
+    </div>`
+  ).join('')}</div>
+  <div style="text-align:center;margin-top:16px;font-size:.78rem;color:var(--text2);">Video guide dettagliate in arrivo presto.</div>`;
+}
+
+const _AC_FAQ = {
+  owner: [
+    { q:'Come posso cambiare il mio piano?', a:'Vai nella tab "⚽ Il mio piano" e clicca su "Cambia piano" per vedere le opzioni disponibili.' },
+    { q:'Posso sospendere l\'abbonamento?', a:'Puoi cancellare l\'abbonamento dalla tab Piano. Resterai attivo fino alla fine del periodo pagato.' },
+    { q:'Come scarico le fatture?', a:'Nella tab "📄 Pagamenti" trovi lo storico completo con link al PDF per ogni fattura.' },
+    { q:'Quando viene rinnovato l\'abbonamento?', a:'L\'abbonamento mensile si rinnova ogni mese alla stessa data. Quello annuale si rinnova il 1° agosto.' },
+    { q:'Posso passare da mensile ad annuale?', a:'Sì, contatta il supporto o usa il Portale clienti per modificare il ciclo di fatturazione.' },
+  ],
+  general: [
+    { q:'Come aggiungo un nuovo giocatore?', a:'Dalla sezione Rosa, clicca su "Aggiungi giocatore" e compila i campi richiesti.' },
+    { q:'Come funzionano le notifiche?', a:'Le notifiche vengono inviate automaticamente per convocazioni, messaggi e comunicazioni urgenti. Puoi abilitarle nelle impostazioni del tuo browser.' },
+    { q:'Posso usare l\'app su più dispositivi?', a:'Sì, l\'account funziona su tutti i dispositivi. Basta accedere con le stesse credenziali.' },
+    { q:'Come resetto la password?', a:'Nella tab Sicurezza puoi cambiare la password in qualsiasi momento.' },
+    { q:'Come contatto l\'assistenza?', a:'Scrivi a <a href="mailto:support@myvivaio.app" style="color:var(--cp)">support@myvivaio.app</a> o usa il pulsante chat in basso a destra.' },
+  ],
+};
+function _acRenderFaq() {
+  const el = document.getElementById('acFaqList');
+  if (!el) return;
+  const isOwner = acIsSubscriptionOwner();
+  const faqItems = [
+    ...(isOwner ? _AC_FAQ.owner : []),
+    ..._AC_FAQ.general,
+  ];
+  el.innerHTML = faqItems.map((item, i) =>
+    `<div class="ac-faq-item" id="acFaqItem${i}">
+      <div class="ac-faq-q" onclick="acFaqToggle(${i})">
+        <span>${item.q}</span>
+        <span class="ac-faq-arr">▼</span>
+      </div>
+      <div class="ac-faq-a">${item.a}</div>
+    </div>`
+  ).join('');
+}
+function acFaqToggle(i) {
+  const el = document.getElementById('acFaqItem' + i);
+  if (el) el.classList.toggle('open');
 }
 
 function _acMsg(id, txt, ok) {
