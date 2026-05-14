@@ -172,6 +172,14 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_push (user_id, society_key)
 );
+
+CREATE TABLE IF NOT EXISTS churn_feedback (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  society_id INT NOT NULL,
+  motivo     VARCHAR(100),
+  dettaglio  TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 `;
 
 // Migrations: idempotent for existing databases

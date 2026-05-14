@@ -889,6 +889,44 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-cancel-btns button{flex:1;padding:12px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:none;}
 .ac-cancel-btns .keep{background:var(--cp);color:#fff;}
 .ac-cancel-btns .conf{background:#fef2f2;color:#e03055;border:1.5px solid #fecaca;}
+.ac-cancel-radios{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.ac-cancel-radio{display:flex;align-items:center;gap:8px;font-size:.87rem;color:var(--text);cursor:pointer;padding:7px 10px;border:1.5px solid var(--border);border-radius:9px;transition:border-color .12s,background .12s;}
+.ac-cancel-radio:has(input:checked){border-color:var(--cp);background:var(--cl);}
+.ac-cancel-radio input{accent-color:var(--cp);width:15px;height:15px;}
+.ac-cancel-textarea{width:100%;box-sizing:border-box;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:.85rem;font-family:inherit;resize:none;margin-bottom:12px;background:var(--bg);color:var(--text);}
+.ac-cancel-textarea:focus{outline:none;border-color:var(--cp);}
+/* Overview card */
+.ac-ov-header{display:flex;align-items:center;gap:14px;padding:16px;background:var(--cl);border-radius:12px;margin-bottom:16px;}
+.ac-ov-ic{font-size:2rem;flex-shrink:0;}
+.ac-ov-info{flex:1;min-width:0;}
+.ac-ov-name{font-weight:700;font-size:1rem;color:var(--text);}
+.ac-ov-sub{font-size:.8rem;color:var(--text2);margin-top:2px;}
+.ac-ov-grid{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;}
+.ac-ov-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);}
+.ac-ov-row:last-child{border-bottom:none;}
+.ac-ov-lbl{font-size:.82rem;color:var(--text2);}
+.ac-ov-val{font-size:.88rem;font-weight:600;color:var(--text);text-align:right;}
+.ac-ov-feats{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px;}
+.ac-ov-feat{font-size:.8rem;color:var(--cp);background:var(--cl);padding:3px 10px;border-radius:8px;font-weight:600;}
+.ac-cancel-link{background:none;border:none;color:var(--text2);font-size:.82rem;text-decoration:underline;cursor:pointer;padding:4px 8px;}
+.ac-cancel-link:hover{color:var(--red);}
+/* Plan back button */
+.ac-back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;font-size:.85rem;font-weight:600;color:var(--cp);cursor:pointer;padding:0 0 12px;text-decoration:none;}
+.ac-back-btn:hover{text-decoration:underline;}
+/* Invoices */
+.ac-inv-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.ac-inv-row:last-child{border-bottom:none;}
+.ac-inv-date{font-size:.8rem;color:var(--text2);white-space:nowrap;min-width:90px;}
+.ac-inv-num{font-size:.82rem;color:var(--text);font-family:monospace;flex:1;min-width:80px;}
+.ac-inv-amount{font-size:.88rem;font-weight:700;color:var(--text);white-space:nowrap;}
+.ac-inv-status{font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;}
+.ac-inv-status.paid{background:#dcfce7;color:#166534;}
+.ac-inv-status.open{background:#fef3c7;color:#92400e;}
+.ac-inv-status.void,.ac-inv-status.uncollectible{background:#f1f5f9;color:var(--text2);}
+.ac-inv-actions{display:flex;gap:8px;margin-left:auto;}
+.ac-inv-pdf,.ac-inv-pay{font-size:.78rem;font-weight:600;text-decoration:none;padding:3px 9px;border-radius:8px;}
+.ac-inv-pdf{background:var(--bg);color:var(--text2);border:1px solid var(--border);}
+.ac-inv-pay{background:var(--cp);color:#fff;}
 
 /* ═══════════════════════════════════════════
    ASSISTENTE CHAT
@@ -1897,7 +1935,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="ac-tabs-mob">
     <button class="ac-tab-mob active" onclick="acSetTab('profilo')">👤 Profilo</button>
     <button class="ac-tab-mob" onclick="acSetTab('sicurezza')">🔐 Sicurezza</button>
-    <button class="ac-tab-mob" onclick="acSetTab('abbonamento')">💳 Abbonamento</button>
+    <button class="ac-tab-mob" onclick="acSetTab('piano')">⚽ Il mio piano</button>
+    <button class="ac-tab-mob" onclick="acSetTab('pagamenti')">📄 Pagamenti</button>
   </div>
   <!-- Body -->
   <div class="ac-body">
@@ -1905,7 +1944,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="ac-sidebar">
       <button class="ac-nav-item active" id="acNavProfilo" onclick="acSetTab('profilo')"><span class="ac-nav-ic">👤</span> Profilo</button>
       <button class="ac-nav-item" id="acNavSicurezza" onclick="acSetTab('sicurezza')"><span class="ac-nav-ic">🔐</span> Sicurezza</button>
-      <button class="ac-nav-item" id="acNavAbbonamento" onclick="acSetTab('abbonamento')"><span class="ac-nav-ic">💳</span> Abbonamento</button>
+      <button class="ac-nav-item" id="acNavPiano" onclick="acSetTab('piano')"><span class="ac-nav-ic">⚽</span> Il mio piano</button>
+      <button class="ac-nav-item" id="acNavPagamenti" onclick="acSetTab('pagamenti')"><span class="ac-nav-ic">📄</span> Pagamenti</button>
     </div>
     <!-- Content -->
     <div class="ac-content">
@@ -1957,18 +1997,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
 
-      <!-- ── Panel: Abbonamento ── -->
-      <div class="ac-panel" id="acPanelAbbonamento">
+      <!-- ── Panel: Il mio piano ── -->
+      <div class="ac-panel" id="acPanelPiano">
         <!-- Loading -->
         <div id="acSubLoading" style="display:none;text-align:center;padding:40px 0;">
           <div style="font-size:1.5rem;margin-bottom:8px;">⏳</div>
           <div style="font-size:.85rem;color:var(--text2);">Caricamento abbonamento…</div>
         </div>
 
-        <!-- Stato A: demo / scaduto → mostra piani -->
+        <!-- Vista: scegli piano (demo / scaduto / da attivo) -->
         <div id="acSubStateA" style="display:none;">
           <div class="ac-card">
-            <div class="ac-card-title">💳 Scegli il tuo piano</div>
+            <button class="ac-back-btn" id="acSubBackBtn" style="display:none;" onclick="acBackToOverview()">← Torna al riepilogo</button>
+            <div class="ac-card-title">⚽ Scegli il tuo piano</div>
             <div class="ac-sub-cur">
               <div class="ac-sub-cur-ic" id="acSubCurIcA">⏳</div>
               <div class="ac-sub-cur-info">
@@ -1977,7 +2018,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               </div>
               <div class="ac-sub-badge demo" id="acSubBadgeA">Demo</div>
             </div>
-            <!-- Founding member banner (visible only if isFoundingMember) -->
+            <!-- Founding member banner -->
             <div class="ac-founding-banner" id="acFoundingBanner" style="display:none;">
               ⭐ Sei Founding Member — sconto -30% perpetuo applicato su ogni piano
             </div>
@@ -2027,47 +2068,61 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           </div>
         </div>
 
-        <!-- Stato B: attivo ma in scadenza (<30 gg) o cancel_at_period_end -->
-        <div id="acSubStateB" style="display:none;">
+        <!-- Vista: riepilogo abbonamento attivo -->
+        <div id="acSubStateOverview" style="display:none;">
           <div class="ac-card">
-            <div class="ac-card-title">💳 Il mio abbonamento</div>
-            <div class="ac-warn-banner">
-              <span>⚠️</span>
-              <span id="acWarnTxt">Il tuo abbonamento scade presto.</span>
-            </div>
-            <div class="ac-sub-cur">
-              <div class="ac-sub-cur-ic" id="acSubIcB">⚽</div>
-              <div class="ac-sub-cur-info">
-                <div class="ac-sub-cur-name" id="acSubNameB">—</div>
-                <div class="ac-sub-cur-sub" id="acSubSubB">—</div>
+            <div class="ac-card-title">⚽ Il mio piano</div>
+            <div class="ac-ov-header">
+              <div class="ac-ov-ic" id="acOvIc">⚽</div>
+              <div class="ac-ov-info">
+                <div class="ac-ov-name" id="acOvName">—</div>
+                <div class="ac-ov-sub" id="acOvSub">—</div>
               </div>
-              <div class="ac-sub-badge expiring">In scadenza</div>
+              <div class="ac-sub-badge active" id="acOvBadge">Attivo</div>
             </div>
-            <div class="ac-sub-btns">
-              <button class="ac-sub-btn pri" onclick="acOpenCustomerPortal(event)">🔄 Rinnova / Gestisci</button>
-              <button class="ac-sub-btn sec" onclick="acGoChoosePlan()">⬆️ Cambia piano</button>
+            <!-- Warning banner -->
+            <div class="ac-warn-banner" id="acOvWarnBanner" style="display:none;">
+              <span>⚠️</span><span id="acOvWarnTxt"></span>
+            </div>
+            <!-- Details grid -->
+            <div class="ac-ov-grid">
+              <div class="ac-ov-row" id="acOvRowRinnovo">
+                <span class="ac-ov-lbl">🔄 Prossimo rinnovo</span>
+                <span class="ac-ov-val" id="acOvRinnovo">—</span>
+              </div>
+              <div class="ac-ov-row" id="acOvRowIntervallo">
+                <span class="ac-ov-lbl">📆 Frequenza</span>
+                <span class="ac-ov-val" id="acOvIntervallo">—</span>
+              </div>
+              <div class="ac-ov-row" id="acOvRowPagamento" style="display:none;">
+                <span class="ac-ov-lbl">💳 Metodo pagamento</span>
+                <span class="ac-ov-val" id="acOvPagamento">—</span>
+              </div>
+            </div>
+            <!-- Features -->
+            <div class="ac-ov-feats" id="acOvFeats"></div>
+            <!-- Buttons -->
+            <div class="ac-sub-btns" style="margin-top:16px;">
+              <button class="ac-sub-btn pri" onclick="acGoChoosePlan()">⬆️ Cambia piano</button>
+              <button class="ac-sub-btn sec" onclick="acOpenCustomerPortal(event)">📄 Gestisci fatturazione</button>
+            </div>
+            <div style="text-align:center;margin-top:10px;">
+              <button class="ac-cancel-link" id="acOvCancelBtn" onclick="acCancelSubscription()">Annulla abbonamento</button>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Stato C: attivo, non in scadenza -->
-        <div id="acSubStateC" style="display:none;">
-          <div class="ac-card">
-            <div class="ac-card-title">💳 Il mio abbonamento</div>
-            <div class="ac-sub-cur">
-              <div class="ac-sub-cur-ic" id="acSubIcC">⚽</div>
-              <div class="ac-sub-cur-info">
-                <div class="ac-sub-cur-name" id="acSubNameC">—</div>
-                <div class="ac-sub-cur-sub" id="acSubSubC">—</div>
-              </div>
-              <div class="ac-sub-badge active">Attivo</div>
-            </div>
-            <div class="ac-sub-btns">
-              <button class="ac-sub-btn sec" onclick="acOpenCustomerPortal(event)">📄 Gestisci fatturazione</button>
-              <button class="ac-sub-btn sec" onclick="acGoChoosePlan()">⬆️ Cambia piano</button>
-              <button class="ac-sub-btn danger" onclick="acCancelSubscription()">❌ Cancella abbonamento</button>
-            </div>
-          </div>
+      <!-- ── Panel: Pagamenti ── -->
+      <div class="ac-panel" id="acPanelPagamenti">
+        <div class="ac-card">
+          <div class="ac-card-title">📄 Storico pagamenti</div>
+          <div id="acInvLoading" style="display:none;text-align:center;padding:30px;font-size:.85rem;color:var(--text2);">⏳ Caricamento…</div>
+          <div id="acInvEmpty" style="display:none;text-align:center;padding:30px;font-size:.85rem;color:var(--text2);">Nessun pagamento trovato.</div>
+          <div id="acInvList"></div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:.75rem;color:var(--text2);">
+          Per fatture e rimborsi: <a href="mailto:amministrazione@myvivaio.app" style="color:var(--cp);">amministrazione@myvivaio.app</a>
         </div>
       </div>
 
@@ -2075,14 +2130,33 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div><!-- /.ac-body -->
 </div>
 
-<!-- Cancel subscription modal -->
+<!-- Cancel subscription modal (2 step) -->
 <div class="ac-cancel-modal" id="acCancelModal">
   <div class="ac-cancel-box">
-    <h3>Cancella abbonamento</h3>
-    <p>Sei sicuro? L'accesso rimarrà attivo fino alla fine del periodo corrente, poi verrà disattivato.</p>
-    <div class="ac-cancel-btns">
-      <button class="keep" onclick="document.getElementById('acCancelModal').classList.remove('on')">Mantieni piano</button>
-      <button class="conf" id="acCancelConfirmBtn" onclick="acCancelConfirmed()">Sì, cancella</button>
+    <!-- Step 1: feedback -->
+    <div id="acCancelStep1">
+      <h3>Perché vuoi cancellare?</h3>
+      <div class="ac-cancel-radios">
+        <label class="ac-cancel-radio"><input type="radio" name="churnMotivo" value="troppo_caro"> Troppo caro</label>
+        <label class="ac-cancel-radio"><input type="radio" name="churnMotivo" value="non_uso"> Non lo uso abbastanza</label>
+        <label class="ac-cancel-radio"><input type="radio" name="churnMotivo" value="mancano_funzioni"> Mancano funzioni che mi servono</label>
+        <label class="ac-cancel-radio"><input type="radio" name="churnMotivo" value="troppo_complicato"> Troppo complicato</label>
+        <label class="ac-cancel-radio"><input type="radio" name="churnMotivo" value="altro"> Altro motivo</label>
+      </div>
+      <textarea id="acChurnDettaglio" class="ac-cancel-textarea" placeholder="Vuoi aggiungere qualcosa? (facoltativo)" rows="2"></textarea>
+      <div class="ac-cancel-btns">
+        <button class="keep" onclick="document.getElementById('acCancelModal').classList.remove('on')">Mantieni piano</button>
+        <button class="conf" onclick="acCancelStep2()">Continua →</button>
+      </div>
+    </div>
+    <!-- Step 2: confirm -->
+    <div id="acCancelStep2" style="display:none;">
+      <h3>Conferma cancellazione</h3>
+      <p id="acCancelConfirmMsg">Il tuo accesso rimarrà attivo fino alla fine del periodo, poi verrà disattivato.</p>
+      <div class="ac-cancel-btns">
+        <button class="keep" onclick="acCancelBack()">← Indietro</button>
+        <button class="conf" id="acCancelConfirmBtn" onclick="acCancelConfirmed()">Sì, cancella</button>
+      </div>
     </div>
   </div>
 </div>
@@ -15692,6 +15766,12 @@ const _AC_PLANS = {
                 annuale: { price: 419, label: '419 €', per: '/anno', equiv: 'equiv. 34,92 €/mese', disc: '-29%' } },
 };
 
+const _AC_FEATS = {
+  mister:     ['✓ 1 leva', '✓ Presenze e allenamenti', '✓ Chat famiglia', '✓ Comunicazioni'],
+  mister_pro: ['✓ Leve illimitate', '✓ Tutto di Mister', '✓ Rose multiple', '✓ Statistiche avanzate'],
+  societa:    ['✓ Tutto di Mister Pro', '✓ Multi-staff', '✓ Gestione società', '✓ Supporto prioritario'],
+};
+
 function openAccountScreen(tab) {
   document.getElementById('app').classList.remove('on');
   document.getElementById('subscribeScreen').classList.remove('on');
@@ -15710,17 +15790,19 @@ function closeAccountScreen() {
 
 function acSetTab(tab) {
   _acCurrentTab = tab;
-  const tabs = ['profilo', 'sicurezza', 'abbonamento'];
+  const tabs = ['profilo', 'sicurezza', 'piano', 'pagamenti'];
   tabs.forEach(t => {
-    const nav = document.getElementById('acNav' + t.charAt(0).toUpperCase() + t.slice(1));
+    const key = t.charAt(0).toUpperCase() + t.slice(1);
+    const nav = document.getElementById('acNav' + key);
     if (nav) nav.classList.toggle('active', t === tab);
-    const pnl = document.getElementById('acPanel' + t.charAt(0).toUpperCase() + t.slice(1));
+    const pnl = document.getElementById('acPanel' + key);
     if (pnl) pnl.classList.toggle('active', t === tab);
   });
   document.querySelectorAll('.ac-tab-mob').forEach((btn, i) => {
     btn.classList.toggle('active', tabs[i] === tab);
   });
-  if (tab === 'abbonamento') _acLoadSub();
+  if (tab === 'piano') _acLoadSub();
+  if (tab === 'pagamenti') _acLoadInvoices();
 }
 
 function _acInit() {
@@ -15761,12 +15843,20 @@ function _acFillSoc(soc) {
 
 async function _acLoadSub() {
   const socId = currentSocietaId;
-  if (!socId) return;
-  ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
+  ['acSubStateA','acSubStateOverview'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const loadEl = document.getElementById('acSubLoading');
   if (loadEl) loadEl.style.display = '';
+  // socId=0 means unset/local demo — skip API, show choose view with local data
+  if (!socId) {
+    if (loadEl) loadEl.style.display = 'none';
+    const soc = saSocieties.find(x => x.id === socId) || null;
+    const piano = soc?.piano || 'demo';
+    const icMap = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
+    _acShowStateA(soc, piano, icMap[piano] || '⏳', getPianoDef({ piano }).nome || 'Demo');
+    return;
+  }
   try {
     const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + socId);
     _acSubData = res.ok ? await res.json() : null;
@@ -15783,23 +15873,18 @@ function _acShowSubState(soc, data) {
   const planName = getPianoDef({ piano }).nome || 'Demo';
   const status = data?.status || soc?.subscriptionStatus || soc?.piano || 'demo';
   const isActive = status === 'active';
-  let daysLeft = null;
-  if (data?.currentPeriodEnd) {
-    daysLeft = Math.max(0, Math.floor((data.currentPeriodEnd * 1000 - Date.now()) / 86400000));
-  }
-  const isCanceling = data?.cancelAtPeriodEnd === true;
-  const isExpiringSoon = isActive && daysLeft !== null && daysLeft <= 30;
   if (!isActive) {
     _acShowStateA(soc, piano, pianoIc, planName);
-  } else if (isCanceling || isExpiringSoon) {
-    _acShowStateB(pianoIc, planName, daysLeft, isCanceling);
   } else {
-    _acShowStateC(pianoIc, planName, daysLeft, data?.intervallo);
+    _acShowStateOverview(piano, pianoIc, planName, data);
   }
 }
 
 function _acShowStateA(soc, piano, pianoIc, planName) {
   document.getElementById('acSubStateA').style.display = '';
+  // Show back button only when there's an active sub (user came from overview)
+  const backBtn = document.getElementById('acSubBackBtn');
+  if (backBtn) backBtn.style.display = (_acSubData?.status === 'active') ? '' : 'none';
   const status = soc ? getPianoStatus(soc) : 'demo_expired';
   const el_ic  = document.getElementById('acSubCurIcA');
   const el_nm  = document.getElementById('acSubCurNameA');
@@ -15812,10 +15897,9 @@ function _acShowStateA(soc, piano, pianoIc, planName) {
     if (el_sub) el_sub.textContent = `Demo — ${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
     if (el_bdg) { el_bdg.textContent = 'Demo'; el_bdg.className = 'ac-sub-badge demo'; }
   } else {
-    if (el_sub) el_sub.textContent = status === 'active_demo' ? 'Demo attiva' : 'Scegli un piano per continuare';
-    if (el_bdg) { el_bdg.textContent = status === 'active_demo' ? 'Demo' : 'Scegli piano'; el_bdg.className = 'ac-sub-badge ' + (status === 'active_demo' ? 'demo' : 'expired'); }
+    if (el_sub) el_sub.textContent = 'Scegli un piano per continuare';
+    if (el_bdg) { el_bdg.textContent = 'Scegli piano'; el_bdg.className = 'ac-sub-badge expired'; }
   }
-  // Founding member banner
   const foundBanner = document.getElementById('acFoundingBanner');
   if (foundBanner) foundBanner.style.display = me?.isFoundingMember ? '' : 'none';
   const month = new Date().getUTCMonth();
@@ -15826,34 +15910,67 @@ function _acShowStateA(soc, piano, pianoIc, planName) {
   _acUpdatePlanPrices();
 }
 
-function _acShowStateB(pianoIc, planName, daysLeft, isCanceling) {
-  document.getElementById('acSubStateB').style.display = '';
-  const el_ic  = document.getElementById('acSubIcB');
-  const el_nm  = document.getElementById('acSubNameB');
-  const el_sub = document.getElementById('acSubSubB');
-  const el_wrn = document.getElementById('acWarnTxt');
-  if (el_ic) el_ic.textContent = pianoIc;
-  if (el_nm) el_nm.textContent = 'Piano ' + planName;
-  if (isCanceling) {
-    if (el_sub) el_sub.textContent = daysLeft !== null ? `Accesso attivo per altri ${daysLeft} giorni` : 'Cancellazione in corso';
-    if (el_wrn) el_wrn.textContent = 'Hai richiesto la cancellazione. Puoi riattivare in qualsiasi momento dal portale fatturazione.';
-  } else {
-    if (el_sub) el_sub.textContent = daysLeft !== null ? `Scade tra ${daysLeft} giorni` : 'In scadenza presto';
-    if (el_wrn) el_wrn.textContent = `Il tuo abbonamento scade tra ${daysLeft ?? 'pochi'} giorni. Rinnova ora per continuare senza interruzioni.`;
+function _acShowStateOverview(piano, pianoIc, planName, data) {
+  document.getElementById('acSubStateOverview').style.display = '';
+  const daysLeft = data?.currentPeriodEnd
+    ? Math.max(0, Math.floor((data.currentPeriodEnd * 1000 - Date.now()) / 86400000))
+    : null;
+  const isCanceling = data?.cancelAtPeriodEnd === true;
+  const isExpiringSoon = daysLeft !== null && daysLeft <= 30;
+  const $ = id => document.getElementById(id);
+  // Header
+  if ($('acOvIc')) $('acOvIc').textContent = pianoIc;
+  if ($('acOvName')) $('acOvName').textContent = 'Piano ' + planName;
+  let subTxt = 'Abbonamento attivo';
+  if (isCanceling && daysLeft !== null) subTxt = `Accesso attivo per altri ${daysLeft} giorni`;
+  else if (daysLeft !== null && !isCanceling) subTxt = `Rinnovo tra ${daysLeft} giorni`;
+  if ($('acOvSub')) $('acOvSub').textContent = subTxt;
+  if ($('acOvBadge')) {
+    if (isCanceling) { $('acOvBadge').textContent = 'In disdetta'; $('acOvBadge').className = 'ac-sub-badge expiring'; }
+    else if (isExpiringSoon) { $('acOvBadge').textContent = 'In scadenza'; $('acOvBadge').className = 'ac-sub-badge expiring'; }
+    else { $('acOvBadge').textContent = 'Attivo'; $('acOvBadge').className = 'ac-sub-badge active'; }
   }
-}
-
-function _acShowStateC(pianoIc, planName, daysLeft, intervallo) {
-  document.getElementById('acSubStateC').style.display = '';
-  const el_ic  = document.getElementById('acSubIcC');
-  const el_nm  = document.getElementById('acSubNameC');
-  const el_sub = document.getElementById('acSubSubC');
-  if (el_ic) el_ic.textContent = pianoIc;
-  if (el_nm) el_nm.textContent = 'Piano ' + planName;
-  let sub = 'Abbonamento attivo';
-  if (daysLeft !== null) sub += ` — rinnovo tra ${daysLeft} giorni`;
-  if (intervallo) sub += ` (${intervallo})`;
-  if (el_sub) el_sub.textContent = sub;
+  // Warning banner
+  const warnBanner = $('acOvWarnBanner');
+  if (warnBanner) {
+    const showWarn = isCanceling || isExpiringSoon;
+    warnBanner.style.display = showWarn ? '' : 'none';
+    if (showWarn && $('acOvWarnTxt')) {
+      $('acOvWarnTxt').textContent = isCanceling
+        ? 'Hai richiesto la cancellazione. Puoi riattivare dal portale fatturazione.'
+        : `Il tuo abbonamento scade tra ${daysLeft} giorni. Rinnova per continuare.`;
+    }
+  }
+  // Details rows
+  if (data?.currentPeriodEnd) {
+    const d = new Date(data.currentPeriodEnd * 1000);
+    if ($('acOvRinnovo')) $('acOvRinnovo').textContent = d.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+    if ($('acOvRowRinnovo')) $('acOvRowRinnovo').style.display = '';
+  } else {
+    if ($('acOvRowRinnovo')) $('acOvRowRinnovo').style.display = 'none';
+  }
+  if (data?.intervallo) {
+    if ($('acOvIntervallo')) $('acOvIntervallo').textContent = data.intervallo === 'mensile' ? 'Mensile' : 'Annuale';
+    if ($('acOvRowIntervallo')) $('acOvRowIntervallo').style.display = '';
+  } else {
+    if ($('acOvRowIntervallo')) $('acOvRowIntervallo').style.display = 'none';
+  }
+  const pm = data?.paymentMethod;
+  if (pm?.last4) {
+    const brand = pm.brand ? pm.brand.charAt(0).toUpperCase() + pm.brand.slice(1) : 'Carta';
+    if ($('acOvPagamento')) $('acOvPagamento').textContent = `${brand} •••• ${pm.last4}`;
+    if ($('acOvRowPagamento')) $('acOvRowPagamento').style.display = '';
+  } else {
+    if ($('acOvRowPagamento')) $('acOvRowPagamento').style.display = 'none';
+  }
+  // Features
+  const featsEl = $('acOvFeats');
+  if (featsEl) {
+    const feats = _AC_FEATS[piano] || [];
+    featsEl.innerHTML = feats.map(f => `<div class="ac-ov-feat">${f}</div>`).join('');
+  }
+  // Hide cancel link if already canceling
+  if ($('acOvCancelBtn')) $('acOvCancelBtn').style.display = isCanceling ? 'none' : '';
 }
 
 function acSetInterval(interval) {
@@ -15918,12 +16035,20 @@ async function acDoCheckout(piano) {
 
 function acGoChoosePlan() {
   const soc = saSocieties.find(x => x.id === currentSocietaId) || null;
-  ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
+  ['acSubStateA','acSubStateOverview'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const piano = _acSubData?.piano || soc?.piano || 'demo';
   const icMap = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
   _acShowStateA(soc, piano, icMap[piano] || '⏳', getPianoDef({ piano }).nome || 'Demo');
+}
+
+function acBackToOverview() {
+  const soc = saSocieties.find(x => x.id === currentSocietaId) || null;
+  ['acSubStateA','acSubStateOverview'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  _acShowSubState(soc, _acSubData);
 }
 
 async function acOpenCustomerPortal(evt) {
@@ -15946,19 +16071,51 @@ async function acOpenCustomerPortal(evt) {
 }
 
 function acCancelSubscription() {
+  // Reset modal to step 1
+  const s1 = document.getElementById('acCancelStep1');
+  const s2 = document.getElementById('acCancelStep2');
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = 'none';
+  document.querySelectorAll('input[name="churnMotivo"]').forEach(r => r.checked = false);
+  const det = document.getElementById('acChurnDettaglio');
+  if (det) det.value = '';
   document.getElementById('acCancelModal').classList.add('on');
+}
+
+function acCancelStep2() {
+  const motivo = document.querySelector('input[name="churnMotivo"]:checked')?.value;
+  if (!motivo) { toast('Seleziona un motivo per continuare'); return; }
+  const confirmMsg = document.getElementById('acCancelConfirmMsg');
+  if (confirmMsg && _acSubData?.currentPeriodEnd) {
+    const d = new Date(_acSubData.currentPeriodEnd * 1000);
+    const ds = d.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+    confirmMsg.textContent = `Il tuo accesso rimarrà attivo fino al ${ds}. Dopo quella data l'abbonamento non verrà rinnovato.`;
+  }
+  const s1 = document.getElementById('acCancelStep1');
+  const s2 = document.getElementById('acCancelStep2');
+  if (s1) s1.style.display = 'none';
+  if (s2) s2.style.display = '';
+}
+
+function acCancelBack() {
+  const s1 = document.getElementById('acCancelStep1');
+  const s2 = document.getElementById('acCancelStep2');
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = 'none';
 }
 
 async function acCancelConfirmed() {
   const socId = currentSocietaId;
   if (!socId) { toast('Nessuna società selezionata'); return; }
+  const motivo = document.querySelector('input[name="churnMotivo"]:checked')?.value || null;
+  const dettaglio = (document.getElementById('acChurnDettaglio')?.value || '').trim() || null;
   const btn = document.getElementById('acCancelConfirmBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
   try {
     const res = await fetch(API_BASE + '/api/v2/stripe/cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ societyId: socId }),
+      body: JSON.stringify({ societyId: socId, motivo, dettaglio }),
     });
     const data = await res.json();
     if (data.ok) {
@@ -15971,6 +16128,46 @@ async function acCancelConfirmed() {
     }
   } catch(e) { toast('Errore di rete'); }
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Sì, cancella'; } }
+}
+
+async function _acLoadInvoices() {
+  const socId = currentSocietaId;
+  const invList = document.getElementById('acInvList');
+  const invLoading = document.getElementById('acInvLoading');
+  const invEmpty = document.getElementById('acInvEmpty');
+  if (!invList) return;
+  if (invLoading) invLoading.style.display = '';
+  if (invEmpty) invEmpty.style.display = 'none';
+  invList.innerHTML = '';
+  if (!socId) {
+    if (invLoading) invLoading.style.display = 'none';
+    if (invEmpty) { invEmpty.style.display = ''; invEmpty.textContent = 'Nessun pagamento trovato.'; }
+    return;
+  }
+  try {
+    const res = await fetch(API_BASE + '/api/v2/stripe/invoices?societyId=' + socId);
+    const data = res.ok ? await res.json() : null;
+    if (invLoading) invLoading.style.display = 'none';
+    if (!data?.invoices?.length) { if (invEmpty) invEmpty.style.display = ''; return; }
+    invList.innerHTML = data.invoices.map(inv => {
+      const date = new Date(inv.date * 1000).toLocaleDateString('it-IT', { day:'numeric', month:'short', year:'numeric' });
+      const amt = Number(inv.amount).toFixed(2).replace('.', ',') + ' ' + (inv.currency || 'EUR');
+      const sCls = inv.status === 'paid' ? 'paid' : inv.status === 'open' ? 'open' : 'void';
+      const sLbl = inv.status === 'paid' ? 'Pagato' : inv.status === 'open' ? 'In attesa' : 'Annullato';
+      const pdf = inv.pdfUrl ? `<a class="ac-inv-pdf" href="${inv.pdfUrl}" target="_blank" rel="noopener">📄 PDF</a>` : '';
+      const pay = (inv.status === 'open' && inv.hostedUrl) ? `<a class="ac-inv-pay" href="${inv.hostedUrl}" target="_blank" rel="noopener">Paga →</a>` : '';
+      return `<div class="ac-inv-row">
+        <div class="ac-inv-date">${date}</div>
+        <div class="ac-inv-num">${inv.number || inv.id}</div>
+        <div class="ac-inv-amount">${amt}</div>
+        <div class="ac-inv-status ${sCls}">${sLbl}</div>
+        <div class="ac-inv-actions">${pdf}${pay}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if (invLoading) invLoading.style.display = 'none';
+    if (invEmpty) { invEmpty.style.display = ''; invEmpty.textContent = 'Errore nel caricamento delle fatture.'; }
+  }
 }
 
 function _acMsg(id, txt, ok) {

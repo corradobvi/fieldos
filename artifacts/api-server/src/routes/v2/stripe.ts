@@ -278,9 +278,13 @@ router.get("/stripe/subscription", async (req, res) => {
     let cancelAtPeriodEnd: boolean | null = null;
     let intervallo: string | null = null;
 
+    let paymentMethod: { brand: string; last4: string } | null = null;
+
     if (soc.stripe_subscription_id && process.env.STRIPE_SECRET_KEY) {
       try {
-        const sub = await stripeGet(`/subscriptions/${soc.stripe_subscription_id}`);
+        const sub = await stripeGet(
+          `/subscriptions/${soc.stripe_subscription_id}?expand[]=default_payment_method`
+        );
         currentPeriodEnd  = sub.current_period_end   ?? null;
         cancelAtPeriodEnd = sub.cancel_at_period_end ?? null;
         const priceId     = sub.items?.data?.[0]?.price?.id;
@@ -290,6 +294,8 @@ router.get("/stripe/subscription", async (req, res) => {
             if (process.env[intervals.annuale] === priceId)  { intervallo = "annuale";  break; }
           }
         }
+        const pm = sub.default_payment_method;
+        if (pm?.card) paymentMethod = { brand: pm.card.brand, last4: pm.card.last4 };
       } catch { /* Stripe unreachable — return DB data only */ }
     }
 
@@ -300,6 +306,7 @@ router.get("/stripe/subscription", async (req, res) => {
       currentPeriodEnd,
       cancelAtPeriodEnd,
       intervallo,
+      paymentMethod,
     });
   } catch (e: any) {
     logger.error({ err: e }, "stripe: subscription fetch error");
@@ -337,7 +344,7 @@ router.post("/stripe/customer-portal", async (req, res) => {
 
 // POST /api/v2/stripe/cancel
 router.post("/stripe/cancel", async (req, res) => {
-  const { societyId } = req.body as Record<string, string | undefined>;
+  const { societyId, motivo, dettaglio } = req.body as Record<string, string | undefined>;
   if (!societyId) return res.status(400).json({ error: "missing_societyId" });
 
   try {
@@ -351,11 +358,50 @@ router.post("/stripe/cancel", async (req, res) => {
 
     await stripePost(`/subscriptions/${subId}`, { cancel_at_period_end: "true" });
 
-    logger.info({ societyId, subId }, "stripe: subscription cancel_at_period_end set");
+    if (motivo) {
+      await pool.execute(
+        `INSERT INTO churn_feedback (society_id, motivo, dettaglio) VALUES (?, ?, ?)`,
+        [Number(societyId), motivo, dettaglio || null]
+      ).catch((e: any) => logger.warn({ err: e }, "churn_feedback insert failed"));
+    }
+
+    logger.info({ societyId, subId, motivo }, "stripe: subscription cancel_at_period_end set");
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "stripe: cancel error");
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
+  }
+});
+
+// GET /api/v2/stripe/invoices?societyId=X
+router.get("/stripe/invoices", async (req, res) => {
+  const societyId = req.query.societyId;
+  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+
+  try {
+    const [rows] = await pool.execute(
+      `SELECT stripe_customer_id FROM societies WHERE id = ?`,
+      [Number(societyId)]
+    ) as [any[], any];
+
+    const customerId = rows[0]?.stripe_customer_id;
+    if (!customerId || !process.env.STRIPE_SECRET_KEY) return res.json({ invoices: [] });
+
+    const data = await stripeGet(`/invoices?customer=${customerId}&limit=24`);
+    const invoices = (data.data || []).map((inv: any) => ({
+      id:         inv.id,
+      number:     inv.number,
+      amount:     inv.amount_paid / 100,
+      currency:   inv.currency?.toUpperCase() ?? "EUR",
+      status:     inv.status,
+      date:       inv.created,
+      pdfUrl:     inv.invoice_pdf     ?? null,
+      hostedUrl:  inv.hosted_invoice_url ?? null,
+    }));
+    return res.json({ invoices });
+  } catch (e: any) {
+    logger.error({ err: e }, "stripe: invoices fetch error");
+    return res.status(500).json({ error: "server_error" });
   }
 });
 
