@@ -764,6 +764,22 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* Banner successo post-pagamento */
 #subSuccessBanner{display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:20px 24px;margin-bottom:28px;text-align:center;}
 #subSuccessBanner.on{display:block;}
+/* Piano attuale card */
+.sub-current{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:14px;}
+.sub-current-icon{font-size:2rem;flex-shrink:0;}
+.sub-current-info{flex:1;min-width:0;}
+.sub-current-label{font-size:.72rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}
+.sub-current-piano{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:900;color:var(--text);}
+.sub-demo-bar-wrap{margin-top:8px;}
+.sub-demo-bar-meta{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text2);margin-bottom:4px;}
+.sub-demo-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.sub-demo-bar-fill{height:100%;border-radius:3px;transition:width .4s;background:#1A7A4A;}
+.sub-demo-bar-fill.warn{background:#f59e0b;}
+.sub-demo-bar-fill.danger{background:#e03055;}
+.sub-current-status{font-size:.78rem;font-weight:700;padding:3px 10px;border-radius:12px;}
+.sub-current-status.active{background:#dcfce7;color:#166534;}
+.sub-current-status.demo{background:#fef3c7;color:#92400e;}
+.sub-current-status.expired{background:#fdedf1;color:#e03055;}
 /* SA plan badges aggiornati */
 .sa-plan-demo{background:#fef3c7;color:#92400e;}
 .sa-plan-mister{background:#dbeafe;color:#1e40af;}
@@ -1688,15 +1704,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- ══════ SUBSCRIBE (demo scaduta) ══════ -->
 <div id="subscribeScreen">
   <div class="sub-wrap">
+    <button id="subBackBtn" style="display:none;align-self:flex-start;margin-bottom:4px;background:none;border:none;cursor:pointer;font-size:.88rem;color:var(--text2);padding:4px 0;font-weight:600;" onclick="closeSubscribeScreen();">← Torna all'app</button>
     <div id="subSuccessBanner">
       <div style="font-size:2rem;margin-bottom:8px;">🎉</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:#166534;margin-bottom:4px;">Abbonamento attivato!</div>
       <div style="font-size:.88rem;color:#15803d;">Benvenuto in MyVivaio — il tuo account è ora attivo.</div>
-      <button class="sub-plan-btn" style="margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;" onclick="history.replaceState(null,'','/'); openSubscribeScreen();">Vai all'app →</button>
+      <button class="sub-plan-btn" style="margin-top:16px;max-width:200px;margin-left:auto;margin-right:auto;" onclick="closeSubscribeScreen();">Vai all'app →</button>
     </div>
     <div class="sub-badge" id="subBadge">⏰ Demo scaduta</div>
-    <div class="sub-title">Scegli il piano giusto per te</div>
-    <div class="sub-sub">La tua demo è terminata. Abbonati per continuare ad usare MyVivaio.</div>
+    <div class="sub-title" id="subTitle">Scegli il piano giusto per te</div>
+    <div class="sub-sub" id="subSub">La tua demo è terminata. Abbonati per continuare ad usare MyVivaio.</div>
+    <!-- Piano attuale (popolato da JS) -->
+    <div class="sub-current" id="subCurrentPlan" style="display:none;">
+      <div class="sub-current-icon" id="subCurIcon">⚽</div>
+      <div class="sub-current-info">
+        <div class="sub-current-label">Piano attuale</div>
+        <div class="sub-current-piano" id="subCurPiano">—</div>
+        <div id="subDemoBarWrap" class="sub-demo-bar-wrap" style="display:none;">
+          <div class="sub-demo-bar-meta">
+            <span id="subDemoGiorni">— giorni rimanenti</span>
+            <span id="subDemoTot"></span>
+          </div>
+          <div class="sub-demo-bar"><div class="sub-demo-bar-fill" id="subDemoFill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="sub-current-status" id="subCurStatus">—</div>
+    </div>
     <!-- Toggle mensile / annuale -->
     <div class="sub-toggle">
       <button class="sub-toggle-btn sel" id="subToggleMensile" onclick="subSetIntervallo('mensile')">Mensile</button>
@@ -1773,6 +1806,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
+          <button class="tb-user-dd-item" onclick="openSubscribeScreen();toggleTopUserMenu();event.stopPropagation();">💳 Il mio piano</button>
           <button class="tb-user-dd-item" onclick="openChangePassModal();event.stopPropagation();">🔐 Cambia password</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
         </div>
@@ -15304,10 +15338,17 @@ function closeRegisterScreen() {
   try { history.pushState(null, '', '/'); } catch(e) {}
 }
 
+let _subOpenedFromApp = false;
+
 function openSubscribeScreen() {
+  const appEl = document.getElementById('app');
+  _subOpenedFromApp = appEl.classList.contains('on');
   document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('app').classList.remove('on');
+  appEl.classList.remove('on');
   document.getElementById('subscribeScreen').classList.add('on');
+  const backBtn = document.getElementById('subBackBtn');
+  if (backBtn) backBtn.style.display = _subOpenedFromApp ? '' : 'none';
+  try { history.pushState(null, '', '/subscribe'); } catch(e) {}
   _subInit();
   // Controlla ?abbonato=true
   try {
@@ -15318,6 +15359,12 @@ function openSubscribeScreen() {
       history.replaceState(null, '', '/');
     }
   } catch(e) {}
+}
+
+function closeSubscribeScreen() {
+  document.getElementById('subscribeScreen').classList.remove('on');
+  document.getElementById('app').classList.add('on');
+  try { history.pushState(null, '', '/'); } catch(e) {}
 }
 
 // ── Stripe subscribe screen ──────────────────────────────────────────────
@@ -15398,6 +15445,75 @@ function _subInit() {
     annBtn.title = annAvailable ? '' : 'Non disponibile in giugno e luglio';
   }
   subSetIntervallo('mensile');
+
+  // Popola stato piano corrente
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const curPlanEl  = document.getElementById('subCurrentPlan');
+  const badgeEl    = document.getElementById('subBadge');
+  const titleEl    = document.getElementById('subTitle');
+  const subSubEl   = document.getElementById('subSub');
+
+  if (!soc || !me) {
+    if (curPlanEl) curPlanEl.style.display = 'none';
+    return;
+  }
+
+  const status = getPianoStatus(soc);
+  const def    = getPianoDef(soc);
+
+  // Aggiorna titolo + sottotitolo in base allo stato
+  if (status === 'active_paid') {
+    if (badgeEl)  { badgeEl.textContent = '✅ Abbonamento attivo'; badgeEl.className = 'sub-badge ok'; }
+    if (titleEl)  titleEl.textContent = 'Il tuo piano';
+    if (subSubEl) subSubEl.textContent = 'Vuoi cambiare piano? Scegli qui sotto.';
+  } else if (status === 'active_demo') {
+    const g = getDemoGiorni(soc);
+    if (badgeEl)  { badgeEl.textContent = `⏳ Demo — ${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`; badgeEl.className = 'sub-badge'; }
+    if (titleEl)  titleEl.textContent = 'Scegli il piano giusto per te';
+    if (subSubEl) subSubEl.textContent = 'La tua demo è in corso. Abbonati per non perdere i tuoi dati.';
+  } else {
+    if (badgeEl)  { badgeEl.textContent = '⏰ Demo scaduta'; badgeEl.className = 'sub-badge'; }
+    if (titleEl)  titleEl.textContent = 'Scegli il piano giusto per te';
+    if (subSubEl) subSubEl.textContent = 'La tua demo è terminata. Abbonati per continuare ad usare MyVivaio.';
+  }
+
+  // Mostra sezione piano corrente
+  if (curPlanEl) {
+    curPlanEl.style.display = '';
+
+    const iconEl   = document.getElementById('subCurIcon');
+    const pianoEl  = document.getElementById('subCurPiano');
+    const statusEl = document.getElementById('subCurStatus');
+    const barWrap  = document.getElementById('subDemoBarWrap');
+    const barFill  = document.getElementById('subDemoFill');
+    const barGiorni= document.getElementById('subDemoGiorni');
+    const barTot   = document.getElementById('subDemoTot');
+
+    const icons = { demo:'⏳', mister:'⚽', mister_pro:'🏅', societa:'🏟️' };
+    const pianoKey = (['mister','mister_pro','societa'].includes(soc.piano)) ? soc.piano : 'demo';
+    if (iconEl)  iconEl.textContent = icons[pianoKey] || '⚽';
+    if (pianoEl) pianoEl.textContent = def.nome + (soc.citta ? ' · ' + soc.nome : '');
+
+    if (status === 'active_paid') {
+      if (statusEl) { statusEl.textContent = 'Attivo'; statusEl.className = 'sub-current-status active'; }
+      if (barWrap)  barWrap.style.display = 'none';
+    } else if (status === 'active_demo') {
+      const g     = getDemoGiorni(soc);
+      const total = DEMO_GIORNI || 14;
+      const pct   = Math.round((g / total) * 100);
+      if (statusEl) { statusEl.textContent = 'Demo'; statusEl.className = 'sub-current-status demo'; }
+      if (barWrap)  barWrap.style.display = '';
+      if (barGiorni) barGiorni.textContent = `${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
+      if (barTot)    barTot.textContent    = `su ${total} tot.`;
+      if (barFill) {
+        barFill.style.width = pct + '%';
+        barFill.className   = 'sub-demo-bar-fill' + (pct <= 20 ? ' danger' : pct <= 40 ? ' warn' : '');
+      }
+    } else {
+      if (statusEl) { statusEl.textContent = 'Scaduta'; statusEl.className = 'sub-current-status expired'; }
+      if (barWrap)  barWrap.style.display = 'none';
+    }
+  }
 }
 
 function _subBtnId(piano) {
@@ -18743,6 +18859,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Se l'URL è /register e non c'è sessione attiva, mostra direttamente il form di registrazione
   if (!_sessionRestored && window.location.pathname === '/register') {
     openRegisterScreen();
+  }
+
+  // Se l'URL è /subscribe, apri la pagina piani (funziona solo dopo bootApp per sessione attiva)
+  if (window.location.pathname === '/subscribe') {
+    if (_sessionRestored) {
+      // bootApp è asincrono — aspetta che la schermata principale sia pronta
+      const _origBoot2 = bootApp;
+      bootApp = function(u) {
+        _origBoot2(u);
+        bootApp = _origBoot2;
+        setTimeout(() => openSubscribeScreen(), 100);
+      };
+    }
   }
 });
 </script>
