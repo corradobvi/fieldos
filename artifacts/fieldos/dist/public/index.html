@@ -15857,11 +15857,7 @@ function acAllowedTabs() {
     tabs.push({ id:'piano',     ic:'⚽', lb:'Il mio piano' });
     tabs.push({ id:'pagamenti', ic:'📄', lb:'Pagamenti' });
   }
-  if (acIsSocietyAdmin()) {
-    tabs.push({ id:'gestione', ic:'👥', lb:'Gestione' });
-  }
-  tabs.push({ id:'tutorial', ic:'🎓', lb:'Tutorial' });
-  tabs.push({ id:'faq',      ic:'❓', lb:'FAQ' });
+  // Gestione/Tutorial/FAQ disabilitati fino al lancio (codice mantenuto)
   return tabs;
 }
 function _acBuildTabs() {
@@ -16144,8 +16140,7 @@ function _acUpdatePlanPrices() {
 }
 
 async function acDoCheckout(piano) {
-  const socId = currentSocietaId;
-  if (!socId) { toast('Nessuna società selezionata'); return; }
+  if (!me?.email) { toast('Accedi prima di procedere al pagamento'); return; }
   const intervallo = _acSubInterval || 'mensile';
   if (intervallo === 'annuale') {
     const month = new Date().getUTCMonth();
@@ -16154,11 +16149,19 @@ async function acDoCheckout(piano) {
     }
   }
   toast('Preparazione checkout…');
+  // Invia societyId solo se è un ID reale (non demo/locale)
+  const DEMO_IDS = new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
+  const realSocId = !DEMO_IDS.has(currentSocietaId) ? currentSocietaId : undefined;
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ piano, intervallo, societyId: socId, email: me?.email || '' }),
+      body: JSON.stringify({
+        piano,
+        intervallo,
+        email: me.email,
+        ...(realSocId ? { societyId: realSocId } : {}),
+      }),
     });
     const data = await resp.json();
     if (data.url) { window.location.href = data.url; }
@@ -16692,9 +16695,12 @@ async function doStripeCheckout(piano) {
     alert('Il piano annuale non è disponibile in giugno e luglio. Scegli il piano mensile.');
     return;
   }
+  if (!me?.email) { alert('Accedi prima di procedere al pagamento'); return; }
   const btnId = _subBtnId(piano);
   const btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = 'Attendere…'; }
+  const DEMO_IDS = new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
+  const realSocId = !DEMO_IDS.has(currentSocietaId) ? currentSocietaId : undefined;
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
@@ -16702,8 +16708,8 @@ async function doStripeCheckout(piano) {
       body: JSON.stringify({
         piano,
         intervallo: _subIntervallo,
-        societyId:  currentSocietaId,
-        email:      me?.email || '',
+        email: me.email,
+        ...(realSocId ? { societyId: realSocId } : {}),
       }),
     });
     const data = await resp.json();
@@ -16833,6 +16839,11 @@ async function doSelfRegister() {
     closeRegisterScreen();
     me = adminUser;
     bootApp(adminUser);
+    // Se l'URL aveva ?piano=X, apri subito il tab piano per procedere all'abbonamento
+    try {
+      const _regPiano = new URLSearchParams(window.location.search).get('piano');
+      if (_regPiano) setTimeout(() => openAccountScreen('piano'), 250);
+    } catch(_) {}
 
   } catch (e) {
     console.error('[doSelfRegister]', e);

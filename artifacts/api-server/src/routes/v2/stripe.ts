@@ -94,9 +94,9 @@ async function stripeGet(path: string): Promise<any> {
 
 // POST /api/v2/stripe/create-checkout
 router.post("/stripe/create-checkout", async (req, res) => {
-  const { piano, intervallo, societyId, email } = req.body as Record<string, string | number | undefined>;
+  const { piano, intervallo, societyId: rawSocietyId, email } = req.body as Record<string, string | number | undefined>;
 
-  if (!piano || !intervallo || !societyId) {
+  if (!piano || !intervallo) {
     return res.status(400).json({ error: "missing_fields" });
   }
 
@@ -109,6 +109,28 @@ router.post("/stripe/create-checkout", async (req, res) => {
         detail: "Il piano annuale non è disponibile in giugno e luglio. Usa il piano mensile.",
       });
     }
+  }
+
+  // Risolvi societyId: dal payload oppure tramite lookup email in MySQL
+  let societyId: number | null = rawSocietyId ? Number(rawSocietyId) : null;
+
+  if (!societyId && email) {
+    try {
+      const [rows] = (await pool.execute(
+        "SELECT society_id FROM users WHERE LOWER(email) = ? LIMIT 1",
+        [String(email).trim().toLowerCase()]
+      )) as [any[], any];
+      if (rows.length) societyId = rows[0].society_id;
+    } catch (e: any) {
+      logger.error({ err: e }, "stripe: email→society lookup failed");
+    }
+  }
+
+  if (!societyId) {
+    return res.status(400).json({
+      error: "society_not_found",
+      detail: "Nessuna società trovata. Completa la registrazione prima di procedere.",
+    });
   }
 
   const priceId = getPriceId(String(piano), String(intervallo));
@@ -127,7 +149,7 @@ router.post("/stripe/create-checkout", async (req, res) => {
     "cancel_url":  `${appUrl}/subscribe`,
     "metadata[societyId]": String(societyId),
     "metadata[piano]":     String(piano),
-    "metadata[intervallo]":String(intervallo),
+    "metadata[intervallo]": String(intervallo),
   };
 
   if (email) params["customer_email"] = String(email);
