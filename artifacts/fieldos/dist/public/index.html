@@ -15760,27 +15760,28 @@ function _acFillSoc(soc) {
 }
 
 async function _acLoadSub() {
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
-  if (!soc) return;
+  const socId = currentSocietaId;
+  if (!socId) return;
   ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
   const loadEl = document.getElementById('acSubLoading');
   if (loadEl) loadEl.style.display = '';
   try {
-    const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + soc.id);
+    const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + socId);
     _acSubData = res.ok ? await res.json() : null;
   } catch(e) { _acSubData = null; }
   if (loadEl) loadEl.style.display = 'none';
+  const soc = saSocieties.find(x => x.id === socId) || null;
   _acShowSubState(soc, _acSubData);
 }
 
 function _acShowSubState(soc, data) {
   const icMap  = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
-  const piano  = data?.piano || soc.piano || 'demo';
+  const piano  = data?.piano || soc?.piano || 'demo';
   const pianoIc = icMap[piano] || '⏳';
   const planName = getPianoDef({ piano }).nome || 'Demo';
-  const status = data?.status || soc.subscriptionStatus || soc.piano || 'demo';
+  const status = data?.status || soc?.subscriptionStatus || soc?.piano || 'demo';
   const isActive = status === 'active';
   let daysLeft = null;
   if (data?.currentPeriodEnd) {
@@ -15799,20 +15800,20 @@ function _acShowSubState(soc, data) {
 
 function _acShowStateA(soc, piano, pianoIc, planName) {
   document.getElementById('acSubStateA').style.display = '';
-  const status = getPianoStatus(soc);
+  const status = soc ? getPianoStatus(soc) : 'demo_expired';
   const el_ic  = document.getElementById('acSubCurIcA');
   const el_nm  = document.getElementById('acSubCurNameA');
   const el_sub = document.getElementById('acSubCurSubA');
   const el_bdg = document.getElementById('acSubBadgeA');
   if (el_ic) el_ic.textContent = pianoIc;
   if (el_nm) el_nm.textContent = 'Piano ' + planName;
-  if (status === 'active_demo') {
+  if (status === 'active_demo' && soc) {
     const g = getDemoGiorni(soc);
     if (el_sub) el_sub.textContent = `Demo — ${g} giorn${g===1?'o':'i'} rimanent${g===1?'e':'i'}`;
     if (el_bdg) { el_bdg.textContent = 'Demo'; el_bdg.className = 'ac-sub-badge demo'; }
   } else {
-    if (el_sub) el_sub.textContent = 'Demo scaduta — abbonati per continuare';
-    if (el_bdg) { el_bdg.textContent = 'Scaduta'; el_bdg.className = 'ac-sub-badge expired'; }
+    if (el_sub) el_sub.textContent = status === 'active_demo' ? 'Demo attiva' : 'Scegli un piano per continuare';
+    if (el_bdg) { el_bdg.textContent = status === 'active_demo' ? 'Demo' : 'Scegli piano'; el_bdg.className = 'ac-sub-badge ' + (status === 'active_demo' ? 'demo' : 'expired'); }
   }
   // Founding member banner
   const foundBanner = document.getElementById('acFoundingBanner');
@@ -15893,8 +15894,8 @@ function _acUpdatePlanPrices() {
 }
 
 async function acDoCheckout(piano) {
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
-  if (!soc) { toast('Nessuna società selezionata'); return; }
+  const socId = currentSocietaId;
+  if (!socId) { toast('Nessuna società selezionata'); return; }
   const intervallo = _acSubInterval || 'mensile';
   if (intervallo === 'annuale') {
     const month = new Date().getUTCMonth();
@@ -15907,7 +15908,7 @@ async function acDoCheckout(piano) {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ piano, intervallo, societyId: soc.id, email: me?.email || '' }),
+      body: JSON.stringify({ piano, intervallo, societyId: socId, email: me?.email || '' }),
     });
     const data = await resp.json();
     if (data.url) { window.location.href = data.url; }
@@ -15916,18 +15917,18 @@ async function acDoCheckout(piano) {
 }
 
 function acGoChoosePlan() {
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const soc = saSocieties.find(x => x.id === currentSocietaId) || null;
   ['acSubStateA','acSubStateB','acSubStateC'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
-  const piano = soc?.piano || 'demo';
+  const piano = _acSubData?.piano || soc?.piano || 'demo';
   const icMap = { mister:'⚽', mister_pro:'🏅', societa:'🏟️', demo:'⏳' };
-  _acShowStateA(soc || {}, piano, icMap[piano] || '⏳', getPianoDef(soc || {}).nome || 'Demo');
+  _acShowStateA(soc, piano, icMap[piano] || '⏳', getPianoDef({ piano }).nome || 'Demo');
 }
 
 async function acOpenCustomerPortal(evt) {
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
-  if (!soc) return;
+  const socId = currentSocietaId;
+  if (!socId) { toast('Nessuna società selezionata'); return; }
   const btn = evt?.target;
   const origTxt = btn?.textContent;
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Caricamento…'; }
@@ -15935,7 +15936,7 @@ async function acOpenCustomerPortal(evt) {
     const res = await fetch(API_BASE + '/api/v2/stripe/customer-portal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ societyId: soc.id }),
+      body: JSON.stringify({ societyId: socId }),
     });
     const data = await res.json();
     if (data.url) { window.location.href = data.url; }
@@ -15949,15 +15950,15 @@ function acCancelSubscription() {
 }
 
 async function acCancelConfirmed() {
-  const soc = saSocieties.find(x => x.id === currentSocietaId);
-  if (!soc) return;
+  const socId = currentSocietaId;
+  if (!socId) { toast('Nessuna società selezionata'); return; }
   const btn = document.getElementById('acCancelConfirmBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
   try {
     const res = await fetch(API_BASE + '/api/v2/stripe/cancel', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ societyId: soc.id }),
+      body: JSON.stringify({ societyId: socId }),
     });
     const data = await res.json();
     if (data.ok) {
