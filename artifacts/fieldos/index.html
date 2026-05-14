@@ -11852,6 +11852,8 @@ function certExpiryStatus(playerId) {
 }
 
 function checkDocumentiReminders() {
+  const _remSoc = saSocieties.find(x => x.id === currentSocietaId);
+  if (!hasCertMedicoFeature(_remSoc)) return;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const todayStr = ymd(today);
   const admins = USERS_DB.filter(u => u.role === 'admin' || u.role === 'mister_admin');
@@ -11879,8 +11881,11 @@ function renderDocumenti() {
     c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">Nessun giocatore visibile.</div>`;
     return;
   }
-  // Warning banner for expiring certs
-  const warns = visPlayers.filter(p => { const s = certExpiryStatus(p.id); return s === 'expired' || s === 'very_soon' || s === 'soon'; });
+  const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
+  const certOk = hasCertMedicoFeature(_docSoc);
+
+  // Warning banner scadenze cert (solo se feature attiva)
+  const warns = certOk ? visPlayers.filter(p => { const s = certExpiryStatus(p.id); return s === 'expired' || s === 'very_soon' || s === 'soon'; }) : [];
   const warnHtml = warns.length ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:12px 16px;margin-bottom:16px;">
     <div style="font-weight:700;font-size:.87rem;color:#c2410c;margin-bottom:6px;">⚠️ Certificati medici in scadenza / scaduti</div>
     ${warns.map(p => {
@@ -11891,14 +11896,29 @@ function renderDocumenti() {
     }).join('')}
   </div>` : '';
 
+  // Upgrade prompt per cert (riutilizzato in ogni card quando certOk=false)
+  const certUpgradeRow = !certOk ? `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f8fafc;border:1.5px dashed var(--border);border-radius:8px;margin-bottom:5px;">
+    <span style="font-size:1rem;">🔒</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:.82rem;font-weight:600;color:var(--text2);">Certificato medico sportivo</div>
+      <div style="font-size:.72rem;color:var(--text3);">La gestione del certificato medico con alert scadenza è disponibile dal piano <strong>Mister Pro</strong>.</div>
+    </div>
+    <button onclick="openAccountScreen('piano')" style="font-size:.74rem;font-weight:700;background:var(--cp);color:#fff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Scopri Pro →</button>
+  </div>` : '';
+
   const cards = visPlayers.map(p => {
-    const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
+    // Escludi cert_medico dai documenti visibili se feature non attiva (dati preservati in state)
+    const pDocs = documenti
+      .filter(d => d.playerId === p.id && (certOk || d.tipo !== 'cert_medico'))
+      .sort((a, b) => b.uploadedAt - a.uploadedAt);
     const canUp = docCanManage(p);
     const ini   = ((p.nome[0] || '') + (p.cogn[0] || '')).toUpperCase();
-    const cs    = certExpiryStatus(p.id);
-    const certBadge = cs === 'expired'   ? `<span class="pill pill-r" style="font-size:.64rem;">cert ❌</span>` :
-                      cs === 'very_soon' ? `<span class="pill" style="background:#fef3c7;color:#b45309;font-size:.64rem;">cert ⚠️&lt;7gg</span>` :
-                      cs === 'soon'      ? `<span class="pill" style="background:#fff7ed;color:#c2410c;font-size:.64rem;">cert ⚠️30gg</span>` : '';
+    const cs    = certOk ? certExpiryStatus(p.id) : 'none';
+    const certBadge = certOk ? (
+      cs === 'expired'   ? `<span class="pill pill-r" style="font-size:.64rem;">cert ❌</span>` :
+      cs === 'very_soon' ? `<span class="pill" style="background:#fef3c7;color:#b45309;font-size:.64rem;">cert ⚠️&lt;7gg</span>` :
+      cs === 'soon'      ? `<span class="pill" style="background:#fff7ed;color:#c2410c;font-size:.64rem;">cert ⚠️30gg</span>` : ''
+    ) : '';
     const docRows = pDocs.length ? pDocs.map(d => {
       const dt = DOC_TYPES[d.tipo] || { label: d.tipoLabel || d.tipo, icon: '📎' };
       const label = dt.label + (d.tipo === 'altro' && d.tipoLabel ? ' — ' + d.tipoLabel : '');
@@ -11913,7 +11933,7 @@ function renderDocumenti() {
         </div>
         <div style="display:flex;gap:4px;">${viewBtn}${delBtn}</div>
       </div>`;
-    }).join('') : `<div style="font-size:.78rem;color:var(--text3);font-style:italic;padding:4px 0;">Nessun documento.</div>`;
+    }).join('') : (certOk ? `<div style="font-size:.78rem;color:var(--text3);font-style:italic;padding:4px 0;">Nessun documento.</div>` : '');
     return `<div class="card" style="margin-bottom:12px;">
       <div class="ch">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -11923,7 +11943,7 @@ function renderDocumenti() {
         </div>
         ${canUp ? `<button class="btn btn-p btn-sm" onclick="openDocModal(${p.id})">+ Documento</button>` : ''}
       </div>
-      <div style="margin-top:8px;">${docRows}</div>
+      <div style="margin-top:8px;">${certUpgradeRow}${docRows}</div>
     </div>`;
   }).join('');
   c.innerHTML = warnHtml + cards;
@@ -11974,9 +11994,14 @@ function openDocModal(playerId) {
   document.getElementById('docPlayerId').value = playerId;
   document.getElementById('docFile').value = '';
   document.getElementById('docFileLabel').textContent = '📎 Clicca per selezionare un file';
-  document.getElementById('docTipo').value = 'cert_medico';
   document.getElementById('docScadenza').value = '';
   document.getElementById('docTipoCustom').value = '';
+  // Cert_medico gate: nasconde l'opzione se piano Mister
+  const _mSoc = saSocieties.find(x => x.id === currentSocietaId);
+  const _certOk = hasCertMedicoFeature(_mSoc);
+  const certOpt = document.querySelector('#docTipo option[value="cert_medico"]');
+  if (certOpt) certOpt.style.display = _certOk ? '' : 'none';
+  document.getElementById('docTipo').value = _certOk ? 'cert_medico' : 'doc_identita';
   docTipoChanged();
   openM('mDoc');
 }
@@ -12003,6 +12028,14 @@ function saveDocumento() {
   const fileInput   = document.getElementById('docFile');
   const file        = fileInput.files[0];
   const dt          = DOC_TYPES[tipo] || {};
+  // Guard: blocca upload cert_medico se piano Mister
+  if (tipo === 'cert_medico') {
+    const _svSoc = saSocieties.find(x => x.id === currentSocietaId);
+    if (!hasCertMedicoFeature(_svSoc)) {
+      toast('🔒 Il certificato medico è disponibile dal Piano Mister Pro. Fai upgrade per utilizzarlo.');
+      return;
+    }
+  }
   if (dt.requiresExpiry && !dataScad) { toast('⚠️ Inserisci la data di scadenza del certificato'); return; }
   if (!file) { toast('⚠️ Seleziona un file'); return; }
   if (file.size > 10 * 1024 * 1024) { toast('⚠️ File troppo grande (max 10 MB)'); return; }
@@ -15260,6 +15293,16 @@ function isSectionLocked(sectionId, soc) {
   const tierIdx = PIANO_TIERS.indexOf(tier);
   const minIdx = PIANO_TIERS.indexOf(lock.pianoMin);
   return tierIdx < minIdx;
+}
+
+// true se il piano corrente include la gestione certificato medico (Mister Pro+)
+function hasCertMedicoFeature(soc) {
+  if (!soc) return true; // società non caricata → non bloccare
+  if (currentSocietaId === DEMO_STELLA_ID) return true; // demo stella: accesso completo
+  const status = getPianoStatus(soc);
+  if (status === 'active_demo') return true; // periodo demo → accesso completo
+  const tier = pianoNorm(soc.piano);
+  return PIANO_TIERS.indexOf(tier) >= PIANO_TIERS.indexOf('mister_pro');
 }
 
 function openUpgradePopup(sectionId) {
