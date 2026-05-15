@@ -4,7 +4,7 @@ FROM node:20-slim
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm && echo "build-20260515-v6"
+RUN npm install -g pnpm && echo "build-20260515-v7-anchor-fix"
 
 # Copy workspace manifests and lockfile for dependency installation
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
