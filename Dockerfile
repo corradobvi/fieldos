@@ -1,4 +1,4 @@
-# 2026-05-13 — rebuild: self-register path fix + phone column
+# 2026-05-15 — rebuild: founding fix, login+register defensive, schema guard
 FROM node:20-slim
 
 WORKDIR /app
