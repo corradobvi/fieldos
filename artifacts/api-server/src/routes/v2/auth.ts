@@ -15,7 +15,7 @@ router.post("/auth/login", async (req, res) => {
   try {
     const [rows] = (await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
-              u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
+              u.ruolo, u.leva, u.stato, u.temp_password, u.figli, u.founding_promo_pending,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -53,6 +53,7 @@ router.post("/auth/login", async (req, res) => {
         leva: user.leva,
         tempPassword: user.temp_password === 1,
         figli: user.figli ? JSON.parse(user.figli) : [],
+        foundingPromoPending: user.founding_promo_pending || null,
       },
       society: {
         id: user.society_id,

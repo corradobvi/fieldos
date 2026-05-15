@@ -103,6 +103,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .btn-login.loading{opacity:.7;pointer-events:none;}
 .lf-hint{margin-top:20px;background:var(--bg);border-radius:9px;padding:13px 15px;font-size:.75rem;color:var(--text2);}
 .lf-hint strong{color:var(--text);}
+/* Founder promo */
+.lf-founder-banner{background:#1A7A4A;color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:center;}
+.lf-founder-banner-title{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;letter-spacing:.3px;}
+.lf-founder-banner-sub{font-size:.85rem;opacity:.88;margin-top:5px;line-height:1.4;}
+.lf-cta-btn{width:100%;padding:17px 14px 15px;background:#1A7A4A;color:white;border:none;border-radius:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:1.08rem;font-weight:800;cursor:pointer;transition:all .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 4px 18px rgba(26,122,74,.3);text-align:center;display:block;}
+.lf-cta-btn:hover{background:#155c37;transform:translateY(-1px);box-shadow:0 8px 28px rgba(26,122,74,.38);}
+.lf-cta-btn:active{opacity:.85;transform:scale(.99);}
+.lf-cta-sub{font-size:.74rem;font-weight:500;opacity:.8;display:block;margin-top:3px;}
+.lf-login-card{border:1.5px solid var(--border);border-radius:12px;padding:18px 18px 14px;margin-top:16px;}
+.lf-login-card-title{font-size:.92rem;font-weight:700;color:var(--text2);margin-bottom:14px;}
+.btn-accedi{width:100%;padding:13px;background:transparent;color:#1A7A4A;border:2px solid #1A7A4A;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.96rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+.btn-accedi:hover{background:rgba(26,122,74,.06);transform:translateY(-1px);}
+.btn-accedi.loading{opacity:.7;pointer-events:none;}
 .demo-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .db{padding:5px 11px;border-radius:16px;border:1.5px solid var(--border2);background:white;font-size:.72rem;font-weight:600;cursor:pointer;color:var(--text2);transition:all .15s;}
 .db:hover{border-color:#1A7A4A;color:#1A7A4A;background:rgba(26,122,74,.05);}
@@ -1725,49 +1738,57 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="lf-mob-logo-name">MyVivaio</div>
       </div>
 
-      <div class="lf-title">Bentornato 👋</div>
-      <div class="lf-sub">Inserisci le tue credenziali</div>
-
-      <div class="fg">
-        <label class="fl">Email</label>
-        <input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"
-          autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}">
+      <!-- LIVELLO 0: Banner Founder (nascosto per default) -->
+      <div id="lfFounderBanner" class="lf-founder-banner" style="display:none;">
+        <div class="lf-founder-banner-title">🎉 Sei un Early Founder MyVivaio!</div>
+        <div class="lf-founder-banner-sub">Sconto -30% perpetuo sull'abbonamento annuale.<br>Inizia subito i 14 giorni di demo gratuita.</div>
       </div>
-      <div class="fg">
-        <label class="fl">Password</label>
-        <div class="fi-wrap">
-          <input class="fi" type="password" id="lPass" placeholder="••••••••"
-            autocomplete="current-password"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}">
-          <button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()"
-            tabindex="-1" aria-label="Mostra/nascondi password">
-            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
+
+      <!-- LIVELLO 1: CTA primaria -->
+      <button class="lf-cta-btn" id="lfCtaBtn" onclick="_lfCTAClick()">
+        🚀 Inizia gratis — 14 giorni
+        <span class="lf-cta-sub">Nessuna carta richiesta</span>
+      </button>
+
+      <!-- LIVELLO 2: Form login -->
+      <div class="lf-login-card">
+        <div class="lf-login-card-title">Hai già un account?</div>
+
+        <div class="fg">
+          <label class="fl">Email</label>
+          <input class="fi" type="email" id="lEmail" placeholder="la-tua@email.com"
+            autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('lPass').focus();}">
+        </div>
+        <div class="fg">
+          <label class="fl">Password</label>
+          <div class="fi-wrap">
+            <input class="fi" type="password" id="lPass" placeholder="••••••••"
+              autocomplete="current-password"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();doLoginSafe();}">
+            <button type="button" class="fi-eye" id="btnPassEye" onclick="togglePassVis()"
+              tabindex="-1" aria-label="Mostra/nascondi password">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-accedi" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
+
+        <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
+
+        <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
+          <a href="#" onclick="event.preventDefault();openForgotPass()"
+            style="color:#1A7A4A;font-weight:600;text-decoration:none;">🔑 Password dimenticata?</a>
         </div>
       </div>
 
-      <button class="btn-login" id="btnLogin" onclick="doLoginSafe()">Accedi →</button>
-
-      <div id="loginErrMsg" style="margin-top:8px;text-align:center;color:#c0392b;font-size:.83rem;font-weight:600;min-height:1.2em;display:none;padding:6px 10px;background:#fef2f2;border-radius:7px;word-break:break-word;"></div>
-
-      <div style="text-align:center;margin-top:10px;font-size:.78rem;color:var(--text2);">
-        <a href="#" onclick="event.preventDefault();openForgotPass()"
-          style="color:#1A7A4A;font-weight:600;text-decoration:none;">🔑 Password dimenticata?</a>
-      </div>
-
-      <div class="lf-sep">oppure</div>
-
-      <button class="btn-demo" onclick="openRegisterScreen()" style="touch-action:manipulation;">
-        🚀 Non hai un account? Inizia 14 giorni gratuiti →
-      </button>
-
-      <!-- Box genitore con codice società -->
-      <div class="lf-genitore-box">
+      <!-- LIVELLO 3: Genitore box -->
+      <div class="lf-genitore-box" style="margin-top:14px;">
         <div style="font-weight:800;font-size:1rem;color:#1A7A4A;margin-bottom:3px;">👨‍👩‍👧 Sei un genitore?</div>
         <div style="font-size:.82rem;color:var(--text2);margin-bottom:10px;line-height:1.4;">
           Entra con il codice fornito dalla tua società sportiva.
@@ -1851,6 +1872,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="rf-piano-badge" id="rfPianoBadge">⚽ Piano Mister — 14 giorni gratis</div>
     <input type="hidden" id="rPiano" value="mister">
+    <input type="hidden" id="rfPromoCode" value="">
 
     <div class="rf-row2">
       <div class="fg"><label class="fl">Nome *</label><input class="fi" type="text" id="rNome" placeholder="Mario" autocomplete="given-name" autocapitalize="words"></div>
@@ -4157,7 +4179,11 @@ async function doLogin() {
       // Carica SA state in background (per plan checks)
       saLoadState();
       me = data.user;
+      const _loginPromo = _getPromoCode();
       bootApp(me);
+      if (_loginPromo === 'FOUNDING2026' && (me.role === 'admin' || me.role === 'mister_admin')) {
+        setTimeout(() => openAccountScreen('piano'), 350);
+      }
       return;
     }
 
@@ -15986,6 +16012,17 @@ function _prefillRegisterFromUrl() {
     }
     // always update badge to reflect current piano
     _updatePianoBadge(document.getElementById('rPiano')?.value || 'mister');
+    const promo = p.get('promo') || _getPromoCode();
+    if (promo === 'FOUNDING2026') {
+      const badge = document.getElementById('rfPianoBadge');
+      if (badge) {
+        badge.style.background = '#1A7A4A';
+        badge.style.color = '#fff';
+        badge.textContent = '🎉 Early Founder — -30% perpetuo sull\'annuale';
+      }
+      const promoEl = document.getElementById('rfPromoCode');
+      if (promoEl) promoEl.value = 'FOUNDING2026';
+    }
   } catch(e) {}
 }
 
@@ -16002,7 +16039,15 @@ function _updatePianoBadge(piano) {
 function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
-  try { if (window.location.pathname !== '/register') history.pushState(null, '', '/register'); } catch(e) {}
+  try {
+    const promo = _getPromoCode();
+    const url = new URL(window.location.href);
+    url.pathname = '/register';
+    if (promo) url.searchParams.set('promo', promo); else url.searchParams.delete('promo');
+    history.pushState(null, '', url.toString());
+  } catch(e) {
+    try { if (window.location.pathname !== '/register') history.pushState(null, '', '/register'); } catch(e2) {}
+  }
   _prefillRegisterFromUrl();
 }
 
@@ -16228,7 +16273,19 @@ function _acShowStateA(soc, piano, pianoIc, planName) {
     if (el_bdg) { el_bdg.textContent = 'Scegli piano'; el_bdg.className = 'ac-sub-badge expired'; }
   }
   const foundBanner = document.getElementById('acFoundingBanner');
-  if (foundBanner) foundBanner.style.display = me?.isFoundingMember ? '' : 'none';
+  if (foundBanner) {
+    const hasFoundingPromo = !!(me?.foundingPromoPending || _getPromoCode() === 'FOUNDING2026');
+    const isFoundingActive = !!(me?.isFoundingMember || _acSubData?.foundingActive);
+    if (hasFoundingPromo) {
+      foundBanner.innerHTML = '🎉 Sei Early Founder MyVivaio — Sconto <strong>-30%</strong> perpetuo sull\'annuale. Attiva il piano per bloccarlo!';
+      foundBanner.style.display = '';
+    } else if (isFoundingActive) {
+      foundBanner.innerHTML = '⭐ Sei Founding Member — sconto -30% perpetuo applicato su ogni piano';
+      foundBanner.style.display = '';
+    } else {
+      foundBanner.style.display = 'none';
+    }
+  }
   const month = new Date().getUTCMonth();
   const annDisabled = month === 5 || month === 6;
   const toggleEl = document.getElementById('acSubToggleA');
@@ -16309,7 +16366,7 @@ function acSetInterval(interval) {
 
 function _acUpdatePlanPrices() {
   const iv = _acSubInterval;
-  const isFounder = me?.isFoundingMember === true;
+  const isFounder = !!(me?.foundingPromoPending || me?.isFoundingMember || _acSubData?.foundingActive);
   const FOUNDING_PCT = 0.7;
   [
     ['mister',     'acPriceMister',    'acPeriodMister',    'acDiscMister',    'acEquivMister',    'acFoundMister',    'acFoundOrigMister',    'acFoundActMister'],
@@ -16324,7 +16381,7 @@ function _acUpdatePlanPrices() {
     if ($(prDisc))  { $(prDisc).textContent = plan.disc || ''; $(prDisc).style.display = plan.disc ? '' : 'none'; }
     if ($(prEquiv)) { $(prEquiv).textContent = plan.equiv || ''; $(prEquiv).style.display = plan.equiv ? '' : 'none'; }
     if ($(prFound)) {
-      if (isFounder) {
+      if (isFounder && iv === 'annuale') {
         const raw = Math.round(plan.price * FOUNDING_PCT * 100) / 100;
         const fLabel = raw.toFixed(2).replace('.', ',') + ' €' + plan.per;
         if ($(prFOrig)) $(prFOrig).textContent = plan.label + plan.per;
@@ -16350,6 +16407,7 @@ async function acDoCheckout(piano) {
   // Invia societyId solo se è un ID reale (non demo/locale)
   const DEMO_IDS = new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
   const realSocId = !DEMO_IDS.has(currentSocietaId) ? currentSocietaId : undefined;
+  const promoCode = me?.foundingPromoPending || (_acSubData?.foundingActive ? null : _getPromoCode()) || null;
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
@@ -16359,11 +16417,16 @@ async function acDoCheckout(piano) {
         intervallo,
         email: me.email,
         ...(realSocId ? { societyId: realSocId } : {}),
+        ...(promoCode ? { promoCode } : {}),
       }),
     });
     const data = await resp.json();
     if (data.url) { window.location.href = data.url; }
-    else toast('Errore: ' + (data.detail || data.error || 'Riprova'));
+    else if (data.error === 'stripe_error' && (data.detail || '').toLowerCase().includes('coupon')) {
+      toast('Lo sconto Founding è esaurito. Puoi attivare l\'abbonamento al prezzo standard.');
+    } else {
+      toast('Errore: ' + (data.detail || data.error || 'Riprova'));
+    }
   } catch(e) { toast('Errore di connessione. Riprova.'); }
 }
 
@@ -17147,7 +17210,7 @@ async function doSelfRegister() {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano }),
+      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano, promoCode: document.getElementById('rfPromoCode')?.value || undefined }),
     });
 
     const data = await resp.json();
@@ -17240,6 +17303,64 @@ async function doSelfRegister() {
     _rShowErr('❌ Errore di connessione. Verifica la rete e riprova.');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Inizia gratis →'; }
+  }
+}
+
+// ═══════════════════════════════════
+// PROMO CODE (FOUNDING)
+// ═══════════════════════════════════
+const _VALID_PROMOS = new Set(['FOUNDING2026']);
+
+function _getPromoCode() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const fromUrl = p.get('promo');
+    if (fromUrl && _VALID_PROMOS.has(fromUrl)) return fromUrl;
+  } catch(e) {}
+  try {
+    const s = sessionStorage.getItem('mv_promo');
+    if (s && _VALID_PROMOS.has(s)) return s;
+  } catch(e) {}
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)mv_promo=([^;]+)/);
+    if (m && _VALID_PROMOS.has(m[1])) return m[1];
+  } catch(e) {}
+  return null;
+}
+
+function _savePromoCode(code) {
+  if (!code || !_VALID_PROMOS.has(code)) return;
+  try { sessionStorage.setItem('mv_promo', code); } catch(e) {}
+  try {
+    const exp = new Date(Date.now() + 30*24*60*60*1000).toUTCString();
+    document.cookie = 'mv_promo=' + code + ';path=/;expires=' + exp + ';SameSite=Lax';
+  } catch(e) {}
+}
+
+function _initPromoCode() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const fromUrl = p.get('promo');
+    if (fromUrl && _VALID_PROMOS.has(fromUrl)) _savePromoCode(fromUrl);
+  } catch(e) {}
+}
+
+function _lfShowFounderBannerIfNeeded() {
+  const promo = _getPromoCode();
+  const banner = document.getElementById('lfFounderBanner');
+  if (banner) banner.style.display = promo === 'FOUNDING2026' ? '' : 'none';
+}
+
+function _lfCTAClick() {
+  const promo = _getPromoCode();
+  openRegisterScreen();
+  if (promo) {
+    try {
+      const url = new URL(window.location.href);
+      url.pathname = '/register';
+      url.searchParams.set('promo', promo);
+      history.replaceState(null, '', url.toString());
+    } catch(e) {}
   }
 }
 
@@ -20449,6 +20570,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initPwField('srPass',     'srPass2');     // registrazione genitore con codice
   initPwField('onbPass',    'onbPass2');    // onboarding via invito
   initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
+
+  // Init promo code (legge ?promo= dall'URL e lo salva in session/cookie)
+  _initPromoCode();
+  _lfShowFounderBannerIfNeeded();
 
   // Ripristina sessione se disponibile (evita logout al refresh)
   const _sessionRestored = tryRestoreSession();
