@@ -79,6 +79,13 @@ router.post("/auth/self-register", async (req, res) => {
 
     await conn.commit();
 
+    // Create WhatsApp contact tracking record (fire-and-forget after commit)
+    pool.execute(
+      `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
+      [userId, normalizedEmail, (phone ?? "").trim(), nome.trim(), cognome.trim(), pianoNorm]
+    ).catch((e: any) => logger.warn({ err: e?.message }, "demo-wa contact insert failed"));
+
     const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
 
     // Webhook Superchat in background — non blocca la risposta

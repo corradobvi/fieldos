@@ -190,7 +190,24 @@ ALTER TABLE users ADD COLUMN phone VARCHAR(50);
 ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);
 ALTER TABLE societies ADD COLUMN stripe_subscription_id VARCHAR(255);
 ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255);
-ALTER TABLE users MODIFY COLUMN society_id INT DEFAULT NULL
+ALTER TABLE users MODIFY COLUMN society_id INT DEFAULT NULL;
+CREATE TABLE IF NOT EXISTS demo_whatsapp_contact (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  user_email VARCHAR(255) NOT NULL,
+  user_phone VARCHAR(50) NOT NULL,
+  user_first_name VARCHAR(100) NOT NULL,
+  user_last_name VARCHAR(100) NOT NULL,
+  demo_plan_key VARCHAR(20) NOT NULL,
+  status ENUM('pending','clicked','sent_manual','completed') NOT NULL DEFAULT 'pending',
+  clicked_at TIMESTAMP NULL,
+  manual_added_at TIMESTAMP NULL,
+  notes TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_dwc_status (status),
+  INDEX idx_dwc_user (user_id)
+)
 `;
 
 export const SEED_SQL = `

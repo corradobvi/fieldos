@@ -2250,6 +2250,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <nav class="mob-nav" id="mobNav"></nav>
   <!-- BANNER DEMO -->
   <div id="demoBanner" onclick="openPianoModal()"></div>
+  <!-- BANNER WHATSAPP (visibile solo per demo pending) -->
+  <div id="waBanner" style="display:none;background:#fffbeb;border-bottom:1px solid #fcd34d;padding:10px 16px;font-size:.83rem;">
+    <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="flex:1;min-width:200px;color:#92400e;">&#128247; <strong>Ti seguo personalmente nei 14 giorni di prova.</strong> Scrivimi su WhatsApp — rispondo a tutto.</span>
+      <button id="waBannerBtn" onclick="waOpenChat()" style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">&#128247; Aprimi su WhatsApp</button>
+      <button onclick="waDismissBanner()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#92400e;padding:4px;line-height:1;flex-shrink:0;">&#10005;</button>
+    </div>
+  </div>
   <!-- PIANO SCADUTO / SCELTA PIANO -->
   <div id="pianoExpiredScreen">
     <div class="piano-modal" id="pianoModalContent"></div>
@@ -4317,6 +4325,9 @@ function bootApp(user) {
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
+    // Restore WA token from session if available (page reload)
+    if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
+    setTimeout(function() { waCheckStatus(); }, 2000);
     // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
     const _cb = document.getElementById('asstBtn');
     const _isMobFam = window.innerWidth <= 640 && me && (me.role === 'genitore' || me.role === 'nonno');
@@ -16923,6 +16934,193 @@ function _rClearErr() {
   if (el) el.style.display = 'none';
 }
 
+// ─── WhatsApp demo funnel ───────────────────────────────────────────────────
+var _waToken = null;       // JWT from self-register, used for WA endpoints
+var _waFirstName = '';
+var _waLastName = '';
+var _waPiano = 'mister';
+var _waPhone = '';
+
+var WA_PHONE_NUMBER = '393793827922';
+var WA_PLAN_LABELS = { mister: 'Mister', mister_pro: 'Mister Pro', societa: 'Società' };
+
+function _waLink() {
+  var planLabel = WA_PLAN_LABELS[_waPiano] || _waPiano;
+  var text = 'Ciao, sono ' + _waFirstName + ' ' + _waLastName + ', ho appena attivato la demo come ' + planLabel;
+  return 'https://wa.me/' + WA_PHONE_NUMBER + '?text=' + encodeURIComponent(text);
+}
+
+function waOpenChat() {
+  // Fire-and-forget click tracking
+  if (_waToken) {
+    fetch(API_BASE + '/api/v2/demo-wa/clicked', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _waToken }
+    }).catch(function() {});
+  }
+  window.open(_waLink(), '_blank', 'noopener');
+  var banner = document.getElementById('waBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function waWelcomeClick() {
+  var btn = document.getElementById('welcomeWaBtn');
+  if (btn) { btn.textContent = 'Aperto!'; btn.style.background = '#059669'; }
+  waOpenChat();
+  setTimeout(function() { _waCloseWelcome(); }, 1200);
+}
+
+function waWelcomeSkip() {
+  _waCloseWelcome();
+}
+
+function _waCloseWelcome() {
+  var el = document.getElementById('welcomeWaScreen');
+  if (el) el.style.display = 'none';
+}
+
+function showWelcomeWaScreen(firstName, lastName, piano, phone) {
+  _waFirstName = firstName || '';
+  _waLastName = lastName || '';
+  _waPiano = piano || 'mister';
+  _waPhone = phone || '';
+  var title = document.getElementById('welcomeWaTitle');
+  if (title) title.textContent = 'Benvenuto in MyVivaio, ' + firstName + '!';
+  var el = document.getElementById('welcomeWaScreen');
+  if (el) el.style.display = 'block';
+}
+
+function waDismissBanner() {
+  var banner = document.getElementById('waBanner');
+  if (banner) banner.style.display = 'none';
+  try { sessionStorage.setItem('wa_banner_dismissed', '1'); } catch(_) {}
+}
+
+async function waCheckStatus() {
+  if (!_waToken) return;
+  try {
+    var dismissed = sessionStorage.getItem('wa_banner_dismissed');
+    if (dismissed) return;
+    var resp = await fetch(API_BASE + '/api/v2/demo-wa/status', {
+      headers: { 'Authorization': 'Bearer ' + _waToken }
+    });
+    if (!resp.ok) return;
+    var data = await resp.json();
+    if (data.status === 'pending') {
+      var banner = document.getElementById('waBanner');
+      if (banner) banner.style.display = '';
+    }
+  } catch(_) {}
+}
+
+async function saLoadWaQueue(filter) {
+  var secret = null;
+  try { secret = sessionStorage.getItem('mv_admin_secret'); } catch(_) {}
+  if (!secret) {
+    secret = prompt('Inserisci ADMIN_SECRET:');
+    if (!secret) return;
+    try { sessionStorage.setItem('mv_admin_secret', secret); } catch(_) {}
+  }
+  var bodyEl = document.getElementById('saWaQueueBody');
+  if (bodyEl) bodyEl.innerHTML = '<span style="color:#94a3b8;font-size:.82rem;">Carico...</span>';
+  var f = filter || 'default';
+  try {
+    var url = API_BASE + '/api/v2/admin/demo-wa-pending?adminSecret=' + encodeURIComponent(secret) + (f !== 'default' ? '&filter=' + encodeURIComponent(f) : '');
+    var resp = await fetch(url);
+    if (resp.status === 403) {
+      try { sessionStorage.removeItem('mv_admin_secret'); } catch(_) {}
+      if (bodyEl) bodyEl.innerHTML = '<span style="color:#f87171;font-size:.82rem;">ADMIN_SECRET errato.</span>';
+      return;
+    }
+    var data = await resp.json();
+    if (bodyEl) bodyEl.innerHTML = renderSaWaQueue(data);
+  } catch(e) {
+    if (bodyEl) bodyEl.innerHTML = '<span style="color:#f87171;font-size:.82rem;">Errore: ' + escapeHtml(String(e)) + '</span>';
+  }
+}
+
+function renderSaWaQueue(data) {
+  var rows = data.rows || [];
+  var summary = data.summary || {};
+  var pending = summary.pending || 0;
+  var clicked = summary.clicked || 0;
+  var sent = summary.sent_manual || 0;
+
+  var summaryHtml = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">' +
+    '<span style="font-size:.82rem;color:#fbbf24;font-weight:700;">&#9679; Pending: ' + pending + '</span>' +
+    '<span style="font-size:.82rem;color:#60a5fa;font-weight:700;">&#128247; Clicked: ' + clicked + '</span>' +
+    '<span style="font-size:.82rem;color:#4ade80;font-weight:700;">&#10003; Inviato: ' + sent + '</span>' +
+    '</div>';
+
+  if (!rows.length) {
+    return summaryHtml + '<div style="color:#64748b;font-size:.82rem;padding:12px 0;">Nessun contatto in coda.</div>';
+  }
+
+  var filterHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">' +
+    '<button onclick="saLoadWaQueue(\'default\')" style="background:#334155;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;">Pending+Clicked</button>' +
+    '<button onclick="saLoadWaQueue(\'pending\')" style="background:#334155;border:1px solid #475569;color:#fbbf24;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;">Solo Pending</button>' +
+    '<button onclick="saLoadWaQueue(\'clicked\')" style="background:#334155;border:1px solid #475569;color:#60a5fa;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;">Solo Clicked</button>' +
+    '<button onclick="saLoadWaQueue(\'all\')" style="background:#334155;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;">Tutti (incl. Inviato)</button>' +
+    '</div>';
+
+  var rowsHtml = rows.map(function(r) {
+    var minsAgo = r.minutes_ago || 0;
+    var timeAgo = minsAgo < 60 ? minsAgo + ' min fa' : Math.floor(minsAgo / 60) + ' ore fa';
+    var phoneMasked = (r.user_phone || '').replace(/(\d{4})$/, '****');
+    var statusColor = r.status === 'clicked' ? '#60a5fa' : r.status === 'sent_manual' ? '#4ade80' : '#fbbf24';
+    var planLabel = { mister: 'Mister', mister_pro: 'Mister Pro', societa: 'Società' }[r.demo_plan_key] || r.demo_plan_key;
+    var waText = encodeURIComponent('Ciao, sono ' + r.user_first_name + ' ' + r.user_last_name + ', ho appena attivato la demo come ' + planLabel);
+    var waLink = 'https://wa.me/' + WA_PHONE_NUMBER + '?text=' + waText;
+    return '<div style="background:rgba(30,41,59,.6);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px;margin-bottom:8px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
+        '<div style="flex:1;min-width:160px;">' +
+          '<div style="font-weight:700;color:#e2e8f0;font-size:.88rem;">' + escapeHtml(r.user_first_name + ' ' + r.user_last_name) + '</div>' +
+          '<div style="font-size:.76rem;color:#94a3b8;margin-top:2px;">' + escapeHtml(r.user_email) + '</div>' +
+          '<div style="font-size:.76rem;color:#94a3b8;">' + escapeHtml(phoneMasked) + ' &nbsp;·&nbsp; ' + escapeHtml(planLabel) + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0;">' +
+          '<div style="font-size:.72rem;font-weight:700;color:' + statusColor + ';">' + r.status.toUpperCase() + '</div>' +
+          '<div style="font-size:.7rem;color:#64748b;">' + timeAgo + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">' +
+        '<a href="' + waLink + '" target="_blank" rel="noopener" style="background:#25d366;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:.75rem;font-weight:700;cursor:pointer;text-decoration:none;">&#128247; Apri WA</a>' +
+        (r.status !== 'sent_manual' && r.status !== 'completed' ? '<button onclick="saWaMarkSent(' + r.id + ')" style="background:#334155;border:1px solid #475569;color:#4ade80;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;">&#10003; Segna inviato</button>' : '') +
+        (r.status !== 'completed' ? '<button onclick="saWaComplete(' + r.id + ')" style="background:#334155;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:5px 10px;font-size:.75rem;cursor:pointer;">Archivia</button>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  return summaryHtml + filterHtml + rowsHtml;
+}
+
+async function saWaMarkSent(id) {
+  var secret = null;
+  try { secret = sessionStorage.getItem('mv_admin_secret'); } catch(_) {}
+  if (!secret) return;
+  try {
+    await fetch(API_BASE + '/api/v2/admin/demo-wa/' + id + '/mark-sent', {
+      method: 'POST',
+      headers: { 'x-admin-secret': secret }
+    });
+    saLoadWaQueue('default');
+  } catch(e) { toast('Errore: ' + String(e)); }
+}
+
+async function saWaComplete(id) {
+  var secret = null;
+  try { secret = sessionStorage.getItem('mv_admin_secret'); } catch(_) {}
+  if (!secret) return;
+  try {
+    await fetch(API_BASE + '/api/v2/admin/demo-wa/' + id + '/complete', {
+      method: 'POST',
+      headers: { 'x-admin-secret': secret }
+    });
+    saLoadWaQueue('default');
+  } catch(e) { toast('Errore: ' + String(e)); }
+}
+// ─── Fine WhatsApp demo funnel ──────────────────────────────────────────────
+
 async function doSelfRegister() {
   _rClearErr();
 
@@ -16965,6 +17163,9 @@ async function doSelfRegister() {
 
     // ── Registrazione ok: costruiamo lo stato iniziale e avviamo l'app ──
     const { society } = data;
+    // Store JWT for WA tracking calls
+    _waToken = data.token || null;
+    if (_waToken) { try { sessionStorage.setItem('mv_wa_token', _waToken); } catch(_) {} }
     const societyId   = society.id;
     const stateKey    = societyStorageKey(societyId);
 
@@ -17026,6 +17227,8 @@ async function doSelfRegister() {
     closeRegisterScreen();
     me = adminUser;
     bootApp(adminUser);
+    // Show WhatsApp welcome screen after boot
+    setTimeout(function() { showWelcomeWaScreen(nome, cogn, piano, phone); }, 500);
     // Se l'URL aveva ?piano=X, apri subito il tab piano per procedere all'abbonamento
     try {
       const _regPiano = new URLSearchParams(window.location.search).get('piano');
@@ -17755,6 +17958,14 @@ function _renderSaPanelInner() {
           </div>
         </div>`).join('')}
     </div>` : `<div style="color:#64748b;padding:12px;font-size:.82rem;">Nessuna domanda appresa ancora.</div>`}
+
+    <div class="sa-section-hd" style="margin-top:28px;">
+      <span>&#128247; Coda WhatsApp Demo</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saLoadWaQueue('default')">&#128247; Carica coda</button>
+      </div>
+    </div>
+    <div id="saWaQueueBody" style="color:#64748b;font-size:.82rem;padding:8px 0;">Premi "Carica coda" per vedere i contatti in attesa di WhatsApp.</div>
   `;
 }
 
@@ -20285,6 +20496,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+
+<!-- WELCOME WHATSAPP SCREEN (post-registrazione) -->
+<div id="welcomeWaScreen" style="display:none;position:fixed;inset:0;background:#fff;z-index:10000;overflow-y:auto;font-family:'Inter',sans-serif;">
+  <div style="max-width:440px;margin:0 auto;padding:40px 24px 60px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-size:2.5rem;margin-bottom:8px;">&#10003;&#65039;</div>
+      <h1 style="font-size:1.5rem;font-weight:900;color:#111827;margin:0 0 8px;" id="welcomeWaTitle">Benvenuto in MyVivaio!</h1>
+      <p style="color:#6b7280;font-size:.9rem;line-height:1.6;margin:0;">La tua demo gratuita di 14 giorni è attiva. Hai un account, una rosa da creare e un campionato da gestire.</p>
+    </div>
+    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:14px;padding:20px 20px 24px;margin-bottom:24px;">
+      <div style="font-size:.85rem;font-weight:700;color:#166534;margin-bottom:8px;">&#9135;&#9135;&#9135; Un ultimo passaggio &#9135;&#9135;&#9135;</div>
+      <p style="font-size:.88rem;color:#374151;line-height:1.6;margin:0 0 18px;">Ti mando un benvenuto via WhatsApp e ti seguo personalmente nei 14 giorni di prova. È il modo migliore per non perderti nulla e farmi domande dirette.</p>
+      <button id="welcomeWaBtn" onclick="waWelcomeClick()" style="width:100%;background:#25d366;color:#fff;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">&#128247; Aprimi su WhatsApp</button>
+    </div>
+    <div style="text-align:center;">
+      <button onclick="waWelcomeSkip()" style="background:none;border:none;font-size:.83rem;color:#9ca3af;cursor:pointer;text-decoration:underline;">Continua senza WhatsApp &#8594;</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

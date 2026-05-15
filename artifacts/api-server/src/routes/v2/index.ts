@@ -15,6 +15,7 @@ import chatRouter          from "./chat";
 import quoteRouter         from "./quote";
 import migrateRouter       from "./migrate";
 import stripeRouter        from "./stripe";
+import demoWaRouter        from "./demo-wa";
 
 const router = Router();
 
@@ -71,5 +72,6 @@ router.use(chatRouter);
 router.use(quoteRouter);
 router.use(migrateRouter);
 router.use(stripeRouter);
+router.use(demoWaRouter);
 
 export default router;
