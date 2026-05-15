@@ -31,18 +31,14 @@ const PRORATA_PCT: Record<number, number | null> = {
   6: null, // Luglio  — solo mensile
 };
 
-// Restituisce il timestamp Unix del prossimo 1° agosto
-function nextAugFirst(): number {
-  const now = new Date();
-  const month = now.getUTCMonth();
-  const day   = now.getUTCDate();
-  const isToday = month === 7 && day === 1;
-  const anchorYear = (month >= 7 && !isToday)
-    ? now.getUTCFullYear() + 1
-    : (month < 7)
-      ? now.getUTCFullYear()
-      : now.getUTCFullYear() + 1;
-  return Math.floor(Date.UTC(anchorYear, 7, 1) / 1000);
+// Restituisce il timestamp Unix di agosto 1, 2026 solo durante il pre-lancio (1 giu – 31 lug 2026).
+// In tutti gli altri periodi restituisce null → Stripe usa il ciclo standard (1 anno da oggi).
+function getPreLaunchAnchorTs(): number | null {
+  const nowMs  = Date.now();
+  const jun2026 = Date.UTC(2026, 5, 1); // 1 giugno 2026
+  const aug2026 = Date.UTC(2026, 7, 1); // 1 agosto 2026
+  if (nowMs >= jun2026 && nowMs < aug2026) return Math.floor(aug2026 / 1000);
+  return null;
 }
 
 function getPriceId(piano: string, intervallo: string): string | null {
@@ -106,10 +102,10 @@ router.post("/stripe/create-checkout", async (req, res) => {
     return res.status(400).json({ error: "missing_email", detail: "Accedi prima di procedere al pagamento." });
   }
 
-  // Blocca piano annuale in giugno e luglio
+  // Blocca piano annuale in giugno e luglio, eccetto durante il pre-lancio 2026
   if (String(intervallo) === "annuale") {
     const month = new Date().getUTCMonth();
-    if (PRORATA_PCT[month] === null) {
+    if (PRORATA_PCT[month] === null && !getPreLaunchAnchorTs()) {
       return res.status(400).json({
         error: "annual_not_available",
         detail: "Il piano annuale non è disponibile in giugno e luglio. Usa il piano mensile.",
@@ -202,8 +198,14 @@ router.post("/stripe/create-checkout", async (req, res) => {
     params["metadata[societyId]"] = String(societyId);
   }
 
+  // Pre-lancio (giu-lug 2026): ancora il ciclo al 1° agosto 2026, trial fino ad allora.
+  // Stagione normale e test pre-lancio: nessun anchor, Stripe usa 1 anno da oggi.
   if (String(intervallo) === "annuale") {
-    params["subscription_data[billing_cycle_anchor]"] = nextAugFirst();
+    const anchorTs = getPreLaunchAnchorTs();
+    if (anchorTs) {
+      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
+      params["subscription_data[trial_end]"]            = anchorTs;
+    }
   }
 
   params["allow_promotion_codes"] = "true";
