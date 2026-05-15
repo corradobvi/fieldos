@@ -7,6 +7,16 @@ const router = Router();
 
 const ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
 
+const PIANO_NORM: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+const PLAYER_LIMITS: Record<string, number> = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
+
+async function getSocietyPlayerLimit(societyId: number): Promise<number> {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]) as [any[], any];
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM[raw] || raw;
+  return PLAYER_LIMITS[norm] ?? 25;
+}
+
 // GET /api/v2/players?leva=U14
 router.get("/players", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
@@ -57,6 +67,17 @@ router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, re
   }
 
   try {
+    const maxGioc = await getSocietyPlayerLimit(societyId);
+    if (isFinite(maxGioc) && leva) {
+      const [cnt] = await pool.execute(
+        "SELECT COUNT(*) as n FROM players WHERE society_id = ? AND leva = ?",
+        [societyId, leva]
+      ) as [any[], any];
+      if (cnt[0].n >= maxGioc) {
+        return res.status(403).json({ error: "plan_limit_reached", limitType: "giocatoriPerLeva", current: cnt[0].n, max: maxGioc });
+      }
+    }
+
     const [result] = (await pool.execute(
       `INSERT INTO players
         (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,

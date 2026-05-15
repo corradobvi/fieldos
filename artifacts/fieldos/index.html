@@ -2359,6 +2359,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="page" id="pg-rosa">
         <div class="sec-h"><div class="sec-t">👥 Rosa Giocatori</div><div id="rosaActions"></div></div>
         <div id="rosaTabs"></div>
+        <div id="rosaLimitBar"></div>
         <div class="g4" id="rosaGrid"></div>
       </div>
 
@@ -2529,7 +2530,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
           </div>
           <div class="card" id="leveCard" style="grid-column:span 2;">
-            <div class="ch"><div class="ct">🏷️ Gestione leve</div><button class="btn btn-p btn-sm" onclick="openAddLeva()">+ Aggiungi leva</button></div>
+            <div class="ch"><div class="ct">🏷️ Gestione leve</div><button id="btnAddLeva" class="btn btn-p btn-sm" onclick="openAddLeva()">+ Aggiungi leva</button></div>
             <div id="leveImpostList"></div>
           </div>
           <div class="card" style="grid-column:span 2;" id="campiCard">
@@ -3273,11 +3274,11 @@ window.addEventListener('unhandledrejection', function(e) {
 // ═══════════════════════════════════
 const PIANI_DEF = {
   demo:       { nome:'Demo',        leve:Infinity, giocatori:Infinity, prezzoMese:0,  prezzoAnno:0,   collab:null },
-  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ allenatore:1, dirigente:2, preparatore_portieri:1 } },
-  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:5 } },
+  mister:     { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ total:0 } },
+  mister_pro: { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:6 } },
   societa:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419, collab:null },
-  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ allenatore:1, dirigente:2, preparatore_portieri:1 } },
-  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:5 } },
+  gratuito:   { nome:'Mister',      leve:1,        giocatori:25,       prezzoMese:9,  prezzoAnno:79,  collab:{ total:0 } },
+  base:       { nome:'Mister Pro',  leve:3,        giocatori:Infinity, prezzoMese:19, prezzoAnno:159, collab:{ total:6 } },
   premium:    { nome:'Società',     leve:Infinity, giocatori:Infinity, prezzoMese:49, prezzoAnno:419, collab:null },
 };
 const PIANO_TIERS = ['mister','mister_pro','societa'];
@@ -4856,6 +4857,22 @@ function confirmDeleteLeva(idx) {
 
 function renderLeveImpostazioni() {
   const el = document.getElementById('leveImpostList'); if (!el) return;
+
+  const _levaSoc = saSocieties.find(x => x.id === currentSocietaId);
+  const _levaMax = (PIANI_DEF[getEffectivePlan(_levaSoc)] || PIANI_DEF.mister).leve;
+  const _levaBtn = document.getElementById('btnAddLeva');
+  if (_levaBtn) {
+    const _canAddLeva = canAddLeva(_levaSoc, leve);
+    _levaBtn.disabled = !_canAddLeva;
+    if (!_canAddLeva && isFinite(_levaMax)) {
+      _levaBtn.textContent = `${leve.length} / ${_levaMax} leve`;
+      _levaBtn.title = `Hai raggiunto il massimo di ${_levaMax} lev${_levaMax===1?'a':'e'}. Passa a un piano superiore per aggiungerne altre.`;
+    } else {
+      _levaBtn.textContent = '+ Aggiungi leva';
+      _levaBtn.title = '';
+    }
+  }
+
   if (!leve.length) {
     el.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:8px 0;">Nessuna leva configurata.</div>';
     return;
@@ -4902,6 +4919,7 @@ function calcStats(p) {
 }
 
 function renderRosa() {
+  updateRosaLimitBar();
   const g = document.getElementById('rosaGrid');
   if (!g) return;
   const editable = me && (isAdminLike() || me.role === 'allenatore');
@@ -5319,6 +5337,38 @@ function deleteCurrentPlayer() {
 // ROSA ACTIONS (add button in header)
 // ═══════════════════════════════════
 
+function updateRosaLimitBar() {
+  const el = document.getElementById('rosaLimitBar');
+  if (!el) return;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const plan = getEffectivePlan(soc);
+  const maxGioc = (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
+  if (!isFinite(maxGioc)) { el.innerHTML = ''; el.style.marginBottom = ''; return; }
+  const used = players.filter(p => p.leva === currentLeva).length;
+  const pct = Math.min(100, Math.round(used / maxGioc * 100));
+  const remaining = Math.max(0, maxGioc - used);
+  const barColor = pct >= 100 ? '#dc2626' : pct >= 80 ? '#d97706' : '#16a34a';
+  let msg;
+  if (pct >= 100) {
+    msg = `<span style="color:#dc2626;">Limite raggiunto. Per aggiungere altri giocatori, <button onclick="openAccountScreen('piano')" style="background:none;border:none;color:#dc2626;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;">passa a Mister Pro</button>.</span>`;
+  } else if (pct >= 80) {
+    msg = `<span style="color:#d97706;">Stai per raggiungere il limite. ${remaining} post${remaining===1?'o':'i'} rimanent${remaining===1?'e':'i'}. <button onclick="openAccountScreen('piano')" style="background:none;border:none;color:#d97706;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;">Passa a Mister Pro →</button></span>`;
+  } else {
+    msg = `<span style="color:#16a34a;">Hai ancora ${remaining} post${remaining===1?'o':'i'} disponibil${remaining===1?'e':'i'}</span>`;
+  }
+  el.style.marginBottom = '10px';
+  el.innerHTML = `<div style="background:var(--cl);border:1px solid var(--border);border-radius:10px;padding:11px 14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+      <span style="font-size:.82rem;font-weight:700;">👥 Giocatori della rosa</span>
+      <span style="font-size:.85rem;font-weight:800;color:${barColor};">${used} / ${maxGioc}</span>
+    </div>
+    <div style="background:#e5e7eb;border-radius:4px;height:7px;overflow:hidden;margin-bottom:6px;">
+      <div style="background:${barColor};height:100%;width:${pct}%;transition:width .3s;border-radius:4px;"></div>
+    </div>
+    <div style="font-size:.79rem;">${msg}</div>
+  </div>`;
+}
+
 function buildRosaSection() {
   const el = document.getElementById('rosaActions');
   if (!el) return;
@@ -5342,12 +5392,17 @@ function buildRosaSection() {
       archLabel.innerHTML = `<input type="checkbox" id="rosaShowArchived" onchange="renderRosa()" style="cursor:pointer;"> Archiviati (${archCount})`;
       el.appendChild(archLabel);
     }
+    const _rosaSoc = saSocieties.find(x => x.id === currentSocietaId);
+    const _canAdd = canAddPlayer(_rosaSoc, currentLeva);
     const btn = document.createElement('button');
     btn.className = 'btn btn-p';
     btn.textContent = '+ Aggiungi giocatore';
-    btn.onclick = () => openPlayerModal(null);
+    btn.disabled = !_canAdd;
+    if (!_canAdd) btn.title = 'Limite raggiunto. Passa a Mister Pro per giocatori illimitati.';
+    btn.onclick = () => { if (_canAdd) openPlayerModal(null); };
     el.appendChild(btn);
   }
+  updateRosaLimitBar();
 }
 
 // ═══════════════════════════════════
@@ -8761,32 +8816,54 @@ function renderCollabCounter() {
   const el = document.getElementById('collabCounter');
   if (!el) return;
   const soc = saSocieties.find(x => x.id === currentSocietaId);
-  const lim = getCollabLimiti(soc);
-  if (!lim) { el.style.display = 'none'; return; }
-  const staffRoles = ['allenatore','dirigente','preparatore_portieri'];
-  if (lim.total != null) {
-    const used = countCollab();
+  const plan = getEffectivePlan(soc);
+  const planDef = PIANI_DEF[plan] || PIANI_DEF.mister;
+  const lim = planDef.collab;
+
+  if (!lim) { el.style.display = 'none'; return; } // Società: unlimited
+
+  if (lim.total === 0) {
+    // Mister plan: no collaborators allowed
     el.style.display = '';
-    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:.82rem;font-weight:600;">👥 Collaboratori staff:</span>
-      <span style="font-size:.9rem;font-weight:800;color:${used>=lim.total?'#dc2626':'var(--cp)'};">${used}/${lim.total}</span>
-      <span style="font-size:.75rem;color:var(--text2);">Piano ${getPianoDef(soc).nome}</span>
-      ${used>=lim.total?'<span style="font-size:.75rem;color:#dc2626;font-weight:600;">⚠ Limite raggiunto</span>':''}
+    el.innerHTML = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:11px 14px;">
+      <div style="font-size:.84rem;font-weight:700;color:#c2410c;margin-bottom:4px;">🔒 Collaboratori non inclusi nel piano Mister</div>
+      <div style="font-size:.79rem;color:#92400e;margin-bottom:9px;">Il piano <strong>Mister</strong> non include collaboratori. Sei l'unico gestore della squadra. Passa a Mister Pro per aggiungere fino a 6 collaboratori, o a Società per averne illimitati.</div>
+      <button class="btn btn-p btn-sm" onclick="openPianoModal(false)">Confronta i piani →</button>
     </div>`;
-  } else {
-    const rows = staffRoles.map(r => {
-      const limit = lim[r];
-      if (limit == null) return '';
-      const used = countCollab(r);
-      const label = {allenatore:'Mister', dirigente:'Dirigenti', preparatore_portieri:'Prep. Portieri'}[r];
-      return `<span style="font-size:.8rem;">${label}: <strong style="color:${used>=limit?'#dc2626':'var(--cp)'};">${used}/${limit}</strong>${used>=limit?' ⚠':''}</span>`;
-    }).filter(Boolean).join('<span style="color:var(--text3);margin:0 4px;">·</span>');
-    el.style.display = '';
-    el.innerHTML = `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:.82rem;font-weight:600;">👥 Collaboratori:</span>${rows}
-      <span style="font-size:.73rem;color:var(--text2);">Piano ${getPianoDef(soc).nome}</span>
-    </div>`;
+    return;
   }
+
+  // Mister Pro: progress bar (max 6)
+  const max = lim.total;
+  const usedAll = countCollab();
+  const usedAllen = countCollab('allenatore');
+  const usedDir = countCollab('dirigente');
+  const remaining = Math.max(0, max - usedAll);
+  const pct = Math.min(100, Math.round(usedAll / max * 100));
+  const barColor = pct >= 100 ? '#dc2626' : pct >= 67 ? '#d97706' : '#16a34a';
+  let statusMsg;
+  if (pct >= 100) {
+    statusMsg = `<span style="color:#dc2626;">Limite collaboratori raggiunto. <button onclick="openAccountScreen('piano')" style="background:none;border:none;color:#dc2626;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;">Passa a Società →</button></span>`;
+  } else if (pct >= 67) {
+    statusMsg = `<span style="color:#d97706;">Stai per raggiungere il limite. ${remaining} post${remaining===1?'o':'i'} rimanent${remaining===1?'e':'i'}. <button onclick="openAccountScreen('piano')" style="background:none;border:none;color:#d97706;text-decoration:underline;cursor:pointer;padding:0;font-size:inherit;">Passa a Società →</button></span>`;
+  } else {
+    statusMsg = `<span style="color:#16a34a;">Hai ancora ${remaining} post${remaining===1?'o':'i'} disponibil${remaining===1?'e':'i'}</span>`;
+  }
+  const composizione = usedAll > 0
+    ? `<div style="margin-top:7px;font-size:.77rem;color:var(--text2);">Composizione attuale: ${usedAllen > 0 ? `• ${usedAllen} mister ` : ''}${usedDir > 0 ? `• ${usedDir} dirigent${usedDir===1?'e':'i'}` : ''}</div>`
+    : '';
+  el.style.display = '';
+  el.innerHTML = `<div style="background:var(--cl);border:1px solid var(--border);border-radius:10px;padding:11px 14px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+      <span style="font-size:.82rem;font-weight:700;">🤝 Collaboratori della squadra</span>
+      <span style="font-size:.85rem;font-weight:800;color:${barColor};">${usedAll} / ${max}</span>
+    </div>
+    <div style="background:#e5e7eb;border-radius:4px;height:7px;overflow:hidden;margin-bottom:6px;">
+      <div style="background:${barColor};height:100%;width:${pct}%;transition:width .3s;border-radius:4px;"></div>
+    </div>
+    <div style="font-size:.79rem;">${statusMsg}</div>
+    ${composizione}
+  </div>`;
 }
 
 function renderUsersTable() {
@@ -9130,19 +9207,18 @@ function saveUser() {
   }
 
   if (editingUserId === null) {
-    // Verifica limiti collaboratori per il piano attivo
-    const _collabRoles = ['allenatore','dirigente','preparatore_portieri'];
+    // Verifica limiti collaboratori per il piano attivo (solo mister/dirigente contano)
+    const _collabRoles = ['allenatore','dirigente'];
     if (_collabRoles.includes(role)) {
       const _soc = saSocieties.find(x => x.id === currentSocietaId);
       if (!canAddCollab(_soc, role)) {
         const _lim = getCollabLimiti(_soc);
         const _piano = getPianoDef(_soc);
-        let _msg = `⛔ Hai raggiunto il limite del Piano ${_piano.nome}.\n\n`;
-        if (_lim && _lim.total != null) {
-          _msg += `Massimo ${_lim.total} collaboratori staff totali.\nUpgrade a Piano Società per collaboratori illimitati.`;
-        } else if (_lim) {
-          const _roleNames = {allenatore:'Mister aggiuntivo (1)',dirigente:'Dirigenti (2)',preparatore_portieri:'Preparatore Portieri (1)'};
-          _msg += `Limite: ${_roleNames[role] || role}.\nUpgrade a Piano Mister Pro per 5 collaboratori totali.`;
+        let _msg;
+        if (_lim && _lim.total === 0) {
+          _msg = `⛔ Il piano ${_piano.nome} non include collaboratori.\n\nSolo il titolare gestisce la squadra. Passa a Mister Pro per aggiungere fino a 6 collaboratori.`;
+        } else {
+          _msg = `⛔ Hai raggiunto il limite di ${_lim?.total || 6} collaboratori (Piano ${_piano.nome}).\n\nUpgrade a Piano Società per collaboratori illimitati.`;
         }
         alert(_msg);
         return;
@@ -15319,9 +15395,9 @@ function getCollabLimiti(soc) {
   return (PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister).collab || null;
 }
 
-// Conta i collaboratori staff attivi (esclude admin, mister_admin, genitore, nonno, giocatore)
+// Conta i collaboratori staff attivi (allenatore + dirigente; preparatore_portieri e altri ruoli non contano)
 function countCollab(roleFilter) {
-  const staffRoles = ['allenatore','dirigente','preparatore_portieri'];
+  const staffRoles = ['allenatore','dirigente'];
   const users = USERS_DB.filter(u => u.stato === 'attivo' && staffRoles.includes(u.role));
   if (roleFilter) return users.filter(u => u.role === roleFilter).length;
   return users.length;

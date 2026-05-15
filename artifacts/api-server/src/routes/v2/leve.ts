@@ -5,6 +5,16 @@ import { requireAuth, requireRole } from "../../lib/auth";
 
 const router = Router();
 
+const PIANO_NORM_L: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+const LEVE_LIMITS: Record<string, number> = { mister: 1, mister_pro: 3, societa: Infinity, demo: Infinity };
+
+async function getSocietyLeveLimit(societyId: number): Promise<number> {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]) as [any[], any];
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM_L[raw] || raw;
+  return LEVE_LIMITS[norm] ?? 1;
+}
+
 // GET /api/v2/leve
 router.get("/leve", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
@@ -27,6 +37,14 @@ router.post("/leve", requireAuth, requireRole("admin"), async (req, res) => {
   if (!nome?.trim()) return res.status(400).json({ error: "nome_required" });
 
   try {
+    const maxLeve = await getSocietyLeveLimit(societyId);
+    if (isFinite(maxLeve)) {
+      const [cnt] = await pool.execute("SELECT COUNT(*) as n FROM leve WHERE society_id = ?", [societyId]) as [any[], any];
+      if (cnt[0].n >= maxLeve) {
+        return res.status(403).json({ error: "plan_limit_reached", limitType: "leve", current: cnt[0].n, max: maxLeve });
+      }
+    }
+
     const [result] = (await pool.execute(
       "INSERT INTO leve (society_id, nome, ordine) VALUES (?, ?, ?)",
       [societyId, nome.trim(), ordine ?? 0]

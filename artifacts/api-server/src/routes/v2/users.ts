@@ -5,6 +5,17 @@ import { requireAuth, requireRole, hashPassword } from "../../lib/auth";
 
 const router = Router();
 
+const PIANO_NORM_U: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+const COLLAB_LIMITS: Record<string, number> = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
+const COLLAB_ROLES = new Set(["allenatore", "dirigente"]);
+
+async function getCollabLimit(societyId: number): Promise<number> {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]) as [any[], any];
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM_U[raw] || raw;
+  return COLLAB_LIMITS[norm] ?? 0;
+}
+
 // GET /api/v2/users
 router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
@@ -39,6 +50,19 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const hash = hashPassword(password);
 
   try {
+    if (COLLAB_ROLES.has(ruolo)) {
+      const maxCollab = await getCollabLimit(societyId);
+      if (isFinite(maxCollab)) {
+        const [cnt] = await pool.execute(
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso'`,
+          [societyId]
+        ) as [any[], any];
+        if (cnt[0].n >= maxCollab) {
+          return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
+        }
+      }
+    }
+
     const [existing] = (await pool.execute(
       "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
       [normalizedEmail, societyId]
