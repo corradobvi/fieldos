@@ -18,10 +18,8 @@ const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
-  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano, promoCode } =
+  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano } =
     req.body as Record<string, string | undefined>;
-
-  const validPromo = (promoCode === 'FOUNDING2026') ? promoCode : null;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
     return res.status(400).json({ error: "missing_fields" });
@@ -81,12 +79,6 @@ router.post("/auth/self-register", async (req, res) => {
 
     await conn.commit();
 
-    // Save founding_promo_pending fire-and-forget — column may not exist yet on older DBs
-    if (validPromo) {
-      pool.execute("UPDATE users SET founding_promo_pending = ? WHERE id = ?", [validPromo, userId])
-        .catch(() => {});
-    }
-
     // Create WhatsApp contact tracking record (fire-and-forget after commit)
     pool.execute(
       `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
@@ -110,7 +102,7 @@ router.post("/auth/self-register", async (req, res) => {
       demoExpires,
     }).catch(() => {});
 
-    logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm, validPromo }, "self-register ok");
+    logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm }, "self-register ok");
 
     return res.status(201).json({
       token,
@@ -121,7 +113,6 @@ router.post("/auth/self-register", async (req, res) => {
         cognome:  cognome.trim(),
         email:    normalizedEmail,
         ruolo:    "admin",
-        foundingPromoPending: validPromo,
       },
       society: {
         id:          societyId,

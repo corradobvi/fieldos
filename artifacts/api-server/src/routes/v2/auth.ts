@@ -32,15 +32,6 @@ router.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "invalid_credentials" });
     }
 
-    // Read founding_promo_pending separately — column may not exist yet on older DBs
-    let foundingPromoPending: string | null = null;
-    try {
-      const [fp] = await pool.execute(
-        "SELECT founding_promo_pending FROM users WHERE id = ?", [user.id]
-      ) as [any[], any];
-      foundingPromoPending = fp[0]?.founding_promo_pending || null;
-    } catch (_) {}
-
     const token = signJWT({
       userId: user.id,
       societyId: user.society_id,
@@ -62,7 +53,6 @@ router.post("/auth/login", async (req, res) => {
         leva: user.leva,
         tempPassword: user.temp_password === 1,
         figli: user.figli ? JSON.parse(user.figli) : [],
-        foundingPromoPending,
       },
       society: {
         id: user.society_id,

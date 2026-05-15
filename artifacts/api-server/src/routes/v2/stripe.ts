@@ -97,7 +97,7 @@ async function stripeGet(path: string): Promise<any> {
 const DEMO_SOC_IDS = new Set([0, 99, 99999]);
 
 router.post("/stripe/create-checkout", async (req, res) => {
-  const { piano, intervallo, societyId: rawSocietyId, email, promoCode } = req.body as Record<string, string | number | undefined>;
+  const { piano, intervallo, societyId: rawSocietyId, email } = req.body as Record<string, string | number | undefined>;
 
   if (!piano || !intervallo) {
     return res.status(400).json({ error: "missing_fields" });
@@ -206,22 +206,11 @@ router.post("/stripe/create-checkout", async (req, res) => {
     params["subscription_data[billing_cycle_anchor]"] = nextAugFirst();
   }
 
-  // Apply founding promo coupon if valid
-  const validPromoCode = promoCode === "FOUNDING2026" ? "FOUNDING2026" : null;
-  if (validPromoCode) {
-    params["discounts[0][coupon]"] = validPromoCode;
-    params["metadata[promoCode]"] = validPromoCode;
-    // When discounts are used, customer is required (not customer_email).
-    // The code above already creates a Stripe customer if not present, so this should be set.
-    // If for some reason customer is not set, remove customer_email to avoid Stripe error.
-    if (!stripeCustomerId) {
-      delete params["customer_email"];
-    }
-  }
+  params["allow_promotion_codes"] = "true";
 
   try {
     const session = await stripePost("/checkout/sessions", params);
-    logger.info({ societyId, piano, intervallo, userId, hasCustomer: !!stripeCustomerId, promoCode: validPromoCode }, "stripe checkout session created");
+    logger.info({ societyId, piano, intervallo, userId, hasCustomer: !!stripeCustomerId }, "stripe checkout session created");
     return res.json({ url: session.url });
   } catch (e: any) {
     logger.error({ err: e }, "stripe create-checkout error");
@@ -293,22 +282,6 @@ router.post("/stripe/webhook", async (req, res) => {
       }
     }
 
-    const promoCode = session?.metadata?.promoCode;
-    if (promoCode === 'FOUNDING2026' && societyId) {
-      try {
-        await pool.execute(
-          "UPDATE societies SET founding_active = ? WHERE id = ?",
-          [promoCode, Number(societyId)]
-        );
-        await pool.execute(
-          "UPDATE users SET founding_promo_pending = NULL WHERE society_id = ? AND ruolo = 'admin'",
-          [Number(societyId)]
-        );
-        logger.info({ societyId, promoCode }, "stripe: founding promo activated");
-      } catch (e: any) {
-        logger.error({ err: e }, "stripe: founding_active update failed");
-      }
-    }
   }
 
   // ── customer.subscription.updated ───────────────────────────────────────
@@ -366,7 +339,7 @@ router.get("/stripe/subscription", async (req, res) => {
 
   try {
     const [rows] = await pool.execute(
-      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza, founding_active
+      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza
        FROM societies WHERE id = ?`,
       [Number(societyId)]
     ) as [any[], any];
@@ -407,7 +380,6 @@ router.get("/stripe/subscription", async (req, res) => {
       cancelAtPeriodEnd,
       intervallo,
       paymentMethod,
-      foundingActive:    soc.founding_active || null,
     });
   } catch (e: any) {
     logger.error({ err: e }, "stripe: subscription fetch error");

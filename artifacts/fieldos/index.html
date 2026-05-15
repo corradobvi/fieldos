@@ -103,10 +103,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .btn-login.loading{opacity:.7;pointer-events:none;}
 .lf-hint{margin-top:20px;background:var(--bg);border-radius:9px;padding:13px 15px;font-size:.75rem;color:var(--text2);}
 .lf-hint strong{color:var(--text);}
-/* Founder promo */
-.lf-founder-banner{background:#1A7A4A;color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;text-align:center;}
-.lf-founder-banner-title{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;letter-spacing:.3px;}
-.lf-founder-banner-sub{font-size:.85rem;opacity:.88;margin-top:5px;line-height:1.4;}
 .lf-cta-btn{width:100%;padding:17px 14px 15px;background:#1A7A4A;color:white;border:none;border-radius:11px;font-family:'Plus Jakarta Sans',sans-serif;font-size:1.08rem;font-weight:800;cursor:pointer;transition:all .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none;box-shadow:0 4px 18px rgba(26,122,74,.3);text-align:center;display:block;}
 .lf-cta-btn:hover{background:#155c37;transform:translateY(-1px);box-shadow:0 8px 28px rgba(26,122,74,.38);}
 .lf-cta-btn:active{opacity:.85;transform:scale(.99);}
@@ -884,10 +880,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-plan-card-cta:hover{filter:brightness(.9);}
 .p-disc-badge{display:inline-block;background:#dcfce7;color:#166534;font-size:.72rem;font-weight:800;padding:1px 7px;border-radius:7px;margin-left:6px;vertical-align:middle;}
 .p-equiv{font-size:.75rem;color:var(--cp);margin-top:2px;}
-.p-found{font-size:.78rem;margin-top:5px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;justify-content:center;}
-.p-found-orig{color:var(--text3);text-decoration:line-through;}
-.p-found-act{color:var(--cp);font-weight:700;}
-.ac-founding-banner{display:flex;align-items:center;gap:8px;background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:.85rem;color:#854d0e;font-weight:600;}
 .ac-soc-rows{display:flex;flex-direction:column;}
 .ac-soc-r{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
 .ac-soc-r:last-child{border-bottom:none;}
@@ -1738,12 +1730,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="lf-mob-logo-name">MyVivaio</div>
       </div>
 
-      <!-- LIVELLO 0: Banner Founder (nascosto per default) -->
-      <div id="lfFounderBanner" class="lf-founder-banner" style="display:none;">
-        <div class="lf-founder-banner-title">🎉 Sei un Early Founder MyVivaio!</div>
-        <div class="lf-founder-banner-sub">Sconto -30% perpetuo sull'abbonamento annuale.<br>Inizia subito i 14 giorni di demo gratuita.</div>
-      </div>
-
       <!-- LIVELLO 1: CTA primaria -->
       <button class="lf-cta-btn" id="lfCtaBtn" onclick="_lfCTAClick()">
         🚀 Inizia gratis — 14 giorni
@@ -1872,7 +1858,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="rf-piano-badge" id="rfPianoBadge">⚽ Piano Mister — 14 giorni gratis</div>
     <input type="hidden" id="rPiano" value="mister">
-    <input type="hidden" id="rfPromoCode" value="">
 
     <div class="rf-row2">
       <div class="fg"><label class="fl">Nome *</label><input class="fi" type="text" id="rNome" placeholder="Mario" autocomplete="given-name" autocapitalize="words"></div>
@@ -2056,10 +2041,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               </div>
               <div class="ac-sub-badge demo" id="acSubBadgeA">Demo</div>
             </div>
-            <!-- Founding member banner -->
-            <div class="ac-founding-banner" id="acFoundingBanner" style="display:none;">
-              ⭐ Sei Founding Member — sconto -30% perpetuo applicato su ogni piano
-            </div>
             <div class="ac-plan-toggle" id="acSubToggleA">
               <button class="ac-plan-toggle-btn active" id="acTogMens" onclick="acSetInterval('mensile')">Mensile</button>
               <button class="ac-plan-toggle-btn" id="acTogAnn" onclick="acSetInterval('annuale')">Annuale &nbsp;<span style="color:var(--cp);font-size:.8em;">fino a -30%</span></button>
@@ -2071,7 +2052,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
                 <div class="ac-plan-card-price">
                   <span class="p-main" id="acPriceMister">9 €</span><span class="p-per" id="acPeriodMister"> /mese</span><span class="p-disc-badge" id="acDiscMister" style="display:none;"></span>
                   <div class="p-equiv" id="acEquivMister" style="display:none;"></div>
-                  <div class="p-found" id="acFoundMister" style="display:none;"><span class="p-found-orig" id="acFoundOrigMister"></span>&nbsp;<span class="p-found-act" id="acFoundActMister"></span></div>
                 </div>
                 <div class="ac-plan-card-feats">✓ 1 leva<br>✓ Presenze e allenamenti<br>✓ Chat famiglia<br>✓ Comunicazioni</div>
                 <button class="ac-plan-card-cta" onclick="acDoCheckout('mister')">Scegli Mister</button>
@@ -2083,7 +2063,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
                 <div class="ac-plan-card-price">
                   <span class="p-main" id="acPriceMisterPro">19 €</span><span class="p-per" id="acPeriodMisterPro"> /mese</span><span class="p-disc-badge" id="acDiscMisterPro" style="display:none;"></span>
                   <div class="p-equiv" id="acEquivMisterPro" style="display:none;"></div>
-                  <div class="p-found" id="acFoundMisterPro" style="display:none;"><span class="p-found-orig" id="acFoundOrigMisterPro"></span>&nbsp;<span class="p-found-act" id="acFoundActMisterPro"></span></div>
                 </div>
                 <div class="ac-plan-card-feats">✓ Leve illimitate<br>✓ Tutto di Mister<br>✓ Rose multiple<br>✓ Statistiche avanzate</div>
                 <button class="ac-plan-card-cta" onclick="acDoCheckout('mister_pro')">Scegli Mister Pro</button>
@@ -2094,7 +2073,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
                 <div class="ac-plan-card-price">
                   <span class="p-main" id="acPriceSocieta">49 €</span><span class="p-per" id="acPeriodSocieta"> /mese</span><span class="p-disc-badge" id="acDiscSocieta" style="display:none;"></span>
                   <div class="p-equiv" id="acEquivSocieta" style="display:none;"></div>
-                  <div class="p-found" id="acFoundSocieta" style="display:none;"><span class="p-found-orig" id="acFoundOrigSocieta"></span>&nbsp;<span class="p-found-act" id="acFoundActSocieta"></span></div>
                 </div>
                 <div class="ac-plan-card-feats">✓ Tutto di Mister Pro<br>✓ Multi-staff<br>✓ Gestione società<br>✓ Supporto prioritario</div>
                 <button class="ac-plan-card-cta" onclick="acDoCheckout('societa')">Scegli Società</button>
@@ -4179,11 +4157,7 @@ async function doLogin() {
       // Carica SA state in background (per plan checks)
       saLoadState();
       me = data.user;
-      const _loginPromo = _getPromoCode();
       bootApp(me);
-      if (_loginPromo === 'FOUNDING2026' && (me.role === 'admin' || me.role === 'mister_admin')) {
-        setTimeout(() => openAccountScreen('piano'), 350);
-      }
       return;
     }
 
@@ -16012,17 +15986,6 @@ function _prefillRegisterFromUrl() {
     }
     // always update badge to reflect current piano
     _updatePianoBadge(document.getElementById('rPiano')?.value || 'mister');
-    const promo = p.get('promo') || _getPromoCode();
-    if (promo === 'FOUNDING2026') {
-      const badge = document.getElementById('rfPianoBadge');
-      if (badge) {
-        badge.style.background = '#1A7A4A';
-        badge.style.color = '#fff';
-        badge.textContent = '🎉 Early Founder — -30% perpetuo sull\'annuale';
-      }
-      const promoEl = document.getElementById('rfPromoCode');
-      if (promoEl) promoEl.value = 'FOUNDING2026';
-    }
   } catch(e) {}
 }
 
@@ -16040,10 +16003,9 @@ function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
   try {
-    const promo = _getPromoCode();
     const url = new URL(window.location.href);
     url.pathname = '/register';
-    if (promo) url.searchParams.set('promo', promo); else url.searchParams.delete('promo');
+    url.searchParams.delete('promo');
     history.pushState(null, '', url.toString());
   } catch(e) {
     try { if (window.location.pathname !== '/register') history.pushState(null, '', '/register'); } catch(e2) {}
@@ -16272,20 +16234,6 @@ function _acShowStateA(soc, piano, pianoIc, planName) {
     if (el_sub) el_sub.textContent = 'Scegli un piano per continuare';
     if (el_bdg) { el_bdg.textContent = 'Scegli piano'; el_bdg.className = 'ac-sub-badge expired'; }
   }
-  const foundBanner = document.getElementById('acFoundingBanner');
-  if (foundBanner) {
-    const hasFoundingPromo = !!(me?.foundingPromoPending || _getPromoCode() === 'FOUNDING2026');
-    const isFoundingActive = !!(me?.isFoundingMember || _acSubData?.foundingActive);
-    if (hasFoundingPromo) {
-      foundBanner.innerHTML = '🎉 Sei Early Founder MyVivaio — Sconto <strong>-30%</strong> perpetuo sull\'annuale. Attiva il piano per bloccarlo!';
-      foundBanner.style.display = '';
-    } else if (isFoundingActive) {
-      foundBanner.innerHTML = '⭐ Sei Founding Member — sconto -30% perpetuo applicato su ogni piano';
-      foundBanner.style.display = '';
-    } else {
-      foundBanner.style.display = 'none';
-    }
-  }
   const month = new Date().getUTCMonth();
   const annDisabled = month === 5 || month === 6;
   const toggleEl = document.getElementById('acSubToggleA');
@@ -16366,13 +16314,11 @@ function acSetInterval(interval) {
 
 function _acUpdatePlanPrices() {
   const iv = _acSubInterval;
-  const isFounder = !!(me?.foundingPromoPending || me?.isFoundingMember || _acSubData?.foundingActive);
-  const FOUNDING_PCT = 0.7;
   [
-    ['mister',     'acPriceMister',    'acPeriodMister',    'acDiscMister',    'acEquivMister',    'acFoundMister',    'acFoundOrigMister',    'acFoundActMister'],
-    ['mister_pro', 'acPriceMisterPro', 'acPeriodMisterPro', 'acDiscMisterPro', 'acEquivMisterPro', 'acFoundMisterPro', 'acFoundOrigMisterPro', 'acFoundActMisterPro'],
-    ['societa',    'acPriceSocieta',   'acPeriodSocieta',   'acDiscSocieta',   'acEquivSocieta',   'acFoundSocieta',   'acFoundOrigSocieta',   'acFoundActSocieta'],
-  ].forEach(([piano, prId, prPer, prDisc, prEquiv, prFound, prFOrig, prFAct]) => {
+    ['mister',     'acPriceMister',    'acPeriodMister',    'acDiscMister',    'acEquivMister'],
+    ['mister_pro', 'acPriceMisterPro', 'acPeriodMisterPro', 'acDiscMisterPro', 'acEquivMisterPro'],
+    ['societa',    'acPriceSocieta',   'acPeriodSocieta',   'acDiscSocieta',   'acEquivSocieta'],
+  ].forEach(([piano, prId, prPer, prDisc, prEquiv]) => {
     const plan = _AC_PLANS[piano]?.[iv];
     if (!plan) return;
     const $ = id => document.getElementById(id);
@@ -16380,17 +16326,6 @@ function _acUpdatePlanPrices() {
     if ($(prPer))   $(prPer).textContent = ' ' + plan.per;
     if ($(prDisc))  { $(prDisc).textContent = plan.disc || ''; $(prDisc).style.display = plan.disc ? '' : 'none'; }
     if ($(prEquiv)) { $(prEquiv).textContent = plan.equiv || ''; $(prEquiv).style.display = plan.equiv ? '' : 'none'; }
-    if ($(prFound)) {
-      if (isFounder && iv === 'annuale') {
-        const raw = Math.round(plan.price * FOUNDING_PCT * 100) / 100;
-        const fLabel = raw.toFixed(2).replace('.', ',') + ' €' + plan.per;
-        if ($(prFOrig)) $(prFOrig).textContent = plan.label + plan.per;
-        if ($(prFAct))  $(prFAct).textContent  = fLabel + ' per te';
-        $(prFound).style.display = '';
-      } else {
-        $(prFound).style.display = 'none';
-      }
-    }
   });
 }
 
@@ -16407,7 +16342,6 @@ async function acDoCheckout(piano) {
   // Invia societyId solo se è un ID reale (non demo/locale)
   const DEMO_IDS = new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
   const realSocId = !DEMO_IDS.has(currentSocietaId) ? currentSocietaId : undefined;
-  const promoCode = me?.foundingPromoPending || (_acSubData?.foundingActive ? null : _getPromoCode()) || null;
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
@@ -16417,14 +16351,11 @@ async function acDoCheckout(piano) {
         intervallo,
         email: me.email,
         ...(realSocId ? { societyId: realSocId } : {}),
-        ...(promoCode ? { promoCode } : {}),
       }),
     });
     const data = await resp.json();
     if (data.url) { window.location.href = data.url; }
-    else if (data.error === 'stripe_error' && (data.detail || '').toLowerCase().includes('coupon')) {
-      toast('Lo sconto Founding è esaurito. Puoi attivare l\'abbonamento al prezzo standard.');
-    } else {
+    else {
       toast('Errore: ' + (data.detail || data.error || 'Riprova'));
     }
   } catch(e) { toast('Errore di connessione. Riprova.'); }
@@ -17210,7 +17141,7 @@ async function doSelfRegister() {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano, promoCode: document.getElementById('rfPromoCode')?.value || undefined }),
+      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano }),
     });
 
     const data = await resp.json();
@@ -17306,62 +17237,8 @@ async function doSelfRegister() {
   }
 }
 
-// ═══════════════════════════════════
-// PROMO CODE (FOUNDING)
-// ═══════════════════════════════════
-const _VALID_PROMOS = new Set(['FOUNDING2026']);
-
-function _getPromoCode() {
-  try {
-    const p = new URLSearchParams(window.location.search);
-    const fromUrl = p.get('promo');
-    if (fromUrl && _VALID_PROMOS.has(fromUrl)) return fromUrl;
-  } catch(e) {}
-  try {
-    const s = sessionStorage.getItem('mv_promo');
-    if (s && _VALID_PROMOS.has(s)) return s;
-  } catch(e) {}
-  try {
-    const m = document.cookie.match(/(?:^|;\s*)mv_promo=([^;]+)/);
-    if (m && _VALID_PROMOS.has(m[1])) return m[1];
-  } catch(e) {}
-  return null;
-}
-
-function _savePromoCode(code) {
-  if (!code || !_VALID_PROMOS.has(code)) return;
-  try { sessionStorage.setItem('mv_promo', code); } catch(e) {}
-  try {
-    const exp = new Date(Date.now() + 30*24*60*60*1000).toUTCString();
-    document.cookie = 'mv_promo=' + code + ';path=/;expires=' + exp + ';SameSite=Lax';
-  } catch(e) {}
-}
-
-function _initPromoCode() {
-  try {
-    const p = new URLSearchParams(window.location.search);
-    const fromUrl = p.get('promo');
-    if (fromUrl && _VALID_PROMOS.has(fromUrl)) _savePromoCode(fromUrl);
-  } catch(e) {}
-}
-
-function _lfShowFounderBannerIfNeeded() {
-  const promo = _getPromoCode();
-  const banner = document.getElementById('lfFounderBanner');
-  if (banner) banner.style.display = promo === 'FOUNDING2026' ? '' : 'none';
-}
-
 function _lfCTAClick() {
-  const promo = _getPromoCode();
   openRegisterScreen();
-  if (promo) {
-    try {
-      const url = new URL(window.location.href);
-      url.pathname = '/register';
-      url.searchParams.set('promo', promo);
-      history.replaceState(null, '', url.toString());
-    } catch(e) {}
-  }
 }
 
 // Mostra demo rapidi solo se URL contiene ?demo=true
@@ -20570,10 +20447,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPwField('srPass',     'srPass2');     // registrazione genitore con codice
   initPwField('onbPass',    'onbPass2');    // onboarding via invito
   initPwField('cpNewPass',  'cpConfPass');  // cambio password (impostazioni)
-
-  // Init promo code (legge ?promo= dall'URL e lo salva in session/cookie)
-  _initPromoCode();
-  _lfShowFounderBannerIfNeeded();
 
   // Ripristina sessione se disponibile (evita logout al refresh)
   const _sessionRestored = tryRestoreSession();
