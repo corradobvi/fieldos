@@ -67,9 +67,9 @@ router.post("/auth/self-register", async (req, res) => {
     const hash = hashPassword(password);
     const [userRes] = (await conn.execute(
       `INSERT INTO users
-         (society_id, nome, cognome, email, password_hash, ruolo, stato, phone, founding_promo_pending)
-       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?, ?)`,
-      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim(), validPromo]
+         (society_id, nome, cognome, email, password_hash, ruolo, stato, phone)
+       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?)`,
+      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim()]
     )) as [any, any];
     const userId: number = userRes.insertId;
 
@@ -80,6 +80,12 @@ router.post("/auth/self-register", async (req, res) => {
     );
 
     await conn.commit();
+
+    // Save founding_promo_pending fire-and-forget — column may not exist yet on older DBs
+    if (validPromo) {
+      pool.execute("UPDATE users SET founding_promo_pending = ? WHERE id = ?", [validPromo, userId])
+        .catch(() => {});
+    }
 
     // Create WhatsApp contact tracking record (fire-and-forget after commit)
     pool.execute(
