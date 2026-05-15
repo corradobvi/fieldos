@@ -35,6 +35,22 @@ async function ensureSchema() {
     });
   }
 
+  // Explicit column guards for founding — SHOW COLUMNS is reliable across all MySQL versions
+  for (const [table, col, def] of [
+    ["users",     "founding_promo_pending", "VARCHAR(20) NULL DEFAULT NULL"],
+    ["societies", "founding_active",        "VARCHAR(20) NULL DEFAULT NULL"],
+  ] as [string, string, string][]) {
+    try {
+      const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]) as [any[], any];
+      if (!cols.length) {
+        await pool.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`);
+        logger.info({ table, col }, "v2: column added via explicit guard");
+      }
+    } catch (e: any) {
+      logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
+    }
+  }
+
   // Seed only if no societies exist yet
   const [rows] = (await pool.execute("SELECT COUNT(*) AS n FROM societies")) as [any[], any];
   if (rows[0].n === 0) {
@@ -56,6 +72,26 @@ router.use(async (_req, _res, next) => {
   } catch (e: any) {
     logger.error({ err: e }, "v2: schema init failed");
     next(); // continue anyway — individual routes will fail gracefully
+  }
+});
+
+// GET /api/v2/schema-info — public diagnostic, returns column presence for founding fields
+router.get("/schema-info", async (_req, res) => {
+  try {
+    const check = async (table: string, col: string) => {
+      const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]) as [any[], any];
+      return r.length > 0;
+    };
+    const [usersCols] = await pool.execute("SHOW COLUMNS FROM users") as [any[], any];
+    const [socCols]   = await pool.execute("SHOW COLUMNS FROM societies") as [any[], any];
+    return res.json({
+      users_founding_promo_pending: await check("users",     "founding_promo_pending"),
+      societies_founding_active:    await check("societies", "founding_active"),
+      users_columns:    usersCols.map((c: any) => c.Field),
+      societies_columns: socCols.map((c: any) => c.Field),
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
   }
 });
 
