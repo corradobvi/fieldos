@@ -208,8 +208,8 @@ CREATE TABLE IF NOT EXISTS demo_whatsapp_contact (
   INDEX idx_dwc_status (status),
   INDEX idx_dwc_user (user_id)
 );
-ALTER TABLE users ADD COLUMN IF NOT EXISTS founding_promo_pending VARCHAR(20) NULL DEFAULT NULL;
-ALTER TABLE societies ADD COLUMN IF NOT EXISTS founding_active VARCHAR(20) NULL DEFAULT NULL
+ALTER TABLE users ADD COLUMN founding_promo_pending VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL
 `;
 
 export const SEED_SQL = `
