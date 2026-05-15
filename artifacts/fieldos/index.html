@@ -3286,6 +3286,8 @@ const SECTION_LOCKS = {
     features:['Max 3 leve','Giocatori illimitati','Libreria allenamenti','Statistiche avanzate','Tutto di Piano Mister'] },
   pagamenti:  { pianoMin:'societa',    nomePiano:'Società',    ic:'🏟️', prezzo:49, prezzoAnno:419,
     features:['Leve illimitate','Gestione quote e pagamenti','Multi-staff','Campionato e tornei','Tutto di Mister Pro'] },
+  documenti:  { pianoMin:'mister_pro', nomePiano:'Mister Pro', ic:'📋', prezzo:19, prezzoAnno:159,
+    features:['Certificati medici con alert scadenza','Upload documenti giocatori','Storico e archivio documenti','Tutto di Piano Mister'] },
 };
 const DEMO_SOC_ID    = 99;
 const DEMO_EMAIL     = 'demo@myvivaio.app';
@@ -4313,6 +4315,7 @@ function bootApp(user) {
     if (me && me.tempPassword) setTimeout(() => openM('mChangePass'), 600);
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
+    _syncSubscriptionStatus();
     // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
     const _cb = document.getElementById('asstBtn');
     const _isMobFam = window.innerWidth <= 640 && me && (me.role === 'genitore' || me.role === 'nonno');
@@ -11493,6 +11496,12 @@ function renderPagamenti() {
   const c = document.getElementById('pagContent');
   const acts = document.getElementById('pagActions');
   if (!c || !me) return;
+  const _pagSoc = saSocieties.find(x => x.id === currentSocietaId);
+  if (isSectionLocked('pagamenti', _pagSoc)) {
+    if (acts) acts.innerHTML = '';
+    c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione quote e pagamenti è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('pagamenti')">Scopri il Piano Società →</button></div>`;
+    return;
+  }
   checkAndUpdateQuoteStato();
   if (acts) {
     acts.innerHTML = '';
@@ -11916,12 +11925,16 @@ function checkDocumentiReminders() {
 function renderDocumenti() {
   const c = document.getElementById('docContent');
   if (!c || !me) return;
+  const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
+  if (isSectionLocked('documenti', _docSoc)) {
+    c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione documenti con certificati medici è disponibile a partire dal piano <strong>Mister Pro</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('documenti')">Scopri il Piano Mister Pro →</button></div>`;
+    return;
+  }
   const visPlayers = docVisiblePlayers();
   if (!visPlayers.length) {
     c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">Nessun giocatore visibile.</div>`;
     return;
   }
-  const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
   const certOk = hasCertMedicoFeature(_docSoc);
 
   // Warning banner scadenze cert (solo se feature attiva)
@@ -15253,6 +15266,12 @@ function pianoNorm(p) {
 function getPianoDef(soc) {
   return PIANI_DEF[pianoNorm(soc?.piano)] || PIANI_DEF.societa;
 }
+function getEffectivePlan(soc) {
+  if (!soc) return 'mister';
+  const status = getPianoStatus(soc);
+  if (status === 'active_demo') return pianoNorm(soc.demoPlanKey) || 'mister';
+  return pianoNorm(soc.piano);
+}
 function getPianoStatus(soc) {
   if (!soc) return 'active';
   const piano = pianoNorm(soc.piano);
@@ -15267,8 +15286,7 @@ function getDemoGiorni(soc) {
   return Math.max(0, Math.ceil((soc.scadenzaDemo - Date.now()) / 86400000));
 }
 function getLimiti(soc) {
-  if (getPianoStatus(soc) === 'active_demo') return { leve:Infinity, giocatori:Infinity };
-  return getPianoDef(soc);
+  return PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister;
 }
 function isLevaFrozen(soc, levaName, allLeve) {
   const lim = getLimiti(soc);
@@ -15298,8 +15316,7 @@ function canAddPlayer(soc, levaName) {
 // Ritorna { allenatore, dirigente, preparatore_portieri, total } o null (illimitato)
 function getCollabLimiti(soc) {
   if (!soc) return null;
-  if (getPianoStatus(soc) === 'active_demo') return null;
-  return getPianoDef(soc).collab || null;
+  return (PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister).collab || null;
 }
 
 // Conta i collaboratori staff attivi (esclude admin, mister_admin, genitore, nonno, giocatore)
@@ -15324,31 +15341,24 @@ function canAddCollab(soc, role) {
 
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
-  if (!soc) return false; // society not loaded yet → don't lock
+  if (!soc) return false;
   if (currentSocietaId === DEMO_STELLA_ID) return false;
-  const status = getPianoStatus(soc);
-  if (status === 'active_demo') return false;
   const lock = SECTION_LOCKS[sectionId];
-  const tier = pianoNorm(soc.piano);
-  const tierIdx = PIANO_TIERS.indexOf(tier);
-  const minIdx = PIANO_TIERS.indexOf(lock.pianoMin);
-  return tierIdx < minIdx;
+  const tier = getEffectivePlan(soc);
+  return PIANO_TIERS.indexOf(tier) < PIANO_TIERS.indexOf(lock.pianoMin);
 }
 
 // true se il piano corrente include la gestione certificato medico (Mister Pro+)
 function hasCertMedicoFeature(soc) {
-  if (!soc) return true; // società non caricata → non bloccare
-  if (currentSocietaId === DEMO_STELLA_ID) return true; // demo stella: accesso completo
-  const status = getPianoStatus(soc);
-  if (status === 'active_demo') return true; // periodo demo → accesso completo
-  const tier = pianoNorm(soc.piano);
-  return PIANO_TIERS.indexOf(tier) >= PIANO_TIERS.indexOf('mister_pro');
+  if (!soc) return true;
+  if (currentSocietaId === DEMO_STELLA_ID) return true;
+  return PIANO_TIERS.indexOf(getEffectivePlan(soc)) >= PIANO_TIERS.indexOf('mister_pro');
 }
 
 function openUpgradePopup(sectionId) {
   const lock = SECTION_LOCKS[sectionId];
   if (!lock) return;
-  const secLabels = { pagamenti:'💰 Quote & Pagamenti', allenamenti:'🏃 Allenamenti' };
+  const secLabels = { pagamenti:'💰 Quote & Pagamenti', allenamenti:'🏃 Allenamenti', documenti:'📋 Documenti' };
   const secLabel = secLabels[sectionId] || sectionId;
   const existing = document.getElementById('mUpgrade');
   if (existing) existing.remove();
@@ -15398,8 +15408,9 @@ function refreshDemoBanner() {
   const status = getPianoStatus(soc);
   if (status === 'active_demo') {
     const giorni = getDemoGiorni(soc);
+    const demoPianoLabel = soc?.demoPlanKey ? ` · ${PIANI_DEF[soc.demoPlanKey]?.nome || soc.demoPlanKey}` : '';
     banner.style.display = '';
-    banner.innerHTML = `🎮 <strong>Demo attiva</strong> — ${giorni} giorn${giorni===1?'o':'i'} rimanent${giorni===1?'e':'i'} <span class="demo-bar-link">Scegli il tuo piano →</span>`;
+    banner.innerHTML = `🎮 <strong>Demo attiva${demoPianoLabel}</strong> — ${giorni} giorn${giorni===1?'o':'i'} rimanent${giorni===1?'e':'i'} <span class="demo-bar-link">Scegli il tuo piano →</span>`;
   } else {
     banner.style.display = 'none';
   }
@@ -15464,13 +15475,12 @@ function closePianoModal() {
 function attivaSimPiano(pianoId) {
   const soc = saSocieties.find(x => x.id === currentSocietaId);
   if (soc) {
-    soc.piano = pianoId;
-    soc.scadenzaDemo = null;
+    soc.demoPlanKey = pianoId;
     saSaveState();
   }
   closePianoModal();
   refreshDemoBanner();
-  toast(`✅ Piano ${PIANI_DEF[pianoId].nome} attivato! (simulazione)`);
+  toast(`✅ Stai esplorando il piano ${PIANI_DEF[pianoId]?.nome || pianoId}! (simulazione demo)`);
 }
 
 // Login demo
@@ -17127,7 +17137,29 @@ function checkPianoOnBoot(soc) {
   refreshDemoBanner();
   if (status === 'expired_demo') {
     setTimeout(() => openPianoModal(true), 400);
+  } else if (status === 'active_demo' && !soc?.demoPlanKey) {
+    setTimeout(() => openPianoModal(false), 800);
   }
+}
+
+async function _syncSubscriptionStatus() {
+  if (!me || !currentSocietaId) return;
+  if ([0, DEMO_SOC_ID, DEMO_STELLA_ID].includes(currentSocietaId)) return;
+  if (me.role !== 'admin' && me.role !== 'mister_admin') return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.piano) return;
+    const soc = saSocieties.find(x => x.id === currentSocietaId);
+    if (!soc) return;
+    if (pianoNorm(soc.piano) !== pianoNorm(data.piano)) {
+      soc.piano = data.piano;
+      saSaveState();
+      refreshDemoBanner();
+      buildSidebar(me.role);
+    }
+  } catch (_) {}
 }
 
 // (POLIS_SOC → dichiarata in cima allo script)
