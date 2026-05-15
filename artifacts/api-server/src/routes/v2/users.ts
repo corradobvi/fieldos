@@ -89,6 +89,27 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
   const { nome, cognome, email, password, ruolo, leva, stato, figli } = req.body as Record<string, any>;
 
   try {
+    // Se il ruolo sta cambiando verso un ruolo collaboratore, verifica il limite
+    if (ruolo && COLLAB_ROLES.has(ruolo)) {
+      const [curRows] = await pool.execute(
+        "SELECT ruolo FROM users WHERE id = ? AND society_id = ?",
+        [req.params.id, societyId]
+      ) as [any[], any];
+      const currentRuolo = curRows[0]?.ruolo;
+      if (currentRuolo && !COLLAB_ROLES.has(currentRuolo)) {
+        const maxCollab = await getCollabLimit(societyId);
+        if (isFinite(maxCollab)) {
+          const [cnt] = await pool.execute(
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso' AND id != ?`,
+            [societyId, req.params.id]
+          ) as [any[], any];
+          if (cnt[0].n >= maxCollab) {
+            return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
+          }
+        }
+      }
+    }
+
     const updates: string[] = [];
     const params: any[] = [];
 

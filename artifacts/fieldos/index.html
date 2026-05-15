@@ -9232,6 +9232,16 @@ function saveUser() {
   } else {
     const u = USERS_DB.find(x => x.id === editingUserId);
     if (!u) return;
+    // Verifica limite se il ruolo sta cambiando verso un ruolo collaboratore
+    const _collabRoles = ['allenatore','dirigente'];
+    if (_collabRoles.includes(role) && !_collabRoles.includes(u.role)) {
+      const _soc = saSocieties.find(x => x.id === currentSocietaId);
+      if (!canAddCollab(_soc, role)) {
+        closeM('mNewUser');
+        openPlanLimitModal('collaboratori');
+        return;
+      }
+    }
     Object.assign(u, { nome, cogn, email, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno });
     if (pass) u.pass = pass;
     closeM('mNewUser');
