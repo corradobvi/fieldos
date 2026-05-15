@@ -188,7 +188,9 @@ export const MIGRATIONS_SQL = `
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
 ALTER TABLE users ADD COLUMN phone VARCHAR(50);
 ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);
-ALTER TABLE societies ADD COLUMN stripe_subscription_id VARCHAR(255)
+ALTER TABLE societies ADD COLUMN stripe_subscription_id VARCHAR(255);
+ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(255);
+ALTER TABLE users MODIFY COLUMN society_id INT DEFAULT NULL
 `;
 
 export const SEED_SQL = `

@@ -93,11 +93,17 @@ async function stripeGet(path: string): Promise<any> {
 }
 
 // POST /api/v2/stripe/create-checkout
+// IDs demo/locali che non sono presenti nel DB MySQL reale
+const DEMO_SOC_IDS = new Set([0, 99, 99999]);
+
 router.post("/stripe/create-checkout", async (req, res) => {
   const { piano, intervallo, societyId: rawSocietyId, email } = req.body as Record<string, string | number | undefined>;
 
   if (!piano || !intervallo) {
     return res.status(400).json({ error: "missing_fields" });
+  }
+  if (!email) {
+    return res.status(400).json({ error: "missing_email", detail: "Accedi prima di procedere al pagamento." });
   }
 
   // Blocca piano annuale in giugno e luglio
@@ -111,26 +117,58 @@ router.post("/stripe/create-checkout", async (req, res) => {
     }
   }
 
-  // Risolvi societyId: dal payload oppure tramite lookup email in MySQL
-  let societyId: number | null = rawSocietyId ? Number(rawSocietyId) : null;
+  const normalizedEmail = String(email).trim().toLowerCase();
 
-  if (!societyId && email) {
-    try {
-      const [rows] = (await pool.execute(
-        "SELECT society_id FROM users WHERE LOWER(email) = ? LIMIT 1",
-        [String(email).trim().toLowerCase()]
-      )) as [any[], any];
-      if (rows.length) societyId = rows[0].society_id;
-    } catch (e: any) {
-      logger.error({ err: e }, "stripe: email→society lookup failed");
+  // societyId: valido solo se non è un ID demo/locale
+  let societyId: number | null =
+    rawSocietyId && !DEMO_SOC_IDS.has(Number(rawSocietyId)) ? Number(rawSocietyId) : null;
+
+  let stripeCustomerId: string | null = null;
+  let userId: number | null = null;
+
+  // Lookup utente in MySQL — risolve society, customer Stripe e userId
+  try {
+    const [userRows] = (await pool.execute(
+      `SELECT u.id, u.society_id, u.stripe_customer_id,
+              s.stripe_customer_id AS soc_stripe_customer_id
+       FROM users u
+       LEFT JOIN societies s ON s.id = u.society_id
+       WHERE LOWER(u.email) = ? LIMIT 1`,
+      [normalizedEmail]
+    )) as [any[], any];
+
+    if (userRows.length) {
+      const u = userRows[0];
+      userId = u.id;
+      // Usa stripe_customer_id dall'utente o dalla sua società (fallback)
+      stripeCustomerId = u.stripe_customer_id || u.soc_stripe_customer_id || null;
+      // Risolvi societyId dal DB se non già impostato e non è un ID demo
+      if (!societyId && u.society_id && !DEMO_SOC_IDS.has(u.society_id)) {
+        societyId = u.society_id;
+      }
     }
+  } catch (e: any) {
+    logger.error({ err: e }, "stripe: user lookup failed");
   }
 
-  if (!societyId) {
-    return res.status(400).json({
-      error: "society_not_found",
-      detail: "Nessuna società trovata. Completa la registrazione prima di procedere.",
-    });
+  // Crea Stripe customer se non esiste ancora
+  if (!stripeCustomerId && process.env.STRIPE_SECRET_KEY) {
+    try {
+      const custParams: Record<string, string | number> = { email: normalizedEmail };
+      if (userId)    custParams["metadata[userId]"]    = String(userId);
+      if (societyId) custParams["metadata[societyId]"] = String(societyId);
+      const customer = await stripePost("/customers", custParams);
+      stripeCustomerId = customer.id;
+      // Salva il customer su users (se l'utente esiste in MySQL)
+      if (userId && stripeCustomerId) {
+        pool.execute(
+          "UPDATE users SET stripe_customer_id = ? WHERE id = ?",
+          [stripeCustomerId, userId]
+        ).catch((e: any) => logger.warn({ err: e }, "stripe: save stripe_customer_id on users failed"));
+      }
+    } catch (e: any) {
+      logger.warn({ err: e }, "stripe: create customer failed — proceeding without customer");
+    }
   }
 
   const priceId = getPriceId(String(piano), String(intervallo));
@@ -147,12 +185,22 @@ router.post("/stripe/create-checkout", async (req, res) => {
     "line_items[0][quantity]": 1,
     "success_url": `${appUrl}/payment-success?piano=${encodeURIComponent(String(piano))}&intervallo=${encodeURIComponent(String(intervallo))}`,
     "cancel_url":  `${appUrl}/subscribe`,
-    "metadata[societyId]": String(societyId),
     "metadata[piano]":     String(piano),
     "metadata[intervallo]": String(intervallo),
+    "metadata[email]":     normalizedEmail,
   };
 
-  if (email) params["customer_email"] = String(email);
+  // Customer Stripe: usa il customer se disponibile, altrimenti customer_email
+  if (stripeCustomerId) {
+    params["customer"] = stripeCustomerId;
+  } else {
+    params["customer_email"] = normalizedEmail;
+  }
+
+  // societyId nei metadata solo se valido (webhook può aggiornare la società)
+  if (societyId) {
+    params["metadata[societyId]"] = String(societyId);
+  }
 
   if (String(intervallo) === "annuale") {
     params["subscription_data[billing_cycle_anchor]"] = nextAugFirst();
@@ -160,7 +208,7 @@ router.post("/stripe/create-checkout", async (req, res) => {
 
   try {
     const session = await stripePost("/checkout/sessions", params);
-    logger.info({ societyId, piano, intervallo }, "stripe checkout session created");
+    logger.info({ societyId, piano, intervallo, userId, hasCustomer: !!stripeCustomerId }, "stripe checkout session created");
     return res.json({ url: session.url });
   } catch (e: any) {
     logger.error({ err: e }, "stripe create-checkout error");
