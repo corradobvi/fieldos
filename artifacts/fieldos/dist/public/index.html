@@ -4787,10 +4787,8 @@ function addLeva(v) {
   if (leve.includes(v)) { toast(`⚠️ La leva "${v}" esiste già`); return; }
   const _alSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (!canAddLeva(_alSoc, leve)) {
-    const def = getPianoDef(_alSoc);
-    toast(`⚠️ Piano ${def.nome}: massimo ${def.leve} lev${def.leve===1?'a':'e'}. Passa a un piano superiore per aggiungerne altre.`);
     closeM('mLeva');
-    openPianoModal(false);
+    openPlanLimitModal('leve');
     return;
   }
   leve.push(v);
@@ -4863,13 +4861,18 @@ function renderLeveImpostazioni() {
   const _levaBtn = document.getElementById('btnAddLeva');
   if (_levaBtn) {
     const _canAddLeva = canAddLeva(_levaSoc, leve);
-    _levaBtn.disabled = !_canAddLeva;
     if (!_canAddLeva && isFinite(_levaMax)) {
       _levaBtn.textContent = `${leve.length} / ${_levaMax} leve`;
-      _levaBtn.title = `Hai raggiunto il massimo di ${_levaMax} lev${_levaMax===1?'a':'e'}. Passa a un piano superiore per aggiungerne altre.`;
+      _levaBtn.title = `Limite raggiunto — clicca per scoprire i piani disponibili`;
+      _levaBtn.style.opacity = '0.55';
+      _levaBtn.style.cursor = 'not-allowed';
+      _levaBtn.onclick = () => openPlanLimitModal('leve');
     } else {
       _levaBtn.textContent = '+ Aggiungi leva';
       _levaBtn.title = '';
+      _levaBtn.style.opacity = '';
+      _levaBtn.style.cursor = '';
+      _levaBtn.onclick = () => openAddLeva();
     }
   }
 
@@ -5397,9 +5400,14 @@ function buildRosaSection() {
     const btn = document.createElement('button');
     btn.className = 'btn btn-p';
     btn.textContent = '+ Aggiungi giocatore';
-    btn.disabled = !_canAdd;
-    if (!_canAdd) btn.title = 'Limite raggiunto. Passa a Mister Pro per giocatori illimitati.';
-    btn.onclick = () => { if (_canAdd) openPlayerModal(null); };
+    if (!_canAdd) {
+      btn.style.opacity = '0.55';
+      btn.style.cursor = 'not-allowed';
+      btn.title = 'Limite raggiunto — clicca per scoprire i piani disponibili';
+      btn.onclick = () => openPlanLimitModal('giocatoriPerLeva');
+    } else {
+      btn.onclick = () => openPlayerModal(null);
+    }
     el.appendChild(btn);
   }
   updateRosaLimitBar();
@@ -9212,15 +9220,8 @@ function saveUser() {
     if (_collabRoles.includes(role)) {
       const _soc = saSocieties.find(x => x.id === currentSocietaId);
       if (!canAddCollab(_soc, role)) {
-        const _lim = getCollabLimiti(_soc);
-        const _piano = getPianoDef(_soc);
-        let _msg;
-        if (_lim && _lim.total === 0) {
-          _msg = `⛔ Il piano ${_piano.nome} non include collaboratori.\n\nSolo il titolare gestisce la squadra. Passa a Mister Pro per aggiungere fino a 6 collaboratori.`;
-        } else {
-          _msg = `⛔ Hai raggiunto il limite di ${_lim?.total || 6} collaboratori (Piano ${_piano.nome}).\n\nUpgrade a Piano Società per collaboratori illimitati.`;
-        }
-        alert(_msg);
+        closeM('mNewUser');
+        openPlanLimitModal('collaboratori');
         return;
       }
     }
@@ -15458,6 +15459,96 @@ function openUpgradePopup(sectionId) {
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" onclick="document.getElementById('mUpgrade').remove();openPianoModal(false)">🚀 Scopri il Piano ${lock.nomePiano} →</button>
       <button class="btn btn-g" onclick="document.getElementById('mUpgrade').remove()">Chiudi</button>
+    </div>
+  </div>`;
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('on'));
+}
+
+// Modal upsell unificato — si apre su ogni tipo di limite piano
+function openPlanLimitModal(limitType) {
+  const existing = document.getElementById('mPlanLimit');
+  if (existing) existing.remove();
+
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const currentPlan = getEffectivePlan(soc);
+  const planDef = PIANI_DEF[currentPlan] || PIANI_DEF.mister;
+
+  const DEFS = {
+    giocatoriPerLeva: {
+      emoji: '👥', risorsa: 'giocatori per rosa',
+      descrizione: `Il piano <strong>${planDef.nome}</strong> include massimo <strong>${planDef.giocatori === Infinity ? 'illimitati' : planDef.giocatori}</strong> giocatori per leva. Hai già usato tutti i posti disponibili.`,
+      upgradeTo: 'mister_pro',
+      righe: [
+        { piano:'mister',     ic:'⚽', valore:'25 giocatori per leva' },
+        { piano:'mister_pro', ic:'🏅', valore:'Giocatori illimitati' },
+        { piano:'societa',    ic:'🏟️', valore:'Illimitati + multi-staff' },
+      ],
+    },
+    leve: {
+      emoji: '🏷️', risorsa: 'leve',
+      descrizione: `Il piano <strong>${planDef.nome}</strong> gestisce massimo <strong>${planDef.leve === Infinity ? 'illimitate' : planDef.leve} lev${planDef.leve === 1 ? 'a' : 'e'}</strong>. Hai raggiunto il massimo consentito.`,
+      upgradeTo: currentPlan === 'mister' ? 'mister_pro' : 'societa',
+      righe: [
+        { piano:'mister',     ic:'⚽', valore:'1 leva' },
+        { piano:'mister_pro', ic:'🏅', valore:'Fino a 3 leve' },
+        { piano:'societa',    ic:'🏟️', valore:'Leve illimitate' },
+      ],
+    },
+    collaboratori: {
+      emoji: '🤝', risorsa: 'collaboratori',
+      descrizione: currentPlan === 'mister'
+        ? `Il piano <strong>Mister</strong> non include collaboratori. Solo il titolare gestisce la squadra.`
+        : `Il piano <strong>Mister Pro</strong> include massimo <strong>6 collaboratori</strong>. Hai raggiunto il limite.`,
+      upgradeTo: currentPlan === 'mister' ? 'mister_pro' : 'societa',
+      righe: [
+        { piano:'mister',     ic:'⚽', valore:'Solo il titolare' },
+        { piano:'mister_pro', ic:'🏅', valore:'Fino a 6 collaboratori' },
+        { piano:'societa',    ic:'🏟️', valore:'Collaboratori illimitati' },
+      ],
+    },
+  };
+
+  const def = DEFS[limitType] || DEFS.giocatoriPerLeva;
+  const upgradeTarget = def.upgradeTo;
+  const upgradeDef = PIANI_DEF[upgradeTarget] || PIANI_DEF.mister_pro;
+
+  const righeHtml = def.righe.map(r => {
+    const isActive = r.piano === currentPlan;
+    const isCons = r.piano === upgradeTarget;
+    const bg = isCons ? 'background:#f0fdf4;border:1.5px solid var(--cp);' : isActive ? 'background:var(--bg);border:1px solid var(--border);' : 'border:1px solid transparent;';
+    const nameStyle = `font-size:.82rem;${isActive ? 'font-weight:700;color:var(--text);' : 'font-weight:500;color:var(--text2);'}`;
+    const valStyle = `font-size:.8rem;${isCons ? 'font-weight:700;color:var(--cp);' : isActive ? 'color:var(--text2);' : 'color:var(--text3);'}`;
+    return `<div style="display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;margin-bottom:4px;${bg}">
+      <span style="font-size:.95rem;">${r.ic}</span>
+      <span style="flex:1;${nameStyle}">${PIANI_DEF[r.piano]?.nome || r.piano}</span>
+      <span style="${valStyle}">${r.valore}</span>
+      ${isActive ? '<span style="font-size:.65rem;background:#e5e7eb;color:var(--text3);padding:2px 6px;border-radius:6px;font-weight:600;white-space:nowrap;">attuale</span>' : ''}
+      ${isCons ? '<span style="font-size:.65rem;background:var(--cp);color:#fff;padding:2px 6px;border-radius:6px;font-weight:700;white-space:nowrap;">consigliato</span>' : ''}
+    </div>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ov';
+  overlay.id = 'mPlanLimit';
+  overlay.style.zIndex = '9999';
+  overlay.innerHTML = `<div class="modal" style="max-width:400px;">
+    <div class="mh">
+      <div class="mt">${def.emoji} Limite del piano raggiunto</div>
+      <button class="mx" onclick="document.getElementById('mPlanLimit').remove()">✕</button>
+    </div>
+    <div style="font-size:.83rem;color:var(--text2);margin-bottom:14px;line-height:1.6;">${def.descrizione}</div>
+    <div style="background:var(--cl);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:16px;">
+      <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Confronto piani</div>
+      ${righeHtml}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-p" onclick="document.getElementById('mPlanLimit').remove();openAccountScreen('piano')">🚀 Passa a ${upgradeDef.nome} →</button>
+      <button class="btn btn-g" onclick="document.getElementById('mPlanLimit').remove();openPianoModal(false)">📊 Vedi tutti i piani</button>
+    </div>
+    <div style="text-align:center;margin-top:10px;">
+      <button onclick="document.getElementById('mPlanLimit').remove()" style="background:none;border:none;font-size:.79rem;color:var(--text3);cursor:pointer;text-decoration:underline;">Forse più tardi</button>
     </div>
   </div>`;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
