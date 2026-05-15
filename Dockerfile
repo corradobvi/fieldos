@@ -1,10 +1,10 @@
-# 2026-05-15 — rebuild: founding fix, login+register defensive, schema guard
+# 2026-05-15-v6 — force full rebuild: founding column fix deployed
 FROM node:20-slim
 
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm && echo "build-20260515-v6"
 
 # Copy workspace manifests and lockfile for dependency installation
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
