@@ -17200,16 +17200,27 @@ async function doSelfRegister() {
       body: JSON.stringify({ stateJson: JSON.stringify(initialState) })
     }).catch(() => {});
 
-    // Aggiorna SA state
-    saLoadState();
+    // Aggiorna SA state — fetch-merge-save per non sovrascrivere società esistenti
     const demoDays = society.demoDays || (piano === 'societa' ? 10 : 14);
+    const _newSoc = {
+      id: societyId, nome: societa, citta, colori: '#047857', leva: 'Prima Squadra',
+      piano, stato: 'attivo', email, note: '', utenti: 1, giocatori: 0,
+      createdAt: Date.now(), lastActivity: null,
+      scadenzaDemo: Date.now() + demoDays * 86400000
+    };
+    try {
+      const _saR = await fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY));
+      if (_saR.ok) {
+        const _saD = await _saR.json();
+        const _saS = JSON.parse(_saD.stateJson);
+        if (Array.isArray(_saS.saSocieties))        saSocieties    = _saS.saSocieties;
+        if (typeof _saS.saNextSocId === 'number')   saNextSocId    = _saS.saNextSocId;
+        if (Array.isArray(_saS.saActionLog))        saActionLog    = _saS.saActionLog;
+        if (typeof _saS.saNextLogId === 'number')   saNextLogId    = _saS.saNextLogId;
+      }
+    } catch (_) {}
     if (!saSocieties.find(x => x.id === societyId)) {
-      saSocieties.push({
-        id: societyId, nome: societa, citta, colori: '#047857', leva: 'Prima Squadra',
-        piano, stato: 'attivo', email, note: '', utenti: 1, giocatori: 0,
-        createdAt: Date.now(), lastActivity: null,
-        scadenzaDemo: Date.now() + demoDays * 86400000
-      });
+      saSocieties.push(_newSoc);
       saSaveState();
     }
 
