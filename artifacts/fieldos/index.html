@@ -1907,8 +1907,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <!-- Toggle mensile / annuale -->
     <div class="sub-toggle">
-      <button class="sub-toggle-btn sel" id="subToggleMensile" onclick="subSetIntervallo('mensile')">Mensile</button>
-      <button class="sub-toggle-btn" id="subToggleAnnuale" onclick="subSetIntervallo('annuale')">Annuale</button>
+      <button class="sub-toggle-btn" id="subToggleMensile" onclick="subSetIntervallo('mensile')">Mensile</button>
+      <button class="sub-toggle-btn sel" id="subToggleAnnuale" onclick="subSetIntervallo('annuale')">Annuale</button>
       <span class="sub-saving" id="subSavingBadge">Risparmia fino al 30%</span>
     </div>
     <div class="sub-plans">
@@ -2042,8 +2042,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               <div class="ac-sub-badge demo" id="acSubBadgeA">Demo</div>
             </div>
             <div class="ac-plan-toggle" id="acSubToggleA">
-              <button class="ac-plan-toggle-btn active" id="acTogMens" onclick="acSetInterval('mensile')">Mensile</button>
-              <button class="ac-plan-toggle-btn" id="acTogAnn" onclick="acSetInterval('annuale')">Annuale &nbsp;<span style="color:var(--cp);font-size:.8em;">fino a -30%</span></button>
+              <button class="ac-plan-toggle-btn" id="acTogMens" onclick="acSetInterval('mensile')">Mensile</button>
+              <button class="ac-plan-toggle-btn active" id="acTogAnn" onclick="acSetInterval('annuale')">Annuale &nbsp;<span style="color:var(--cp);font-size:.8em;">fino a -30%</span></button>
             </div>
             <div class="ac-plan-grid">
               <div class="ac-plan-card" id="acCardMister">
@@ -16042,7 +16042,7 @@ function closeSubscribeScreen() {
 // ── Il mio account ───────────────────────────────────────────────────────
 
 let _acCurrentTab = 'profilo';
-let _acSubInterval = 'mensile';
+let _acSubInterval = 'annuale';
 let _acSubData = null;
 
 function acIsSubscriptionOwner() {
@@ -16737,7 +16737,7 @@ const _subProrata = {
 };
 const _subFullAnnuale = { mister:79, misterPro:159, societa:419 };
 
-let _subIntervallo = 'mensile';
+let _subIntervallo = 'annuale';
 
 // Calcola i prezzi annuali pro-rata per il mese corrente
 function _subGetAnnualeForMonth() {
@@ -16805,7 +16805,7 @@ function _subInit() {
     annBtn.style.opacity = annAvailable ? '' : '0.4';
     annBtn.title = annAvailable ? '' : 'Non disponibile in giugno e luglio';
   }
-  subSetIntervallo('mensile');
+  subSetIntervallo('annuale');
 
   // Popola stato piano corrente
   const soc = saSocieties.find(x => x.id === currentSocietaId);
