@@ -62071,6 +62071,32 @@ async function sendWelcomeEmails(opts) {
     logger.error({ err: e }, "email send failed (non-blocking)");
   }
 }
+async function sendPasswordResetEmail(opts) {
+  const { email, nome, cognome, nomeSocieta, tempPass } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">\u{1F511} Nuova password \u2014 MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Il tuo accesso a <strong>${nomeSocieta}</strong> \xE8 stato resettato dall'amministratore di sistema.</p>
+  <p style="margin:20px 0 8px;">La tua password temporanea \xE8:</p>
+  <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:10px;padding:18px;text-align:center;margin:0 0 16px;">
+    <code style="font-size:1.5rem;font-weight:800;letter-spacing:4px;color:#065f46;">${tempPass}</code>
+  </div>
+  <p style="font-size:.85rem;color:#64748b;">
+    Accedi su <a href="https://myvivaio.app" style="color:#1A7A4A;font-weight:600;">myvivaio.app</a> con questa password temporanea.
+    Verrai reindirizzato a cambiarla subito.
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    Se non hai richiesto questo reset, contatta l'assistenza MyVivaio.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Nuova password temporanea \u2014 ${nomeSocieta}`, html);
+    logger.info({ email }, "password reset email sent");
+  } catch (e) {
+    logger.error({ err: e }, "password reset email failed (non-blocking)");
+  }
+}
 
 // artifacts/api-server/src/routes/v2/self-register.ts
 var router10 = (0, import_express10.Router)();
@@ -63908,6 +63934,25 @@ var import_express23 = __toESM(require_express2(), 1);
 var router23 = (0, import_express23.Router)();
 var SA_SECRET = process.env.SA_SECRET ?? "super123";
 var EXCLUDED_IDS = [99, 99999];
+function _generateTempPassword2() {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const special = "!@#$";
+  const all = upper + lower + digits + special;
+  const chars = [
+    upper[Math.floor(Math.random() * upper.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    special[Math.floor(Math.random() * special.length)]
+  ];
+  while (chars.length < 8) chars.push(all[Math.floor(Math.random() * all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
 router23.get("/superadmin/societies", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
@@ -63936,6 +63981,42 @@ router23.get("/superadmin/societies", async (req, res) => {
     return res.json({ societies: rows });
   } catch (e) {
     logger.error({ err: e }, "superadmin/societies error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router23.post("/superadmin/reset-password", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "missing_email" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT u.id, u.nome, u.cognome, u.email, s.nome AS society_nome
+       FROM users u JOIN societies s ON s.id = u.society_id
+       WHERE LOWER(u.email) = ? AND u.stato = 'attivo'
+       LIMIT 1`,
+      [email.trim().toLowerCase()]
+    );
+    if (!rows.length) return res.status(404).json({ error: "user_not_found" });
+    const user = rows[0];
+    const tempPass = _generateTempPassword2();
+    const hash = hashPassword(tempPass);
+    await pool.execute(
+      `UPDATE users SET password_hash = ?, temp_password = 1 WHERE id = ?`,
+      [hash, user.id]
+    );
+    await sendPasswordResetEmail({
+      email: user.email,
+      nome: user.nome,
+      cognome: user.cognome,
+      nomeSocieta: user.society_nome,
+      tempPass
+    });
+    logger.info({ userId: user.id, email: user.email }, "superadmin password reset");
+    return res.json({ ok: true, email: user.email });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/reset-password error");
     return res.status(500).json({ error: "server_error" });
   }
 });

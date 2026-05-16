@@ -80,3 +80,36 @@ export async function sendWelcomeEmails(opts: {
     logger.error({ err: e }, "email send failed (non-blocking)");
   }
 }
+
+export async function sendPasswordResetEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+  tempPass: string;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta, tempPass } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">🔑 Nuova password — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Il tuo accesso a <strong>${nomeSocieta}</strong> è stato resettato dall'amministratore di sistema.</p>
+  <p style="margin:20px 0 8px;">La tua password temporanea è:</p>
+  <div style="background:#f0fdf4;border:2px solid #bbf7d0;border-radius:10px;padding:18px;text-align:center;margin:0 0 16px;">
+    <code style="font-size:1.5rem;font-weight:800;letter-spacing:4px;color:#065f46;">${tempPass}</code>
+  </div>
+  <p style="font-size:.85rem;color:#64748b;">
+    Accedi su <a href="https://myvivaio.app" style="color:#1A7A4A;font-weight:600;">myvivaio.app</a> con questa password temporanea.
+    Verrai reindirizzato a cambiarla subito.
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    Se non hai richiesto questo reset, contatta l'assistenza MyVivaio.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Nuova password temporanea — ${nomeSocieta}`, html);
+    logger.info({ email }, "password reset email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "password reset email failed (non-blocking)");
+  }
+}
