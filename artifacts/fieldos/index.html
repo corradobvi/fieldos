@@ -15,11 +15,21 @@
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-<!-- iOS apple-touch-icon -->
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png">
-<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png">
+<!-- Apple touch icons (formati standard iOS) -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="apple-touch-icon" sizes="120x120" href="/apple-touch-icon-120.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png">
+<!-- Apple splash screens -->
+<link rel="apple-touch-startup-image" href="/apple-splash-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="/apple-splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 <!-- Microsoft tile -->
 <meta name="msapplication-TileColor" content="#1A7A4A">
 <meta name="msapplication-TileImage" content="/icons/icon-144.png">
@@ -4169,7 +4179,7 @@ async function doLogin() {
 
     if (resp.status === 403) {
       const errData = await resp.json().catch(() => ({}));
-      if (errData.error === 'society_suspended') { toast('⛔ Società sospesa. Contatta il supporto.'); return; }
+      if (errData.error === 'society_suspended') { showSuspendedScreen(email); return; }
       if (errData.error === 'society_archived')  { toast('📦 Società archiviata. Contatta il supporto.'); return; }
       if (errData.error === 'society_deleted')   { toast('🗑️ Società eliminata.'); return; }
       if (errData.error === 'demo_expired')      { openSubscribeScreen(); return; }
@@ -4227,7 +4237,7 @@ async function doLogin() {
     );
     if (!found) continue;
     if (found.stato === 'sospeso') { toast('⛔ Account sospeso. Contatta la società.'); return; }
-    if (soc.stato === 'sospeso') { toast('⛔ Società sospesa. Contatta il supporto.'); return; }
+    if (soc.stato === 'sospeso') { showSuspendedScreen(email); return; }
 
     currentSocietaId = soc.id;
     if (typeof window.__fieldosSetSocietaKey === 'function') {
@@ -18236,6 +18246,7 @@ async function doSaReactivate() {
   s.stato = 'attivo';
   delete s.archiviatoAt;
   delete s.eliminatoAt;
+  if (!s.demoPlanKey && pianoNorm(s.piano) === 'demo') s.demoPlanKey = 'mister';
   saLog('Società riattivata', s.nome);
   saSaveState();
   renderSaPanel();
@@ -18728,6 +18739,15 @@ function saveChangePassModal() {
 // ═══════════════════════════════════
 // RECUPERO PASSWORD (schermata login)
 // ═══════════════════════════════════
+
+function showSuspendedScreen(email) {
+  const waMsg = encodeURIComponent('Ciao Vivi, il mio account è stato sospeso e vorrei riattivarlo. Email: ' + (email || ''));
+  const el = document.getElementById('suspendedOverlay');
+  if (!el) { toast('⛔ Società sospesa. Contatta il supporto su WhatsApp.'); return; }
+  const btn = document.getElementById('suspendedWaBtn');
+  if (btn) btn.href = 'https://wa.me/393793827922?text=' + waMsg;
+  el.style.display = 'flex';
+}
 
 function openForgotPass() {
   const el = document.getElementById('mForgotPass');
@@ -20846,6 +20866,24 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="text-align:center;">
       <button onclick="waWelcomeSkip()" style="background:none;border:none;font-size:.83rem;color:#9ca3af;cursor:pointer;text-decoration:underline;">Continua senza WhatsApp &#8594;</button>
     </div>
+  </div>
+</div>
+<!-- ══════ ACCOUNT SOSPESO overlay ══════ -->
+<div id="suspendedOverlay" style="display:none;position:fixed;inset:0;background:rgba(5,10,20,.97);z-index:99990;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="max-width:420px;width:100%;background:#0b1728;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:40px 28px 32px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.7);">
+    <div style="font-size:1.25rem;font-weight:900;letter-spacing:-.5px;margin-bottom:18px;">
+      <span style="color:#1A7A4A;">My</span><span style="color:#fff;">Vivaio</span>
+    </div>
+    <div style="font-size:3.2rem;line-height:1;margin-bottom:16px;">⏸️</div>
+    <h2 style="color:#fff;font-size:1.45rem;font-weight:800;margin:0 0 14px;letter-spacing:-.3px;">Account sospeso</h2>
+    <p style="color:#94a3b8;font-size:.9rem;line-height:1.65;margin:0 0 6px;">Il tuo account MyVivaio è stato temporaneamente sospeso.</p>
+    <p style="color:#94a3b8;font-size:.9rem;line-height:1.65;margin:0 0 32px;">Scrivi a Vivi su WhatsApp per riattivarlo.<br>Ti aiutiamo subito.</p>
+    <a id="suspendedWaBtn" href="#" target="_blank" rel="noopener" style="display:block;background:#25d366;color:#fff;border-radius:12px;padding:17px 20px;font-size:.97rem;font-weight:800;text-decoration:none;letter-spacing:.3px;margin-bottom:14px;box-shadow:0 4px 20px rgba(37,211,102,.4);">
+      💬 SCRIVI A VIVI SU WHATSAPP
+    </a>
+    <button onclick="document.getElementById('suspendedOverlay').style.display='none';logout();" style="background:none;border:none;color:#475569;font-size:.83rem;cursor:pointer;padding:10px 20px;width:100%;transition:.15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#475569'">
+      Esci dall'account
+    </button>
   </div>
 </div>
 
