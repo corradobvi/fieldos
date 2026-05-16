@@ -4111,6 +4111,38 @@ async function doLogin() {
     } catch(_) {}
     // Fallback: se server non risponde, usa localStorage
     if (!saSocieties.length) saLoadState();
+    // Merge da MySQL: aggiunge società non ancora nel blob SA
+    try {
+      const _msR = await fetch(API_BASE + '/api/v2/superadmin/societies', {
+        headers: { 'X-SA-Secret': SA_PASS }
+      });
+      if (_msR.ok) {
+        const _msD = await _msR.json();
+        let _changed = false;
+        for (const ms of (_msD.societies || [])) {
+          if (!saSocieties.find(x => x.id === ms.id)) {
+            saSocieties.push({
+              id:           ms.id,
+              nome:         ms.nome          || '',
+              citta:        ms.citta         || '',
+              colori:       ms.colori        || '#047857',
+              leva:         'Prima Squadra',
+              piano:        ms.piano         || 'demo',
+              stato:        ms.stato === 'attiva' ? 'attivo' : (ms.stato || 'attivo'),
+              email:        ms.email         || '',
+              note:         '',
+              utenti:       ms.utenti        || 0,
+              giocatori:    0,
+              createdAt:    ms.created_at ? new Date(ms.created_at).getTime() : Date.now(),
+              lastActivity: null,
+              scadenzaDemo: ms.demo_scadenza ? new Date(ms.demo_scadenza).getTime() : Date.now() + 14 * 86400000
+            });
+            _changed = true;
+          }
+        }
+        if (_changed) saSaveState();
+      }
+    } catch (_) {}
     showSuperAdminPanel();
     return;
   }

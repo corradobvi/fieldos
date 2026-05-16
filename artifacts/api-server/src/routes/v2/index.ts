@@ -16,6 +16,7 @@ import quoteRouter         from "./quote";
 import migrateRouter       from "./migrate";
 import stripeRouter        from "./stripe";
 import demoWaRouter        from "./demo-wa";
+import superadminRouter    from "./superadmin";
 
 const router = Router();
 
@@ -109,5 +110,6 @@ router.use(quoteRouter);
 router.use(migrateRouter);
 router.use(stripeRouter);
 router.use(demoWaRouter);
+router.use(superadminRouter);
 
 export default router;

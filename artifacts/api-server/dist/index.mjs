@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router25;
+    module.exports = Router26;
     module.exports.Route = Route;
-    function Router25(options) {
-      if (!(this instanceof Router25)) {
-        return new Router25(options);
+    function Router26(options) {
+      if (!(this instanceof Router26)) {
+        return new Router26(options);
       }
       const opts = options || {};
-      function router25(req, res, next) {
-        router25.handle(req, res, next);
+      function router26(req, res, next) {
+        router26.handle(req, res, next);
       }
-      Object.setPrototypeOf(router25, this);
-      router25.caseSensitive = opts.caseSensitive;
-      router25.mergeParams = opts.mergeParams;
-      router25.params = {};
-      router25.strict = opts.strict;
-      router25.stack = [];
-      return router25;
+      Object.setPrototypeOf(router26, this);
+      router26.caseSensitive = opts.caseSensitive;
+      router26.mergeParams = opts.mergeParams;
+      router26.params = {};
+      router26.strict = opts.strict;
+      router26.stack = [];
+      return router26;
     }
-    Router25.prototype = function() {
+    Router26.prototype = function() {
     };
-    Router25.prototype.param = function param(name, fn) {
+    Router26.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router25.prototype.handle = function handle(req, res, callback) {
+    Router26.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router25.prototype.use = function use(handler) {
+    Router26.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router25.prototype.route = function route(path2) {
+    Router26.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router25.prototype[method] = function(path2) {
+      Router26.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router25 = require_router();
+    var Router26 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router25 = null;
+      var router26 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router25 === null) {
-            router25 = new Router25({
+          if (router26 === null) {
+            router26 = new Router26({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router25;
+          return router26;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router25 = this.router;
+      var router26 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router25.use(path2, fn2);
+          return router26.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router25.use(path2, function mounted_app(req, res, next) {
+        router26.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router25 = require_router();
+    var Router26 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router25.Route;
-    exports.Router = Router25;
+    exports.Route = Router26.Route;
+    exports.Router = Router26;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // artifacts/api-server/src/app.ts
-var import_express25 = __toESM(require_express2(), 1);
+var import_express26 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // artifacts/api-server/src/routes/index.ts
-var import_express24 = __toESM(require_express2(), 1);
+var import_express25 = __toESM(require_express2(), 1);
 
 // artifacts/api-server/src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -61547,7 +61547,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // artifacts/api-server/src/routes/v2/index.ts
-var import_express23 = __toESM(require_express2(), 1);
+var import_express24 = __toESM(require_express2(), 1);
 
 // artifacts/api-server/src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -63903,8 +63903,46 @@ router22.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res
 });
 var demo_wa_default = router22;
 
-// artifacts/api-server/src/routes/v2/index.ts
+// artifacts/api-server/src/routes/v2/superadmin.ts
+var import_express23 = __toESM(require_express2(), 1);
 var router23 = (0, import_express23.Router)();
+var SA_SECRET = process.env.SA_SECRET ?? "super123";
+var EXCLUDED_IDS = [99, 99999];
+router23.get("/superadmin/societies", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  try {
+    const [rows] = await pool.execute(
+      `SELECT
+         s.id,
+         s.nome,
+         s.citta,
+         s.colore_primario   AS colori,
+         s.piano,
+         s.subscription_status,
+         s.demo_scadenza,
+         s.stato,
+         s.created_at,
+         u.email,
+         COUNT(DISTINCT u2.id) AS utenti
+       FROM societies s
+       LEFT JOIN users u  ON u.society_id  = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
+       LEFT JOIN users u2 ON u2.society_id = s.id AND u2.stato = 'attivo'
+       WHERE s.id NOT IN (${EXCLUDED_IDS.join(",")})
+       GROUP BY s.id
+       ORDER BY s.created_at DESC`
+    );
+    return res.json({ societies: rows });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/societies error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var superadmin_default = router23;
+
+// artifacts/api-server/src/routes/v2/index.ts
+var router24 = (0, import_express24.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -63943,7 +63981,7 @@ async function ensureSchema() {
   _schemaReady = true;
   logger.info("v2: schema ready");
 }
-router23.use(async (_req, _res, next) => {
+router24.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -63952,7 +63990,7 @@ router23.use(async (_req, _res, next) => {
     next();
   }
 });
-router23.get("/schema-info", async (_req, res) => {
+router24.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -63970,37 +64008,38 @@ router23.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router23.use(auth_default2);
-router23.use(self_register_default);
-router23.use(society_default);
-router23.use(leve_default);
-router23.use(players_default);
-router23.use(users_default);
-router23.use(events_default);
-router23.use(presenze_default);
-router23.use(comunicazioni_default);
-router23.use(chat_default);
-router23.use(quote_default);
-router23.use(migrate_default);
-router23.use(stripe_default);
-router23.use(demo_wa_default);
-var v2_default = router23;
+router24.use(auth_default2);
+router24.use(self_register_default);
+router24.use(society_default);
+router24.use(leve_default);
+router24.use(players_default);
+router24.use(users_default);
+router24.use(events_default);
+router24.use(presenze_default);
+router24.use(comunicazioni_default);
+router24.use(chat_default);
+router24.use(quote_default);
+router24.use(migrate_default);
+router24.use(stripe_default);
+router24.use(demo_wa_default);
+router24.use(superadmin_default);
+var v2_default = router24;
 
 // artifacts/api-server/src/routes/index.ts
-var router24 = (0, import_express24.Router)();
-router24.use(health_default);
-router24.use(login_default);
-router24.use(auth_default);
-router24.use(state_default);
-router24.use(assist_default);
-router24.use(push_default);
-router24.use(upload_default);
-router24.use(public_default);
-router24.use("/v2", v2_default);
-var routes_default = router24;
+var router25 = (0, import_express25.Router)();
+router25.use(health_default);
+router25.use(login_default);
+router25.use(auth_default);
+router25.use(state_default);
+router25.use(assist_default);
+router25.use(push_default);
+router25.use(upload_default);
+router25.use(public_default);
+router25.use("/v2", v2_default);
+var routes_default = router25;
 
 // artifacts/api-server/src/app.ts
-var app = (0, import_express25.default)();
+var app = (0, import_express26.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -64021,17 +64060,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express25.default.json({
+app.use(import_express26.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express25.default.urlencoded({ extended: true }));
+app.use(import_express26.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express25.default.static(staticDir));
+  app.use(import_express26.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
