@@ -180,6 +180,17 @@ CREATE TABLE IF NOT EXISTS churn_feedback (
   dettaglio  TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS sa_audit_log (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  action            VARCHAR(50)  NOT NULL,
+  target_society_id INT,
+  target_email      VARCHAR(255),
+  performed_by      VARCHAR(255) DEFAULT 'superadmin',
+  reason            TEXT,
+  metadata          JSON,
+  created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 `;
 
 // Migrations: idempotent for existing databases
@@ -209,7 +220,9 @@ CREATE TABLE IF NOT EXISTS demo_whatsapp_contact (
   INDEX idx_dwc_user (user_id)
 );
 ALTER TABLE users ADD COLUMN founding_promo_pending VARCHAR(20) NULL DEFAULT NULL;
-ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL
+ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE societies ADD COLUMN suspended_at DATETIME NULL;
+ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL
 `;
 
 export const SEED_SQL = `

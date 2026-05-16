@@ -113,3 +113,90 @@ export async function sendPasswordResetEmail(opts: {
     logger.error({ err: e }, "password reset email failed (non-blocking)");
   }
 }
+
+export async function sendSuspendEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+  reason?: string;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta, reason } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#dc2626;margin-bottom:4px;">⚠️ Account sospeso — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>L'accesso a <strong>${nomeSocieta}</strong> su MyVivaio è stato temporaneamente sospeso dall'amministratore di sistema.</p>
+  ${reason ? `<p style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;font-size:.87rem;color:#7f1d1d;">Motivo: ${reason}</p>` : ''}
+  <p style="font-size:.85rem;color:#64748b;">
+    Per richiedere la riattivazione o per maggiori informazioni, contatta il supporto MyVivaio:<br>
+    <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    I tuoi dati (giocatori, allenamenti, presenze) sono conservati e saranno disponibili alla riattivazione.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Account ${nomeSocieta} sospeso`, html);
+    logger.info({ email }, "suspend email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "suspend email failed (non-blocking)");
+  }
+}
+
+export async function sendReactivateEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">✅ Account riattivato — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Ottima notizia! Il tuo accesso a <strong>${nomeSocieta}</strong> su MyVivaio è stato riattivato.</p>
+  <p style="margin:20px 0;">
+    <a href="https://myvivaio.app" style="background:#1A7A4A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">▶ Accedi a MyVivaio</a>
+  </p>
+  <p style="font-size:.85rem;color:#64748b;">Tutti i tuoi dati sono esattamente come li hai lasciati.</p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Account ${nomeSocieta} riattivato`, html);
+    logger.info({ email }, "reactivate email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "reactivate email failed (non-blocking)");
+  }
+}
+
+export async function sendDemoExtendedEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+  days: number;
+  newExpiresAt: Date;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta, days, newExpiresAt } = opts;
+  const dataScad = newExpiresAt.toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">🎉 Demo estesa — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Buone notizie! La tua demo di <strong>${nomeSocieta}</strong> è stata estesa di <strong>${days} giorni</strong>.</p>
+  <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 18px;margin:16px 0;text-align:center;">
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:4px;">Nuova scadenza demo</div>
+    <div style="font-size:1.2rem;font-weight:800;color:#065f46;">${dataScad}</div>
+  </div>
+  <p style="font-size:.85rem;color:#64748b;">
+    Continua ad esplorare tutte le funzionalità. Per qualsiasi domanda siamo qui:<br>
+    <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Demo ${nomeSocieta} estesa di ${days} giorni`, html);
+    logger.info({ email }, "demo extended email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "demo extended email failed (non-blocking)");
+  }
+}

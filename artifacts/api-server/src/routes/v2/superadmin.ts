@@ -2,7 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { hashPassword } from "../../lib/auth";
-import { sendPasswordResetEmail } from "../../lib/email";
+import { sendPasswordResetEmail, sendSuspendEmail, sendReactivateEmail, sendDemoExtendedEmail } from "../../lib/email";
 
 const router = Router();
 
@@ -102,9 +102,122 @@ router.post("/superadmin/reset-password", async (req, res) => {
     });
 
     logger.info({ userId: user.id, email: user.email }, "superadmin password reset");
+    // Audit log
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email) VALUES (?, ?, ?)`,
+      ["password_reset", null, user.email]
+    ).catch(() => {});
     return res.json({ ok: true, email: user.email });
   } catch (e: any) {
     logger.error({ err: e }, "superadmin/reset-password error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// Helper: get admin user info for a society
+async function getSocietyAdmin(societyId: number) {
+  const [rows] = (await pool.execute(
+    `SELECT u.id, u.nome, u.cognome, u.email, s.nome AS society_nome, s.demo_scadenza
+     FROM users u JOIN societies s ON s.id = u.society_id
+     WHERE u.society_id = ? AND u.ruolo = 'admin' AND u.stato = 'attivo'
+     LIMIT 1`,
+    [societyId]
+  )) as [any[], any];
+  return rows[0] ?? null;
+}
+
+// POST /api/v2/superadmin/societies/:id/suspend
+router.post("/superadmin/societies/:id/suspend", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { reason } = req.body as { reason?: string };
+
+  try {
+    await pool.execute(
+      `UPDATE societies SET stato = 'sospesa', suspended_at = NOW(), suspended_reason = ? WHERE id = ?`,
+      [reason || null, societyId]
+    );
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendSuspendEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome, reason });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, reason) VALUES (?, ?, ?, ?)`,
+      ["suspend", societyId, admin?.email ?? null, reason || null]
+    ).catch(() => {});
+    logger.info({ societyId, reason }, "society suspended");
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/suspend error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/superadmin/societies/:id/reactivate
+router.post("/superadmin/societies/:id/reactivate", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+
+  try {
+    await pool.execute(
+      `UPDATE societies SET stato = 'attiva', suspended_at = NULL, suspended_reason = NULL WHERE id = ?`,
+      [societyId]
+    );
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendReactivateEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email) VALUES (?, ?, ?)`,
+      ["reactivate", societyId, admin?.email ?? null]
+    ).catch(() => {});
+    logger.info({ societyId }, "society reactivated");
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/reactivate error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/superadmin/societies/:id/extend-demo
+router.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { days, reason } = req.body as { days?: number; reason?: string };
+  const daysNum = parseInt(String(days));
+  if (isNaN(daysNum) || daysNum < 1 || daysNum > 60) return res.status(400).json({ error: "invalid_days" });
+
+  try {
+    const [socRows] = (await pool.execute(
+      `SELECT demo_scadenza FROM societies WHERE id = ?`, [societyId]
+    )) as [any[], any];
+    if (!socRows.length) return res.status(404).json({ error: "not_found" });
+
+    const current = socRows[0].demo_scadenza;
+    const base = current && new Date(current) > new Date() ? new Date(current) : new Date();
+    base.setDate(base.getDate() + daysNum);
+    const newExpiresAt = base;
+
+    await pool.execute(
+      `UPDATE societies SET demo_scadenza = ? WHERE id = ?`,
+      [newExpiresAt, societyId]
+    );
+
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendDemoExtendedEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome, days: daysNum, newExpiresAt });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, reason, metadata) VALUES (?, ?, ?, ?, ?)`,
+      ["extend_demo", societyId, admin?.email ?? null, reason || null, JSON.stringify({ days: daysNum, new_expires_at: newExpiresAt.toISOString() })]
+    ).catch(() => {});
+    logger.info({ societyId, days: daysNum, newExpiresAt }, "demo extended");
+    return res.json({ ok: true, new_expires_at: newExpiresAt.toISOString() });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/extend-demo error");
     return res.status(500).json({ error: "server_error" });
   }
 });

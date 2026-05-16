@@ -61732,6 +61732,17 @@ CREATE TABLE IF NOT EXISTS churn_feedback (
   dettaglio  TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS sa_audit_log (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  action            VARCHAR(50)  NOT NULL,
+  target_society_id INT,
+  target_email      VARCHAR(255),
+  performed_by      VARCHAR(255) DEFAULT 'superadmin',
+  reason            TEXT,
+  metadata          JSON,
+  created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 `;
 var MIGRATIONS_SQL = `
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
@@ -61758,7 +61769,9 @@ CREATE TABLE IF NOT EXISTS demo_whatsapp_contact (
   INDEX idx_dwc_user (user_id)
 );
 ALTER TABLE users ADD COLUMN founding_promo_pending VARCHAR(20) NULL DEFAULT NULL;
-ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL
+ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE societies ADD COLUMN suspended_at DATETIME NULL;
+ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -62095,6 +62108,72 @@ async function sendPasswordResetEmail(opts) {
     logger.info({ email }, "password reset email sent");
   } catch (e) {
     logger.error({ err: e }, "password reset email failed (non-blocking)");
+  }
+}
+async function sendSuspendEmail(opts) {
+  const { email, nome, cognome, nomeSocieta, reason } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#dc2626;margin-bottom:4px;">\u26A0\uFE0F Account sospeso \u2014 MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>L'accesso a <strong>${nomeSocieta}</strong> su MyVivaio \xE8 stato temporaneamente sospeso dall'amministratore di sistema.</p>
+  ${reason ? `<p style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;font-size:.87rem;color:#7f1d1d;">Motivo: ${reason}</p>` : ""}
+  <p style="font-size:.85rem;color:#64748b;">
+    Per richiedere la riattivazione o per maggiori informazioni, contatta il supporto MyVivaio:<br>
+    <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    I tuoi dati (giocatori, allenamenti, presenze) sono conservati e saranno disponibili alla riattivazione.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Account ${nomeSocieta} sospeso`, html);
+    logger.info({ email }, "suspend email sent");
+  } catch (e) {
+    logger.error({ err: e }, "suspend email failed (non-blocking)");
+  }
+}
+async function sendReactivateEmail(opts) {
+  const { email, nome, cognome, nomeSocieta } = opts;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">\u2705 Account riattivato \u2014 MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Ottima notizia! Il tuo accesso a <strong>${nomeSocieta}</strong> su MyVivaio \xE8 stato riattivato.</p>
+  <p style="margin:20px 0;">
+    <a href="https://myvivaio.app" style="background:#1A7A4A;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">\u25B6 Accedi a MyVivaio</a>
+  </p>
+  <p style="font-size:.85rem;color:#64748b;">Tutti i tuoi dati sono esattamente come li hai lasciati.</p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Account ${nomeSocieta} riattivato`, html);
+    logger.info({ email }, "reactivate email sent");
+  } catch (e) {
+    logger.error({ err: e }, "reactivate email failed (non-blocking)");
+  }
+}
+async function sendDemoExtendedEmail(opts) {
+  const { email, nome, cognome, nomeSocieta, days, newExpiresAt } = opts;
+  const dataScad = newExpiresAt.toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" });
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">\u{1F389} Demo estesa \u2014 MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Buone notizie! La tua demo di <strong>${nomeSocieta}</strong> \xE8 stata estesa di <strong>${days} giorni</strong>.</p>
+  <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 18px;margin:16px 0;text-align:center;">
+    <div style="font-size:.82rem;color:#64748b;margin-bottom:4px;">Nuova scadenza demo</div>
+    <div style="font-size:1.2rem;font-weight:800;color:#065f46;">${dataScad}</div>
+  </div>
+  <p style="font-size:.85rem;color:#64748b;">
+    Continua ad esplorare tutte le funzionalit\xE0. Per qualsiasi domanda siamo qui:<br>
+    <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Demo ${nomeSocieta} estesa di ${days} giorni`, html);
+    logger.info({ email }, "demo extended email sent");
+  } catch (e) {
+    logger.error({ err: e }, "demo extended email failed (non-blocking)");
   }
 }
 
@@ -64014,9 +64093,112 @@ router23.post("/superadmin/reset-password", async (req, res) => {
       tempPass
     });
     logger.info({ userId: user.id, email: user.email }, "superadmin password reset");
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email) VALUES (?, ?, ?)`,
+      ["password_reset", null, user.email]
+    ).catch(() => {
+    });
     return res.json({ ok: true, email: user.email });
   } catch (e) {
     logger.error({ err: e }, "superadmin/reset-password error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+async function getSocietyAdmin(societyId) {
+  const [rows] = await pool.execute(
+    `SELECT u.id, u.nome, u.cognome, u.email, s.nome AS society_nome, s.demo_scadenza
+     FROM users u JOIN societies s ON s.id = u.society_id
+     WHERE u.society_id = ? AND u.ruolo = 'admin' AND u.stato = 'attivo'
+     LIMIT 1`,
+    [societyId]
+  );
+  return rows[0] ?? null;
+}
+router23.post("/superadmin/societies/:id/suspend", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { reason } = req.body;
+  try {
+    await pool.execute(
+      `UPDATE societies SET stato = 'sospesa', suspended_at = NOW(), suspended_reason = ? WHERE id = ?`,
+      [reason || null, societyId]
+    );
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendSuspendEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome, reason });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, reason) VALUES (?, ?, ?, ?)`,
+      ["suspend", societyId, admin?.email ?? null, reason || null]
+    ).catch(() => {
+    });
+    logger.info({ societyId, reason }, "society suspended");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/suspend error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router23.post("/superadmin/societies/:id/reactivate", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  try {
+    await pool.execute(
+      `UPDATE societies SET stato = 'attiva', suspended_at = NULL, suspended_reason = NULL WHERE id = ?`,
+      [societyId]
+    );
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendReactivateEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email) VALUES (?, ?, ?)`,
+      ["reactivate", societyId, admin?.email ?? null]
+    ).catch(() => {
+    });
+    logger.info({ societyId }, "society reactivated");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/reactivate error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router23.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { days, reason } = req.body;
+  const daysNum = parseInt(String(days));
+  if (isNaN(daysNum) || daysNum < 1 || daysNum > 60) return res.status(400).json({ error: "invalid_days" });
+  try {
+    const [socRows] = await pool.execute(
+      `SELECT demo_scadenza FROM societies WHERE id = ?`,
+      [societyId]
+    );
+    if (!socRows.length) return res.status(404).json({ error: "not_found" });
+    const current = socRows[0].demo_scadenza;
+    const base = current && new Date(current) > /* @__PURE__ */ new Date() ? new Date(current) : /* @__PURE__ */ new Date();
+    base.setDate(base.getDate() + daysNum);
+    const newExpiresAt = base;
+    await pool.execute(
+      `UPDATE societies SET demo_scadenza = ? WHERE id = ?`,
+      [newExpiresAt, societyId]
+    );
+    const admin = await getSocietyAdmin(societyId);
+    if (admin) {
+      await sendDemoExtendedEmail({ email: admin.email, nome: admin.nome, cognome: admin.cognome, nomeSocieta: admin.society_nome, days: daysNum, newExpiresAt });
+    }
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, reason, metadata) VALUES (?, ?, ?, ?, ?)`,
+      ["extend_demo", societyId, admin?.email ?? null, reason || null, JSON.stringify({ days: daysNum, new_expires_at: newExpiresAt.toISOString() })]
+    ).catch(() => {
+    });
+    logger.info({ societyId, days: daysNum, newExpiresAt }, "demo extended");
+    return res.json({ ok: true, new_expires_at: newExpiresAt.toISOString() });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/extend-demo error");
     return res.status(500).json({ error: "server_error" });
   }
 });

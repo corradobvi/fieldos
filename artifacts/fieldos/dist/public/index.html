@@ -17795,14 +17795,65 @@ function saLogout() {
 function saExtendDemo(id) {
   const s = saSocieties.find(x => x.id === id);
   if (!s) return;
-  const days = parseInt(prompt('Estendi demo di quanti giorni?', '14') || '0');
-  if (!days || days <= 0) return;
+  const el = document.getElementById('mSaExtendDemo');
+  if (!el) return;
+  const now = Date.now();
+  const currentScad = s.scadenzaDemo && s.scadenzaDemo > now ? s.scadenzaDemo : null;
+  document.getElementById('saEdNome').textContent = s.nome || '';
+  document.getElementById('saEdCurrentScad').textContent = currentScad ? new Date(currentScad).toLocaleDateString('it-IT') : 'Scaduta';
+  document.getElementById('saEdDays').value = '7';
+  document.getElementById('saEdReason').value = '';
+  document.getElementById('saEdMsg').style.display = 'none';
+  document.getElementById('saEdBtn').disabled = false;
+  el._saId = id;
+  _saEdUpdatePreview();
+  el.style.display = 'flex';
+}
+
+function _saEdUpdatePreview() {
+  const el = document.getElementById('mSaExtendDemo');
+  if (!el || el._saId == null) return;
+  const s = saSocieties.find(x => x.id === el._saId);
+  const days = parseInt((document.getElementById('saEdDays') || {}).value) || 0;
+  const now = Date.now();
+  const base = s && s.scadenzaDemo && s.scadenzaDemo > now ? s.scadenzaDemo : now;
+  const prev = document.getElementById('saEdPreview');
+  if (prev) prev.textContent = days > 0 ? new Date(base + days * 86400000).toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'}) : '—';
+}
+
+async function doSaExtendDemo() {
+  const el = document.getElementById('mSaExtendDemo');
+  if (!el) return;
+  const id = el._saId;
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  const days = parseInt((document.getElementById('saEdDays') || {}).value) || 0;
+  const reason = ((document.getElementById('saEdReason') || {}).value || '').trim();
+  const btn = document.getElementById('saEdBtn');
+  const msg = document.getElementById('saEdMsg');
+  if (!days || days < 1 || days > 60) {
+    if (msg) { msg.style.display='block'; msg.style.color='#f87171'; msg.textContent='⚠️ Inserisci un numero tra 1 e 60.'; }
+    return;
+  }
+  if (btn) btn.disabled = true;
+  if (msg) { msg.style.display='block'; msg.style.color='#94a3b8'; msg.textContent='⏳ Estensione in corso…'; }
+  const now = Date.now();
   s.piano = 'demo';
-  s.scadenzaDemo = (s.scadenzaDemo && s.scadenzaDemo > Date.now() ? s.scadenzaDemo : Date.now()) + days * 86400000;
-  saLog('Demo estesa', `${s.nome} +${days}gg`);
+  s.scadenzaDemo = (s.scadenzaDemo && s.scadenzaDemo > now ? s.scadenzaDemo : now) + days * 86400000;
+  saLog('Demo estesa', `${s.nome} +${days}gg${reason ? ' — ' + reason : ''}`);
   saSaveState();
   renderSaPanel();
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/extend-demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      body: JSON.stringify({ days, reason })
+    });
+    if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
+  } catch(e) { console.warn('[saExtendDemo] MySQL update failed:', e); }
+  if (msg) { msg.style.color='#4ade80'; msg.textContent=`✅ Demo estesa di ${days} giorni!`; }
   toast(`✅ Demo ${s.nome} estesa di ${days} giorni`);
+  setTimeout(() => { if (el) el.style.display='none'; if (btn) btn.disabled=false; }, 2000);
 }
 
 function saResetPassword(id) {
@@ -18122,24 +18173,83 @@ function saToggleSociety(id) {
 function saSospendi(id) {
   const s = saSocieties.find(x => x.id === id);
   if (!s) return;
-  if (!confirm(`Sospendere la società "${s.nome}"?\nI dati vengono conservati. Il login sarà bloccato fino alla riattivazione.`)) return;
+  const el = document.getElementById('mSaSuspend');
+  if (!el) return;
+  document.getElementById('saSuspNome').textContent = s.nome || '';
+  document.getElementById('saSuspReason').value = '';
+  document.getElementById('saSuspMsg').style.display = 'none';
+  document.getElementById('saSuspBtn').disabled = false;
+  el._saId = id;
+  el.style.display = 'flex';
+}
+
+async function doSaSuspend() {
+  const el = document.getElementById('mSaSuspend');
+  if (!el) return;
+  const id = el._saId;
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  const reason = ((document.getElementById('saSuspReason') || {}).value || '').trim();
+  const btn = document.getElementById('saSuspBtn');
+  const msg = document.getElementById('saSuspMsg');
+  if (btn) btn.disabled = true;
+  if (msg) { msg.style.display='block'; msg.style.color='#94a3b8'; msg.textContent='⏳ Sospensione in corso…'; }
   s.stato = 'sospeso';
-  saLog('Società sospesa', s.nome + ' — login bloccato, dati conservati');
+  saLog('Società sospesa', s.nome + (reason ? ' — ' + reason : '') + ' — login bloccato');
   saSaveState();
   renderSaPanel();
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/suspend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      body: JSON.stringify({ reason })
+    });
+    if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
+  } catch(e) { console.warn('[saSospendi] MySQL update failed:', e); }
+  if (msg) { msg.style.color='#4ade80'; msg.textContent=`✅ "${s.nome}" sospesa. Login bloccato immediatamente.`; }
   toast(`⏸️ "${s.nome}" sospesa`);
+  setTimeout(() => { if (el) el.style.display='none'; if (btn) btn.disabled=false; }, 2000);
 }
 
 function saRiattiva(id) {
   const s = saSocieties.find(x => x.id === id);
   if (!s) return;
+  const el = document.getElementById('mSaReactivate');
+  if (!el) return;
+  document.getElementById('saReactNome').textContent = s.nome || '';
+  document.getElementById('saReactMsg').style.display = 'none';
+  document.getElementById('saReactBtn').disabled = false;
+  el._saId = id;
+  el.style.display = 'flex';
+}
+
+async function doSaReactivate() {
+  const el = document.getElementById('mSaReactivate');
+  if (!el) return;
+  const id = el._saId;
+  const s = saSocieties.find(x => x.id === id);
+  if (!s) return;
+  const btn = document.getElementById('saReactBtn');
+  const msg = document.getElementById('saReactMsg');
+  if (btn) btn.disabled = true;
+  if (msg) { msg.style.display='block'; msg.style.color='#94a3b8'; msg.textContent='⏳ Riattivazione in corso…'; }
   s.stato = 'attivo';
   delete s.archiviatoAt;
   delete s.eliminatoAt;
   saLog('Società riattivata', s.nome);
   saSaveState();
   renderSaPanel();
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/reactivate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      body: JSON.stringify({})
+    });
+    if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
+  } catch(e) { console.warn('[saRiattiva] MySQL update failed:', e); }
+  if (msg) { msg.style.color='#4ade80'; msg.textContent=`✅ "${s.nome}" riattivata! Accesso ripristinato.`; }
   toast(`✅ "${s.nome}" riattivata`);
+  setTimeout(() => { if (el) el.style.display='none'; if (btn) btn.disabled=false; }, 2000);
 }
 
 function saArchivia(id) {
@@ -19982,6 +20092,59 @@ async function doRejoinSocieta() {
   <!-- Body -->
   <div class="sa-body" id="saContent">
     <!-- rendered by renderSaPanel() -->
+  </div>
+</div>
+
+<!-- SA: Sospendi modal -->
+<div id="mSaSuspend" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100020;align-items:center;justify-content:center;">
+  <div class="sa-modal" style="width:440px;">
+    <h2 style="margin:0 0 12px;color:#fb923c;">⏸️ Sospendi società</h2>
+    <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.25);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="color:#fb923c;font-size:.82rem;font-weight:600;">Stai per sospendere:</div>
+      <div style="color:#e2e8f0;font-weight:700;font-size:.95rem;margin-top:4px;" id="saSuspNome"></div>
+    </div>
+    <p style="color:#94a3b8;font-size:.84rem;margin:0 0 12px;line-height:1.5;">L'utente non potrà più accedere all'app. I suoi dati (giocatori, allenamenti, presenze) restano salvi e saranno ripristinati alla riattivazione.</p>
+    <label style="display:block;font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Motivo (opzionale)</label>
+    <textarea id="saSuspReason" class="sa-modal input" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;resize:vertical;min-height:60px;box-sizing:border-box;" placeholder="Es. mancato pagamento, uso improprio…"></textarea>
+    <div id="saSuspMsg" style="display:none;font-size:.83rem;margin-top:10px;border-radius:6px;padding:7px 10px;background:rgba(255,255,255,.04);"></div>
+    <div class="sa-modal-footer">
+      <button id="saSuspBtn" class="sa-btn" style="flex:1;background:rgba(251,146,60,.2);color:#fb923c;border:1px solid rgba(251,146,60,.4);" onclick="doSaSuspend()">⏸️ Sospendi</button>
+      <button class="sa-btn" style="background:#334155;color:#94a3b8;border:1px solid #475569;" onclick="document.getElementById('mSaSuspend').style.display='none'">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- SA: Riattiva modal -->
+<div id="mSaReactivate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100020;align-items:center;justify-content:center;">
+  <div class="sa-modal" style="width:400px;">
+    <h2 style="margin:0 0 12px;color:#4ade80;">▶ Riattiva società</h2>
+    <p style="color:#94a3b8;font-size:.84rem;margin:0 0 14px;line-height:1.5;">Riattivare <strong style="color:#e2e8f0;" id="saReactNome"></strong>? L'utente potrà accedere immediatamente con tutti i dati intatti.</p>
+    <div id="saReactMsg" style="display:none;font-size:.83rem;margin-bottom:10px;border-radius:6px;padding:7px 10px;background:rgba(255,255,255,.04);"></div>
+    <div class="sa-modal-footer">
+      <button id="saReactBtn" class="sa-btn sa-btn-ok" style="flex:1;" onclick="doSaReactivate()">▶ Riattiva</button>
+      <button class="sa-btn" style="background:#334155;color:#94a3b8;border:1px solid #475569;" onclick="document.getElementById('mSaReactivate').style.display='none'">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- SA: Estendi demo modal -->
+<div id="mSaExtendDemo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100020;align-items:center;justify-content:center;">
+  <div class="sa-modal" style="width:440px;">
+    <h2 style="margin:0 0 12px;">⏰ Estendi demo</h2>
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+      <div style="color:#e2e8f0;font-weight:700;" id="saEdNome"></div>
+      <div style="color:#94a3b8;font-size:.82rem;margin-top:3px;">Scadenza attuale: <span id="saEdCurrentScad" style="color:#fbbf24;"></span></div>
+    </div>
+    <label style="display:block;font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Giorni da aggiungere</label>
+    <input id="saEdDays" type="number" min="1" max="60" value="7" oninput="_saEdUpdatePreview()" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:9px 11px;color:#e2e8f0;font-size:1.1rem;font-weight:700;text-align:center;outline:none;box-sizing:border-box;">
+    <div style="text-align:center;margin:10px 0;color:#64748b;font-size:.8rem;">Nuova scadenza: <strong style="color:#4ade80;" id="saEdPreview">—</strong></div>
+    <label style="display:block;font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">Motivo (opzionale)</label>
+    <textarea id="saEdReason" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:8px 10px;color:#e2e8f0;font-size:.85rem;resize:vertical;min-height:50px;box-sizing:border-box;" placeholder="Es. società in prova con il club, richiesta del mister…"></textarea>
+    <div id="saEdMsg" style="display:none;font-size:.83rem;margin-top:10px;border-radius:6px;padding:7px 10px;background:rgba(255,255,255,.04);"></div>
+    <div class="sa-modal-footer">
+      <button id="saEdBtn" class="sa-btn sa-btn-primary" style="flex:1;" onclick="doSaExtendDemo()">⏰ Estendi</button>
+      <button class="sa-btn" style="background:#334155;color:#94a3b8;border:1px solid #475569;" onclick="document.getElementById('mSaExtendDemo').style.display='none'">Annulla</button>
+    </div>
   </div>
 </div>
 
