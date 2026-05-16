@@ -1,6 +1,8 @@
 {
   "name": "MyVivaio",
   "short_name": "MyVivaio",
+  "id": "/",
+  "scope": "/",
   "description": "La tua squadra, sempre con te",
   "start_url": "/",
   "display": "standalone",
@@ -18,6 +20,28 @@
     { "src": "/icons/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable any" }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-1.png",
+      "sizes": "1080x2336",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Panoramica società con prossime gare, risultati e allenamenti"
+    },
+    {
+      "src": "/screenshots/screenshot-2.png",
+      "sizes": "1080x2336",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Registro presenze con conferma in tempo reale"
+    },
+    {
+      "src": "/screenshots/screenshot-3.png",
+      "sizes": "1080x2336",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Comunicazioni e sondaggi per la squadra"
+    }
+  ],
   "categories": ["sports", "productivity"]
 }
