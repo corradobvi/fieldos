@@ -54,7 +54,7 @@ router.get("/superadmin/societies", async (req, res) => {
        LEFT JOIN users u  ON u.society_id  = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
        LEFT JOIN users u2 ON u2.society_id = s.id AND u2.stato = 'attivo'
        WHERE s.id NOT IN (${EXCLUDED_IDS.join(",")})
-       GROUP BY s.id
+       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
        ORDER BY s.created_at DESC`
     )) as [any[], any];
 
