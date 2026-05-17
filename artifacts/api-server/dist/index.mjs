@@ -61360,6 +61360,72 @@ router6.post("/push/send", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
+router6.post("/push/test-by-email", async (req, res) => {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return res.status(503).json({ error: "push_not_configured" });
+  }
+  const { email, societyKey } = req.body;
+  if (typeof email !== "string" || !email || typeof societyKey !== "string" || !societyKey) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  try {
+    await ensureTable();
+    const [userRows] = await pool.execute(
+      "SELECT id FROM `users` WHERE LOWER(email) = ? LIMIT 1",
+      [email.trim().toLowerCase()]
+    );
+    if (!userRows.length) {
+      return res.status(404).json({ error: "user_not_found", email });
+    }
+    const userId = userRows[0].id;
+    const [subRows] = await pool.execute(
+      "SELECT subscription_json FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
+      [userId, societyKey]
+    );
+    console.log(`[test-push] User ${email} -> userId ${userId}, subs ${subRows.length}`);
+    if (!subRows.length) {
+      return res.json({ ok: true, found_user: true, user_id: userId, subscriptions: 0, sent: 0 });
+    }
+    const payload = JSON.stringify({
+      title: "\u{1F9EA} Test Push MyVivaio",
+      body: "Se vedi questa notifica, le push funzionano!",
+      url: "/",
+      tag: "test-push"
+    });
+    let sent = 0;
+    const errors = [];
+    for (const row of subRows) {
+      let sub;
+      try {
+        sub = JSON.parse(row.subscription_json);
+      } catch {
+        errors.push("invalid_json");
+        continue;
+      }
+      try {
+        await import_web_push.default.sendNotification(sub, payload);
+        sent++;
+      } catch (e) {
+        if (e.statusCode === 410 || e.statusCode === 404) {
+          await pool.execute(
+            "DELETE FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
+            [userId, societyKey]
+          ).catch(() => {
+          });
+          errors.push(`expired_${e.statusCode}`);
+        } else {
+          errors.push(`send_error_${e.statusCode ?? "unknown"}`);
+          logger.warn({ err: e, userId, email }, "test-push send warning");
+        }
+      }
+    }
+    console.log(`[test-push] User ${email} -> userId ${userId}, subs ${subRows.length}, sent ${sent}`);
+    return res.json({ ok: true, found_user: true, user_id: userId, subscriptions: subRows.length, sent, errors });
+  } catch (e) {
+    logger.error({ err: e }, "test-push error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
 var push_default = router6;
 
 // src/routes/upload.ts
