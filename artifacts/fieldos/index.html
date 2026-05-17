@@ -3305,8 +3305,8 @@ const SECTION_LOCKS = {
     features:['Max 3 leve','Giocatori illimitati','Libreria allenamenti','Statistiche avanzate','Tutto di Piano Mister'] },
   pagamenti:  { pianoMin:'societa',    nomePiano:'Società',    ic:'🏟️', prezzo:49, prezzoAnno:419,
     features:['Leve illimitate','Gestione quote e pagamenti','Multi-staff','Campionato e tornei','Tutto di Mister Pro'] },
-  documenti:  { pianoMin:'mister_pro', nomePiano:'Mister Pro', ic:'📋', prezzo:19, prezzoAnno:159,
-    features:['Certificati medici con alert scadenza','Upload documenti giocatori','Storico e archivio documenti','Tutto di Piano Mister'] },
+  documenti:  { pianoMin:'societa',    nomePiano:'Società',    ic:'🏟️', prezzo:49, prezzoAnno:419,
+    features:['Upload documenti giocatori','Certificati medici con alert scadenza','Storico e archivio documenti','Leve illimitate e multi-staff','Tutto di Mister Pro'] },
 };
 const DEMO_SOC_ID    = 99;
 const DEMO_EMAIL     = 'demo@myvivaio.app';
@@ -12069,7 +12069,7 @@ function renderDocumenti() {
   if (!c || !me) return;
   const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (isSectionLocked('documenti', _docSoc)) {
-    c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione documenti con certificati medici è disponibile a partire dal piano <strong>Mister Pro</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('documenti')">Scopri il Piano Mister Pro →</button></div>`;
+    c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione documenti con certificati medici è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('documenti')">Scopri il Piano Società →</button></div>`;
     return;
   }
   const visPlayers = docVisiblePlayers();
@@ -18311,6 +18311,15 @@ function saEliminaDefinitivo(id) {
   toast(`🗑️ "${s.nome}" eliminata definitivamente`);
 }
 
+function _saUpdatePianoServer(id, piano) {
+  fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/set-plan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+    body: JSON.stringify({ piano }),
+    keepalive: true
+  }).catch(() => {});
+}
+
 function saSetPlan(id, piano) {
   const s = saSocieties.find(x => x.id === id);
   if (!s) return;
@@ -18320,6 +18329,7 @@ function saSetPlan(id, piano) {
   }
   saLog('Piano aggiornato', `${s.nome} → ${piano}`);
   saSaveState();
+  _saUpdatePianoServer(id, piano);
   renderSaPanel();
 }
 
@@ -18536,9 +18546,11 @@ function saSaveSociety() {
   if (!nome) { alert('Il nome della società è obbligatorio.'); return; }
   const s = saSocieties.find(x => x.id === parseInt(idRaw));
   if (s) {
+    const prevPiano = s.piano;
     s.nome=nome; s.citta=citta; s.colori=colori; s.leva=leva||s.leva; s.note=note; s.piano=piano;
     if (piano === 'demo' && !s.scadenzaDemo) s.scadenzaDemo = Date.now() + DEMO_GIORNI * 86400000;
     saLog('Società modificata', nome);
+    if (piano !== prevPiano) _saUpdatePianoServer(parseInt(idRaw), piano);
   }
   saSaveState();
   document.getElementById('mSaNewSoc').style.display = 'none';
@@ -18568,8 +18580,10 @@ async function saSaveEditFull() {
   // Update saSocieties entry
   const s = saSocieties.find(x => x.id === socId);
   if (s) {
+    const prevPiano = s.piano;
     s.nome=nome; s.citta=citta; s.colori=colori; s.leva=leva||s.leva; s.note=note; s.piano=piano; s.email=aEmail;
     if (piano === 'demo' && !s.scadenzaDemo) s.scadenzaDemo = Date.now() + DEMO_GIORNI * 86400000;
+    if (piano !== prevPiano) _saUpdatePianoServer(socId, piano);
   }
 
   // Update admin + society name/color in the society state

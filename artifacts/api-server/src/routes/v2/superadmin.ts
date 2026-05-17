@@ -222,4 +222,35 @@ router.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
   }
 });
 
+// POST /api/v2/superadmin/societies/:id/set-plan — aggiorna piano in MySQL + audit log
+// Necessario per prevenire che _syncSubscriptionStatus lato client sovrascriva il piano
+// impostato manualmente dal SA (che aggiorna solo il blob, non MySQL).
+router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { piano } = req.body as { piano?: string };
+  const VALID_PIANI = ["demo", "mister", "mister_pro", "societa"];
+  if (!piano || !VALID_PIANI.includes(piano)) {
+    return res.status(400).json({ error: "invalid_piano" });
+  }
+
+  try {
+    await pool.execute(
+      `UPDATE societies SET piano = ? WHERE id = ?`,
+      [piano, societyId]
+    );
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, performed_by, reason, metadata, created_at)
+       VALUES ('plan_changed', ?, 'SUPERADMIN', ?, ?, NOW())`,
+      [societyId, `Piano cambiato a ${piano}`, JSON.stringify({ piano })]
+    ).catch(() => {});
+    logger.info({ societyId, piano }, "superadmin: piano updated in MySQL");
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/set-plan error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 export default router;
