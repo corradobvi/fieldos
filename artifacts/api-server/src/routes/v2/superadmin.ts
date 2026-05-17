@@ -45,6 +45,7 @@ router.get("/superadmin/societies", async (req, res) => {
          s.colore_primario   AS colori,
          s.piano,
          s.billing_mode,
+         s.stripe_customer_id,
          s.subscription_status,
          s.demo_scadenza,
          s.stato,
@@ -55,7 +56,7 @@ router.get("/superadmin/societies", async (req, res) => {
        LEFT JOIN users u  ON u.society_id  = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
        LEFT JOIN users u2 ON u2.society_id = s.id AND u2.stato = 'attivo'
        WHERE s.id NOT IN (${EXCLUDED_IDS.join(",")})
-       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.billing_mode, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
+       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.billing_mode, s.stripe_customer_id, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
        ORDER BY s.created_at DESC`
     )) as [any[], any];
 
