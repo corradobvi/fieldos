@@ -1,4 +1,4 @@
-# 2026-05-15-v8 — pre-built dist bundle (esbuild, no pnpm build step)
+# 2026-05-17-v9 — push notifications: helper + triggers comunicazioni/events/chat
 FROM node:20-slim
 
 WORKDIR /app

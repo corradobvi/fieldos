@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
 
@@ -70,6 +71,20 @@ router.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res
        oraInizio ?? null, dataFine ?? null, oraFine ?? null, note ?? null,
        ricorrente ? 1 : 0, freq ?? null, giorni ?? null, finoAl ?? null]
     )) as [any, any];
+
+    // Push notification per convocazioni — fire-and-forget
+    if (tipo === "convocazione") {
+      const _where = luogo ? `${dataInizio || ''} · ${luogo}` : (dataInizio || titolo);
+      getUsersForPush(societyId, { leva: leva ?? null })
+        .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
+          title: "📣 Nuova convocazione",
+          body:  `${titolo} — ${_where}`.slice(0, 100),
+          url:   "/calendario",
+          tag:   "convocazione",
+        }))
+        .catch(e => logger.warn({ err: e }, "convocazione push error"));
+    }
+
     return res.status(201).json({ id: result.insertId });
   } catch (e: any) {
     logger.error({ err: e }, "POST event error");

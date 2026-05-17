@@ -61360,72 +61360,6 @@ router6.post("/push/send", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router6.post("/push/test-by-email", async (req, res) => {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return res.status(503).json({ error: "push_not_configured" });
-  }
-  const { email, societyKey } = req.body;
-  if (typeof email !== "string" || !email || typeof societyKey !== "string" || !societyKey) {
-    return res.status(400).json({ error: "missing_fields" });
-  }
-  try {
-    await ensureTable();
-    const [userRows] = await pool.execute(
-      "SELECT id FROM `users` WHERE LOWER(email) = ? LIMIT 1",
-      [email.trim().toLowerCase()]
-    );
-    if (!userRows.length) {
-      return res.status(404).json({ error: "user_not_found", email });
-    }
-    const userId = userRows[0].id;
-    const [subRows] = await pool.execute(
-      "SELECT subscription_json FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
-      [userId, societyKey]
-    );
-    console.log(`[test-push] User ${email} -> userId ${userId}, subs ${subRows.length}`);
-    if (!subRows.length) {
-      return res.json({ ok: true, found_user: true, user_id: userId, subscriptions: 0, sent: 0 });
-    }
-    const payload = JSON.stringify({
-      title: "\u{1F9EA} Test Push MyVivaio",
-      body: "Se vedi questa notifica, le push funzionano!",
-      url: "/",
-      tag: "test-push"
-    });
-    let sent = 0;
-    const errors = [];
-    for (const row of subRows) {
-      let sub;
-      try {
-        sub = JSON.parse(row.subscription_json);
-      } catch {
-        errors.push("invalid_json");
-        continue;
-      }
-      try {
-        await import_web_push.default.sendNotification(sub, payload);
-        sent++;
-      } catch (e) {
-        if (e.statusCode === 410 || e.statusCode === 404) {
-          await pool.execute(
-            "DELETE FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
-            [userId, societyKey]
-          ).catch(() => {
-          });
-          errors.push(`expired_${e.statusCode}`);
-        } else {
-          errors.push(`send_error_${e.statusCode ?? "unknown"}`);
-          logger.warn({ err: e, userId, email }, "test-push send warning");
-        }
-      }
-    }
-    console.log(`[test-push] User ${email} -> userId ${userId}, subs ${subRows.length}, sent ${sent}`);
-    return res.json({ ok: true, found_user: true, user_id: userId, subscriptions: subRows.length, sent, errors });
-  } catch (e) {
-    logger.error({ err: e }, "test-push error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
-  }
-});
 var push_default = router6;
 
 // src/routes/upload.ts
@@ -63011,6 +62945,91 @@ var users_default = router14;
 
 // src/routes/v2/events.ts
 var import_express15 = __toESM(require_express2(), 1);
+
+// src/lib/push-sender.ts
+var import_web_push2 = __toESM(require_src2(), 1);
+function societyKeyFor(societyId) {
+  return `fieldos_state_soc_${societyId}`;
+}
+function _initVapid() {
+  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "";
+  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "";
+  const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
+  if (!pub || !priv) return false;
+  try {
+    import_web_push2.default.setVapidDetails(subj, pub, priv);
+  } catch {
+  }
+  return true;
+}
+async function sendPushToUsers(userIds, societyKey, payload) {
+  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
+  let rows = [];
+  try {
+    const placeholders = userIds.map(() => "?").join(",");
+    const [r] = await pool.execute(
+      `SELECT user_id, subscription_json FROM push_subscriptions
+       WHERE user_id IN (${placeholders}) AND society_key = ?`,
+      [...userIds, societyKey]
+    );
+    rows = r;
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: DB lookup failed");
+    return { sent: 0, errors: 0 };
+  }
+  if (!rows.length) return { sent: 0, errors: 0 };
+  const message = JSON.stringify(payload);
+  let sent = 0;
+  let errors = 0;
+  for (const row of rows) {
+    let sub;
+    try {
+      sub = JSON.parse(row.subscription_json);
+    } catch {
+      errors++;
+      continue;
+    }
+    try {
+      await import_web_push2.default.sendNotification(sub, message);
+      sent++;
+    } catch (e) {
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        await pool.execute(
+          "DELETE FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+          [row.user_id, societyKey]
+        ).catch(() => {
+        });
+      } else {
+        logger.warn({ err: e, userId: row.user_id }, "push-sender: webpush error");
+      }
+      errors++;
+    }
+  }
+  logger.info({ sent, errors, societyKey }, "push-sender: completed");
+  return { sent, errors };
+}
+async function getUsersForPush(societyId, options = {}) {
+  const { leva, excludeUserId } = options;
+  try {
+    let query = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
+    const params = [societyId];
+    if (excludeUserId) {
+      query += " AND id != ?";
+      params.push(excludeUserId);
+    }
+    if (leva) {
+      query += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))";
+      params.push(leva);
+    }
+    const [rows] = await pool.execute(query, params);
+    return rows.map((r) => r.id);
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: getUsersForPush error");
+    return [];
+  }
+}
+
+// src/routes/v2/events.ts
 var router15 = (0, import_express15.Router)();
 var WRITE_ROLES = ["admin", "allenatore", "dirigente"];
 router15.get("/events", requireAuth, async (req, res) => {
@@ -63092,6 +63111,15 @@ router15.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, r
         finoAl ?? null
       ]
     );
+    if (tipo === "convocazione") {
+      const _where = luogo ? `${dataInizio || ""} \xB7 ${luogo}` : dataInizio || titolo;
+      getUsersForPush(societyId, { leva: leva ?? null }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
+        title: "\u{1F4E3} Nuova convocazione",
+        body: `${titolo} \u2014 ${_where}`.slice(0, 100),
+        url: "/calendario",
+        tag: "convocazione"
+      })).catch((e) => logger.warn({ err: e }, "convocazione push error"));
+    }
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
     logger.error({ err: e }, "POST event error");
@@ -63291,6 +63319,14 @@ router17.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", 
         urgente ? 1 : 0
       ]
     );
+    const _pushTitle = urgente ? `\u{1F6A8} URGENTE: ${titolo || "Comunicazione"}` : `\u{1F4E2} ${titolo || "Nuova comunicazione"}`;
+    const _pushBody = (titolo ? testo : testo).slice(0, 100);
+    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
+      title: _pushTitle,
+      body: _pushBody,
+      url: "/comunicazioni",
+      tag: "comunicazione"
+    })).catch((e) => logger.warn({ err: e }, "comunicazione push error"));
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
     logger.error({ err: e }, "POST comunicazione error");
@@ -63359,6 +63395,27 @@ router18.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
     );
+    const _getChatRecipients = async () => {
+      const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
+      if (levaMatch) {
+        return getUsersForPush(societyId, { leva: levaMatch[1], excludeUserId: userId });
+      }
+      if (chatId === "allenatori") {
+        const [rows] = await pool.execute(
+          "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND ruolo IN ('admin','allenatore','dirigente') AND id != ?",
+          [societyId, userId]
+        );
+        return rows.map((r) => r.id);
+      }
+      return getUsersForPush(societyId, { excludeUserId: userId });
+    };
+    const _msgPreview = (testo?.trim() || "\u{1F4F7} Foto").slice(0, 80);
+    _getChatRecipients().then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
+      title: `\u{1F4AC} ${chatId}`,
+      body: _msgPreview,
+      url: "/chat",
+      tag: `chat_${chatId}`
+    })).catch((e) => logger.warn({ err: e }, "chat push error"));
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
     logger.error({ err: e }, "POST chat message error");

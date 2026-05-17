@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
 
@@ -47,6 +48,21 @@ router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "d
       [societyId, userId, tipo ?? "comunicazione", titolo ?? null, testo,
        bacheca ?? "generale", leva ?? null, urgente ? 1 : 0]
     )) as [any, any];
+
+    // Push notification — fire-and-forget, non blocca la risposta
+    const _pushTitle = urgente
+      ? `🚨 URGENTE: ${titolo || 'Comunicazione'}`
+      : `📢 ${titolo || 'Nuova comunicazione'}`;
+    const _pushBody = (titolo ? testo : testo).slice(0, 100);
+    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId })
+      .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
+        title: _pushTitle,
+        body:  _pushBody,
+        url:   "/comunicazioni",
+        tag:   "comunicazione",
+      }))
+      .catch(e => logger.warn({ err: e }, "comunicazione push error"));
+
     return res.status(201).json({ id: result.insertId });
   } catch (e: any) {
     logger.error({ err: e }, "POST comunicazione error");

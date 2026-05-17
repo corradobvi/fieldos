@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth } from "../../lib/auth";
+import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
 
@@ -47,6 +48,34 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
     )) as [any, any];
+
+    // Push notification ai partecipanti — fire-and-forget
+    // Parsa chatId: "leva_U14" → leva, "allenatori" → staff, altrimenti tutta la società
+    const _getChatRecipients = async (): Promise<number[]> => {
+      const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
+      if (levaMatch) {
+        return getUsersForPush(societyId, { leva: levaMatch[1], excludeUserId: userId });
+      }
+      if (chatId === "allenatori") {
+        const [rows] = (await pool.execute(
+          "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND ruolo IN ('admin','allenatore','dirigente') AND id != ?",
+          [societyId, userId]
+        )) as [any[], any];
+        return rows.map((r: any) => r.id as number);
+      }
+      return getUsersForPush(societyId, { excludeUserId: userId });
+    };
+
+    const _msgPreview = (testo?.trim() || "📷 Foto").slice(0, 80);
+    _getChatRecipients()
+      .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
+        title: `💬 ${chatId}`,
+        body:  _msgPreview,
+        url:   "/chat",
+        tag:   `chat_${chatId}`,
+      }))
+      .catch(e => logger.warn({ err: e }, "chat push error"));
+
     return res.status(201).json({ id: result.insertId });
   } catch (e: any) {
     logger.error({ err: e }, "POST chat message error");
