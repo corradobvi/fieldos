@@ -1881,6 +1881,16 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
     </div>
 
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;margin-bottom:2px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="rPrivacy" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
+        <span style="font-size:.82rem;color:var(--text2);line-height:1.5;">Ho letto e accetto la <a href="https://myvivaio.it/privacy" target="_blank" style="color:var(--cl);">Privacy Policy</a> *</span>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+        <input type="checkbox" id="rMarketing" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
+        <span style="font-size:.82rem;color:var(--text2);line-height:1.5;">Accetto di ricevere comunicazioni commerciali e novità su MyVivaio <em>(facoltativo)</em></span>
+      </label>
+    </div>
     <button class="btn-login" id="btnRegister" style="margin-top:6px;height:46px;" onclick="doSelfRegister()">Inizia gratis →</button>
     <div class="rf-err" id="rErrMsg"></div>
   </div>
@@ -17343,24 +17353,30 @@ function _rejectParentalConsent() {
   logout();
 }
 
+const _WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+
 async function doSelfRegister() {
   _rClearErr();
 
-  const nome    = (document.getElementById('rNome').value || '').trim();
-  const cogn    = (document.getElementById('rCogn').value || '').trim();
-  const email   = (document.getElementById('rEmail').value || '').trim().toLowerCase();
-  const pass    = document.getElementById('rPass').value || '';
-  const phone   = (document.getElementById('rPhone').value || '').trim();
-  const societa = (document.getElementById('rSocieta').value || '').trim();
-  const citta   = (document.getElementById('rCitta').value || '').trim();
-  const piano   = document.getElementById('rPiano').value || 'mister';
+  const nome            = (document.getElementById('rNome').value || '').trim();
+  const cogn            = (document.getElementById('rCogn').value || '').trim();
+  const email           = (document.getElementById('rEmail').value || '').trim().toLowerCase();
+  const pass            = document.getElementById('rPass').value || '';
+  const phone           = (document.getElementById('rPhone').value || '').trim();
+  const whatsappNumber  = phone.replace(/\s/g, '');
+  const societa         = (document.getElementById('rSocieta').value || '').trim();
+  const citta           = (document.getElementById('rCitta').value || '').trim();
+  const piano           = document.getElementById('rPiano').value || 'mister';
+  const privacyAccepted = !!(document.getElementById('rPrivacy') && document.getElementById('rPrivacy').checked);
+  const marketingConsent= !!(document.getElementById('rMarketing') && document.getElementById('rMarketing').checked);
 
-  if (!nome)                        { _rShowErr('⚠️ Inserisci il nome'); return; }
-  if (!cogn)                        { _rShowErr('⚠️ Inserisci il cognome'); return; }
-  if (!email || !email.includes('@')){ _rShowErr('⚠️ Email non valida'); return; }
-  if (pass.length < 8)              { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
-  if (phone.replace(/\D/g,'').length < 9) { _rShowErr('⚠️ Inserisci un numero WhatsApp valido'); return; }
-  if (!societa)                     { _rShowErr('⚠️ Inserisci il nome della società'); return; }
+  if (!nome)                                { _rShowErr('⚠️ Inserisci il nome'); return; }
+  if (!cogn)                                { _rShowErr('⚠️ Inserisci il cognome'); return; }
+  if (!email || !email.includes('@'))       { _rShowErr('⚠️ Email non valida'); return; }
+  if (pass.length < 8)                      { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
+  if (!_WA_REGEX.test(whatsappNumber))      { _rShowErr('⚠️ Inserisci un numero WhatsApp valido con prefisso internazionale (es. +39 333 0000000)'); return; }
+  if (!societa)                             { _rShowErr('⚠️ Inserisci il nome della società'); return; }
+  if (!privacyAccepted)                     { _rShowErr('⚠️ Devi accettare la Privacy Policy per registrarti'); return; }
 
   const btn = document.getElementById('btnRegister');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Registrazione in corso…'; }
@@ -17369,15 +17385,21 @@ async function doSelfRegister() {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, cognome: cogn, email, password: pass, phone, nomeSocieta: societa, citta, piano }),
+      body: JSON.stringify({
+        nome, cognome: cogn, email, password: pass,
+        phone, whatsappNumber, nomeSocieta: societa, citta, piano,
+        privacyAccepted: true, marketingConsent,
+      }),
     });
 
     const data = await resp.json();
 
     if (resp.status === 409) { _rShowErr('⚠️ Email già registrata — accedi con le tue credenziali'); return; }
     if (resp.status === 400) {
-      const msg = data.error === 'invalid_email' ? '⚠️ Email non valida'
-                : data.error === 'password_too_short' ? '⚠️ Password troppo corta (min. 8 caratteri)'
+      const msg = data.error === 'invalid_email'       ? '⚠️ Email non valida'
+                : data.error === 'password_too_short'  ? '⚠️ Password troppo corta (min. 8 caratteri)'
+                : data.error === 'invalid_whatsapp'    ? '⚠️ Numero WhatsApp non valido — usa il formato +39 333 0000000'
+                : data.error === 'privacy_required'    ? '⚠️ Devi accettare la Privacy Policy'
                 : '⚠️ Compila tutti i campi obbligatori';
       _rShowErr(msg); return;
     }
