@@ -201,6 +201,50 @@ export async function sendDemoExtendedEmail(opts: {
   }
 }
 
+export async function sendPaymentFailedEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+  attemptCount: number;
+  nextAttempt: number | null;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta, attemptCount, nextAttempt } = opts;
+  const waText = encodeURIComponent(`Ciao Vivi, ho un problema con il pagamento di MyVivaio per ${nomeSocieta}. Puoi aiutarmi?`);
+  const waLink = `https://wa.me/393793827922?text=${waText}`;
+  const nextStr = nextAttempt
+    ? `<p style="font-size:.87rem;color:#64748b;">Prossimo tentativo automatico: <strong>${new Date(nextAttempt * 1000).toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" })}</strong></p>`
+    : `<p style="font-size:.87rem;color:#dc2626;font-weight:600;">Questo era l'ultimo tentativo. L'abbonamento potrebbe essere cancellato.</p>`;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#d97706;margin-bottom:4px;">⚠️ Pagamento non riuscito — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Il pagamento del tuo abbonamento <strong>${nomeSocieta}</strong> non è andato a buon fine (tentativo ${attemptCount}).</p>
+  ${nextStr}
+  <p style="margin:16px 0 8px;font-weight:600;">Cosa puoi fare:</p>
+  <ul style="padding-left:18px;font-size:.9rem;line-height:1.7;">
+    <li>Verifica che la tua carta sia valida e abbia fondi disponibili</li>
+    <li>Aggiorna il metodo di pagamento dalla sezione <strong>Account → Piano</strong></li>
+    <li>Contatta Vivi su WhatsApp per assistenza immediata</li>
+  </ul>
+  <p style="margin-top:20px;">
+    <a href="${waLink}" style="background:#25d366;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">💬 Scrivi a Vivi su WhatsApp</a>
+  </p>
+  <p style="font-size:.85rem;color:#64748b;margin-top:16px;">
+    Oppure aggiorna il pagamento su <a href="https://myvivaio.app" style="color:#1A7A4A;font-weight:600;">myvivaio.app</a> → Account → Piano.
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    I tuoi dati sono al sicuro. Regolarizzando il pagamento l'accesso sarà ripristinato immediatamente.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Pagamento non riuscito — ${nomeSocieta} (tentativo ${attemptCount})`, html);
+    logger.info({ email, attemptCount }, "payment failed warning email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "payment failed warning email failed (non-blocking)");
+  }
+}
+
 export async function sendCancelledEmail(opts: {
   email: string;
   nome: string;

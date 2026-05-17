@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { sendCancelledEmail } from "../../lib/email";
+import { sendCancelledEmail, sendPaymentFailedEmail } from "../../lib/email";
 
 const router = Router();
 
@@ -443,6 +443,125 @@ router.post("/stripe/webhook", async (req, res) => {
             cognome:     ownerCognome ?? "",
             nomeSocieta: societyNome  ?? "",
           }).catch((e: any) => logger.error({ err: e }, "stripe: cancellation email failed"));
+        }
+      }
+    }
+  }
+
+  // ── invoice.payment_failed ───────────────────────────────────────────────
+  if (event?.type === "invoice.payment_failed") {
+    const invoice      = event.data?.object;
+    const subId        = invoice?.subscription;
+    const customerId   = invoice?.customer;
+    const invoiceId    = invoice?.id;
+    const attemptCount = invoice?.attempt_count ?? 1;
+    const nextAttempt  = invoice?.next_payment_attempt ?? null; // Unix ts or null
+
+    if (subId || customerId) {
+      let societyId: number | null = null;
+      let ownerEmail: string | null = null;
+      let ownerNome: string | null = null;
+      let ownerCognome: string | null = null;
+      let societyNome: string | null = null;
+
+      // 1. Aggiorna MySQL subscription_status='past_due' + payment_failed_at
+      try {
+        const whereClause = subId
+          ? "stripe_subscription_id = ?"
+          : "stripe_customer_id = ?";
+        const whereVal = subId ?? customerId;
+
+        await pool.execute(
+          `UPDATE societies
+           SET subscription_status = 'past_due',
+               payment_failed_at   = NOW()
+           WHERE ${whereClause}`,
+          [whereVal]
+        );
+        logger.info({ subId, customerId, attemptCount }, "stripe: payment failed, society past_due");
+
+        // Recupera info società
+        const [rows] = await pool.execute(
+          `SELECT s.id, s.nome, u.email, u.nome AS owner_nome, u.cognome AS owner_cognome
+           FROM societies s
+           LEFT JOIN users u ON u.society_id = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
+           WHERE ${whereClause}
+           LIMIT 1`,
+          [whereVal]
+        ) as [any[], any];
+
+        if (rows.length) {
+          societyId    = rows[0].id;
+          societyNome  = rows[0].nome;
+          ownerEmail   = rows[0].email;
+          ownerNome    = rows[0].owner_nome;
+          ownerCognome = rows[0].owner_cognome;
+        }
+      } catch (e: any) {
+        logger.error({ err: e }, "stripe: DB update failed on invoice.payment_failed");
+      }
+
+      // 2. Aggiorna blob SA: soc.paymentStatus='past_due' — riusa pattern Fix 3/Fix 1
+      if (societyId) {
+        try {
+          const SA_KEY = "fieldos_sa_v1";
+          const [stateRows] = await pool.execute(
+            "SELECT state_json FROM society_state WHERE `key` = ?",
+            [SA_KEY]
+          ) as [any[], any];
+
+          if (stateRows.length) {
+            const saState = JSON.parse(stateRows[0].state_json);
+            const soc = (saState.saSocieties as any[])?.find((s: any) => s.id === societyId);
+            if (soc) {
+              soc.paymentStatus = "past_due";
+              await pool.execute(
+                "UPDATE society_state SET state_json = ? WHERE `key` = ?",
+                [JSON.stringify(saState), SA_KEY]
+              );
+              logger.info({ societyId, attemptCount }, "stripe: SA blob updated - paymentStatus=past_due");
+            }
+          }
+        } catch (e: any) {
+          logger.error({ err: e }, "stripe: SA blob update failed on invoice.payment_failed");
+        }
+
+        // 3. Audit log
+        try {
+          await pool.execute(
+            `INSERT INTO sa_audit_log
+               (action, target_society_id, target_email, performed_by, reason, metadata, created_at)
+             VALUES
+               ('payment_failed_warning', ?, ?, 'SYSTEM_STRIPE_WEBHOOK',
+                'Stripe invoice.payment_failed',
+                ?, NOW())`,
+            [
+              societyId,
+              ownerEmail ?? null,
+              JSON.stringify({
+                stripe_invoice_id:       invoiceId    ?? null,
+                stripe_subscription_id:  subId        ?? null,
+                stripe_event_id:         event.id     ?? null,
+                attempt_count:           attemptCount,
+                next_payment_attempt:    nextAttempt,
+              }),
+            ]
+          );
+          logger.info({ societyId, attemptCount }, "stripe: audit log inserted for payment_failed");
+        } catch (e: any) {
+          logger.error({ err: e }, "stripe: audit log insert failed on invoice.payment_failed");
+        }
+
+        // 4. Email warning — non bloccante
+        if (ownerEmail) {
+          sendPaymentFailedEmail({
+            email:        ownerEmail,
+            nome:         ownerNome    ?? "",
+            cognome:      ownerCognome ?? "",
+            nomeSocieta:  societyNome  ?? "",
+            attemptCount,
+            nextAttempt,
+          }).catch((e: any) => logger.error({ err: e }, "stripe: payment failed email failed"));
         }
       }
     }

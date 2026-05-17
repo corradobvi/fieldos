@@ -222,7 +222,8 @@ CREATE TABLE IF NOT EXISTS demo_whatsapp_contact (
 ALTER TABLE users ADD COLUMN founding_promo_pending VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN suspended_at DATETIME NULL;
-ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL
+ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL;
+ALTER TABLE societies ADD COLUMN payment_failed_at DATETIME NULL
 `;
 
 export const SEED_SQL = `
