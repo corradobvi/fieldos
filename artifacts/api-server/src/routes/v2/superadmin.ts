@@ -44,6 +44,7 @@ router.get("/superadmin/societies", async (req, res) => {
          s.citta,
          s.colore_primario   AS colori,
          s.piano,
+         s.billing_mode,
          s.subscription_status,
          s.demo_scadenza,
          s.stato,
@@ -54,7 +55,7 @@ router.get("/superadmin/societies", async (req, res) => {
        LEFT JOIN users u  ON u.society_id  = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
        LEFT JOIN users u2 ON u2.society_id = s.id AND u2.stato = 'attivo'
        WHERE s.id NOT IN (${EXCLUDED_IDS.join(",")})
-       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
+       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.billing_mode, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
        ORDER BY s.created_at DESC`
     )) as [any[], any];
 
@@ -236,6 +237,17 @@ router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
   }
 
   try {
+    const [modeRows] = (await pool.execute(
+      `SELECT billing_mode FROM societies WHERE id = ?`, [societyId]
+    )) as [any[], any];
+    if (!modeRows.length) return res.status(404).json({ error: "not_found" });
+    if (modeRows[0].billing_mode !== 'omaggio') {
+      return res.status(403).json({
+        error: "billing_mode_stripe",
+        message: "Impossibile modificare il piano: società in modalità Stripe. Disattiva la fatturazione automatica prima.",
+      });
+    }
+
     await pool.execute(
       `UPDATE societies SET piano = ? WHERE id = ?`,
       [piano, societyId]
@@ -249,6 +261,94 @@ router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "superadmin/set-plan error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/superadmin/societies/:id/set-billing-mode
+router.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { mode, cancel_stripe_sub } = req.body as { mode?: string; cancel_stripe_sub?: boolean };
+  if (mode !== "stripe" && mode !== "omaggio") return res.status(400).json({ error: "invalid_mode" });
+
+  try {
+    const [socRows] = (await pool.execute(
+      `SELECT billing_mode, stripe_subscription_id FROM societies WHERE id = ?`,
+      [societyId]
+    )) as [any[], any];
+    if (!socRows.length) return res.status(404).json({ error: "not_found" });
+
+    const currentMode = socRows[0].billing_mode as string;
+    const stripeSubId = socRows[0].stripe_subscription_id as string | null;
+
+    // 1. Aggiorna billing_mode PRIMA di qualsiasi operazione Stripe (evita race condition)
+    await pool.execute(
+      `UPDATE societies SET billing_mode = ? WHERE id = ?`,
+      [mode, societyId]
+    );
+    logger.info({ societyId, from: currentMode, to: mode }, "superadmin: billing_mode updated");
+
+    // 2. stripe→omaggio + cancel_stripe_sub: cancella la sub Stripe immediatamente
+    if (currentMode === "stripe" && mode === "omaggio" && cancel_stripe_sub && stripeSubId) {
+      const key = process.env.STRIPE_SECRET_KEY;
+      if (key) {
+        try {
+          const r = await fetch(`https://api.stripe.com/v1/subscriptions/${stripeSubId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${key}` },
+          });
+          if (r.ok) {
+            logger.info({ stripeSubId, societyId }, "superadmin: Stripe subscription cancelled");
+          } else {
+            const errBody = await r.json() as any;
+            logger.warn({ stripeSubId, err: errBody?.error?.message }, "superadmin: Stripe cancel failed");
+          }
+        } catch (e: any) {
+          logger.warn({ err: e }, "superadmin: Stripe cancel request error");
+        }
+      }
+    }
+
+    // 3. Audit log
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, performed_by, reason, metadata, created_at)
+       VALUES ('billing_mode_changed', ?, 'SUPERADMIN', ?, ?, NOW())`,
+      [
+        societyId,
+        `billing_mode: ${currentMode} → ${mode}`,
+        JSON.stringify({ from: currentMode, to: mode, cancel_stripe_sub: cancel_stripe_sub ?? false, stripe_subscription_id: stripeSubId ?? null }),
+      ]
+    ).catch(() => {});
+
+    return res.json({ ok: true, billing_mode: mode });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/set-billing-mode error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// GET /api/v2/superadmin/societies/:id/audit-log?limit=50
+router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const rawLimit = parseInt(String(req.query.limit ?? "50"));
+  const limit = isNaN(rawLimit) ? 50 : Math.min(rawLimit, 100);
+
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT id, action, target_email, performed_by, reason, metadata, created_at
+       FROM sa_audit_log
+       WHERE target_society_id = ?
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      [societyId, limit]
+    )) as [any[], any];
+    return res.json({ entries: rows });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/audit-log error");
     return res.status(500).json({ error: "server_error" });
   }
 });
