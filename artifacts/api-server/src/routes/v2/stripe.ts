@@ -282,6 +282,33 @@ router.post("/stripe/webhook", async (req, res) => {
       } catch (e: any) {
         logger.error({ err: e }, "stripe: DB update failed on checkout.session.completed");
       }
+
+      // Update SA blob so login is unblocked even if client never saw /payment-success
+      if (piano && piano !== "demo") {
+        try {
+          const SA_KEY = "fieldos_sa_v1";
+          const [stateRows] = await pool.execute(
+            "SELECT state_json FROM society_state WHERE `key` = ?",
+            [SA_KEY]
+          ) as [any[], any];
+
+          if (stateRows.length) {
+            const saState = JSON.parse(stateRows[0].state_json);
+            const soc = (saState.saSocieties as any[])?.find((s: any) => s.id === Number(societyId));
+            if (soc) {
+              soc.piano        = piano;
+              soc.scadenzaDemo = null;
+              await pool.execute(
+                "UPDATE society_state SET state_json = ? WHERE `key` = ?",
+                [JSON.stringify(saState), SA_KEY]
+              );
+              logger.info({ societyId, piano }, "stripe: SA blob updated after checkout");
+            }
+          }
+        } catch (e: any) {
+          logger.error({ err: e }, "stripe: SA blob update failed (non-blocking)");
+        }
+      }
     }
 
   }
