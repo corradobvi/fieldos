@@ -2187,6 +2187,28 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
 
+      <!-- ── Panel: Comunicazioni ── -->
+      <div class="ac-panel" id="acPanelComunicazioni">
+        <div class="ac-card">
+          <div class="ac-card-title">💬 Comunicazioni e Privacy</div>
+          <p style="font-size:.85rem;color:var(--text2);margin:0 0 16px;line-height:1.55;">Gestisci le tue preferenze di comunicazione. Puoi modificare il consenso in qualsiasi momento.</p>
+          <div id="acCommLoading" style="text-align:center;padding:16px;font-size:.85rem;color:var(--text2);">⏳ Caricamento…</div>
+          <div id="acCommContent" style="display:none;">
+            <label style="display:flex;align-items:center;gap:14px;cursor:pointer;padding:14px 0;border-top:1px solid var(--border);">
+              <input type="checkbox" id="acMktConsent" onchange="_acToggleMarketing(this.checked)"
+                style="width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:var(--cl);">
+              <div>
+                <div style="font-size:.92rem;font-weight:600;">Comunicazioni commerciali</div>
+                <div style="font-size:.8rem;color:var(--text2);margin-top:3px;">Offerte, promozioni e novità su MyVivaio</div>
+              </div>
+            </label>
+          </div>
+          <div id="acCommUnavail" style="display:none;font-size:.84rem;color:var(--text2);text-align:center;padding:16px 0;">
+            Questa funzione è disponibile per gli account registrati direttamente su MyVivaio.
+          </div>
+        </div>
+      </div>
+
     </div><!-- /.ac-content -->
   </div><!-- /.ac-body -->
 </div>
@@ -16142,6 +16164,7 @@ function acAllowedTabs() {
     tabs.push({ id:'piano',     ic:'⚽', lb:'Il mio piano' });
     tabs.push({ id:'pagamenti', ic:'📄', lb:'Pagamenti' });
   }
+  tabs.push({ id:'comunicazioni', ic:'💬', lb:'Comunicazioni' });
   // Gestione/Tutorial/FAQ disabilitati fino al lancio (codice mantenuto)
   return tabs;
 }
@@ -16200,7 +16223,7 @@ function acSetTab(tab) {
   const allowed = acAllowedTabs().map(t => t.id);
   if (!allowed.includes(tab)) tab = 'profilo';
   _acCurrentTab = tab;
-  const ALL_PANELS = ['profilo','sicurezza','piano','pagamenti','gestione','tutorial','faq'];
+  const ALL_PANELS = ['profilo','sicurezza','piano','pagamenti','comunicazioni','gestione','tutorial','faq'];
   ALL_PANELS.forEach(t => {
     const key = t.charAt(0).toUpperCase() + t.slice(1);
     const pnl = document.getElementById('acPanel' + key);
@@ -16212,11 +16235,12 @@ function acSetTab(tab) {
   document.querySelectorAll('#acTabsMob .ac-tab-mob').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
-  if (tab === 'piano')     _acLoadSub();
-  if (tab === 'pagamenti') _acLoadInvoices();
-  if (tab === 'gestione')  _acLoadGestione();
-  if (tab === 'tutorial')  _acRenderTutorial();
-  if (tab === 'faq')       _acRenderFaq();
+  if (tab === 'piano')          _acLoadSub();
+  if (tab === 'pagamenti')      _acLoadInvoices();
+  if (tab === 'comunicazioni')  _acLoadComunicazioni();
+  if (tab === 'gestione')       _acLoadGestione();
+  if (tab === 'tutorial')       _acRenderTutorial();
+  if (tab === 'faq')            _acRenderFaq();
 }
 
 function _acInit() {
@@ -16536,6 +16560,54 @@ async function acCancelConfirmed() {
     }
   } catch(e) { toast('Errore di rete'); }
   finally { if (btn) { btn.disabled = false; btn.textContent = 'Sì, cancella'; } }
+}
+
+async function _acLoadComunicazioni() {
+  const loadEl  = document.getElementById('acCommLoading');
+  const contEl  = document.getElementById('acCommContent');
+  const unavEl  = document.getElementById('acCommUnavail');
+  if (!loadEl) return;
+  loadEl.style.display  = 'block';
+  if (contEl) contEl.style.display  = 'none';
+  if (unavEl) unavEl.style.display  = 'none';
+
+  if (!_v2Token) {
+    loadEl.style.display = 'none';
+    if (unavEl) unavEl.style.display = 'block';
+    return;
+  }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/account/consents', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) throw new Error('fetch_error');
+    const data = await r.json();
+    const cb = document.getElementById('acMktConsent');
+    if (cb) cb.checked = !!data.marketingConsent;
+    loadEl.style.display = 'none';
+    if (contEl) contEl.style.display = 'block';
+  } catch(e) {
+    loadEl.style.display = 'none';
+    if (unavEl) unavEl.style.display = 'block';
+  }
+}
+
+async function _acToggleMarketing(checked) {
+  if (!_v2Token) return;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/account/marketing-consent', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ consent: checked })
+    });
+    if (!r.ok) throw new Error();
+    toast(checked ? '✅ Consenso marketing attivato' : '✅ Consenso marketing disattivato');
+  } catch(e) {
+    toast('❌ Errore nel salvataggio. Riprova.');
+    // Ripristina il valore precedente
+    const cb = document.getElementById('acMktConsent');
+    if (cb) cb.checked = !checked;
+  }
 }
 
 async function _acLoadInvoices() {

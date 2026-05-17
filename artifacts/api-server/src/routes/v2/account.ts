@@ -5,6 +5,28 @@ import { requireAuth } from "../../lib/auth";
 
 const router = Router();
 
+// GET /api/v2/account/consents — restituisce lo stato consensi dell'utente loggato
+router.get("/account/consents", requireAuth, async (req, res) => {
+  const { userId } = req.jwtUser!;
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT marketing_consent, marketing_consent_at, privacy_accepted_at
+       FROM users WHERE id = ? LIMIT 1`,
+      [userId]
+    )) as [any[], any];
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    const u = rows[0];
+    return res.json({
+      marketingConsent:   !!u.marketing_consent,
+      marketingConsentAt: u.marketing_consent_at ?? null,
+      privacyAcceptedAt:  u.privacy_accepted_at  ?? null,
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "account/consents error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // POST /api/v2/account/accept-privacy — raccoglie il consenso privacy per utenti pre-esistenti
 router.post("/account/accept-privacy", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser!;
