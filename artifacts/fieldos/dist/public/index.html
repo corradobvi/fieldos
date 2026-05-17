@@ -17583,6 +17583,7 @@ async function _syncSubscriptionStatus() {
     const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId);
     if (!resp.ok) return;
     const data = await resp.json();
+    if (data.billingMode === 'omaggio') return; // SA controlla il piano, Stripe non sovrascrive
     if (!data.piano) return;
     const soc = saSocieties.find(x => x.id === currentSocietaId);
     if (!soc) return;

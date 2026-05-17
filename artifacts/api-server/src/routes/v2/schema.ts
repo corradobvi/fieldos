@@ -223,7 +223,8 @@ ALTER TABLE users ADD COLUMN founding_promo_pending VARCHAR(20) NULL DEFAULT NUL
 ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN suspended_at DATETIME NULL;
 ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL;
-ALTER TABLE societies ADD COLUMN payment_failed_at DATETIME NULL
+ALTER TABLE societies ADD COLUMN payment_failed_at DATETIME NULL;
+ALTER TABLE societies ADD COLUMN billing_mode ENUM('stripe','omaggio') NOT NULL DEFAULT 'stripe'
 `;
 
 export const SEED_SQL = `

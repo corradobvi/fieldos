@@ -56,6 +56,24 @@ function priceIdToPiano(priceId: string): string | null {
   return null;
 }
 
+async function getSocietyBillingMode(
+  subId: string | null,
+  customerId: string | null,
+  societyId: number | null
+): Promise<'stripe' | 'omaggio'> {
+  try {
+    let q: string, p: any[];
+    if (societyId != null) { q = "SELECT billing_mode FROM societies WHERE id = ?"; p = [societyId]; }
+    else if (subId)        { q = "SELECT billing_mode FROM societies WHERE stripe_subscription_id = ?"; p = [subId]; }
+    else if (customerId)   { q = "SELECT billing_mode FROM societies WHERE stripe_customer_id = ?"; p = [customerId]; }
+    else return 'stripe';
+    const [rows] = await pool.execute(q, p) as [any[], any];
+    return (rows[0]?.billing_mode as 'stripe' | 'omaggio') ?? 'stripe';
+  } catch {
+    return 'stripe'; // fail-safe: default to stripe behavior
+  }
+}
+
 function stripeEncode(obj: Record<string, string | number>): string {
   return Object.entries(obj)
     .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
@@ -269,23 +287,38 @@ router.post("/stripe/webhook", async (req, res) => {
     const subId      = session?.subscription;
 
     if (societyId && customerId) {
+      const billingMode = await getSocietyBillingMode(null, null, Number(societyId));
+
       try {
-        await pool.execute(
-          `UPDATE societies
-           SET subscription_status    = 'active',
-               piano                  = COALESCE(?, piano),
-               stripe_customer_id     = ?,
-               stripe_subscription_id = ?
-           WHERE id = ?`,
-          [piano ?? null, customerId, subId ?? null, Number(societyId)]
-        );
-        logger.info({ societyId, customerId, piano }, "stripe: society activated");
+        if (billingMode === 'omaggio') {
+          // Salva solo gli ID Stripe, non toccare il piano
+          await pool.execute(
+            `UPDATE societies
+             SET subscription_status    = 'active',
+                 stripe_customer_id     = ?,
+                 stripe_subscription_id = ?
+             WHERE id = ?`,
+            [customerId, subId ?? null, Number(societyId)]
+          );
+          logger.warn({ societyId, billingMode }, "stripe: omaggio society — piano not updated on checkout");
+        } else {
+          await pool.execute(
+            `UPDATE societies
+             SET subscription_status    = 'active',
+                 piano                  = COALESCE(?, piano),
+                 stripe_customer_id     = ?,
+                 stripe_subscription_id = ?
+             WHERE id = ?`,
+            [piano ?? null, customerId, subId ?? null, Number(societyId)]
+          );
+          logger.info({ societyId, customerId, piano }, "stripe: society activated");
+        }
       } catch (e: any) {
         logger.error({ err: e }, "stripe: DB update failed on checkout.session.completed");
       }
 
       // Update SA blob so login is unblocked even if client never saw /payment-success
-      if (piano && piano !== "demo") {
+      if (piano && piano !== "demo" && billingMode !== 'omaggio') {
         try {
           const SA_KEY = "fieldos_sa_v1";
           const [stateRows] = await pool.execute(
@@ -323,16 +356,25 @@ router.post("/stripe/webhook", async (req, res) => {
     const status  = sub?.status; // active, past_due, canceled, etc.
 
     if (subId) {
+      const billingMode = await getSocietyBillingMode(subId, null, null);
+      const dbStatus = status === "active" ? "active" : status === "past_due" ? "past_due" : "canceled";
       try {
-        const dbStatus = status === "active" ? "active" : status === "past_due" ? "past_due" : "canceled";
-        await pool.execute(
-          `UPDATE societies
-           SET subscription_status = ?,
-               piano               = COALESCE(?, piano)
-           WHERE stripe_subscription_id = ?`,
-          [dbStatus, piano ?? null, subId]
-        );
-        logger.info({ subId, piano, status }, "stripe: subscription updated");
+        if (billingMode === 'omaggio') {
+          await pool.execute(
+            `UPDATE societies SET subscription_status = ? WHERE stripe_subscription_id = ?`,
+            [dbStatus, subId]
+          );
+          logger.warn({ subId, billingMode }, "stripe: omaggio society — piano not updated on subscription.updated");
+        } else {
+          await pool.execute(
+            `UPDATE societies
+             SET subscription_status = ?,
+                 piano               = COALESCE(?, piano)
+             WHERE stripe_subscription_id = ?`,
+            [dbStatus, piano ?? null, subId]
+          );
+          logger.info({ subId, piano, status }, "stripe: subscription updated");
+        }
       } catch (e: any) {
         logger.error({ err: e }, "stripe: DB update failed on subscription.updated");
       }
@@ -346,7 +388,9 @@ router.post("/stripe/webhook", async (req, res) => {
     const canceledAt = sub?.canceled_at ? new Date((sub.canceled_at as number) * 1000) : new Date();
 
     if (subId) {
-      // 1. Update MySQL: subscription_status + sospensione società
+      const billingMode = await getSocietyBillingMode(subId, null, null);
+
+      // 1. Update MySQL: subscription_status + sospensione società (solo se stripe)
       let societyId: number | null = null;
       let ownerEmail: string | null = null;
       let ownerNome: string | null = null;
@@ -354,16 +398,24 @@ router.post("/stripe/webhook", async (req, res) => {
       let societyNome: string | null = null;
 
       try {
-        await pool.execute(
-          `UPDATE societies
-           SET subscription_status = 'canceled',
-               stato               = 'sospesa',
-               suspended_at        = NOW(),
-               suspended_reason    = 'Stripe subscription cancelled'
-           WHERE stripe_subscription_id = ?`,
-          [subId]
-        );
-        logger.info({ subId }, "stripe: subscription canceled, society suspended");
+        if (billingMode === 'omaggio') {
+          await pool.execute(
+            `UPDATE societies SET subscription_status = 'canceled' WHERE stripe_subscription_id = ?`,
+            [subId]
+          );
+          logger.warn({ subId, billingMode }, "stripe: omaggio society — not suspended on subscription.deleted");
+        } else {
+          await pool.execute(
+            `UPDATE societies
+             SET subscription_status = 'canceled',
+                 stato               = 'sospesa',
+                 suspended_at        = NOW(),
+                 suspended_reason    = 'Stripe subscription cancelled'
+             WHERE stripe_subscription_id = ?`,
+            [subId]
+          );
+          logger.info({ subId }, "stripe: subscription canceled, society suspended");
+        }
 
         // Recupera info società per blob, audit, email
         const [rows] = await pool.execute(
@@ -386,8 +438,8 @@ router.post("/stripe/webhook", async (req, res) => {
         logger.error({ err: e }, "stripe: DB update failed on subscription.deleted");
       }
 
-      // 2. Aggiorna blob SA — riusa pattern di Fix 3
-      if (societyId) {
+      // 2. Aggiorna blob SA — solo per billing_mode stripe
+      if (societyId && billingMode !== 'omaggio') {
         try {
           const SA_KEY = "fieldos_sa_v1";
           const [stateRows] = await pool.execute(
@@ -410,8 +462,10 @@ router.post("/stripe/webhook", async (req, res) => {
         } catch (e: any) {
           logger.error({ err: e }, "stripe: SA blob update failed on subscription.deleted");
         }
+      }
 
-        // 3. Audit log
+      // 3. Audit log — sempre, indipendentemente da billing_mode
+      if (societyId) {
         try {
           await pool.execute(
             `INSERT INTO sa_audit_log
@@ -427,16 +481,17 @@ router.post("/stripe/webhook", async (req, res) => {
                 stripe_subscription_id: subId,
                 stripe_event_id:        event.id ?? null,
                 canceled_at:            canceledAt.toISOString(),
+                billing_mode:           billingMode,
               }),
             ]
           );
-          logger.info({ societyId, subId }, "stripe: audit log inserted for subscription.deleted");
+          logger.info({ societyId, subId, billingMode }, "stripe: audit log inserted for subscription.deleted");
         } catch (e: any) {
           logger.error({ err: e }, "stripe: audit log insert failed on subscription.deleted");
         }
 
-        // 4. Email owner — non bloccante
-        if (ownerEmail) {
+        // 4. Email owner — solo per billing_mode stripe
+        if (ownerEmail && billingMode !== 'omaggio') {
           sendCancelledEmail({
             email:       ownerEmail,
             nome:        ownerNome    ?? "",
@@ -458,6 +513,10 @@ router.post("/stripe/webhook", async (req, res) => {
     const nextAttempt  = invoice?.next_payment_attempt ?? null; // Unix ts or null
 
     if (subId || customerId) {
+      const billingMode = await getSocietyBillingMode(subId ?? null, customerId ?? null, null);
+      if (billingMode === 'omaggio') {
+        logger.warn({ subId, customerId }, "stripe: invoice.payment_failed ignored for omaggio society");
+      } else {
       let societyId: number | null = null;
       let ownerEmail: string | null = null;
       let ownerNome: string | null = null;
@@ -564,6 +623,7 @@ router.post("/stripe/webhook", async (req, res) => {
           }).catch((e: any) => logger.error({ err: e }, "stripe: payment failed email failed"));
         }
       }
+      } // end else (billingMode !== 'omaggio')
     }
   }
 
@@ -577,7 +637,7 @@ router.get("/stripe/subscription", async (req, res) => {
 
   try {
     const [rows] = await pool.execute(
-      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza
+      `SELECT subscription_status, piano, stripe_subscription_id, stripe_customer_id, demo_scadenza, billing_mode
        FROM societies WHERE id = ?`,
       [Number(societyId)]
     ) as [any[], any];
@@ -614,6 +674,7 @@ router.get("/stripe/subscription", async (req, res) => {
       status:            soc.subscription_status,
       piano:             soc.piano,
       demoScadenza:      soc.demo_scadenza,
+      billingMode:       soc.billing_mode ?? 'stripe',
       currentPeriodEnd,
       cancelAtPeriodEnd,
       intervallo,
