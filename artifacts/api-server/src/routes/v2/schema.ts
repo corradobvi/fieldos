@@ -224,7 +224,14 @@ ALTER TABLE societies ADD COLUMN founding_active VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN suspended_at DATETIME NULL;
 ALTER TABLE societies ADD COLUMN suspended_reason TEXT NULL;
 ALTER TABLE societies ADD COLUMN payment_failed_at DATETIME NULL;
-ALTER TABLE societies ADD COLUMN billing_mode ENUM('stripe','omaggio') NOT NULL DEFAULT 'stripe'
+ALTER TABLE societies ADD COLUMN billing_mode ENUM('stripe','omaggio') NOT NULL DEFAULT 'stripe';
+ALTER TABLE users ADD COLUMN whatsapp_number VARCHAR(20) NULL;
+ALTER TABLE users ADD COLUMN privacy_accepted_at DATETIME NULL;
+ALTER TABLE users ADD COLUMN marketing_consent BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN marketing_consent_at DATETIME NULL;
+ALTER TABLE users ADD COLUMN marketing_consent_revoked_at DATETIME NULL;
+ALTER TABLE players ADD COLUMN parental_consent_given_by INT NULL;
+ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL
 `;
 
 export const SEED_SQL = `

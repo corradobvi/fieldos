@@ -58,9 +58,10 @@ router.get("/players/:id", requireAuth, async (req, res) => {
 
 // POST /api/v2/players
 router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId } = req.jwtUser!;
   const { nome, cognome, soprannome, numero, ruoloCampo, annoNascita, leva,
-          telefonoGenitore, emailGenitore, note } = req.body as Record<string, any>;
+          telefonoGenitore, emailGenitore, note,
+          parentalConsentGiven } = req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim()) {
     return res.status(400).json({ error: "nome_cognome_required" });
@@ -78,14 +79,20 @@ router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, re
       }
     }
 
+    const isMinor = annoNascita && (new Date().getFullYear() - parseInt(annoNascita)) < 18;
+    const consentGivenBy = isMinor && parentalConsentGiven ? userId : null;
+    const consentAt      = isMinor && parentalConsentGiven ? new Date() : null;
+
     const [result] = (await pool.execute(
       `INSERT INTO players
         (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
-         leva, telefono_genitore, email_genitore, note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         leva, telefono_genitore, email_genitore, note,
+         parental_consent_given_by, parental_consent_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [societyId, nome.trim(), cognome.trim(), soprannome ?? null, numero ?? null,
        ruoloCampo ?? null, annoNascita ?? null, leva ?? null,
-       telefonoGenitore ?? null, emailGenitore ?? null, note ?? null]
+       telefonoGenitore ?? null, emailGenitore ?? null, note ?? null,
+       consentGivenBy, consentAt]
     )) as [any, any];
 
     return res.status(201).json({ id: result.insertId });
@@ -97,11 +104,16 @@ router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, re
 
 // PUT /api/v2/players/:id
 router.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId } = req.jwtUser!;
   const { nome, cognome, soprannome, numero, ruoloCampo, annoNascita, leva,
-          telefonoGenitore, emailGenitore, note, fotoUrl } = req.body as Record<string, any>;
+          telefonoGenitore, emailGenitore, note, fotoUrl,
+          parentalConsentGiven } = req.body as Record<string, any>;
 
   try {
+    const isMinor = annoNascita && (new Date().getFullYear() - parseInt(annoNascita)) < 18;
+    const consentGivenBy = isMinor && parentalConsentGiven ? userId : null;
+    const consentAt      = isMinor && parentalConsentGiven ? new Date() : null;
+
     const [result] = (await pool.execute(
       `UPDATE players SET
         nome             = COALESCE(?, nome),
@@ -114,12 +126,17 @@ router.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req,
         telefono_genitore = COALESCE(?, telefono_genitore),
         email_genitore   = COALESCE(?, email_genitore),
         note             = COALESCE(?, note),
-        foto_url         = COALESCE(?, foto_url)
+        foto_url         = COALESCE(?, foto_url),
+        parental_consent_given_by = CASE WHEN ? IS NOT NULL THEN ? ELSE parental_consent_given_by END,
+        parental_consent_at       = CASE WHEN ? IS NOT NULL THEN ? ELSE parental_consent_at END
        WHERE id = ? AND society_id = ?`,
       [nome ?? null, cognome ?? null, soprannome ?? null, numero ?? null,
        ruoloCampo ?? null, annoNascita ?? null, leva ?? null,
        telefonoGenitore ?? null, emailGenitore ?? null, note ?? null,
-       fotoUrl ?? null, req.params.id, societyId]
+       fotoUrl ?? null,
+       consentGivenBy, consentGivenBy,
+       consentAt, consentAt,
+       req.params.id, societyId]
     )) as [any, any];
 
     if (!result.affectedRows) return res.status(404).json({ error: "not_found" });

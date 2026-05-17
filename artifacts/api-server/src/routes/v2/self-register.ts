@@ -15,11 +15,14 @@ const DEMO_DAYS: Record<string, number> = {
 
 const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
 
+const WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
-  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano } =
-    req.body as Record<string, string | undefined>;
+  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano,
+          whatsappNumber, privacyAccepted, marketingConsent } =
+    req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
     return res.status(400).json({ error: "missing_fields" });
@@ -29,6 +32,13 @@ router.post("/auth/self-register", async (req, res) => {
   }
   if (password.length < 8) {
     return res.status(400).json({ error: "password_too_short" });
+  }
+  if (privacyAccepted !== true) {
+    return res.status(400).json({ error: "privacy_required" });
+  }
+  const waNum = typeof whatsappNumber === "string" ? whatsappNumber.replace(/\s/g, "") : "";
+  if (!WA_REGEX.test(waNum)) {
+    return res.status(400).json({ error: "invalid_whatsapp" });
   }
 
   const normalizedEmail  = email.trim().toLowerCase();
@@ -63,11 +73,15 @@ router.post("/auth/self-register", async (req, res) => {
 
     // Crea admin user (attivo subito, senza approvazione)
     const hash = hashPassword(password);
+    const mktConsent = marketingConsent === true;
     const [userRes] = (await conn.execute(
       `INSERT INTO users
-         (society_id, nome, cognome, email, password_hash, ruolo, stato, phone)
-       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?)`,
-      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim()]
+         (society_id, nome, cognome, email, password_hash, ruolo, stato, phone,
+          whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at)
+       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?,
+               ?, NOW(), ?, ?)`,
+      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim(),
+       waNum, mktConsent, mktConsent ? new Date() : null]
     )) as [any, any];
     const userId: number = userRes.insertId;
 
