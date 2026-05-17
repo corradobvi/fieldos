@@ -11890,7 +11890,7 @@ function refreshQuotaBadge() {
     n = quotes.filter(q => q.stato === 'scaduto').length;
   }
   document.querySelectorAll('.ni[data-pg="pagamenti"]').forEach(el => {
-    let badge = el.querySelector('.nb');
+    let badge = el.querySelector('.nb:not(.lock)');
     if (n > 0) {
       if (!badge) { badge = document.createElement('span'); badge.className = 'nb'; el.appendChild(badge); }
       badge.textContent = String(n); badge.style.display = '';
