@@ -16,6 +16,7 @@ router.post("/auth/login", async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
               u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
+              u.privacy_accepted_at,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -43,6 +44,7 @@ router.post("/auth/login", async (req, res) => {
 
     return res.json({
       token,
+      privacyPending: user.privacy_accepted_at === null,
       user: {
         id: user.id,
         societyId: user.society_id,

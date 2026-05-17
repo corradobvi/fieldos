@@ -17,6 +17,31 @@ async function getSocietyPlayerLimit(societyId: number): Promise<number> {
   return PLAYER_LIMITS[norm] ?? 25;
 }
 
+// GET /api/v2/players/pending-parental-consent
+// Solo per genitore: restituisce i giocatori minori collegati via user_players senza consenso parentale.
+router.get("/players/pending-parental-consent", requireAuth, async (req, res) => {
+  const { userId, role } = req.jwtUser!;
+  if (role !== "genitore") return res.json({ players: [] });
+
+  try {
+    const currentYear = new Date().getFullYear();
+    const [rows] = (await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.anno_nascita
+       FROM players p
+       JOIN user_players up ON up.player_id = p.id
+       WHERE up.user_id = ?
+         AND p.anno_nascita IS NOT NULL
+         AND (? - p.anno_nascita) < 18
+         AND p.parental_consent_at IS NULL`,
+      [userId, currentYear]
+    )) as [any[], any];
+    return res.json({ players: rows });
+  } catch (e: any) {
+    logger.error({ err: e }, "GET pending-parental-consent error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // GET /api/v2/players?leva=U14
 router.get("/players", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
@@ -26,7 +51,8 @@ router.get("/players", requireAuth, async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
               p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
-              p.note, p.foto_url, p.created_at
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at
        FROM players p
        WHERE p.society_id = ?
          ${leva ? "AND p.leva = ?" : ""}
@@ -45,7 +71,10 @@ router.get("/players/:id", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
   try {
     const [rows] = (await pool.execute(
-      "SELECT * FROM players WHERE id = ? AND society_id = ?",
+      `SELECT id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva,
+              telefono_genitore, email_genitore, note, foto_url, created_at,
+              parental_consent_given_by, parental_consent_at
+       FROM players WHERE id = ? AND society_id = ?`,
       [req.params.id, societyId]
     )) as [any[], any];
     if (!rows.length) return res.status(404).json({ error: "not_found" });
@@ -57,11 +86,12 @@ router.get("/players/:id", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/players
+// Il consenso parentale non viene mai raccolto qui: solo il genitore può darlo,
+// tramite /api/v2/account/accept-parental-consent/:playerId dopo il login.
 router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser!;
+  const { societyId } = req.jwtUser!;
   const { nome, cognome, soprannome, numero, ruoloCampo, annoNascita, leva,
-          telefonoGenitore, emailGenitore, note,
-          parentalConsentGiven } = req.body as Record<string, any>;
+          telefonoGenitore, emailGenitore, note } = req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim()) {
     return res.status(400).json({ error: "nome_cognome_required" });
@@ -79,20 +109,15 @@ router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, re
       }
     }
 
-    const isMinor = annoNascita && (new Date().getFullYear() - parseInt(annoNascita)) < 18;
-    const consentGivenBy = isMinor && parentalConsentGiven ? userId : null;
-    const consentAt      = isMinor && parentalConsentGiven ? new Date() : null;
-
     const [result] = (await pool.execute(
       `INSERT INTO players
         (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
          leva, telefono_genitore, email_genitore, note,
          parental_consent_given_by, parental_consent_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
       [societyId, nome.trim(), cognome.trim(), soprannome ?? null, numero ?? null,
        ruoloCampo ?? null, annoNascita ?? null, leva ?? null,
-       telefonoGenitore ?? null, emailGenitore ?? null, note ?? null,
-       consentGivenBy, consentAt]
+       telefonoGenitore ?? null, emailGenitore ?? null, note ?? null]
     )) as [any, any];
 
     return res.status(201).json({ id: result.insertId });
@@ -103,40 +128,32 @@ router.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, re
 });
 
 // PUT /api/v2/players/:id
+// Il consenso parentale può essere aggiornato SOLO da un genitore collegato al giocatore
+// tramite user_players. Admin e dirigenti non possono impostare il consenso al posto del genitore.
 router.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser!;
+  const { societyId } = req.jwtUser!;
   const { nome, cognome, soprannome, numero, ruoloCampo, annoNascita, leva,
-          telefonoGenitore, emailGenitore, note, fotoUrl,
-          parentalConsentGiven } = req.body as Record<string, any>;
+          telefonoGenitore, emailGenitore, note, fotoUrl } = req.body as Record<string, any>;
 
   try {
-    const isMinor = annoNascita && (new Date().getFullYear() - parseInt(annoNascita)) < 18;
-    const consentGivenBy = isMinor && parentalConsentGiven ? userId : null;
-    const consentAt      = isMinor && parentalConsentGiven ? new Date() : null;
-
     const [result] = (await pool.execute(
       `UPDATE players SET
-        nome             = COALESCE(?, nome),
-        cognome          = COALESCE(?, cognome),
-        soprannome       = COALESCE(?, soprannome),
-        numero           = COALESCE(?, numero),
-        ruolo_campo      = COALESCE(?, ruolo_campo),
-        anno_nascita     = COALESCE(?, anno_nascita),
-        leva             = COALESCE(?, leva),
+        nome              = COALESCE(?, nome),
+        cognome           = COALESCE(?, cognome),
+        soprannome        = COALESCE(?, soprannome),
+        numero            = COALESCE(?, numero),
+        ruolo_campo       = COALESCE(?, ruolo_campo),
+        anno_nascita      = COALESCE(?, anno_nascita),
+        leva              = COALESCE(?, leva),
         telefono_genitore = COALESCE(?, telefono_genitore),
-        email_genitore   = COALESCE(?, email_genitore),
-        note             = COALESCE(?, note),
-        foto_url         = COALESCE(?, foto_url),
-        parental_consent_given_by = CASE WHEN ? IS NOT NULL THEN ? ELSE parental_consent_given_by END,
-        parental_consent_at       = CASE WHEN ? IS NOT NULL THEN ? ELSE parental_consent_at END
+        email_genitore    = COALESCE(?, email_genitore),
+        note              = COALESCE(?, note),
+        foto_url          = COALESCE(?, foto_url)
        WHERE id = ? AND society_id = ?`,
       [nome ?? null, cognome ?? null, soprannome ?? null, numero ?? null,
        ruoloCampo ?? null, annoNascita ?? null, leva ?? null,
        telefonoGenitore ?? null, emailGenitore ?? null, note ?? null,
-       fotoUrl ?? null,
-       consentGivenBy, consentGivenBy,
-       consentAt, consentAt,
-       req.params.id, societyId]
+       fotoUrl ?? null, req.params.id, societyId]
     )) as [any, any];
 
     if (!result.affectedRows) return res.status(404).json({ error: "not_found" });

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { signJWT } from "../lib/auth";
 
 const router = Router();
 
@@ -95,7 +96,8 @@ router.post("/login", async (req, res) => {
       }
 
       logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
-      return res.json({ societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson });
+      const _pc = await _mysqlPrivacyCheck(normalizedEmail, soc.id as number, found.user.role ?? 'admin');
+      return res.json({ societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson, ..._pc });
     }
 
     // 3. Fallback: scansiona chiavi orfane nel DB (non elencate nel SA state)
@@ -115,7 +117,8 @@ router.post("/login", async (req, res) => {
         return res.status(403).json({ error: "suspended" });
       }
       logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
-      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson });
+      const _pc2 = await _mysqlPrivacyCheck(normalizedEmail, societyId, found.user.role ?? 'admin');
+      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson, ..._pc2 });
     }
 
     return res.status(401).json({ error: "invalid_credentials" });
@@ -124,5 +127,31 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
+
+// Checks MySQL for a matching user and returns privacyPending + v2Token if needed.
+// Returns null if the user has no MySQL row (blob-only legacy user).
+async function _mysqlPrivacyCheck(
+  email: string,
+  societyId: number,
+  role: string
+): Promise<{ privacyPending: boolean; v2Token: string | null }> {
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT id, privacy_accepted_at FROM users
+       WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo'
+       LIMIT 1`,
+      [email.toLowerCase(), societyId]
+    )) as [any[], any];
+    if (!rows.length) return { privacyPending: false, v2Token: null };
+    const mysqlUser = rows[0];
+    const privacyPending = mysqlUser.privacy_accepted_at === null;
+    const v2Token = privacyPending
+      ? signJWT({ userId: mysqlUser.id, societyId, role, email })
+      : null;
+    return { privacyPending, v2Token };
+  } catch {
+    return { privacyPending: false, v2Token: null };
+  }
+}
 
 export default router;

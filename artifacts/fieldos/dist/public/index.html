@@ -4214,7 +4214,19 @@ async function doLogin() {
       // Carica SA state in background (per plan checks)
       saLoadState();
       me = data.user;
-      bootApp(me);
+      // Salva v2Token se presente (genitore/admin con riga MySQL)
+      if (data.v2Token) {
+        _v2Token = data.v2Token;
+        try { sessionStorage.setItem('mv_v2_token', _v2Token); } catch(_) {}
+      }
+      // Privacy consent bloccante — mostra modal prima di bootApp
+      if (data.privacyPending) {
+        _showPrivacyPendingModal(function() {
+          _continueAfterPrivacy();
+        });
+        return;
+      }
+      _continueAfterPrivacy();
       return;
     }
 
@@ -4384,6 +4396,7 @@ function bootApp(user) {
     _syncSubscriptionStatus();
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
+    if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
     const _cb = document.getElementById('asstBtn');
@@ -16987,6 +17000,7 @@ function _rClearErr() {
 
 // ─── WhatsApp demo funnel ───────────────────────────────────────────────────
 var _waToken = null;       // JWT from self-register, used for WA endpoints
+var _v2Token = null;       // JWT for v2 API calls (privacy/parental consent); bridged from blob login
 var _waFirstName = '';
 var _waLastName = '';
 var _waPiano = 'mister';
@@ -17171,6 +17185,163 @@ async function saWaComplete(id) {
   } catch(e) { toast('Errore: ' + String(e)); }
 }
 // ─── Fine WhatsApp demo funnel ──────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════
+// GDPR — Privacy Pending + Parental Consent modals
+// ═══════════════════════════════════════════════════════════
+
+var _privacyOnAcceptCb = null;
+var _pendingConsentPlayers = [];
+var _pendingConsentIdx = 0;
+
+function _showPrivacyPendingModal(onAcceptCb) {
+  _privacyOnAcceptCb = onAcceptCb || null;
+  var el = document.getElementById('mPrivacyPending');
+  if (!el) return;
+  document.getElementById('ppPrivacyCheck').checked = false;
+  document.getElementById('ppErr').style.display = 'none';
+  _ppUpdateBtn();
+  el.style.display = 'flex';
+}
+
+function _ppUpdateBtn() {
+  var checked = document.getElementById('ppPrivacyCheck').checked;
+  var btn = document.getElementById('ppAcceptBtn');
+  if (!btn) return;
+  btn.style.opacity = checked ? '1' : '.45';
+  btn.style.pointerEvents = checked ? 'auto' : 'none';
+}
+
+async function _acceptPrivacy() {
+  var errEl = document.getElementById('ppErr');
+  errEl.style.display = 'none';
+  if (!document.getElementById('ppPrivacyCheck').checked) {
+    errEl.textContent = 'Devi accettare la Privacy Policy per continuare.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!_v2Token) {
+    document.getElementById('mPrivacyPending').style.display = 'none';
+    if (_privacyOnAcceptCb) _privacyOnAcceptCb();
+    return;
+  }
+  try {
+    var r = await fetch(API_BASE + '/api/v2/account/accept-privacy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok && r.status !== 200) {
+      errEl.textContent = 'Errore di rete. Riprova.';
+      errEl.style.display = 'block';
+      return;
+    }
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione. Riprova.';
+    errEl.style.display = 'block';
+    return;
+  }
+  document.getElementById('mPrivacyPending').style.display = 'none';
+  if (_privacyOnAcceptCb) _privacyOnAcceptCb();
+}
+
+function _rejectPrivacy() {
+  document.getElementById('mPrivacyPending').style.display = 'none';
+  logout();
+}
+
+async function _continueAfterPrivacy() {
+  // Dopo privacy accettata: controlla consenso parentale per genitore
+  if (me && me.role === 'genitore' && _v2Token) {
+    var done = await _checkParentalConsent();
+    if (done) return; // modal mostrato, bootApp sarà chiamato dopo
+  }
+  bootApp(me);
+}
+
+async function _checkParentalConsent() {
+  try {
+    var r = await fetch(API_BASE + '/api/v2/players/pending-parental-consent', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) return false;
+    var data = await r.json();
+    _pendingConsentPlayers = Array.isArray(data.players) ? data.players : [];
+    _pendingConsentIdx = 0;
+    if (_pendingConsentPlayers.length > 0) {
+      _showParentalConsentModal(_pendingConsentPlayers[0]);
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+function _showParentalConsentModal(player) {
+  var el = document.getElementById('mParentalConsent');
+  if (!el) return;
+  var nome = (player.nome || '') + ' ' + (player.cognome || '');
+  document.getElementById('pcSubtitle').innerHTML =
+    'Per visualizzare i dati di tuo figlio/a <strong>' + nome + '</strong>, devi fornire il consenso al trattamento dei suoi dati personali.';
+  document.getElementById('pcConsentLabel').textContent =
+    'Acconsento al trattamento dei dati personali di ' + nome + ' in qualità di genitore/tutore legale.';
+  document.getElementById('pcConsentCheck').checked = false;
+  document.getElementById('pcErr').style.display = 'none';
+  _pcUpdateBtn();
+  el.style.display = 'flex';
+}
+
+function _pcUpdateBtn() {
+  var checked = document.getElementById('pcConsentCheck').checked;
+  var btn = document.getElementById('pcAcceptBtn');
+  if (!btn) return;
+  btn.style.opacity = checked ? '1' : '.45';
+  btn.style.pointerEvents = checked ? 'auto' : 'none';
+}
+
+async function _acceptParentalConsent() {
+  var errEl = document.getElementById('pcErr');
+  errEl.style.display = 'none';
+  if (!document.getElementById('pcConsentCheck').checked) {
+    errEl.textContent = 'Devi accettare il consenso per continuare.';
+    errEl.style.display = 'block';
+    return;
+  }
+  var player = _pendingConsentPlayers[_pendingConsentIdx];
+  if (!player) { _finishParentalConsent(); return; }
+  try {
+    var r = await fetch(API_BASE + '/api/v2/account/accept-parental-consent/' + player.id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) {
+      errEl.textContent = 'Errore di rete. Riprova.';
+      errEl.style.display = 'block';
+      return;
+    }
+  } catch(e) {
+    errEl.textContent = 'Errore di connessione. Riprova.';
+    errEl.style.display = 'block';
+    return;
+  }
+  _pendingConsentIdx++;
+  if (_pendingConsentIdx < _pendingConsentPlayers.length) {
+    // Prossimo giocatore senza consenso
+    document.getElementById('pcConsentCheck').checked = false;
+    _pcUpdateBtn();
+    _showParentalConsentModal(_pendingConsentPlayers[_pendingConsentIdx]);
+  } else {
+    _finishParentalConsent();
+  }
+}
+
+function _finishParentalConsent() {
+  document.getElementById('mParentalConsent').style.display = 'none';
+  bootApp(me);
+}
+
+function _rejectParentalConsent() {
+  document.getElementById('mParentalConsent').style.display = 'none';
+  logout();
+}
 
 async function doSelfRegister() {
   _rClearErr();
@@ -20587,6 +20758,40 @@ async function doRejoinSocieta() {
     <div class="fg"><label class="fl">Nuova password</label><input class="fi" id="cpNewPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="cpConfPass" type="password" placeholder="Ripeti la password" autocomplete="new-password" onkeydown="if(event.key==='Enter')saveNewPassword()"></div>
     <button class="btn btn-p" style="width:100%;margin-top:4px;" onclick="saveNewPassword()">💾 Imposta password</button>
+  </div>
+</div>
+
+<!-- ══════ PRIVACY PENDING (bloccante — no close button) ══════ -->
+<div id="mPrivacyPending" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10010;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">🔒 Aggiornamento Privacy</div></div>
+    <p style="color:var(--text2);font-size:.88rem;margin:0 0 16px;line-height:1.55;">Per continuare ad usare <strong>MyVivaio</strong>, conferma di aver letto e accettato la nostra <strong>Privacy Policy</strong> aggiornata.</p>
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:20px;">
+      <input type="checkbox" id="ppPrivacyCheck" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;" onchange="_ppUpdateBtn()">
+      <span style="font-size:.86rem;color:var(--text2);line-height:1.5;">Ho letto e accetto la <a href="https://myvivaio.it/privacy" target="_blank" style="color:var(--cl);">Privacy Policy</a> di MyVivaio</span>
+    </label>
+    <div id="ppErr" style="display:none;font-size:.82rem;color:#ef4444;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" id="ppAcceptBtn" style="flex:1;opacity:.45;pointer-events:none;" onclick="_acceptPrivacy()">Accetta e continua</button>
+      <button class="btn btn-g" onclick="_rejectPrivacy()">Esci</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ PARENTAL CONSENT (bloccante — no close button) ══════ -->
+<div id="mParentalConsent" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:10011;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal" style="max-width:420px;">
+    <div class="mh"><div class="mt">👨‍👧 Consenso Parentale</div></div>
+    <p id="pcSubtitle" style="color:var(--text2);font-size:.88rem;margin:0 0 16px;line-height:1.55;"></p>
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:20px;">
+      <input type="checkbox" id="pcConsentCheck" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;" onchange="_pcUpdateBtn()">
+      <span id="pcConsentLabel" style="font-size:.86rem;color:var(--text2);line-height:1.5;"></span>
+    </label>
+    <div id="pcErr" style="display:none;font-size:.82rem;color:#ef4444;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" id="pcAcceptBtn" style="flex:1;opacity:.45;pointer-events:none;" onclick="_acceptParentalConsent()">Accetto il consenso</button>
+      <button class="btn btn-g" onclick="_rejectParentalConsent()">Esci</button>
+    </div>
   </div>
 </div>
 
