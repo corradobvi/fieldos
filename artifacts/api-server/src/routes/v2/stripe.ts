@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
+import { sendCancelledEmail } from "../../lib/email";
 
 const router = Router();
 
@@ -340,20 +341,109 @@ router.post("/stripe/webhook", async (req, res) => {
 
   // ── customer.subscription.deleted ───────────────────────────────────────
   if (event?.type === "customer.subscription.deleted") {
-    const sub   = event.data?.object;
-    const subId = sub?.id;
+    const sub        = event.data?.object;
+    const subId      = sub?.id;
+    const canceledAt = sub?.canceled_at ? new Date((sub.canceled_at as number) * 1000) : new Date();
 
     if (subId) {
+      // 1. Update MySQL: subscription_status + sospensione società
+      let societyId: number | null = null;
+      let ownerEmail: string | null = null;
+      let ownerNome: string | null = null;
+      let ownerCognome: string | null = null;
+      let societyNome: string | null = null;
+
       try {
         await pool.execute(
           `UPDATE societies
-           SET subscription_status = 'canceled'
+           SET subscription_status = 'canceled',
+               stato               = 'sospesa',
+               suspended_at        = NOW(),
+               suspended_reason    = 'Stripe subscription cancelled'
            WHERE stripe_subscription_id = ?`,
           [subId]
         );
-        logger.info({ subId }, "stripe: subscription canceled");
+        logger.info({ subId }, "stripe: subscription canceled, society suspended");
+
+        // Recupera info società per blob, audit, email
+        const [rows] = await pool.execute(
+          `SELECT s.id, s.nome, u.email, u.nome AS owner_nome, u.cognome AS owner_cognome
+           FROM societies s
+           LEFT JOIN users u ON u.society_id = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
+           WHERE s.stripe_subscription_id = ?
+           LIMIT 1`,
+          [subId]
+        ) as [any[], any];
+
+        if (rows.length) {
+          societyId    = rows[0].id;
+          societyNome  = rows[0].nome;
+          ownerEmail   = rows[0].email;
+          ownerNome    = rows[0].owner_nome;
+          ownerCognome = rows[0].owner_cognome;
+        }
       } catch (e: any) {
         logger.error({ err: e }, "stripe: DB update failed on subscription.deleted");
+      }
+
+      // 2. Aggiorna blob SA — riusa pattern di Fix 3
+      if (societyId) {
+        try {
+          const SA_KEY = "fieldos_sa_v1";
+          const [stateRows] = await pool.execute(
+            "SELECT state_json FROM society_state WHERE `key` = ?",
+            [SA_KEY]
+          ) as [any[], any];
+
+          if (stateRows.length) {
+            const saState = JSON.parse(stateRows[0].state_json);
+            const soc = (saState.saSocieties as any[])?.find((s: any) => s.id === societyId);
+            if (soc) {
+              soc.stato = "sospeso";
+              await pool.execute(
+                "UPDATE society_state SET state_json = ? WHERE `key` = ?",
+                [JSON.stringify(saState), SA_KEY]
+              );
+              logger.info({ societyId, subId }, "stripe: SA blob updated - society suspended");
+            }
+          }
+        } catch (e: any) {
+          logger.error({ err: e }, "stripe: SA blob update failed on subscription.deleted");
+        }
+
+        // 3. Audit log
+        try {
+          await pool.execute(
+            `INSERT INTO sa_audit_log
+               (action, target_society_id, target_email, performed_by, reason, metadata, created_at)
+             VALUES
+               ('auto_suspended_payment_canceled', ?, ?, 'SYSTEM_STRIPE_WEBHOOK',
+                'Subscription cancelled by Stripe (payment failed or manual cancel)',
+                ?, NOW())`,
+            [
+              societyId,
+              ownerEmail ?? null,
+              JSON.stringify({
+                stripe_subscription_id: subId,
+                stripe_event_id:        event.id ?? null,
+                canceled_at:            canceledAt.toISOString(),
+              }),
+            ]
+          );
+          logger.info({ societyId, subId }, "stripe: audit log inserted for subscription.deleted");
+        } catch (e: any) {
+          logger.error({ err: e }, "stripe: audit log insert failed on subscription.deleted");
+        }
+
+        // 4. Email owner — non bloccante
+        if (ownerEmail) {
+          sendCancelledEmail({
+            email:       ownerEmail,
+            nome:        ownerNome    ?? "",
+            cognome:     ownerCognome ?? "",
+            nomeSocieta: societyNome  ?? "",
+          }).catch((e: any) => logger.error({ err: e }, "stripe: cancellation email failed"));
+        }
       }
     }
   }

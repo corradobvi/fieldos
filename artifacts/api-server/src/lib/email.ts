@@ -200,3 +200,38 @@ export async function sendDemoExtendedEmail(opts: {
     logger.error({ err: e }, "demo extended email failed (non-blocking)");
   }
 }
+
+export async function sendCancelledEmail(opts: {
+  email: string;
+  nome: string;
+  cognome: string;
+  nomeSocieta: string;
+}): Promise<void> {
+  const { email, nome, cognome, nomeSocieta } = opts;
+  const waText = encodeURIComponent(`Ciao Vivi, il mio abbonamento MyVivaio è stato cancellato e vorrei riattivarlo. Società: ${nomeSocieta}`);
+  const waLink = `https://wa.me/393793827922?text=${waText}`;
+  const html = `
+<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
+  <h2 style="color:#dc2626;margin-bottom:4px;">❌ Abbonamento cancellato — MyVivaio</h2>
+  <p>Ciao <strong>${nome} ${cognome}</strong>,</p>
+  <p>Il tuo abbonamento a <strong>${nomeSocieta}</strong> su MyVivaio è stato cancellato e l'accesso all'app è stato sospeso.</p>
+  <p style="background:#fef2f2;border-left:3px solid #dc2626;padding:8px 12px;font-size:.87rem;color:#7f1d1d;">
+    Se non hai richiesto tu la cancellazione, contattaci subito — i tuoi dati sono al sicuro e puoi riattivarti rapidamente.
+  </p>
+  <p style="margin-top:20px;">
+    <a href="${waLink}" style="background:#25d366;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">💬 Scrivi a Vivi su WhatsApp</a>
+  </p>
+  <p style="font-size:.85rem;color:#64748b;margin-top:16px;">
+    Oppure scrivici a <a href="mailto:info@myvivaio.app" style="color:#1A7A4A;font-weight:600;">info@myvivaio.app</a>
+  </p>
+  <p style="font-size:.75rem;color:#94a3b8;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;">
+    I tuoi dati (giocatori, allenamenti, presenze) sono conservati e saranno disponibili alla riattivazione.
+  </p>
+</div>`;
+  try {
+    await sendMail(email, `[MyVivaio] Abbonamento ${nomeSocieta} cancellato`, html);
+    logger.info({ email }, "cancellation email sent");
+  } catch (e: any) {
+    logger.error({ err: e }, "cancellation email failed (non-blocking)");
+  }
+}
