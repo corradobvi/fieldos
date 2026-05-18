@@ -77,7 +77,7 @@ export async function sendPushToUsers(
 }
 
 // Fetches active user IDs for a society.
-// If leva is set: returns users of that leva + admin/dirigente (always receive).
+// If leva is set: returns staff of that leva + admin/dirigente + ALL guardians of players in that leva.
 // excludeUserId: omit the sender.
 export async function getUsersForPush(
   societyId: number,
@@ -85,20 +85,35 @@ export async function getUsersForPush(
 ): Promise<number[]> {
   const { leva, excludeUserId } = options;
   try {
-    let query = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
-    const params: any[] = [societyId];
+    // Query 1: staff users (same as before)
+    let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
+    const staffParams: any[] = [societyId];
+    if (excludeUserId) { staffQuery += " AND id != ?"; staffParams.push(excludeUserId); }
+    if (leva) { staffQuery += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))"; staffParams.push(leva); }
 
-    if (excludeUserId) {
-      query += " AND id != ?";
-      params.push(excludeUserId);
-    }
+    const [staffRows] = (await pool.execute(staffQuery, staffParams)) as [any[], any];
+    const staffIds: number[] = staffRows.map((r: any) => r.id as number);
+
+    // Query 2: guardians of players in this leva (new GDPR flow)
+    let guardianIds: number[] = [];
     if (leva) {
-      query += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))";
-      params.push(leva);
+      try {
+        let gQuery = `SELECT DISTINCT pg.user_id AS id
+          FROM player_guardians pg
+          JOIN players p ON p.id = pg.player_id
+          JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
+        const gParams: any[] = [societyId, leva];
+        if (excludeUserId) { gQuery += " AND pg.user_id != ?"; gParams.push(excludeUserId); }
+        const [gRows] = (await pool.execute(gQuery, gParams)) as [any[], any];
+        guardianIds = gRows.map((r: any) => r.id as number);
+      } catch {
+        // player_guardians table may not exist yet — safe to ignore
+      }
     }
 
-    const [rows] = (await pool.execute(query, params)) as [any[], any];
-    return rows.map((r: any) => r.id as number);
+    const allIds = [...new Set([...staffIds, ...guardianIds])];
+    return allIds;
   } catch (e: any) {
     logger.warn({ err: e }, "push-sender: getUsersForPush error");
     return [];

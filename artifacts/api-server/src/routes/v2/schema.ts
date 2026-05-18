@@ -191,6 +191,19 @@ CREATE TABLE IF NOT EXISTS sa_audit_log (
   metadata          JSON,
   created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS player_guardians (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  player_id     INT NOT NULL,
+  user_id       INT NOT NULL,
+  role          VARCHAR(20) NOT NULL,
+  consent_given TINYINT(1) NOT NULL DEFAULT 0,
+  consent_at    DATETIME NULL,
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_pg (player_id, user_id),
+  FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+);
 `;
 
 // Migrations: idempotent for existing databases
@@ -231,7 +244,10 @@ ALTER TABLE users ADD COLUMN marketing_consent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN marketing_consent_at DATETIME NULL;
 ALTER TABLE users ADD COLUMN marketing_consent_revoked_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN parental_consent_given_by INT NULL;
-ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL
+ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
+ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
+ALTER TABLE players ADD COLUMN birth_date DATE NULL;
+ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0
 `;
 
 export const SEED_SQL = `

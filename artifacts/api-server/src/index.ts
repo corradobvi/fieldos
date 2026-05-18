@@ -23,7 +23,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v23-push-db-fix" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v20-minor-flow" }, "Server listening");
   });
 }
 

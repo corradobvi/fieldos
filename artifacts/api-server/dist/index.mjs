@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router27;
+    module.exports = Router28;
     module.exports.Route = Route;
-    function Router27(options) {
-      if (!(this instanceof Router27)) {
-        return new Router27(options);
+    function Router28(options) {
+      if (!(this instanceof Router28)) {
+        return new Router28(options);
       }
       const opts = options || {};
-      function router27(req, res, next) {
-        router27.handle(req, res, next);
+      function router28(req, res, next) {
+        router28.handle(req, res, next);
       }
-      Object.setPrototypeOf(router27, this);
-      router27.caseSensitive = opts.caseSensitive;
-      router27.mergeParams = opts.mergeParams;
-      router27.params = {};
-      router27.strict = opts.strict;
-      router27.stack = [];
-      return router27;
+      Object.setPrototypeOf(router28, this);
+      router28.caseSensitive = opts.caseSensitive;
+      router28.mergeParams = opts.mergeParams;
+      router28.params = {};
+      router28.strict = opts.strict;
+      router28.stack = [];
+      return router28;
     }
-    Router27.prototype = function() {
+    Router28.prototype = function() {
     };
-    Router27.prototype.param = function param(name, fn) {
+    Router28.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router27.prototype.handle = function handle(req, res, callback) {
+    Router28.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router27.prototype.use = function use(handler) {
+    Router28.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router27.prototype.route = function route(path2) {
+    Router28.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router27.prototype[method] = function(path2) {
+      Router28.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router27 = require_router();
+    var Router28 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router27 = null;
+      var router28 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router27 === null) {
-            router27 = new Router27({
+          if (router28 === null) {
+            router28 = new Router28({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router27;
+          return router28;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router27 = this.router;
+      var router28 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router27.use(path2, fn2);
+          return router28.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router27.use(path2, function mounted_app(req, res, next) {
+        router28.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router27 = require_router();
+    var Router28 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router27.Route;
-    exports.Router = Router27;
+    exports.Route = Router28.Route;
+    exports.Router = Router28;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // src/app.ts
-var import_express27 = __toESM(require_express2(), 1);
+var import_express28 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express26 = __toESM(require_express2(), 1);
+var import_express27 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v23-push-db-fix" });
+  res.json({ ...data, v: "2026-05-18-v20-minor-flow" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61701,7 +61701,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express25 = __toESM(require_express2(), 1);
+var import_express26 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -61897,6 +61897,19 @@ CREATE TABLE IF NOT EXISTS sa_audit_log (
   metadata          JSON,
   created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS player_guardians (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  player_id     INT NOT NULL,
+  user_id       INT NOT NULL,
+  role          VARCHAR(20) NOT NULL,
+  consent_given TINYINT(1) NOT NULL DEFAULT 0,
+  consent_at    DATETIME NULL,
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_pg (player_id, user_id),
+  FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+);
 `;
 var MIGRATIONS_SQL = `
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
@@ -61934,7 +61947,10 @@ ALTER TABLE users ADD COLUMN marketing_consent BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN marketing_consent_at DATETIME NULL;
 ALTER TABLE users ADD COLUMN marketing_consent_revoked_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN parental_consent_given_by INT NULL;
-ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL
+ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
+ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
+ALTER TABLE players ADD COLUMN birth_date DATE NULL;
+ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -62810,9 +62826,316 @@ router13.delete("/players/:id", requireAuth, requireRole("admin"), async (req, r
 });
 var players_default = router13;
 
-// src/routes/v2/users.ts
+// src/routes/v2/minors.ts
 var import_express14 = __toESM(require_express2(), 1);
+
+// src/lib/push-sender.ts
+var import_web_push2 = __toESM(require_src2(), 1);
+function societyKeyFor(societyId) {
+  return `fieldos_state_soc_${societyId}`;
+}
+function _initVapid() {
+  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
+  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
+  const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
+  if (!pub || !priv) return false;
+  try {
+    import_web_push2.default.setVapidDetails(subj, pub, priv);
+  } catch {
+  }
+  return true;
+}
+async function sendPushToUsers(userIds, societyKey, payload) {
+  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
+  let rows = [];
+  try {
+    const placeholders = userIds.map(() => "?").join(",");
+    const [r] = await pool.execute(
+      `SELECT user_id, subscription FROM push_subscriptions
+       WHERE user_id IN (${placeholders}) AND society_key = ?`,
+      [...userIds, societyKey]
+    );
+    rows = r;
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: DB lookup failed");
+    return { sent: 0, errors: 0 };
+  }
+  if (!rows.length) return { sent: 0, errors: 0 };
+  const message = JSON.stringify(payload);
+  let sent = 0;
+  let errors = 0;
+  for (const row of rows) {
+    let sub;
+    try {
+      sub = JSON.parse(row.subscription);
+    } catch {
+      errors++;
+      continue;
+    }
+    try {
+      await import_web_push2.default.sendNotification(sub, message);
+      sent++;
+    } catch (e) {
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        await pool.execute(
+          "DELETE FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+          [row.user_id, societyKey]
+        ).catch(() => {
+        });
+      } else {
+        logger.warn({ err: e, userId: row.user_id }, "push-sender: webpush error");
+      }
+      errors++;
+    }
+  }
+  logger.info({ sent, errors, societyKey }, "push-sender: completed");
+  return { sent, errors };
+}
+async function getUsersForPush(societyId, options = {}) {
+  const { leva, excludeUserId } = options;
+  try {
+    let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
+    const staffParams = [societyId];
+    if (excludeUserId) {
+      staffQuery += " AND id != ?";
+      staffParams.push(excludeUserId);
+    }
+    if (leva) {
+      staffQuery += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))";
+      staffParams.push(leva);
+    }
+    const [staffRows] = await pool.execute(staffQuery, staffParams);
+    const staffIds = staffRows.map((r) => r.id);
+    let guardianIds = [];
+    if (leva) {
+      try {
+        let gQuery = `SELECT DISTINCT pg.user_id AS id
+          FROM player_guardians pg
+          JOIN players p ON p.id = pg.player_id
+          JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
+        const gParams = [societyId, leva];
+        if (excludeUserId) {
+          gQuery += " AND pg.user_id != ?";
+          gParams.push(excludeUserId);
+        }
+        const [gRows] = await pool.execute(gQuery, gParams);
+        guardianIds = gRows.map((r) => r.id);
+      } catch {
+      }
+    }
+    const allIds = [.../* @__PURE__ */ new Set([...staffIds, ...guardianIds])];
+    return allIds;
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: getUsersForPush error");
+    return [];
+  }
+}
+
+// src/routes/v2/minors.ts
 var router14 = (0, import_express14.Router)();
+var STAFF_ROLES = ["admin", "allenatore", "dirigente"];
+var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
+router14.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { firstName, lastNameInitial, levaKey, shirtNumber } = req.body;
+  if (!firstName?.trim()) return res.status(400).json({ error: "firstName_required" });
+  const initial = lastNameInitial?.trim() ?? "";
+  if (!initial || initial.length > 10 || !initial.includes(".")) {
+    return res.status(400).json({ error: "lastNameInitial_invalid", detail: "Must contain a dot, max 10 chars (e.g. 'B.' or 'B.V.')" });
+  }
+  if (!levaKey?.trim()) return res.status(400).json({ error: "levaKey_required" });
+  try {
+    const [result] = await pool.execute(
+      `INSERT INTO players
+         (society_id, nome, cognome, cognome_iniziale, numero, leva, incomplete,
+          parental_consent_given_by, parental_consent_at)
+       VALUES (?, ?, '', ?, ?, ?, 1, NULL, NULL)`,
+      [societyId, firstName.trim(), initial, shirtNumber != null ? Number(shirtNumber) : null, levaKey.trim()]
+    );
+    logger.info({ playerId: result.insertId, societyId, userId, leva: levaKey }, "minor player created");
+    return res.status(201).json({
+      player: {
+        id: result.insertId,
+        firstName: firstName.trim(),
+        lastNameInitial: initial,
+        levaKey: levaKey.trim(),
+        shirtNumber: shirtNumber != null ? Number(shirtNumber) : null,
+        incomplete: true
+      }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/minor error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/incomplete", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const levaKey = req.query.levaKey;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id,
+              p.nome            AS firstName,
+              p.cognome_iniziale AS lastNameInitial,
+              p.numero          AS shirtNumber,
+              p.leva            AS levaKey,
+              p.incomplete,
+              COUNT(pg.id)      AS guardiansCount
+       FROM players p
+       LEFT JOIN player_guardians pg ON pg.player_id = p.id
+       WHERE p.society_id = ?
+         AND p.cognome_iniziale IS NOT NULL
+         ${levaKey ? "AND p.leva = ?" : ""}
+       GROUP BY p.id
+       ORDER BY p.nome`,
+      levaKey ? [societyId, levaKey] : [societyId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastNameInitial: r.lastNameInitial,
+      shirtNumber: r.shirtNumber,
+      levaKey: r.levaKey,
+      incomplete: !!r.incomplete,
+      guardiansCount: Number(r.guardiansCount)
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/incomplete error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/players/:id/claim", requireAuth, async (req, res) => {
+  const { userId, societyId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  const { role, consent, lastNameFull, birthDate } = req.body;
+  if (!VALID_GUARDIAN_ROLES.includes(role)) {
+    return res.status(400).json({ error: "invalid_role", valid: VALID_GUARDIAN_ROLES });
+  }
+  if (consent !== true) return res.status(400).json({ error: "consent_required" });
+  try {
+    const [players] = await pool.execute(
+      "SELECT id, nome, cognome_iniziale, leva, incomplete, society_id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!players.length) return res.status(404).json({ error: "player_not_found" });
+    const player = players[0];
+    const [existing] = await pool.execute(
+      "SELECT id FROM player_guardians WHERE player_id = ? AND user_id = ?",
+      [playerId, userId]
+    );
+    if (existing.length) return res.status(409).json({ error: "already_associated" });
+    if (player.incomplete) {
+      if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required_for_incomplete_player" });
+      if (!birthDate) return res.status(400).json({ error: "birthDate_required_for_incomplete_player" });
+      await pool.execute(
+        "UPDATE players SET cognome = ?, birth_date = ?, incomplete = 0 WHERE id = ?",
+        [lastNameFull.trim(), birthDate, playerId]
+      );
+      logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
+    }
+    const [ins] = await pool.execute(
+      `INSERT INTO player_guardians (player_id, user_id, role, consent_given, consent_at)
+       VALUES (?, ?, ?, 1, NOW())`,
+      [playerId, userId, role]
+    );
+    await pool.execute(
+      "INSERT IGNORE INTO user_players (user_id, player_id) VALUES (?, ?)",
+      [userId, playerId]
+    ).catch(() => {
+    });
+    if (player.incomplete) {
+      getUsersForPush(societyId, { leva: player.leva }).then((ids) => {
+        if (!ids.length) return;
+        return sendPushToUsers(ids, societyKeyFor(societyId), {
+          title: "\u2705 Scheda giocatore completata",
+          body: `${player.nome} ${lastNameFull?.trim() ?? ""} \xE8 stato completato dal genitore`,
+          tag: `player-complete-${playerId}`
+        });
+      }).catch(() => {
+      });
+    }
+    return res.json({
+      ok: true,
+      guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/:id/claim error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId: requesterId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  logger.info({ requesterId, playerId, societyId }, "[GDPR] guardians list accessed");
+  try {
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const [rows] = await pool.execute(
+      `SELECT pg.id, pg.user_id AS userId, pg.role,
+              pg.consent_given AS consentGiven, pg.consent_at AS consentAt,
+              pg.created_at AS createdAt,
+              u.nome, u.cognome, u.email
+       FROM player_guardians pg
+       JOIN users u ON u.id = pg.user_id
+       WHERE pg.player_id = ?
+       ORDER BY pg.created_at`,
+      [playerId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      userName: `${r.nome} ${r.cognome}`,
+      email: r.email,
+      role: r.role,
+      consentGiven: !!r.consentGiven,
+      consentAt: r.consentAt,
+      createdAt: r.createdAt
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/:id/guardians error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId: requesterId } = req.jwtUser;
+  const playerId = parseInt(req.params.playerId, 10);
+  const guardianId = parseInt(req.params.guardianId, 10);
+  if (isNaN(playerId) || isNaN(guardianId)) return res.status(400).json({ error: "invalid_ids" });
+  try {
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const [guardianRows] = await pool.execute(
+      "SELECT id, user_id FROM player_guardians WHERE id = ? AND player_id = ?",
+      [guardianId, playerId]
+    );
+    if (!guardianRows.length) return res.status(404).json({ error: "guardian_not_found" });
+    const guardianUserId = guardianRows[0].user_id;
+    await pool.execute("DELETE FROM player_guardians WHERE id = ?", [guardianId]);
+    await pool.execute(
+      "DELETE FROM user_players WHERE user_id = ? AND player_id = ?",
+      [guardianUserId, playerId]
+    ).catch(() => {
+    });
+    logger.info({ requesterId, guardianId, guardianUserId, playerId, societyId }, "[GDPR] guardian unlinked by staff");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE players/:playerId/guardians/:guardianId error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var minors_default = router14;
+
+// src/routes/v2/users.ts
+var import_express15 = __toESM(require_express2(), 1);
+var router15 = (0, import_express15.Router)();
 var PIANO_NORM_U = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 var COLLAB_LIMITS = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
 var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "dirigente"]);
@@ -62822,7 +63145,7 @@ async function getCollabLimit(societyId) {
   const norm = PIANO_NORM_U[raw] || raw;
   return COLLAB_LIMITS[norm] ?? 0;
 }
-router14.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
+router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -62840,7 +63163,7 @@ router14.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
+router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { nome, cognome, email, password, ruolo, leva, figli } = req.body;
   if (!nome || !cognome || !email || !password || !ruolo) {
@@ -62886,7 +63209,7 @@ router14.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { nome, cognome, email, password, ruolo, leva, stato, figli } = req.body;
   try {
@@ -62957,7 +63280,7 @@ router14.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+router15.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   if (String(userId) === req.params.id) return res.status(400).json({ error: "cannot_delete_self" });
   try {
@@ -62972,7 +63295,7 @@ router14.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.get("/users/pending", requireAuth, requireRole("admin"), async (req, res) => {
+router15.get("/users/pending", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -62984,7 +63307,7 @@ router14.get("/users/pending", requireAuth, requireRole("admin"), async (req, re
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.post("/users/:id/approve", requireAuth, requireRole("admin"), async (req, res) => {
+router15.post("/users/:id/approve", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { ruolo, leva, figli } = req.body;
   try {
@@ -63000,98 +63323,13 @@ router14.post("/users/:id/approve", requireAuth, requireRole("admin"), async (re
     return res.status(500).json({ error: "server_error" });
   }
 });
-var users_default = router14;
+var users_default = router15;
 
 // src/routes/v2/events.ts
-var import_express15 = __toESM(require_express2(), 1);
-
-// src/lib/push-sender.ts
-var import_web_push2 = __toESM(require_src2(), 1);
-function societyKeyFor(societyId) {
-  return `fieldos_state_soc_${societyId}`;
-}
-function _initVapid() {
-  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
-  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
-  const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
-  if (!pub || !priv) return false;
-  try {
-    import_web_push2.default.setVapidDetails(subj, pub, priv);
-  } catch {
-  }
-  return true;
-}
-async function sendPushToUsers(userIds, societyKey, payload) {
-  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
-  let rows = [];
-  try {
-    const placeholders = userIds.map(() => "?").join(",");
-    const [r] = await pool.execute(
-      `SELECT user_id, subscription FROM push_subscriptions
-       WHERE user_id IN (${placeholders}) AND society_key = ?`,
-      [...userIds, societyKey]
-    );
-    rows = r;
-  } catch (e) {
-    logger.warn({ err: e }, "push-sender: DB lookup failed");
-    return { sent: 0, errors: 0 };
-  }
-  if (!rows.length) return { sent: 0, errors: 0 };
-  const message = JSON.stringify(payload);
-  let sent = 0;
-  let errors = 0;
-  for (const row of rows) {
-    let sub;
-    try {
-      sub = JSON.parse(row.subscription);
-    } catch {
-      errors++;
-      continue;
-    }
-    try {
-      await import_web_push2.default.sendNotification(sub, message);
-      sent++;
-    } catch (e) {
-      if (e.statusCode === 410 || e.statusCode === 404) {
-        await pool.execute(
-          "DELETE FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
-          [row.user_id, societyKey]
-        ).catch(() => {
-        });
-      } else {
-        logger.warn({ err: e, userId: row.user_id }, "push-sender: webpush error");
-      }
-      errors++;
-    }
-  }
-  logger.info({ sent, errors, societyKey }, "push-sender: completed");
-  return { sent, errors };
-}
-async function getUsersForPush(societyId, options = {}) {
-  const { leva, excludeUserId } = options;
-  try {
-    let query = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
-    const params = [societyId];
-    if (excludeUserId) {
-      query += " AND id != ?";
-      params.push(excludeUserId);
-    }
-    if (leva) {
-      query += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))";
-      params.push(leva);
-    }
-    const [rows] = await pool.execute(query, params);
-    return rows.map((r) => r.id);
-  } catch (e) {
-    logger.warn({ err: e }, "push-sender: getUsersForPush error");
-    return [];
-  }
-}
-
-// src/routes/v2/events.ts
-var router15 = (0, import_express15.Router)();
+var import_express16 = __toESM(require_express2(), 1);
+var router16 = (0, import_express16.Router)();
 var WRITE_ROLES = ["admin", "allenatore", "dirigente"];
-router15.get("/events", requireAuth, async (req, res) => {
+router16.get("/events", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const { month, year: year2, leva } = req.query;
   let whereExtra = "";
@@ -63117,7 +63355,7 @@ router15.get("/events", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router15.get("/events/:id", requireAuth, async (req, res) => {
+router16.get("/events/:id", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -63130,7 +63368,7 @@ router15.get("/events/:id", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router15.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router16.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
   const { societyId } = req.jwtUser;
   const {
     tipo,
@@ -63185,7 +63423,7 @@ router15.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, r
     return res.status(500).json({ error: "server_error" });
   }
 });
-router15.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router16.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
   const { societyId } = req.jwtUser;
   const {
     tipo,
@@ -63244,7 +63482,7 @@ router15.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req
     return res.status(500).json({ error: "server_error" });
   }
 });
-router15.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router16.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [result] = await pool.execute(
@@ -63257,12 +63495,12 @@ router15.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (
     return res.status(500).json({ error: "server_error" });
   }
 });
-var events_default = router15;
+var events_default = router16;
 
 // src/routes/v2/presenze.ts
-var import_express16 = __toESM(require_express2(), 1);
-var router16 = (0, import_express16.Router)();
-router16.get("/presenze", requireAuth, async (req, res) => {
+var import_express17 = __toESM(require_express2(), 1);
+var router17 = (0, import_express17.Router)();
+router17.get("/presenze", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId } = req.query;
   if (!eventId) return res.status(400).json({ error: "eventId_required" });
@@ -63283,7 +63521,7 @@ router16.get("/presenze", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router16.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { playerId, eventId, stato, nota } = req.body;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -63305,7 +63543,7 @@ router16.post("/presenze", requireAuth, requireRole("admin", "allenatore", "diri
     return res.status(500).json({ error: "server_error" });
   }
 });
-router16.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId, presenze } = req.body;
   if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
@@ -63330,12 +63568,12 @@ router16.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", 
     return res.status(500).json({ error: "server_error" });
   }
 });
-var presenze_default = router16;
+var presenze_default = router17;
 
 // src/routes/v2/comunicazioni.ts
-var import_express17 = __toESM(require_express2(), 1);
-var router17 = (0, import_express17.Router)();
-router17.get("/comunicazioni", requireAuth, async (req, res) => {
+var import_express18 = __toESM(require_express2(), 1);
+var router18 = (0, import_express18.Router)();
+router18.get("/comunicazioni", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { leva, limit = "50", offset = "0" } = req.query;
   try {
@@ -63360,7 +63598,7 @@ router17.get("/comunicazioni", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
   if (!testo) return res.status(400).json({ error: "testo_required" });
@@ -63392,7 +63630,7 @@ router17.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
+router18.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await pool.execute(
@@ -63404,7 +63642,7 @@ router17.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (req, res) => {
+router18.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [result] = await pool.execute(
@@ -63417,12 +63655,12 @@ router17.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (
     return res.status(500).json({ error: "server_error" });
   }
 });
-var comunicazioni_default = router17;
+var comunicazioni_default = router18;
 
 // src/routes/v2/chat.ts
-var import_express18 = __toESM(require_express2(), 1);
-var router18 = (0, import_express18.Router)();
-router18.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
+var import_express19 = __toESM(require_express2(), 1);
+var router19 = (0, import_express19.Router)();
+router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query;
@@ -63444,7 +63682,7 @@ router18.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router18.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
+router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { testo, fotoUrl } = req.body;
@@ -63481,11 +63719,11 @@ router18.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var chat_default = router18;
+var chat_default = router19;
 
 // src/routes/v2/quote.ts
-var import_express19 = __toESM(require_express2(), 1);
-var router19 = (0, import_express19.Router)();
+var import_express20 = __toESM(require_express2(), 1);
+var router20 = (0, import_express20.Router)();
 var PLAN_TIER = {
   mister: 0,
   gratuito: 0,
@@ -63518,7 +63756,7 @@ function requirePlan(minPlan) {
     }
   };
 }
-router19.get("/quote", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
+router20.get("/quote", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { leva, stato } = req.query;
   try {
@@ -63539,7 +63777,7 @@ router19.get("/quote", requireAuth, requireRole("admin", "dirigente"), requirePl
     return res.status(500).json({ error: "server_error" });
   }
 });
-router19.post("/quote", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
+router20.post("/quote", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { playerId, importo, scadenza, stato, leva, stagione, nota } = req.body;
   if (!playerId) return res.status(400).json({ error: "playerId_required" });
@@ -63563,7 +63801,7 @@ router19.post("/quote", requireAuth, requireRole("admin", "dirigente"), requireP
     return res.status(500).json({ error: "server_error" });
   }
 });
-router19.put("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
+router20.put("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { importo, scadenza, stato, nota } = req.body;
   try {
@@ -63589,7 +63827,7 @@ router19.put("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requi
     return res.status(500).json({ error: "server_error" });
   }
 });
-router19.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
+router20.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requirePlan("societa"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     await pool.execute("DELETE FROM quote WHERE id = ? AND society_id = ?", [req.params.id, societyId]);
@@ -63598,12 +63836,12 @@ router19.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), re
     return res.status(500).json({ error: "server_error" });
   }
 });
-var quote_default = router19;
+var quote_default = router20;
 
 // src/routes/v2/migrate.ts
-var import_express20 = __toESM(require_express2(), 1);
-var router20 = (0, import_express20.Router)();
-router20.post("/migrate", requireAuth, requireRole("admin"), async (req, res) => {
+var import_express21 = __toESM(require_express2(), 1);
+var router21 = (0, import_express21.Router)();
+router21.post("/migrate", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const blob = req.body;
   if (!blob || typeof blob !== "object") {
@@ -63839,12 +64077,12 @@ router20.post("/migrate", requireAuth, requireRole("admin"), async (req, res) =>
     conn.release();
   }
 });
-var migrate_default = router20;
+var migrate_default = router21;
 
 // src/routes/v2/stripe.ts
-var import_express21 = __toESM(require_express2(), 1);
+var import_express22 = __toESM(require_express2(), 1);
 import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
-var router21 = (0, import_express21.Router)();
+var router22 = (0, import_express22.Router)();
 var STRIPE_API = "https://api.stripe.com/v1";
 var PRICE_ENV = {
   mister: { mensile: "STRIPE_PRICE_MISTER_MENSILE", annuale: "STRIPE_PRICE_MISTER_ANNUALE" },
@@ -63943,7 +64181,7 @@ async function stripeGet(path2) {
   return data;
 }
 var DEMO_SOC_IDS = /* @__PURE__ */ new Set([0, 99, 99999]);
-router21.post("/stripe/create-checkout", async (req, res) => {
+router22.post("/stripe/create-checkout", async (req, res) => {
   const { piano, intervallo, societyId: rawSocietyId, email } = req.body;
   if (!piano || !intervallo) {
     return res.status(400).json({ error: "missing_fields" });
@@ -64042,7 +64280,7 @@ router21.post("/stripe/create-checkout", async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router21.post("/stripe/webhook", async (req, res) => {
+router22.post("/stripe/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -64377,7 +64615,7 @@ router21.post("/stripe/webhook", async (req, res) => {
   }
   return res.sendStatus(200);
 });
-router21.get("/stripe/subscription", async (req, res) => {
+router22.get("/stripe/subscription", async (req, res) => {
   const societyId = req.query.societyId;
   if (!societyId) return res.status(400).json({ error: "missing_societyId" });
   try {
@@ -64432,7 +64670,7 @@ router21.get("/stripe/subscription", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router21.post("/stripe/customer-portal", async (req, res) => {
+router22.post("/stripe/customer-portal", async (req, res) => {
   const { societyId } = req.body;
   if (!societyId) return res.status(400).json({ error: "missing_societyId" });
   try {
@@ -64454,7 +64692,7 @@ router21.post("/stripe/customer-portal", async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router21.post("/stripe/cancel", async (req, res) => {
+router22.post("/stripe/cancel", async (req, res) => {
   const { societyId, motivo, dettaglio } = req.body;
   if (!societyId) return res.status(400).json({ error: "missing_societyId" });
   try {
@@ -64478,7 +64716,7 @@ router21.post("/stripe/cancel", async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router21.get("/stripe/invoices", async (req, res) => {
+router22.get("/stripe/invoices", async (req, res) => {
   const societyId = req.query.societyId;
   if (!societyId) return res.status(400).json({ error: "missing_societyId" });
   try {
@@ -64505,11 +64743,11 @@ router21.get("/stripe/invoices", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var stripe_default = router21;
+var stripe_default = router22;
 
 // src/routes/v2/demo-wa.ts
-var import_express22 = __toESM(require_express2(), 1);
-var router22 = (0, import_express22.Router)();
+var import_express23 = __toESM(require_express2(), 1);
+var router23 = (0, import_express23.Router)();
 function requireAdminSecret(req, res, next) {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) {
@@ -64523,7 +64761,7 @@ function requireAdminSecret(req, res, next) {
   }
   next();
 }
-router22.get("/demo-wa/status", requireAuth, async (req, res) => {
+router23.get("/demo-wa/status", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -64536,7 +64774,7 @@ router22.get("/demo-wa/status", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router22.post("/demo-wa/clicked", requireAuth, async (req, res) => {
+router23.post("/demo-wa/clicked", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await pool.execute(
@@ -64550,7 +64788,7 @@ router22.post("/demo-wa/clicked", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router22.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
+router23.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
   const filter = req.query.filter;
   let statusClause = "status IN ('pending','clicked')";
   if (filter === "pending") statusClause = "status = 'pending'";
@@ -64579,7 +64817,7 @@ router22.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router22.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, res) => {
+router23.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, res) => {
   try {
     await pool.execute(
       "UPDATE demo_whatsapp_contact SET status='sent_manual', manual_added_at=NOW(), updated_at=NOW() WHERE id = ?",
@@ -64590,7 +64828,7 @@ router22.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, re
     return res.status(500).json({ error: "server_error" });
   }
 });
-router22.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res) => {
+router23.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res) => {
   try {
     await pool.execute(
       "UPDATE demo_whatsapp_contact SET status='completed', updated_at=NOW() WHERE id = ?",
@@ -64601,11 +64839,11 @@ router22.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res
     return res.status(500).json({ error: "server_error" });
   }
 });
-var demo_wa_default = router22;
+var demo_wa_default = router23;
 
 // src/routes/v2/superadmin.ts
-var import_express23 = __toESM(require_express2(), 1);
-var router23 = (0, import_express23.Router)();
+var import_express24 = __toESM(require_express2(), 1);
+var router24 = (0, import_express24.Router)();
 var SA_SECRET = process.env.SA_SECRET ?? "super123";
 var EXCLUDED_IDS = [99, 99999];
 function _generateTempPassword2() {
@@ -64627,7 +64865,7 @@ function _generateTempPassword2() {
   }
   return chars.join("");
 }
-router23.get("/superadmin/societies", async (req, res) => {
+router24.get("/superadmin/societies", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -64660,7 +64898,7 @@ router23.get("/superadmin/societies", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/superadmin/reset-password", async (req, res) => {
+router24.post("/superadmin/reset-password", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -64711,7 +64949,7 @@ async function getSocietyAdmin(societyId) {
   );
   return rows[0] ?? null;
 }
-router23.post("/superadmin/societies/:id/suspend", async (req, res) => {
+router24.post("/superadmin/societies/:id/suspend", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64737,7 +64975,7 @@ router23.post("/superadmin/societies/:id/suspend", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/superadmin/societies/:id/reactivate", async (req, res) => {
+router24.post("/superadmin/societies/:id/reactivate", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64762,7 +65000,7 @@ router23.post("/superadmin/societies/:id/reactivate", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
+router24.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64799,7 +65037,7 @@ router23.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/superadmin/societies/:id/set-plan", async (req, res) => {
+router24.post("/superadmin/societies/:id/set-plan", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64837,7 +65075,7 @@ router23.post("/superadmin/societies/:id/set-plan", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
+router24.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64891,7 +65129,7 @@ router23.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.get("/superadmin/societies/:id/audit-log", async (req, res) => {
+router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -64912,12 +65150,12 @@ router23.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var superadmin_default = router23;
+var superadmin_default = router24;
 
 // src/routes/v2/account.ts
-var import_express24 = __toESM(require_express2(), 1);
-var router24 = (0, import_express24.Router)();
-router24.get("/account/consents", requireAuth, async (req, res) => {
+var import_express25 = __toESM(require_express2(), 1);
+var router25 = (0, import_express25.Router)();
+router25.get("/account/consents", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -64937,7 +65175,7 @@ router24.get("/account/consents", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/account/accept-privacy", requireAuth, async (req, res) => {
+router25.post("/account/accept-privacy", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await pool.execute(
@@ -64951,7 +65189,7 @@ router24.post("/account/accept-privacy", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/account/accept-parental-consent/:playerId", requireAuth, async (req, res) => {
+router25.post("/account/accept-parental-consent/:playerId", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   if (role !== "genitore") return res.status(403).json({ error: "forbidden" });
   const playerId = parseInt(String(req.params.playerId));
@@ -64983,7 +65221,7 @@ router24.post("/account/accept-parental-consent/:playerId", requireAuth, async (
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.put("/account/marketing-consent", requireAuth, async (req, res) => {
+router25.put("/account/marketing-consent", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   const { consent } = req.body;
   if (typeof consent !== "boolean") {
@@ -65016,10 +65254,10 @@ router24.put("/account/marketing-consent", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var account_default = router24;
+var account_default = router25;
 
 // src/routes/v2/index.ts
-var router25 = (0, import_express25.Router)();
+var router26 = (0, import_express26.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -65058,7 +65296,7 @@ async function ensureSchema() {
   _schemaReady = true;
   logger.info("v2: schema ready");
 }
-router25.use(async (_req, _res, next) => {
+router26.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -65067,7 +65305,7 @@ router25.use(async (_req, _res, next) => {
     next();
   }
 });
-router25.get("/schema-info", async (_req, res) => {
+router26.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -65085,39 +65323,40 @@ router25.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router25.use(auth_default2);
-router25.use(self_register_default);
-router25.use(society_default);
-router25.use(leve_default);
-router25.use(players_default);
-router25.use(users_default);
-router25.use(events_default);
-router25.use(presenze_default);
-router25.use(comunicazioni_default);
-router25.use(chat_default);
-router25.use(quote_default);
-router25.use(migrate_default);
-router25.use(stripe_default);
-router25.use(demo_wa_default);
-router25.use(superadmin_default);
-router25.use(account_default);
-var v2_default = router25;
+router26.use(auth_default2);
+router26.use(self_register_default);
+router26.use(society_default);
+router26.use(leve_default);
+router26.use(minors_default);
+router26.use(players_default);
+router26.use(users_default);
+router26.use(events_default);
+router26.use(presenze_default);
+router26.use(comunicazioni_default);
+router26.use(chat_default);
+router26.use(quote_default);
+router26.use(migrate_default);
+router26.use(stripe_default);
+router26.use(demo_wa_default);
+router26.use(superadmin_default);
+router26.use(account_default);
+var v2_default = router26;
 
 // src/routes/index.ts
-var router26 = (0, import_express26.Router)();
-router26.use(health_default);
-router26.use(login_default);
-router26.use(auth_default);
-router26.use(state_default);
-router26.use(assist_default);
-router26.use(push_default);
-router26.use(upload_default);
-router26.use(public_default);
-router26.use("/v2", v2_default);
-var routes_default = router26;
+var router27 = (0, import_express27.Router)();
+router27.use(health_default);
+router27.use(login_default);
+router27.use(auth_default);
+router27.use(state_default);
+router27.use(assist_default);
+router27.use(push_default);
+router27.use(upload_default);
+router27.use(public_default);
+router27.use("/v2", v2_default);
+var routes_default = router27;
 
 // src/app.ts
-var app = (0, import_express27.default)();
+var app = (0, import_express28.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -65138,17 +65377,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express27.default.json({
+app.use(import_express28.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express27.default.urlencoded({ extended: true }));
+app.use(import_express28.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express27.default.static(staticDir));
+  app.use(import_express28.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
@@ -65172,7 +65411,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v23-push-db-fix" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v20-minor-flow" }, "Server listening");
   });
 }
 async function ensureSchema2() {
