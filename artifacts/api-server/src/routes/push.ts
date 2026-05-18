@@ -41,13 +41,18 @@ router.get("/push/vapid-public", (_req, res) => {
 
 // POST /api/push/subscribe — save/update a push subscription
 router.post("/push/subscribe", async (req, res) => {
-  const { userId, societyKey, subscription } = req.body as {
+  const { userId: rawUserId, societyKey, subscription } = req.body as {
     userId?: unknown;
     societyKey?: unknown;
     subscription?: unknown;
   };
 
-  if (typeof userId !== "number" || typeof societyKey !== "string" || !societyKey || !subscription) {
+  const userId = typeof rawUserId === "number" ? rawUserId
+    : typeof rawUserId === "string" ? parseInt(rawUserId, 10)
+    : NaN;
+
+  if (!Number.isFinite(userId) || typeof societyKey !== "string" || !societyKey || !subscription) {
+    logger.warn({ rawUserId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
     return res.status(400).json({ error: "missing_fields" });
   }
 

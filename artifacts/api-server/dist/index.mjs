@@ -61298,8 +61298,10 @@ router6.get("/push/vapid-public", (_req, res) => {
   return res.json({ publicKey: VAPID_PUBLIC });
 });
 router6.post("/push/subscribe", async (req, res) => {
-  const { userId, societyKey, subscription } = req.body;
-  if (typeof userId !== "number" || typeof societyKey !== "string" || !societyKey || !subscription) {
+  const { userId: rawUserId, societyKey, subscription } = req.body;
+  const userId = typeof rawUserId === "number" ? rawUserId : typeof rawUserId === "string" ? parseInt(rawUserId, 10) : NaN;
+  if (!Number.isFinite(userId) || typeof societyKey !== "string" || !societyKey || !subscription) {
+    logger.warn({ rawUserId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
     return res.status(400).json({ error: "missing_fields" });
   }
   try {
