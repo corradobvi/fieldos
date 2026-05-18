@@ -119,4 +119,30 @@ router.post("/push/send", async (req, res) => {
   }
 });
 
+// GET /api/push/debug — diagnostica senza auth
+router.get("/push/debug", async (_req, res) => {
+  const info: Record<string, unknown> = {
+    bundle_marker:       "2026-05-18-v18-push-notifications",
+    vapid_public_set:    !!VAPID_PUBLIC,
+    vapid_private_set:   !!VAPID_PRIVATE,
+    vapid_subject_set:   !!VAPID_SUBJECT,
+    vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "…" : null,
+  };
+  try {
+    await ensureTable();
+    const [countRows] = (await pool.execute(
+      "SELECT COUNT(*) AS total FROM `push_subscriptions`"
+    )) as [any[], any];
+    info.total_subscriptions = countRows[0]?.total ?? 0;
+
+    const [sampleRows] = (await pool.execute(
+      "SELECT user_id, society_key, updated_at FROM `push_subscriptions` ORDER BY updated_at DESC LIMIT 3"
+    )) as [any[], any];
+    info.recent_subscriptions = sampleRows;
+  } catch (e: any) {
+    info.db_error = e?.message?.slice(0, 120);
+  }
+  return res.json(info);
+});
+
 export default router;

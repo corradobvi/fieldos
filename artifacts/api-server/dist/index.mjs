@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v17-superadmin-routes" });
+  res.json({ ...data, v: "2026-05-18-v18-push-notifications" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61359,6 +61359,29 @@ router6.post("/push/send", async (req, res) => {
     logger.error({ err: e }, "push send error");
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
+});
+router6.get("/push/debug", async (_req, res) => {
+  const info = {
+    bundle_marker: "2026-05-18-v18-push-notifications",
+    vapid_public_set: !!VAPID_PUBLIC,
+    vapid_private_set: !!VAPID_PRIVATE,
+    vapid_subject_set: !!VAPID_SUBJECT,
+    vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "\u2026" : null
+  };
+  try {
+    await ensureTable();
+    const [countRows] = await pool.execute(
+      "SELECT COUNT(*) AS total FROM `push_subscriptions`"
+    );
+    info.total_subscriptions = countRows[0]?.total ?? 0;
+    const [sampleRows] = await pool.execute(
+      "SELECT user_id, society_key, updated_at FROM `push_subscriptions` ORDER BY updated_at DESC LIMIT 3"
+    );
+    info.recent_subscriptions = sampleRows;
+  } catch (e) {
+    info.db_error = e?.message?.slice(0, 120);
+  }
+  return res.json(info);
 });
 var push_default = router6;
 
