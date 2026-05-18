@@ -18693,21 +18693,26 @@ function _saDrillBMChanged(newMode) {
         <div style="font-weight:600;color:#fbbf24;margin-bottom:6px;">Disattivare la fatturazione automatica?</div>
         <div style="font-size:.81rem;color:#94a3b8;margin-bottom:8px;">La subscription Stripe NON verrà cancellata automaticamente, ma il piano in app sarà controllato manualmente. Vuoi cancellare anche la subscription Stripe?</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="sa-btn sa-btn-warn" style="font-size:.8rem;padding:7px 12px;" onclick="saSaveBillingMode('omaggio',true)">Sì, cancella la sub</button>
-          <button class="sa-btn sa-btn-outline" style="font-size:.8rem;padding:7px 12px;" onclick="saSaveBillingMode('omaggio',false)">No, lascia attiva</button>
-          <button class="sa-btn sa-btn-outline" style="font-size:.8rem;padding:7px 12px;" onclick="_saDrillCancelBMChange()">Annulla</button>
+          <button class="sa-btn sa-btn-warn" data-sa-action="bm-yes" style="font-size:.8rem;padding:7px 12px;">Sì, cancella la sub</button>
+          <button class="sa-btn sa-btn-outline" data-sa-action="bm-no" style="font-size:.8rem;padding:7px 12px;">No, lascia attiva</button>
+          <button class="sa-btn sa-btn-outline" data-sa-action="bm-cancel" style="font-size:.8rem;padding:7px 12px;">Annulla</button>
         </div>
       </div>`;
+    confirmEl.querySelector('[data-sa-action="bm-yes"]').addEventListener('click', () => saSaveBillingMode('omaggio', true));
+    confirmEl.querySelector('[data-sa-action="bm-no"]').addEventListener('click', () => saSaveBillingMode('omaggio', false));
+    confirmEl.querySelector('[data-sa-action="bm-cancel"]').addEventListener('click', () => _saDrillCancelBMChange());
   } else {
     confirmEl.innerHTML = `
       <div style="background:rgba(26,122,74,.08);border:1px solid rgba(26,122,74,.25);border-radius:8px;padding:14px;margin-bottom:14px;">
         <div style="font-weight:600;color:#4ade80;margin-bottom:6px;">Attivare la fatturazione Stripe?</div>
         <div style="font-size:.81rem;color:#94a3b8;margin-bottom:8px;">Al prossimo login/sync, questa società tornerà al piano impostato da Stripe. Confermi?</div>
         <div style="display:flex;gap:8px;">
-          <button class="sa-btn sa-btn-ok" style="font-size:.8rem;padding:7px 12px;" onclick="saSaveBillingMode('stripe',false)">Conferma</button>
-          <button class="sa-btn sa-btn-outline" style="font-size:.8rem;padding:7px 12px;" onclick="_saDrillCancelBMChange()">Annulla</button>
+          <button class="sa-btn sa-btn-ok" data-sa-action="bm-confirm" style="font-size:.8rem;padding:7px 12px;">Conferma</button>
+          <button class="sa-btn sa-btn-outline" data-sa-action="bm-cancel" style="font-size:.8rem;padding:7px 12px;">Annulla</button>
         </div>
       </div>`;
+    confirmEl.querySelector('[data-sa-action="bm-confirm"]').addEventListener('click', () => saSaveBillingMode('stripe', false));
+    confirmEl.querySelector('[data-sa-action="bm-cancel"]').addEventListener('click', () => _saDrillCancelBMChange());
   }
   confirmEl.style.display = 'block';
 }
