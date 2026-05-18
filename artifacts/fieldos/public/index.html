@@ -170,8 +170,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .nb{margin-left:auto;background:var(--red);color:white;font-size:.58rem;font-weight:800;padding:2px 6px;border-radius:8px;}
 .nb.w{background:var(--gobg);color:var(--gold);border:1px solid rgba(212,133,10,.3);}
 .nb.lock{background:#f59e0b;color:#fff;}
+.nb.wip{background:#FFD93D;color:#2D3748;font-size:10px;font-weight:700;padding:2px 5px;border-radius:4px;margin-left:6px;letter-spacing:0;}
 .ni-locked{opacity:.6;}
 .ni-locked:hover{background:rgba(245,158,11,.1)!important;color:#b45309!important;}
+.ni-wip{opacity:.6;cursor:not-allowed;}
+.ni-wip:hover{background:transparent!important;}
 
 /* LEVA SECTION IN SIDEBAR */
 .sb-leva{padding:12px;border-top:1px solid var(--border);margin-top:auto;}
@@ -3743,9 +3746,9 @@ const ROLE_CFG = {
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true,wip:true},
       {id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
     ], leve:true
   },
@@ -3760,12 +3763,12 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
-      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti',wip:true},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote'},
+      {id:'pagamenti',ic:'💰',lb:'Quote',wip:true},
       {s:'Gestione'},{id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
     ], leve:true
   },
@@ -3781,9 +3784,9 @@ const ROLE_CFG = {
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true,wip:true},
     ], leve:true
   },
   genitore: {
@@ -3797,9 +3800,9 @@ const ROLE_CFG = {
       {id:'chat',ic:'💬',lb:'Chat'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true,wip:true},
     ], leve:false
   },
   nonno: {
@@ -3813,9 +3816,9 @@ const ROLE_CFG = {
       {id:'chat',ic:'💬',lb:'Chat'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'!',bw:true,wip:true},
     ], leve:false
   },
   giocatore: {
@@ -3829,7 +3832,7 @@ const ROLE_CFG = {
       {id:'statistiche',ic:'📊',lb:'Le mie statistiche'},
       {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
     ], leve:false
   },
@@ -3857,12 +3860,12 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
-      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti',wip:true},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
-      {id:'fotovideo',ic:'📸',lb:'Foto & Video'},
+      {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
-      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true},
+      {id:'pagamenti',ic:'💰',lb:'Quote',badge:'⚠',bw:true,wip:true},
       {id:'impostazioni',ic:'⚙️',lb:'Impostazioni'},
     ], leve:true
   }
@@ -4578,18 +4581,21 @@ function buildSidebar(role) {
     } else {
       let locked = false;
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
+      const wip = !!item.wip;
       const d = document.createElement('div');
-      d.className = 'ni' + (locked ? ' ni-locked' : '');
+      d.className = 'ni' + (locked ? ' ni-locked' : '') + (wip ? ' ni-wip' : '');
       d.dataset.pg = item.id;
       let h = `<span class="ico">${item.ic}</span>${item.lb}`;
       if (locked) {
         const lk = SECTION_LOCKS[item.id];
         h += `<span class="nb lock">🔒 ${lk.nomePiano}</span>`;
+      } else if (wip) {
+        h += `<span class="nb wip">In sviluppo</span>`;
       } else if (item.badge) {
         h += `<span class="nb${item.bw?' w':''}">${item.badge}</span>`;
       }
       d.innerHTML = h;
-      d.onclick = locked ? () => { openUpgradePopup(item.id); closeSb(); } : () => { goTo(item.id); closeSb(); };
+      d.onclick = locked ? () => { openUpgradePopup(item.id); closeSb(); } : wip ? () => {} : () => { goTo(item.id); closeSb(); };
       nav.appendChild(d);
     }
   });
@@ -11338,12 +11344,13 @@ function buildMobDashboard(role, c) {
     ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'statistiche',ic:'📊',lb:'Statistiche',sub:'Stagione'}]
     : role==='dirigente'
     ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
-    : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria'}];
+    : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
 
+  const _WIP_IDS = new Set(['fotovideo','pagamenti','allenamenti']);
   const quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
-    <div class="mob-qi" onclick="goTo('${qi.id}')">
+    <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
       <div class="mob-qi-ic">${qi.ic}</div>
-      <div class="mob-qi-lb">${qi.lb}</div>
+      <div class="mob-qi-lb">${qi.lb}${_WIP_IDS.has(qi.id)?'<span style="display:block;font-size:9px;font-weight:700;background:#FFD93D;color:#2D3748;border-radius:3px;padding:1px 4px;margin-top:2px;">In sviluppo</span>':''}</div>
       <div class="mob-qi-sub">${qi.sub||''}</div>
     </div>`).join('')}</div>`;
 
