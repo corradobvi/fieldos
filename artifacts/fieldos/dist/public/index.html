@@ -21113,11 +21113,18 @@ async function getPushPublicKey() {
   if (_vapidPublicKey) return _vapidPublicKey;
   try {
     const r = await fetch('/api/push/vapid-public');
-    if (!r.ok) return null;
+    if (!r.ok) {
+      console.error('[Push] /api/push/vapid-public error:', r.status, await r.text().catch(()=>''));
+      return null;
+    }
     const d = await r.json();
     _vapidPublicKey = d.publicKey || null;
+    console.log('[Push] vapid-public key loaded:', _vapidPublicKey ? 'ok ('+_vapidPublicKey.slice(0,8)+'…)' : 'null');
     return _vapidPublicKey;
-  } catch { return null; }
+  } catch (e) {
+    console.error('[Push] getPushPublicKey fetch failed:', e);
+    return null;
+  }
 }
 
 // ── SW registration
@@ -21182,34 +21189,60 @@ function pwaApplyUpdate() {
 
 // ── Subscribe to push notifications for the current user
 async function subscribePush(userId, societyKey) {
-  if (!_swReg) return;
+  console.log('[Push] subscribePush start — userId:', userId, 'societyKey:', societyKey);
+  if (!_swReg) {
+    console.warn('[Push] subscribePush: service worker not registered yet');
+    return;
+  }
   try {
     const pubKey = await getPushPublicKey();
-    if (!pubKey) return;
+    if (!pubKey) {
+      console.error('[Push] subscribePush: no VAPID public key — backend push not configured');
+      return;
+    }
     let sub = await _swReg.pushManager.getSubscription();
     if (!sub) {
+      console.log('[Push] subscribePush: no existing subscription, creating new one…');
       const key = urlBase64ToUint8Array(pubKey);
       sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      console.log('[Push] subscribePush: pushManager.subscribe ok, endpoint:', sub.endpoint.slice(0, 40) + '…');
+    } else {
+      console.log('[Push] subscribePush: reusing existing subscription, endpoint:', sub.endpoint.slice(0, 40) + '…');
     }
-    await fetch('/api/push/subscribe', {
+    const r = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ userId, societyKey, subscription: sub.toJSON() })
     });
+    if (r.ok) {
+      console.log('[Push] subscribePush: saved to backend ok');
+    } else {
+      const errText = await r.text().catch(() => '');
+      console.error('[Push] subscribePush: backend save failed', r.status, errText);
+    }
   } catch (e) {
-    console.warn('[PWA] Push subscribe failed:', e);
+    console.error('[Push] subscribePush failed:', e);
   }
 }
 
 // ── Request push permission then subscribe
 async function requestPushPermission(userId, societyKey) {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  console.log('[Push] requestPushPermission — userId:', userId, 'permission:', Notification?.permission);
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    console.warn('[Push] requestPushPermission: Notification or serviceWorker not supported');
+    return;
+  }
   if (Notification.permission === 'granted') {
     await subscribePush(userId, societyKey);
     return;
   }
-  if (Notification.permission === 'denied') return;
+  if (Notification.permission === 'denied') {
+    console.warn('[Push] requestPushPermission: permission denied by user');
+    return;
+  }
+  console.log('[Push] requestPushPermission: requesting permission…');
   const perm = await Notification.requestPermission();
+  console.log('[Push] requestPushPermission: result =', perm);
   if (perm === 'granted') await subscribePush(userId, societyKey);
 }
 

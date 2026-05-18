@@ -1,4 +1,4 @@
-// 2026-05-18-v18 — push notifications + audit-log LIMIT fix
+// 2026-05-18-v19 — push fix: VAPID debug + frontend subscription logging
 import app from "./app";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
@@ -23,7 +23,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v18-push-notifications" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v19-push-fix" }, "Server listening");
   });
 }
 

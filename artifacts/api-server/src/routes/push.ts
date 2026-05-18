@@ -124,12 +124,22 @@ router.post("/push/send", async (req, res) => {
 
 // GET /api/push/debug — diagnostica senza auth
 router.get("/push/debug", async (_req, res) => {
+  // List all env var NAMES that contain "VAPID" (no values exposed)
+  const vapidEnvKeys = Object.keys(process.env).filter(k => k.toUpperCase().includes("VAPID"));
+
   const info: Record<string, unknown> = {
-    bundle_marker:       "2026-05-18-v18-push-notifications",
-    vapid_public_set:    !!VAPID_PUBLIC,
-    vapid_private_set:   !!VAPID_PRIVATE,
-    vapid_subject_set:   !!VAPID_SUBJECT,
-    vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "…" : null,
+    bundle_marker:         "2026-05-18-v19-push-fix",
+    // Module-level constants (read at startup)
+    vapid_public_set:      !!VAPID_PUBLIC,
+    vapid_private_set:     !!VAPID_PRIVATE,
+    // Note: vapid_subject always true because it has a hardcoded default
+    vapid_subject_value:   VAPID_SUBJECT,
+    vapid_public_prefix:   VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "…" : null,
+    // What VAPID keys actually exist in process.env right now
+    vapid_env_keys_found:  vapidEnvKeys,
+    // Raw read at request time (not module-level cache)
+    vapid_public_runtime:  !!(process.env["VAPID_PUBLIC_KEY"] ?? ""),
+    vapid_private_runtime: !!(process.env["VAPID_PRIVATE_KEY"] ?? ""),
   };
   try {
     await ensureTable();
@@ -138,7 +148,6 @@ router.get("/push/debug", async (_req, res) => {
     )) as [any[], any];
     info.total_subscriptions = countRows[0]?.total ?? 0;
 
-    // Fetch recent entries using id for ordering (updated_at may not exist in old schema)
     const [sampleRows] = (await pool.execute(
       "SELECT user_id, society_key FROM `push_subscriptions` ORDER BY id DESC LIMIT 3"
     )) as [any[], any];

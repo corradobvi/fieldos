@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v18-push-notifications" });
+  res.json({ ...data, v: "2026-05-18-v19-push-fix" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61365,12 +61365,20 @@ router6.post("/push/send", async (req, res) => {
   }
 });
 router6.get("/push/debug", async (_req, res) => {
+  const vapidEnvKeys = Object.keys(process.env).filter((k) => k.toUpperCase().includes("VAPID"));
   const info = {
-    bundle_marker: "2026-05-18-v18-push-notifications",
+    bundle_marker: "2026-05-18-v19-push-fix",
+    // Module-level constants (read at startup)
     vapid_public_set: !!VAPID_PUBLIC,
     vapid_private_set: !!VAPID_PRIVATE,
-    vapid_subject_set: !!VAPID_SUBJECT,
-    vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "\u2026" : null
+    // Note: vapid_subject always true because it has a hardcoded default
+    vapid_subject_value: VAPID_SUBJECT,
+    vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "\u2026" : null,
+    // What VAPID keys actually exist in process.env right now
+    vapid_env_keys_found: vapidEnvKeys,
+    // Raw read at request time (not module-level cache)
+    vapid_public_runtime: !!(process.env["VAPID_PUBLIC_KEY"] ?? ""),
+    vapid_private_runtime: !!(process.env["VAPID_PRIVATE_KEY"] ?? "")
   };
   try {
     await ensureTable();
@@ -65140,7 +65148,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v18-push-notifications" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v19-push-fix" }, "Server listening");
   });
 }
 async function ensureSchema2() {
