@@ -18698,8 +18698,8 @@ function _saDrillBMChanged(newMode) {
           <button class="sa-btn sa-btn-outline" data-sa-action="bm-cancel" style="font-size:.8rem;padding:7px 12px;">Annulla</button>
         </div>
       </div>`;
-    confirmEl.querySelector('[data-sa-action="bm-yes"]').addEventListener('click', () => saSaveBillingMode('omaggio', true));
-    confirmEl.querySelector('[data-sa-action="bm-no"]').addEventListener('click', () => saSaveBillingMode('omaggio', false));
+    confirmEl.querySelector('[data-sa-action="bm-yes"]').addEventListener('click', (e) => _saBMConfirmClick(e.currentTarget, 'omaggio', true));
+    confirmEl.querySelector('[data-sa-action="bm-no"]').addEventListener('click', (e) => _saBMConfirmClick(e.currentTarget, 'omaggio', false));
     confirmEl.querySelector('[data-sa-action="bm-cancel"]').addEventListener('click', () => _saDrillCancelBMChange());
   } else {
     confirmEl.innerHTML = `
@@ -18711,7 +18711,7 @@ function _saDrillBMChanged(newMode) {
           <button class="sa-btn sa-btn-outline" data-sa-action="bm-cancel" style="font-size:.8rem;padding:7px 12px;">Annulla</button>
         </div>
       </div>`;
-    confirmEl.querySelector('[data-sa-action="bm-confirm"]').addEventListener('click', () => saSaveBillingMode('stripe', false));
+    confirmEl.querySelector('[data-sa-action="bm-confirm"]').addEventListener('click', (e) => _saBMConfirmClick(e.currentTarget, 'stripe', false));
     confirmEl.querySelector('[data-sa-action="bm-cancel"]').addEventListener('click', () => _saDrillCancelBMChange());
   }
   confirmEl.style.display = 'block';
@@ -18723,6 +18723,58 @@ function _saDrillCancelBMChange() {
   const currentBM = s.billingMode || 'stripe';
   document.querySelectorAll('input[name="saDrillBM"]').forEach(r => { r.checked = r.value === currentBM; });
   document.getElementById('saDrillBMConfirm').style.display = 'none';
+}
+
+async function _saBMConfirmClick(btn, mode, cancelSub) {
+  const drillId = _saDrillId;
+  if (!drillId) { console.error('[saBMConfirmClick] _saDrillId is null'); return; }
+  const s = saSocieties.find(x => x.id === drillId);
+  if (!s) { console.error('[saBMConfirmClick] society not found for id', drillId); return; }
+
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+  const allBtns = btn.closest('div').querySelectorAll('button');
+  allBtns.forEach(b => { b.disabled = true; });
+
+  let fetchOk = false;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + drillId + '/set-billing-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      body: JSON.stringify({ mode, cancel_stripe_sub: cancelSub })
+    });
+    let d;
+    try { d = await r.json(); } catch(_) { d = {}; }
+    if (!r.ok) {
+      console.error('[saBMConfirmClick] server error', r.status, d);
+      alert(d.message || d.error || 'Errore server (' + r.status + ')');
+      return;
+    }
+    fetchOk = true;
+    console.log('[saBMConfirmClick] ok', { mode, cancelSub, response: d });
+  } catch(err) {
+    console.error('[saBMConfirmClick] network error', err);
+    alert('Errore di rete: ' + (err && err.message ? err.message : String(err)));
+    return;
+  } finally {
+    if (!fetchOk) {
+      allBtns.forEach(b => { b.disabled = false; });
+      btn.textContent = origText;
+    }
+  }
+
+  s.billingMode = mode;
+  saSaveState();
+  try { _saDrillRenderBilling(s); } catch(e) { console.error('[saBMConfirmClick] _saDrillRenderBilling error', e); }
+  try { renderSaPanel(); } catch(e) { console.error('[saBMConfirmClick] renderSaPanel error', e); }
+  _saDrillLoadAudit(drillId);
+
+  const toast = document.createElement('div');
+  toast.textContent = mode === 'omaggio' ? '✓ Modalità Omaggio attivata' : '✓ Fatturazione Stripe attivata';
+  toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#4ade80;border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:10px 18px;font-size:.85rem;font-weight:600;z-index:200000;pointer-events:none;';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
 }
 
 async function saSaveBillingMode(mode, cancelSub) {
