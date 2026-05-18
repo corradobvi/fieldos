@@ -1,4 +1,4 @@
-# 2026-05-17-v9 — push notifications: helper + triggers comunicazioni/events/chat
+# 2026-05-18-v10 — superadmin routes canary + version marker
 FROM node:20-slim
 
 WORKDIR /app
