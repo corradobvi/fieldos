@@ -1087,7 +1087,43 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   display:flex;align-items:center;justify-content:center;
   padding:0 3px;line-height:1;border:2px solid var(--white);
 }
-
+/* Bell icon (topbar, mister-only) */
+.tb-bell-btn{display:none;position:relative;width:38px;height:38px;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;font-size:1.25rem;border-radius:50%;-webkit-tap-highlight-color:transparent;padding:0;flex-shrink:0;}
+.tb-bell-btn:active{background:var(--cl);}
+.tb-bell-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--white);display:none;}
+.tb-bell-btn.on{display:flex;}
+/* Mister home cards */
+.mi-hero{border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;}
+.mi-hero-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;opacity:.82;margin-bottom:6px;font-weight:700;}
+.mi-hero-title{font-size:1.05rem;font-weight:800;margin-bottom:4px;line-height:1.25;}
+.mi-hero-meta{font-size:.79rem;opacity:.88;line-height:1.4;}
+.mi-hero-cnt{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.mi-hero-cd{font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;line-height:1;min-width:52px;text-align:center;flex-shrink:0;}
+.mi-hero-cd-sub{font-size:.55rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;text-align:center;}
+.mi-cnt-pill{font-size:.78rem;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;font-weight:600;white-space:nowrap;}
+.mi-sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mi-sc-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 8px;background:var(--cl);border-radius:12px;border:none;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;min-height:72px;transition:background .14s;}
+.mi-sc-btn:active{background:var(--border);}
+.mi-sc-btn .mi-sc-ic{font-size:1.55rem;line-height:1;}
+.mi-sc-btn .mi-sc-lb{font-size:.78rem;font-weight:700;color:var(--text);text-align:center;line-height:1.2;}
+.mi-sc-btn.empty{border:2px dashed var(--border2);background:transparent;color:var(--text3);}
+.mi-sc-btn.empty:active{background:var(--cl);}
+.mi-todo-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--cl);border-radius:10px;border-left:3px solid var(--gold);cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mi-todo-row:active{background:var(--border);}
+.mi-week-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:9px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.mi-week-row.today{background:var(--cl);}
+.mi-week-day{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;width:28px;flex-shrink:0;}
+.mi-week-num{font-family:'Barlow Condensed',sans-serif;font-size:.98rem;font-weight:700;width:22px;flex-shrink:0;}
+.mi-week-dots{flex:1;display:flex;align-items:center;gap:3px;}
+.mi-week-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.mi-week-label{font-size:.71rem;color:var(--text2);text-align:right;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* Shortcut picker overlay */
+.sc-picker-ov{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:9999;display:flex;align-items:flex-end;justify-content:center;}
+.sc-picker-sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));width:100%;max-width:640px;max-height:82vh;overflow-y:auto;box-sizing:border-box;}
+@media(min-width:641px){.sc-picker-ov{align-items:center;}.sc-picker-sheet{border-radius:16px;max-width:520px;max-height:80vh;}}
+.sc-pi{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;border:2px solid var(--border);cursor:pointer;background:transparent;transition:border-color .13s,background .13s;-webkit-tap-highlight-color:transparent;user-select:none;}
+.sc-pi.sel{border-color:var(--cp);background:var(--cl);}
+.sc-pi:active{background:var(--border);}
 /* ═══════════════════════════════════════════
    MOBILE LAYOUT (≤640px)
    ═══════════════════════════════════════════ */
@@ -2280,6 +2316,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div id="syncStatusBar" style="display:none;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">⏳ Salvataggio…</div>
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
+      <button class="tb-bell-btn" id="tbBell" onclick="goTo('comunicazioni')" title="Avvisi" aria-label="Avvisi"><span>🔔</span><span class="tb-bell-dot" id="tbBellDot"></span></button>
       <div class="tb-user-btn" id="tbUserBtn" onclick="toggleTopUserMenu()" title="Menu utente">
         <div class="tb-av" id="tbAv">?</div>
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
@@ -4511,6 +4548,10 @@ function buildMobNav(role) {
   const nav = document.getElementById('mobNav');
   if (!nav) return;
   nav.innerHTML = '';
+  // Bell icon: show only for mister roles (Avvisi moved to bell in header)
+  const bell = document.getElementById('tbBell');
+  const isMister = role === 'allenatore' || role === 'mister_admin';
+  if (bell) bell.classList.toggle('on', isMister);
   let items;
   if (role === 'genitore' || role === 'nonno') {
     items = [
@@ -4521,7 +4562,6 @@ function buildMobNav(role) {
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
-    // Giocatore: Impostazioni non accessibili — "Profilo" va alla pagina profilo dedicata
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
@@ -4529,14 +4569,13 @@ function buildMobNav(role) {
       {id:'calendario',  ic:'📅', lb:'Cal'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
-  } else if (role === 'allenatore') {
-    // Mister: Presenze nella barra in basso, resto dal menu hamburger
+  } else if (isMister) {
+    // Mister: 4 tab grandi — profilo via avatar in topbar, avvisi via campanella
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
-      {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'📣', lb:'Avvisi', badge:'mn-comm'},
+      {id:'chat',         ic:'💬', lb:'Chat',        badge:'mn-chat'},
       {id:'presenze',     ic:'✅', lb:'Presenze'},
-      {id:'profilo',      ic:'👤', lb:'Profilo'},
+      {id:'convocazioni', ic:'📋', lb:'Convocaz.'},
     ];
   } else {
     items = MOB_NAV_ITEMS;
@@ -4564,6 +4603,9 @@ function refreshMobBadges() {
   const mnComm = document.getElementById('mn-comm');
   if (mnChat) { mnChat.textContent = chatN > 99 ? '99+' : chatN||''; mnChat.style.display = chatN>0?'':'none'; }
   if (mnComm) { mnComm.textContent = commN > 99 ? '99+' : commN||''; mnComm.style.display = commN>0?'':'none'; }
+  // Bell dot in topbar (mister only)
+  const bellDot = document.getElementById('tbBellDot');
+  if (bellDot) bellDot.style.display = commN > 0 ? '' : 'none';
 }
 
 function buildSidebar(role) {
@@ -11278,8 +11320,233 @@ function renderPanoramica() {
   `;
 }
 
+// ─── Mister home: shared config ──────────────────────────────────────────────
+var _MISTER_SC_ALL = {
+  presenze:     {ic:'✅',lb:'Presenze',    action:"goTo('presenze')"},
+  rosa:         {ic:'👥',lb:'Rosa',        action:"goTo('rosa')"},
+  convocazioni: {ic:'📋',lb:'Convocazioni',action:"goTo('convocazioni')"},
+  calendario:   {ic:'📅',lb:'Calendario', action:"goTo('calendario')"},
+  partite:      {ic:'⚽',lb:'Partite',     action:"goTo('partite')"},
+  statistiche:  {ic:'📊',lb:'Statistiche',action:"goTo('statistiche')"},
+  comunicazioni:{ic:'📣',lb:'Avvisi',      action:"goTo('comunicazioni')"},
+  gestcomp:     {ic:'🗂️',lb:'Competizioni',action:"goTo('gestcomp')"},
+};
+var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
+
+function _misterGetShortcuts() {
+  var key = 'mister_sc_'+(me?me.id:0);
+  try{ var v=JSON.parse(localStorage.getItem(key)||'null'); if(Array.isArray(v)&&v.length===4) return v; }catch(e){}
+  return _MISTER_SC_DEF.slice();
+}
+
+// Returns the next event (any type: training, match, etc.) for the leva
+function _misterNextAnyEvent(lv) {
+  var todayMs = new Date().setHours(0,0,0,0);
+  var isTraining = function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  for (var i=0;i<45;i++) {
+    var d=new Date(todayMs); d.setDate(new Date(todayMs).getDate()+i);
+    var ds=ymd(d);
+    var found=events.filter(function(ev){return(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,ds);});
+    if (found.length) {
+      var ev=found[0]; var isTr=isTraining(ev);
+      return {date:ds,daysFromNow:i,title:ev.title||(isTr?'Allenamento':'Evento'),type:ev.type||'',start:ev.start||'',luogo:ev.luogo||'',id:ev.id,isTraining:isTr};
+    }
+  }
+  var nm=panoNextMatchForLeva(lv);
+  if (nm) {
+    var dm=parseYmd(nm.date); var dfn=Math.max(0,Math.ceil((dm.getTime()-todayMs)/86400000));
+    return {date:nm.date,daysFromNow:dfn,title:nm.title||'Partita',type:nm.type||'partita',start:nm.start||'',luogo:nm.luogo||'',id:nm.id||null,isTraining:false};
+  }
+  return null;
+}
+
+function buildMobDashboardAllenatore(c) {
+  var todayStr=ymd(new Date()); var lv=currentLeva;
+  var levaPlayers=players.filter(function(p){return p.leva===lv;});
+  var MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  var GS=['dom','lun','mar','mer','gio','ven','sab'];
+  var _isTr=function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  var _isM=function(ev){return ev.type==='campionato'||ev.type==='partita'||ev.type==='torneo'||ev.type==='amichevole';};
+  var tomorrowStr=(function(){var d=new Date();d.setDate(d.getDate()+1);return ymd(d);})();
+  var YESTERDAY=(function(){var d=new Date();d.setDate(d.getDate()-1);return ymd(d);})();
+
+  var nxt=_misterNextAnyEvent(lv);
+  var hasTodayTrain=events.some(function(ev){return _isTr(ev)&&(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,todayStr);});
+  var hasTomTrain=events.some(function(ev){return _isTr(ev)&&(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,tomorrowStr);});
+  var presentToday=hasTodayTrain?levaPlayers.filter(function(p){return getPresenzaForDate(p,todayStr)==='p';}):[];
+  var absentToday=hasTodayTrain?levaPlayers.filter(function(p){var s=getPresenzaForDate(p,todayStr);return s==='a'||s==='j';}):[];
+  var notSignaled=hasTodayTrain?levaPlayers.filter(function(p){return getPresenzaForDate(p,todayStr)==='';}):[];
+  var hadYestEv=events.some(function(ev){return(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,YESTERDAY);});
+  var ystrdNotSig=hadYestEv?levaPlayers.filter(function(p){return getPresenzaForDate(p,YESTERDAY)==='';}).length:0;
+  var chatN=(typeof chatTotalUnread==='function')?chatTotalUnread(me):0;
+  var nextMatch=panoNextMatchForLeva(lv);
+  var convObj=nextMatch?getConvocazione(nextMatch.id||''):null;
+  var hasConv=!!(convObj&&convObj.playerIds&&convObj.playerIds.length);
+  var sc=_misterGetShortcuts();
+
+  // ── CARD 1: Prossimo Impegno ─────────────────────────────────────────────
+  var heroHtml='';
+  if (nxt) {
+    var hD=parseYmd(nxt.date); var hDFN=nxt.daysFromNow; var isTrH=nxt.isTraining;
+    var hGrad=isTrH?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxt.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxt.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+    var hTag=isTrH?'🏃 Allenamento':nxt.type==='torneo'?'🏆 Torneo':nxt.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
+    var hMeta=hD.getDate()+' '+MESI[hD.getMonth()]+(nxt.start?' · '+nxt.start:'')+(nxt.luogo?' · '+escapeHtml(nxt.luogo):'');
+    var hCTA=isTrH?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv?'📋 Vedi convocazione':'📋 Crea convocazione');
+    var hCTAact=isTrH?"goTo('presenze')":(hasConv?"goTo('convocazioni')":"goTo('convocazioni')");
+    var cdStr=hDFN===0?'OGG':hDFN===1?'DOM':String(hDFN);
+    var cdSub=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+    var pillsHtml='';
+    if (isTrH&&hDFN===0&&hasTodayTrain) {
+      pillsHtml='<div class="mi-hero-cnt"><span class="mi-cnt-pill">✅ '+presentToday.length+' presenti</span><span class="mi-cnt-pill">⏳ '+notSignaled.length+' in attesa</span>'+(absentToday.length?'<span class="mi-cnt-pill">❌ '+absentToday.length+' assenti</span>':'')+'</div>';
+    } else if (!isTrH&&hasConv&&convObj&&convObj.playerIds) {
+      pillsHtml='<div class="mi-hero-cnt"><span class="mi-cnt-pill">📋 '+convObj.playerIds.length+' convocati</span></div>';
+    }
+    heroHtml='<div class="mi-hero" style="background:'+hGrad+';color:#fff;" onclick="goTo(\'calendario\')">'
+      +'<div class="mi-hero-tag">'+hTag+'</div>'
+      +'<div style="display:flex;align-items:flex-start;gap:14px;">'
+      +'<div style="flex-shrink:0;text-align:center;"><div class="mi-hero-cd">'+cdStr+'</div><div class="mi-hero-cd-sub">'+cdSub+'</div></div>'
+      +'<div style="flex:1;min-width:0;"><div class="mi-hero-title">'+escapeHtml(nxt.title)+'</div><div class="mi-hero-meta">'+hMeta+'</div>'+pillsHtml+'</div>'
+      +'</div>'
+      +'<button style="margin-top:12px;background:rgba(255,255,255,.22);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-family:inherit;font-size:.84rem;font-weight:700;cursor:pointer;width:100%;text-align:left;-webkit-tap-highlight-color:transparent;" onclick="event.stopPropagation();'+hCTAact+'">'+hCTA+' →</button>'
+      +'</div>';
+  } else {
+    heroHtml='<div class="mi-hero" style="background:var(--cl);" onclick="goTo(\'calendario\')">'
+      +'<div class="mi-hero-tag" style="color:var(--text2);">📅 Prossimo impegno</div>'
+      +'<div class="mi-hero-title" style="color:var(--text);">Nessun impegno in programma</div>'
+      +'<div class="mi-hero-meta" style="color:var(--text2);">Aggiungi partite e allenamenti nel calendario →</div>'
+      +'<button class="btn btn-p btn-sm" style="margin-top:12px;width:100%;" onclick="event.stopPropagation();goTo(\'calendario\')">+ Aggiungi evento</button>'
+      +'</div>';
+  }
+
+  // ── CARD 2: Da Fare ────────────────────────────────────────────────────────
+  var todoRows=[];
+  if (ystrdNotSig>0) todoRows.push('<div class="mi-todo-row" style="border-color:var(--gold);" onclick="goTo(\'presenze\')"><span style="font-size:1.05rem;flex-shrink:0;">✅</span><div style="flex:1;"><div style="font-size:.86rem;font-weight:700;">'+ystrdNotSig+' presenz'+(ystrdNotSig>1?'e':'a')+' non segnate</div><div style="font-size:.73rem;color:var(--text2);">Dall\'evento di ieri</div></div><span style="color:var(--text3);font-size:1.1rem;">›</span></div>');
+  if (hasTodayTrain&&notSignaled.length>0) todoRows.push('<div class="mi-todo-row" style="border-color:var(--cp);" onclick="goTo(\'presenze\')"><span style="font-size:1.05rem;flex-shrink:0;">✅</span><div style="flex:1;"><div style="font-size:.86rem;font-weight:700;">'+notSignaled.length+' presenz'+(notSignaled.length>1?'e':'a')+' da segnare</div><div style="font-size:.73rem;color:var(--text2);">Allenamento oggi</div></div><span style="color:var(--text3);font-size:1.1rem;">›</span></div>');
+  if (chatN>0) todoRows.push('<div class="mi-todo-row" style="border-color:var(--cp);" onclick="goTo(\'chat\')"><span style="font-size:1.05rem;flex-shrink:0;">💬</span><div style="flex:1;"><div style="font-size:.86rem;font-weight:700;">'+chatN+' messaggio'+(chatN>1?'i':'')+' non lett'+(chatN>1?'i':'o')+'</div><div style="font-size:.73rem;color:var(--text2);">Vai alla chat</div></div><span style="color:var(--text3);font-size:1.1rem;">›</span></div>');
+  var dafareHtml=todoRows.length?'<div class="mob-dash-card"><div class="mob-dash-card-hd">🔔 Da fare</div><div style="display:flex;flex-direction:column;gap:8px;">'+todoRows.join('')+'</div></div>':'';
+
+  // ── CARD 3: Settimana ─────────────────────────────────────────────────────
+  var todayD=new Date(); todayD.setHours(0,0,0,0);
+  var weekRowsH='';
+  for (var wi=0;wi<5;wi++) {
+    var wd=new Date(todayD); wd.setDate(todayD.getDate()+wi);
+    var wds=ymd(wd); var isT2=wds===todayStr;
+    var wevs=events.filter(function(ev){return(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,wds);});
+    var hasTr2=wevs.some(_isTr); var hasM2=wevs.some(_isM);
+    var dots2=(hasTr2?'<span class="mi-week-dot" style="background:var(--green);"></span>':'')+(hasM2?'<span class="mi-week-dot" style="background:var(--cp);"></span>':'');
+    var wlabel=wevs.length?wevs.map(function(ev){return escapeHtml((ev.title||ev.type||'').slice(0,16));}).join(', '):'';
+    var wtc=isT2?'var(--cp)':'var(--text1)'; var wfw=isT2?'800':'400';
+    weekRowsH+='<div class="mi-week-row'+(isT2?' today':'')+'\" onclick="goTo(\'calendario\')">'
+      +'<div class="mi-week-day" style="color:'+wtc+';font-weight:'+wfw+';">'+GS[wd.getDay()]+'</div>'
+      +'<div class="mi-week-num" style="color:'+wtc+';font-weight:'+wfw+';">'+wd.getDate()+'</div>'
+      +'<div class="mi-week-dots">'+dots2+'</div>'
+      +'<div class="mi-week-label">'+wlabel+'</div>'
+      +'</div>';
+  }
+
+  // ── CARD 4: Scorciatoie ───────────────────────────────────────────────────
+  var scHtml=sc.map(function(sid){
+    var cfg=_MISTER_SC_ALL[sid];
+    if (!cfg) return '<div class="mob-qi" style="border:2px dashed var(--border2);background:transparent;" onclick="openMisterShortcutPicker()"><div class="mob-qi-ic" style="font-size:1.3rem;">＋</div><div class="mob-qi-lb" style="color:var(--text3);">Aggiungi</div></div>';
+    return '<div class="mob-qi" onclick="'+cfg.action+'"><div class="mob-qi-ic">'+cfg.ic+'</div><div class="mob-qi-lb">'+cfg.lb+'</div></div>';
+  }).join('');
+
+  // ── CARD 5: Allenamenti ───────────────────────────────────────────────────
+  var _soc=(typeof saSocieties!=='undefined')?saSocieties.find(function(x){return x.id===currentSocietaId;}):null;
+  var _plan=_soc?getEffectivePlan(_soc):'mister';
+  var isPro=_plan==='mister_pro'||_plan==='societa';
+  var allenCard='<div class="mob-dash-card"><div class="mob-dash-card-hd">🏃 Allenamenti</div>'
+    +'<div style="text-align:center;padding:10px 0 4px;">'
+    +'<div style="font-size:1.6rem;margin-bottom:6px;">🏃</div>'
+    +'<div style="font-size:.88rem;font-weight:700;color:var(--text);">In arrivo a settembre 2026</div>'
+    +(isPro
+      ?'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Inclusa nel tuo piano '+(_plan==='societa'?'Società':'Mister Pro')+'</div>'
+      :'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:10px;border-radius:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>')
+    +'</div></div>';
+
+  c.innerHTML=pwaBannerHtml()+heroHtml+dafareHtml
+    +'<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+weekRowsH+'</div></div>'
+    +'<div class="mob-dash-card"><div class="mob-dash-card-hd">⚡ Scorciatoie <a style="cursor:pointer;" onclick="openMisterShortcutPicker()">Modifica</a></div><div class="mob-quick-grid" style="margin-bottom:0;">'+scHtml+'</div></div>'
+    +allenCard;
+}
+
+// ─── Shortcut Picker ─────────────────────────────────────────────────────────
+
+function openMisterShortcutPicker() {
+  if (document.getElementById('scPickerOv')) return;
+  var current=_misterGetShortcuts();
+  window._scPickCurrent=current.slice();
+  var allIds=Object.keys(_MISTER_SC_ALL);
+  var itemsHtml=allIds.map(function(id){
+    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
+    return '<div class="sc-pi'+(sel?' sel':'')+'" id="scpi_'+id+'" onclick="toggleScPick(\''+id+'\')">'
+      +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
+      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;"></span>')
+      +'</div>';
+  }).join('');
+  var el=document.createElement('div');
+  el.id='scPickerOv'; el.className='sc-picker-ov';
+  el.innerHTML='<div class="sc-picker-sheet">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+    +'<div style="font-weight:800;font-size:1rem;">⚡ Scorciatoie home</div>'
+    +'<button style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;color:var(--text2);line-height:1;" onclick="closeMisterShortcutPicker()">✕</button>'
+    +'</div>'
+    +'<p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;">Scegli esattamente 4 scorciatoie (ordine di tocco = posizione).</p>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'+itemsHtml+'</div>'
+    +'<div id="scPickErr" style="font-size:.82rem;color:var(--red);margin-bottom:8px;min-height:18px;"></div>'
+    +'<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="saveMisterShortcuts()">✅ Salva</button>'
+    +'</div>';
+  el.addEventListener('click',function(e){if(e.target===el) closeMisterShortcutPicker();});
+  document.body.appendChild(el);
+}
+
+function closeMisterShortcutPicker() {
+  var el=document.getElementById('scPickerOv'); if(el) el.remove();
+}
+
+function toggleScPick(id) {
+  if (!window._scPickCurrent) window._scPickCurrent=[];
+  var idx=window._scPickCurrent.indexOf(id);
+  var errEl=document.getElementById('scPickErr');
+  if (idx>=0) {
+    window._scPickCurrent.splice(idx,1);
+  } else {
+    if (window._scPickCurrent.length>=4){if(errEl)errEl.textContent='Puoi selezionare massimo 4 scorciatoie.';return;}
+    window._scPickCurrent.push(id);
+  }
+  if(errEl) errEl.textContent='';
+  _refreshScPickerUI();
+}
+
+function _refreshScPickerUI() {
+  var current=window._scPickCurrent||[];
+  Object.keys(_MISTER_SC_ALL).forEach(function(id){
+    var el=document.getElementById('scpi_'+id); if(!el) return;
+    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
+    el.className='sc-pi'+(sel?' sel':'');
+    el.innerHTML='<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
+      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;"></span>');
+  });
+}
+
+function saveMisterShortcuts() {
+  var current=window._scPickCurrent||[];
+  var errEl=document.getElementById('scPickErr');
+  if(current.length!==4){if(errEl)errEl.textContent='Seleziona esattamente 4 scorciatoie.';return;}
+  var key='mister_sc_'+(me?me.id:0);
+  localStorage.setItem(key,JSON.stringify(current));
+  closeMisterShortcutPicker();
+  if(me) buildDashboard(me.role);
+  toast('⚡ Scorciatoie aggiornate');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildMobDashboard(role, c) {
   if (role === 'mister_admin') role = 'admin';
+  if (role === 'allenatore') { buildMobDashboardAllenatore(c); return; }
   if (role === 'genitore' || role === 'nonno') { buildMobDashboardGenitore(c); return; }
   const todayStr = ymd(new Date());
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
@@ -11694,64 +11961,103 @@ function buildDashboard(role) {
   } else if (role === 'allenatore') {
     const lv = currentLeva;
     const levaPlayers = players.filter(p=>p.leva===lv);
-    const nextMatchEv = panoNextMatchForLeva(lv);
-    const daysToMatch = nextMatchEv ? Math.max(0, Math.ceil((parseYmd(nextMatchEv.date).getTime() - new Date().setHours(0,0,0,0)) / 86400000)) : null;
-    const _isTraining = ev=>ev.type==='allenamento'||ev.type==='allenamento_portieri';
-    const hasTodayTrain = events.some(ev=>_isTraining(ev)&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,todayStr));
-    const hasTomTrain = events.some(ev=>_isTraining(ev)&&(!ev.leve||ev.leve.length===0||ev.leve.includes(lv))&&eventOccursOn(ev,tomorrowStr));
+    const _isTrD = ev=>ev.type==='allenamento'||ev.type==='allenamento_portieri';
+    const _isMtD = ev=>ev.type==='campionato'||ev.type==='partita'||ev.type==='torneo'||ev.type==='amichevole';
+    const hasTodayTrain = events.some(ev=>_isTrD(ev)&&(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,todayStr));
+    const hasTomTrain = events.some(ev=>_isTrD(ev)&&(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,tomorrowStr));
     const presentToday = hasTodayTrain ? levaPlayers.filter(p=>getPresenzaForDate(p,todayStr)==='p') : [];
-    const absentToday = hasTodayTrain ? levaPlayers.filter(p=>{const s=getPresenzaForDate(p,todayStr);return s==='a'||s==='j';}) : [];
-    const avvisatiOggi = hasTodayTrain ? levaPlayers.filter(p=>Array.isArray(p.assenzeAvvisate)&&p.assenzeAvvisate.some(av=>av.date===todayStr)) : [];
-    const lowAtt = levaPlayers.map(p=>({p,s:calcStats(p)})).filter(({s})=>s.allTot>=3&&s.percAll<60).sort((a,b)=>a.s.percAll-b.s.percAll);
+    const absentToday  = hasTodayTrain ? levaPlayers.filter(p=>{const st=getPresenzaForDate(p,todayStr);return st==='a'||st==='j';}) : [];
+    const notSignaled  = hasTodayTrain ? levaPlayers.filter(p=>getPresenzaForDate(p,todayStr)==='') : [];
+    const YESTERDAY2 = (()=>{const d=new Date();d.setDate(d.getDate()-1);return ymd(d);})();
+    const hadYestEv2 = events.some(ev=>(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,YESTERDAY2));
+    const ystrdNotSig2 = hadYestEv2 ? levaPlayers.filter(p=>getPresenzaForDate(p,YESTERDAY2)==='').length : 0;
+    const chatN2 = (typeof chatTotalUnread === 'function') ? chatTotalUnread(me) : 0;
+    const nxtEv = _misterNextAnyEvent(lv);
+    const nextMatchEv = panoNextMatchForLeva(lv);
+    const convObj2 = nextMatchEv ? getConvocazione(nextMatchEv.id||'') : null;
+    const hasConv2 = !!(convObj2&&convObj2.playerIds&&convObj2.playerIds.length);
+    const sc2 = _misterGetShortcuts();
 
-    const countdownHtml = nextMatchEv ? `
-      <div style="background:linear-gradient(135deg,var(--cp),#0f5fb5);color:#fff;border-radius:var(--r);padding:18px 22px;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-        <div style="text-align:center;min-width:58px;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.6rem;font-weight:900;line-height:1;">${daysToMatch===0?'Oggi':daysToMatch===1?'Dom.':daysToMatch}</div>
-          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;opacity:.8;">${daysToMatch>1?'giorni':'alla partita'}</div>
-        </div>
-        <div style="flex:1;min-width:160px;">
-          <div style="font-size:.7rem;opacity:.75;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px;">Prossima partita · ${escapeHtml(lv)}</div>
-          <div style="font-size:1.05rem;font-weight:800;">${escapeHtml(nextMatchEv.title)}</div>
-          <div style="font-size:.79rem;opacity:.9;margin-top:3px;">${panoFmtDateShort(nextMatchEv.date)}${nextMatchEv.start?' · '+nextMatchEv.start:''}${nextMatchEv.luogo?' · '+escapeHtml(nextMatchEv.luogo):''}</div>
-        </div>
-      </div>` : '';
-
-    const trainingBanner = hasTodayTrain
-      ? `<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--gbg);border-radius:9px;border-left:3px solid var(--green);margin-bottom:12px;">
-          <span style="font-size:1.2rem;flex-shrink:0;">🏃</span>
-          <div style="flex:1;"><div style="font-weight:700;font-size:.88rem;">Allenamento oggi · ${escapeHtml(lv)}</div>
-            <div style="font-size:.75rem;color:var(--text2);margin-top:2px;">${presentToday.length} presenti · ${absentToday.length} assenti · ${avvisatiOggi.length} avvisi ricevuti</div>
+    // Hero card
+    let dHeroHtml = '';
+    if (nxtEv) {
+      const hD=parseYmd(nxtEv.date); const hDFN=nxtEv.daysFromNow; const isTrH2=nxtEv.isTraining;
+      const hGrad=isTrH2?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxtEv.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxtEv.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+      const hTag=isTrH2?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
+      const cdStr2=hDFN===0?'OGG':hDFN===1?'DOM':hDFN;
+      const cdSub2=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+      const hCTA=isTrH2?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv2?'📋 Vedi convocazione':'📋 Crea convocazione');
+      const hCTAact=isTrH2?"goTo('presenze')":(hasConv2?"goTo('convocazioni')":"goTo('convocazioni')");
+      let dPillsHtml='';
+      if(isTrH2&&hDFN===0&&hasTodayTrain) dPillsHtml=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"><span class="mi-cnt-pill">✅ ${presentToday.length} presenti</span><span class="mi-cnt-pill">⏳ ${notSignaled.length} in attesa</span>${absentToday.length?`<span class="mi-cnt-pill">❌ ${absentToday.length} assenti</span>`:''}</div>`;
+      else if(!isTrH2&&hasConv2&&convObj2&&convObj2.playerIds) dPillsHtml=`<div style="margin-top:10px;"><span class="mi-cnt-pill">📋 ${convObj2.playerIds.length} convocati</span></div>`;
+      dHeroHtml=`<div class="mi-hero" style="background:${hGrad};color:#fff;margin-bottom:16px;" onclick="goTo('calendario')">
+        <div class="mi-hero-tag">${hTag} · ${escapeHtml(lv)}</div>
+        <div style="display:flex;align-items:flex-start;gap:16px;">
+          <div style="flex-shrink:0;text-align:center;"><div class="mi-hero-cd">${cdStr2}</div><div class="mi-hero-cd-sub">${cdSub2}</div></div>
+          <div style="flex:1;min-width:0;"><div class="mi-hero-title">${escapeHtml(nxtEv.title)}</div>
+            <div class="mi-hero-meta">${panoFmtDateShort(nxtEv.date)}${nxtEv.start?' · '+nxtEv.start:''}${nxtEv.luogo?' · '+escapeHtml(nxtEv.luogo):''}</div>
+            ${dPillsHtml}
           </div>
-          <button class="btn btn-p btn-sm" onclick="goTo('presenze')">Registro →</button>
-        </div>`
-      : hasTomTrain
-        ? `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--cl);border-radius:9px;margin-bottom:12px;">
-            <span style="font-size:1.1rem;">🏃</span>
-            <div style="font-size:.84rem;flex:1;">Prossimo allenamento <strong>domani</strong> · ${escapeHtml(lv)}</div>
-          </div>` : '';
-
-    const lowAttHtml = lowAtt.length
-      ? lowAtt.slice(0,5).map(({p,s})=>`<div style="display:flex;align-items:center;gap:8px;padding:7px;background:var(--rbg);border-radius:7px;">
-          <div style="flex:1;font-size:.83rem;font-weight:600;">${escapeHtml(p.nome+' '+p.cogn)}</div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:900;color:var(--red);">${s.percAll}% <span style="font-size:.65rem;font-weight:400;color:var(--text2);">(${s.allTot})</span></div>
-        </div>`).join('')
-      : `<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun giocatore sotto il 60%.</div>`;
-
-    c.innerHTML = `
-      ${countdownHtml}${trainingBanner}
-      <div class="g2">
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card"><div class="ch"><div class="ct">📊 Ultimo risultato</div></div>${lastResultRow(lv)}</div>
-          <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div><button class="btn btn-g btn-sm" onclick="goTo('partite')">Apri →</button></div>${miniStandings(lv)}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card"><div class="ch"><div class="ct">📉 Presenze basse (< 60%)</div></div>
-            <div style="display:flex;flex-direction:column;gap:6px;">${lowAttHtml}</div>
-          </div>
-          ${coachAvvisiCardHTML()}
+        <button style="margin-top:12px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-family:inherit;font-size:.84rem;font-weight:700;cursor:pointer;" onclick="event.stopPropagation();${hCTAact}">${hCTA} →</button>
+      </div>`;
+    } else {
+      dHeroHtml=`<div class="mi-hero" style="background:var(--cl);margin-bottom:16px;cursor:pointer;" onclick="goTo('calendario')">
+        <div style="text-align:center;padding:8px 0;">
+          <div style="font-size:2rem;margin-bottom:6px;">📅</div>
+          <div style="font-weight:700;color:var(--text);">Nessun impegno in programma</div>
+          <div style="font-size:.82rem;color:var(--text2);margin-top:3px;">Aggiungi partite e allenamenti nel calendario →</div>
         </div>
       </div>`;
+    }
+
+    // Da Fare
+    const dTodoItems2=[];
+    if(ystrdNotSig2>0) dTodoItems2.push({ic:'✅',col:'var(--gold)',text:ystrdNotSig2+' presenz'+(ystrdNotSig2>1?'e':'a')+' non segnate ieri',act:"goTo('presenze')"});
+    if(hasTodayTrain&&notSignaled.length>0) dTodoItems2.push({ic:'✅',col:'var(--cp)',text:notSignaled.length+' presenz'+(notSignaled.length>1?'e':'a')+' da segnare oggi',act:"goTo('presenze')"});
+    if(chatN2>0) dTodoItems2.push({ic:'💬',col:'var(--cp)',text:chatN2+' messaggio'+(chatN2>1?'i':'')+' non lett'+(chatN2>1?'i':'o'),act:"goTo('chat')"});
+    const dDafareCard=dTodoItems2.length?`<div class="card"><div class="ch"><div class="ct">🔔 Da fare</div></div><div style="display:flex;flex-direction:column;gap:6px;">${dTodoItems2.map(t=>`<div class="mi-todo-row" style="border-color:${t.col};" onclick="${t.act}"><span style="font-size:1rem;flex-shrink:0;">${t.ic}</span><div style="flex:1;font-size:.84rem;font-weight:600;">${t.text}</div><span style="color:var(--text3);">›</span></div>`).join('')}</div></div>`:'';
+
+    // Weekly calendar
+    const _todD=new Date(); _todD.setHours(0,0,0,0);
+    const _dowD=_todD.getDay(); const _monD=new Date(_todD); _monD.setDate(_todD.getDate()-(_dowD===0?6:_dowD-1));
+    const _GSD=['lun','mar','mer','gio','ven','sab','dom'];
+    const dWeekRows=Array.from({length:7},(_,i)=>{
+      const d=new Date(_monD); d.setDate(_monD.getDate()+i);
+      const ds=ymd(d); const isT3=ds===todayStr;
+      const wevs=events.filter(ev=>(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,ds));
+      const hasTr3=wevs.some(_isTrD); const hasM3=wevs.some(_isMtD);
+      const dots3=(hasTr3?'<span class="mi-week-dot" style="background:var(--green);"></span>':'')+(hasM3?'<span class="mi-week-dot" style="background:var(--cp);"></span>':'');
+      const evLbl=wevs.map(ev=>escapeHtml((ev.title||ev.type||'').slice(0,18))).join(', ');
+      const wtc2=isT3?'var(--cp)':'var(--text1)'; const wfw2=isT3?'800':'400';
+      return `<div class="mi-week-row${isT3?' today':''}" onclick="goTo('calendario')"><div class="mi-week-day" style="color:${wtc2};font-weight:${wfw2};">${_GSD[i]}</div><div class="mi-week-num" style="color:${wtc2};font-weight:${wfw2};">${d.getDate()}</div><div class="mi-week-dots">${dots3}</div><div class="mi-week-label">${evLbl}</div></div>`;
+    }).join('');
+
+    // Shortcuts
+    const scGrid2=sc2.map(sid=>{const s=_MISTER_SC_ALL[sid];if(!s)return '';return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;" onclick="${s.action}">${s.ic} ${s.lb}</button>`;}).join('');
+
+    // Prossimi allenamenti
+    const ntD=panoNextTrainingsForLeva(lv,3);
+    const ntDHtml=ntD.length?ntD.map(ds=>{const d=parseYmd(ds);const iT=ds===todayStr;const lbl=iT?'Oggi':d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'});return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);"><span>🏃</span><div style="flex:1;font-size:.84rem;font-weight:${iT?'700':'400'};">${lbl}</div>${iT?`<button class="btn btn-p btn-sm" onclick="goTo('presenze')">Registro</button>`:''}</div>`;}).join(''):'<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun allenamento programmato.</div>';
+
+    // Plan card
+    const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
+    const _planD=_socD?getEffectivePlan(_socD):'mister';
+    const isProD=_planD==='mister_pro'||_planD==='societa';
+    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>`}</div></div>`;
+
+    c.innerHTML = dHeroHtml
+      +`<div class="g2">`
+      +`<div style="display:flex;flex-direction:column;gap:12px;">`
+      +`<div class="card"><div class="ch"><div class="ct">📆 Settimana</div><button class="btn btn-g btn-sm" onclick="goTo('calendario')">Calendario →</button></div><div style="display:flex;flex-direction:column;gap:3px;">${dWeekRows}</div></div>`
+      +coachAvvisiCardHTML()
+      +`</div><div style="display:flex;flex-direction:column;gap:12px;">`
+      +dDafareCard
+      +`<div class="card"><div class="ch"><div class="ct">⚡ Scorciatoie</div><button class="btn btn-g btn-sm" onclick="openMisterShortcutPicker()">Modifica</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${scGrid2}</div></div>`
+      +`<div class="card"><div class="ch"><div class="ct">🏃 Prossimi allenamenti</div></div>${ntDHtml}</div>`
+      +allenCardD
+      +`</div></div>`;
 
   } else if (role === 'genitore' || role === 'nonno') {
     const figliNames = getFigliOf(me);
