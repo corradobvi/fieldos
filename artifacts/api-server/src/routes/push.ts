@@ -124,23 +124,35 @@ router.post("/push/send", async (req, res) => {
 
 // GET /api/push/debug — diagnostica senza auth
 router.get("/push/debug", async (_req, res) => {
-  // List all env var NAMES that contain "VAPID" (no values exposed)
-  const vapidEnvKeys = Object.keys(process.env).filter(k => k.toUpperCase().includes("VAPID"));
+  const allEnvKeys = Object.keys(process.env).sort();
+  const vapidEnvKeys = allEnvKeys.filter(k => k.toUpperCase().includes("VAPID"));
+  const railwayKeys  = allEnvKeys.filter(k => k.startsWith("RAILWAY_"));
 
   const info: Record<string, unknown> = {
-    bundle_marker:         "2026-05-18-v19-push-fix",
-    // Module-level constants (read at startup)
-    vapid_public_set:      !!VAPID_PUBLIC,
-    vapid_private_set:     !!VAPID_PRIVATE,
-    // Note: vapid_subject always true because it has a hardcoded default
-    vapid_subject_value:   VAPID_SUBJECT,
-    vapid_public_prefix:   VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "…" : null,
-    // What VAPID keys actually exist in process.env right now
-    vapid_env_keys_found:  vapidEnvKeys,
-    // Raw read at request time (not module-level cache)
-    vapid_public_runtime:  !!(process.env["VAPID_PUBLIC_KEY"] ?? ""),
-    vapid_private_runtime: !!(process.env["VAPID_PRIVATE_KEY"] ?? ""),
+    bundle_marker:          "2026-05-18-v20-debug-env",
+    // Module-level constants (read at process startup — cached)
+    vapid_public_set:       !!VAPID_PUBLIC,
+    vapid_private_set:      !!VAPID_PRIVATE,
+    vapid_subject_value:    VAPID_SUBJECT,  // has hardcoded default — may not be from env
+    vapid_public_prefix:    VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "…" : null,
+    // Re-read at request time (bypasses module-level cache)
+    vapid_public_runtime:   !!(process.env["VAPID_PUBLIC_KEY"]  ?? ""),
+    vapid_private_runtime:  !!(process.env["VAPID_PRIVATE_KEY"] ?? ""),
+    vapid_subject_runtime:  process.env["VAPID_SUBJECT"] ?? null,
+    // Env var names containing "VAPID" visible to process.env right now
+    vapid_env_keys_found:   vapidEnvKeys,
+    // Railway-injected keys (proves env vars reach the container at all)
+    railway_env_keys:       railwayKeys,
+    railway_environment:    process.env["RAILWAY_ENVIRONMENT_NAME"] ?? null,
+    railway_service:        process.env["RAILWAY_SERVICE_NAME"] ?? null,
+    // General runtime info
+    node_version:           process.versions.node,
+    node_env:               process.env["NODE_ENV"] ?? null,
+    total_env_keys:         allEnvKeys.length,
+    // First 30 env key names alphabetically (no values)
+    env_keys_sample:        allEnvKeys.slice(0, 30),
   };
+
   try {
     await ensureTable();
     const [countRows] = (await pool.execute(

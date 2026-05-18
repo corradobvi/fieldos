@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v19-push-fix" });
+  res.json({ ...data, v: "2026-05-18-v20-debug-env" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61365,20 +61365,33 @@ router6.post("/push/send", async (req, res) => {
   }
 });
 router6.get("/push/debug", async (_req, res) => {
-  const vapidEnvKeys = Object.keys(process.env).filter((k) => k.toUpperCase().includes("VAPID"));
+  const allEnvKeys = Object.keys(process.env).sort();
+  const vapidEnvKeys = allEnvKeys.filter((k) => k.toUpperCase().includes("VAPID"));
+  const railwayKeys = allEnvKeys.filter((k) => k.startsWith("RAILWAY_"));
   const info = {
-    bundle_marker: "2026-05-18-v19-push-fix",
-    // Module-level constants (read at startup)
+    bundle_marker: "2026-05-18-v20-debug-env",
+    // Module-level constants (read at process startup — cached)
     vapid_public_set: !!VAPID_PUBLIC,
     vapid_private_set: !!VAPID_PRIVATE,
-    // Note: vapid_subject always true because it has a hardcoded default
     vapid_subject_value: VAPID_SUBJECT,
+    // has hardcoded default — may not be from env
     vapid_public_prefix: VAPID_PUBLIC ? VAPID_PUBLIC.slice(0, 8) + "\u2026" : null,
-    // What VAPID keys actually exist in process.env right now
-    vapid_env_keys_found: vapidEnvKeys,
-    // Raw read at request time (not module-level cache)
+    // Re-read at request time (bypasses module-level cache)
     vapid_public_runtime: !!(process.env["VAPID_PUBLIC_KEY"] ?? ""),
-    vapid_private_runtime: !!(process.env["VAPID_PRIVATE_KEY"] ?? "")
+    vapid_private_runtime: !!(process.env["VAPID_PRIVATE_KEY"] ?? ""),
+    vapid_subject_runtime: process.env["VAPID_SUBJECT"] ?? null,
+    // Env var names containing "VAPID" visible to process.env right now
+    vapid_env_keys_found: vapidEnvKeys,
+    // Railway-injected keys (proves env vars reach the container at all)
+    railway_env_keys: railwayKeys,
+    railway_environment: process.env["RAILWAY_ENVIRONMENT_NAME"] ?? null,
+    railway_service: process.env["RAILWAY_SERVICE_NAME"] ?? null,
+    // General runtime info
+    node_version: process.versions.node,
+    node_env: process.env["NODE_ENV"] ?? null,
+    total_env_keys: allEnvKeys.length,
+    // First 30 env key names alphabetically (no values)
+    env_keys_sample: allEnvKeys.slice(0, 30)
   };
   try {
     await ensureTable();
@@ -65148,7 +65161,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v19-push-fix" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v20-debug-env" }, "Server listening");
   });
 }
 async function ensureSchema2() {
