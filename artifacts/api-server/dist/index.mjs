@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v20-debug-env" });
+  res.json({ ...data, v: "2026-05-18-v21-debug-env-full" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61369,7 +61369,7 @@ router6.get("/push/debug", async (_req, res) => {
   const vapidEnvKeys = allEnvKeys.filter((k) => k.toUpperCase().includes("VAPID"));
   const railwayKeys = allEnvKeys.filter((k) => k.startsWith("RAILWAY_"));
   const info = {
-    bundle_marker: "2026-05-18-v20-debug-env",
+    bundle_marker: "2026-05-18-v21-debug-env-full",
     // Module-level constants (read at process startup — cached)
     vapid_public_set: !!VAPID_PUBLIC,
     vapid_private_set: !!VAPID_PRIVATE,
@@ -61390,8 +61390,9 @@ router6.get("/push/debug", async (_req, res) => {
     node_version: process.versions.node,
     node_env: process.env["NODE_ENV"] ?? null,
     total_env_keys: allEnvKeys.length,
-    // First 30 env key names alphabetically (no values)
-    env_keys_sample: allEnvKeys.slice(0, 30)
+    railway_public_domain: process.env["RAILWAY_PUBLIC_DOMAIN"] ?? null,
+    // ALL env key names alphabetically (no values — safe, ~40 keys max on Railway)
+    all_env_keys: allEnvKeys
   };
   try {
     await ensureTable();
@@ -65161,7 +65162,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v20-debug-env" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v21-debug-env-full" }, "Server listening");
   });
 }
 async function ensureSchema2() {

@@ -129,7 +129,7 @@ router.get("/push/debug", async (_req, res) => {
   const railwayKeys  = allEnvKeys.filter(k => k.startsWith("RAILWAY_"));
 
   const info: Record<string, unknown> = {
-    bundle_marker:          "2026-05-18-v20-debug-env",
+    bundle_marker:          "2026-05-18-v21-debug-env-full",
     // Module-level constants (read at process startup — cached)
     vapid_public_set:       !!VAPID_PUBLIC,
     vapid_private_set:      !!VAPID_PRIVATE,
@@ -149,8 +149,9 @@ router.get("/push/debug", async (_req, res) => {
     node_version:           process.versions.node,
     node_env:               process.env["NODE_ENV"] ?? null,
     total_env_keys:         allEnvKeys.length,
-    // First 30 env key names alphabetically (no values)
-    env_keys_sample:        allEnvKeys.slice(0, 30),
+    railway_public_domain:  process.env["RAILWAY_PUBLIC_DOMAIN"] ?? null,
+    // ALL env key names alphabetically (no values — safe, ~40 keys max on Railway)
+    all_env_keys:           allEnvKeys,
   };
 
   try {

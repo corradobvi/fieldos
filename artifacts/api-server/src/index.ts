@@ -1,4 +1,4 @@
-// 2026-05-18-v20 — push debug: full env diagnostics
+// 2026-05-18-v21 — push debug: all env keys visible
 import app from "./app";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
@@ -23,7 +23,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v20-debug-env" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v21-debug-env-full" }, "Server listening");
   });
 }
 
