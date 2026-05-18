@@ -1,4 +1,4 @@
-// 2026-05-13 — force redeploy: self-register endpoint + phone column migration
+// 2026-05-18-v17 — superadmin routes fix
 import app from "./app";
 import { logger } from "./lib/logger";
 import { pool } from "@workspace/db";
@@ -23,7 +23,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v17-superadmin-routes" }, "Server listening");
   });
 }
 
