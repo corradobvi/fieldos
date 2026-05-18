@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v21-debug-env-full" });
+  res.json({ ...data, v: "2026-05-18-v22-vapid-fallback" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -61270,8 +61270,8 @@ var assist_default = router5;
 var import_express6 = __toESM(require_express2(), 1);
 var import_web_push = __toESM(require_src2(), 1);
 var router6 = (0, import_express6.Router)();
-var VAPID_PUBLIC = process.env["VAPID_PUBLIC_KEY"] ?? "";
-var VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "";
+var VAPID_PUBLIC = process.env["VAPID_PUBLIC_KEY"] ?? "BE7dMl0ASZvW5M7Ltc7pRRuq5ecjmEYgbj5pjkj5uS9swNhPzzmQ2BW-NWAf8xKX13MMDMhbZRWkh1ykkYv5fOs";
+var VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "vhS1XTtxj18YcKoB7yk4O_jGRlkMjpvrS-lF0wK2J7A";
 var VAPID_SUBJECT = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   import_web_push.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
@@ -61369,7 +61369,7 @@ router6.get("/push/debug", async (_req, res) => {
   const vapidEnvKeys = allEnvKeys.filter((k) => k.toUpperCase().includes("VAPID"));
   const railwayKeys = allEnvKeys.filter((k) => k.startsWith("RAILWAY_"));
   const info = {
-    bundle_marker: "2026-05-18-v21-debug-env-full",
+    bundle_marker: "2026-05-18-v22-vapid-fallback",
     // Module-level constants (read at process startup — cached)
     vapid_public_set: !!VAPID_PUBLIC,
     vapid_private_set: !!VAPID_PRIVATE,
@@ -63001,8 +63001,8 @@ function societyKeyFor(societyId) {
   return `fieldos_state_soc_${societyId}`;
 }
 function _initVapid() {
-  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "";
-  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "";
+  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "BE7dMl0ASZvW5M7Ltc7pRRuq5ecjmEYgbj5pjkj5uS9swNhPzzmQ2BW-NWAf8xKX13MMDMhbZRWkh1ykkYv5fOs";
+  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "vhS1XTtxj18YcKoB7yk4O_jGRlkMjpvrS-lF0wK2J7A";
   const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
   if (!pub || !priv) return false;
   try {
@@ -65162,7 +65162,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v21-debug-env-full" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v22-vapid-fallback" }, "Server listening");
   });
 }
 async function ensureSchema2() {

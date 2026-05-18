@@ -5,9 +5,9 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-// VAPID keys — set via environment variables on Railway
-const VAPID_PUBLIC  = process.env["VAPID_PUBLIC_KEY"]  ?? "";
-const VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "";
+// VAPID keys — env vars override fallback defaults
+const VAPID_PUBLIC  = process.env["VAPID_PUBLIC_KEY"]  ?? "BE7dMl0ASZvW5M7Ltc7pRRuq5ecjmEYgbj5pjkj5uS9swNhPzzmQ2BW-NWAf8xKX13MMDMhbZRWkh1ykkYv5fOs";
+const VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "vhS1XTtxj18YcKoB7yk4O_jGRlkMjpvrS-lF0wK2J7A";
 const VAPID_SUBJECT = process.env["VAPID_SUBJECT"]     ?? "mailto:admin@myvivaio.app";
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
@@ -129,7 +129,7 @@ router.get("/push/debug", async (_req, res) => {
   const railwayKeys  = allEnvKeys.filter(k => k.startsWith("RAILWAY_"));
 
   const info: Record<string, unknown> = {
-    bundle_marker:          "2026-05-18-v21-debug-env-full",
+    bundle_marker:          "2026-05-18-v22-vapid-fallback",
     // Module-level constants (read at process startup — cached)
     vapid_public_set:       !!VAPID_PUBLIC,
     vapid_private_set:      !!VAPID_PRIVATE,
