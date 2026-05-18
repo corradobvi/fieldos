@@ -61289,6 +61289,14 @@ var CREATE_SUBS_TABLE = `
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
   await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `subscription_json` TEXT NOT NULL DEFAULT ''"
+  ).catch(() => {
+  });
+  await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `society_key` VARCHAR(255) NOT NULL DEFAULT ''"
+  ).catch(() => {
+  });
+  await pool.execute(
     "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
   ).catch(() => {
   });

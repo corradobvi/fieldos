@@ -27,10 +27,16 @@ const CREATE_SUBS_TABLE = `
 
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
-  // Add updated_at if table was created with an older schema (no-op if already present)
+  // Idempotent migrations for older schema versions
+  await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `subscription_json` TEXT NOT NULL DEFAULT ''"
+  ).catch(() => {});
+  await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `society_key` VARCHAR(255) NOT NULL DEFAULT ''"
+  ).catch(() => {});
   await pool.execute(
     "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-  ).catch(() => { /* column already exists — ignore */ });
+  ).catch(() => {});
 }
 
 // GET /api/push/vapid-public — expose the public key to the frontend
