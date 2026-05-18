@@ -1,6 +1,9 @@
 # 2026-05-18-v10 — superadmin routes canary + version marker
 FROM node:20-slim
 
+# FORCE REBUILD — invalidates all Docker layers
+ARG CACHEBUST=2026-05-18-v10
+
 WORKDIR /app
 
 # The dist is a self-contained esbuild bundle — no npm install needed at runtime
