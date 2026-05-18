@@ -2635,19 +2635,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="modal">
     <div class="mh"><div class="mt" id="mPlayerTitle">👤 Nuovo giocatore</div><button class="mx" onclick="closeM('mPlayer')">✕</button></div>
     <input type="hidden" id="pId">
-    <!-- Toggle GDPR minor mode (solo nuovo giocatore) -->
-    <div id="pMinorToggle" style="display:none;margin-bottom:12px;">
-      <button type="button" id="pBtnMinorMode" onclick="togglePlayerMinorMode()" style="width:100%;padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:.82rem;font-weight:600;text-align:left;touch-action:manipulation;">
-        <span id="pMinorModeIcon">🔲</span> Inserimento GDPR (minore — genitore completerà i dati)
-      </button>
-    </div>
     <div id="pPhotoArea" style="display:none;text-align:center;margin-bottom:14px;"></div>
     <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pIndispSection" style="display:none;background:linear-gradient(135deg,#fff1f2,#fff);border:1px solid #fecdd3;border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <!-- Full form (standard) -->
-    <div id="pFullForm">
+    <!-- Form modifica (edit) — campi completi, solo in modalità edit -->
+    <div id="pFullForm" style="display:none;">
       <div class="fr">
         <div class="fg"><label class="fl">Nome</label><input class="fi" id="pNome" placeholder="Nome"></div>
         <div class="fg"><label class="fl">Cognome</label><input class="fi" id="pCogn" placeholder="Cognome"></div>
@@ -2671,17 +2665,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="fg"><label class="fl">Tel. genitore</label><input class="fi" id="pTel" placeholder="+39 ..."></div>
       </div>
     </div>
-    <!-- Minor GDPR form (solo dati minimi) -->
-    <div id="pMinorForm" style="display:none;">
-      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e;line-height:1.5;">
-        ⚠️ <strong>Modalità GDPR</strong>: inserisci solo Nome, Iniziale cognome e numero maglia. Il genitore completerà cognome e data di nascita in autonomia tramite il codice società.
+    <!-- Form nuovo giocatore — solo dati GDPR-safe (sempre obbligatorio) -->
+    <div id="pMinorForm">
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.78rem;color:#92400e;line-height:1.6;">
+        ⚠️ <strong>Tutela minori (GDPR Art. 8)</strong>: inserisci solo Nome e Iniziale Cognome (es. <em>Luca B.</em>). Il genitore o tutore legale completerà cognome e data di nascita al primo accesso, dando il consenso al trattamento dati.
       </div>
       <div class="fr">
-        <div class="fg"><label class="fl">Nome *</label><input class="fi" id="pMinorNome" placeholder="Nome"></div>
-        <div class="fg"><label class="fl">Iniziale cognome * <span style="font-weight:400;opacity:.6;">(es. B. o B.V.)</span></label><input class="fi" id="pMinorInitial" placeholder="B." style="font-family:monospace;" autocorrect="off"></div>
+        <div class="fg"><label class="fl">Nome *</label><input class="fi" id="pMinorNome" placeholder="Nome" autocorrect="off"></div>
+        <div class="fg"><label class="fl">Iniziale cognome * <span style="font-weight:400;opacity:.6;">(es. B. o B.V.)</span></label><input class="fi" id="pMinorInitial" placeholder="B." style="font-family:monospace;letter-spacing:2px;" autocorrect="off" autocapitalize="characters" maxlength="5"></div>
       </div>
       <div class="fr">
-        <div class="fg"><label class="fl">N° maglia</label><input class="fi" id="pMinorNum" type="number" placeholder="10"></div>
+        <div class="fg"><label class="fl">N° maglia <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="pMinorNum" type="number" placeholder="10" min="1" max="99"></div>
         <div class="fg"><label class="fl">Leva *</label><select class="fs" id="pMinorLeva"></select></div>
       </div>
       <div id="pMinorError" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
@@ -5235,38 +5229,6 @@ function renderRosa() {
   });
 }
 
-var _playerMinorMode = false;
-
-function togglePlayerMinorMode() {
-  _playerMinorMode = !_playerMinorMode;
-  const icon = document.getElementById('pMinorModeIcon');
-  const fullForm = document.getElementById('pFullForm');
-  const minorForm = document.getElementById('pMinorForm');
-  const saveBtn = document.getElementById('pBtnSave');
-  if (_playerMinorMode) {
-    if (icon) icon.textContent = '✅';
-    if (fullForm) fullForm.style.display = 'none';
-    if (minorForm) minorForm.style.display = 'block';
-    if (saveBtn) { saveBtn.textContent = '👶 Crea profilo minore'; saveBtn.onclick = function(){ saveMinorPlayer(); }; }
-    // Populate leva select
-    const levaSelect = document.getElementById('pMinorLeva');
-    if (levaSelect) {
-      levaSelect.innerHTML = '';
-      leve.forEach(function(l) {
-        const opt = document.createElement('option');
-        opt.value = l; opt.textContent = l;
-        levaSelect.appendChild(opt);
-      });
-      if (currentLeva) levaSelect.value = currentLeva;
-    }
-  } else {
-    if (icon) icon.textContent = '🔲';
-    if (fullForm) fullForm.style.display = 'block';
-    if (minorForm) minorForm.style.display = 'none';
-    if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
-  }
-}
-
 async function saveMinorPlayer() {
   const errEl = document.getElementById('pMinorError');
   function _err(msg) {
@@ -5326,42 +5288,50 @@ async function saveMinorPlayer() {
   }
 }
 
-// Player modal — null = new, id = edit
+// Player modal — null = new (GDPR form), id = edit (full form)
 function openPlayerModal(id) {
   editingPlayerId = id;
-  _playerMinorMode = false;
+  const fullForm  = document.getElementById('pFullForm');
+  const minorForm = document.getElementById('pMinorForm');
+  const saveBtn   = document.getElementById('pBtnSave');
+
   if (id === null) {
-    // NEW
-    document.getElementById('mPlayerTitle').textContent = '👤 Nuovo giocatore';
-    document.getElementById('pId').value   = '';
-    document.getElementById('pNome').value  = '';
-    document.getElementById('pCogn').value  = '';
-    document.getElementById('pSopr').value  = '';
-    document.getElementById('pNum').value   = '';
-    document.getElementById('pRuolo').value = 'Portiere';
-    document.getElementById('pAnno').value  = '';
-    document.getElementById('pTel').value   = '';
-    document.getElementById('btnDelPlayer').style.display = 'none';
+    // NEW — sempre modalità GDPR
+    document.getElementById('mPlayerTitle').textContent = '👶 Nuovo giocatore';
+    document.getElementById('pId').value = '';
+    document.getElementById('btnDelPlayer').style.display  = 'none';
     document.getElementById('btnArchPlayer').style.display = 'none';
-    document.getElementById('pPhotoArea').style.display = 'none';
-    document.getElementById('pAnagStats').style.display = 'none';
-    document.getElementById('pConvStats').style.display = 'none';
-    document.getElementById('pMatchStats').style.display = 'none';
+    document.getElementById('pPhotoArea').style.display    = 'none';
+    document.getElementById('pAnagStats').style.display    = 'none';
+    document.getElementById('pConvStats').style.display    = 'none';
+    document.getElementById('pMatchStats').style.display   = 'none';
     document.getElementById('pIndispSection').style.display = 'none';
-    // Show minor toggle for new players (staff only)
-    const toggleArea = document.getElementById('pMinorToggle');
-    if (toggleArea) toggleArea.style.display = (isAdminLike() || (me && me.role === 'allenatore')) ? 'block' : 'none';
-    // Reset forms
-    const fullForm = document.getElementById('pFullForm');
-    const minorForm = document.getElementById('pMinorForm');
-    if (fullForm) fullForm.style.display = 'block';
-    if (minorForm) minorForm.style.display = 'none';
-    const icon = document.getElementById('pMinorModeIcon');
-    if (icon) icon.textContent = '🔲';
-    const saveBtn = document.getElementById('pBtnSave');
-    if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
+    // Mostra solo form GDPR
+    if (fullForm)  fullForm.style.display  = 'none';
+    if (minorForm) minorForm.style.display = 'block';
+    // Reset campi GDPR
+    const minorNome = document.getElementById('pMinorNome');
+    const minorInit = document.getElementById('pMinorInitial');
+    const minorNum  = document.getElementById('pMinorNum');
+    if (minorNome) minorNome.value = '';
+    if (minorInit) minorInit.value = '';
+    if (minorNum)  minorNum.value  = '';
+    const errEl = document.getElementById('pMinorError');
+    if (errEl) errEl.style.display = 'none';
+    // Popola dropdown leva
+    const levaSelect = document.getElementById('pMinorLeva');
+    if (levaSelect) {
+      levaSelect.innerHTML = '';
+      leve.forEach(function(l) {
+        const opt = document.createElement('option');
+        opt.value = l; opt.textContent = l;
+        levaSelect.appendChild(opt);
+      });
+      if (currentLeva) levaSelect.value = currentLeva;
+    }
+    if (saveBtn) { saveBtn.textContent = '👶 Crea profilo'; saveBtn.onclick = function(){ saveMinorPlayer(); }; }
   } else {
-    // EDIT
+    // EDIT — form completo invariato
     const p = players.find(x => x.id === id);
     if (!p) return;
     document.getElementById('mPlayerTitle').textContent = '✏️ Modifica giocatore';
@@ -5382,14 +5352,9 @@ function openPlayerModal(id) {
     renderPConvStats(p);
     renderPMatchStats(p);
     renderPIndispSection(p);
-    // Hide minor toggle in edit mode
-    const toggleArea = document.getElementById('pMinorToggle');
-    if (toggleArea) toggleArea.style.display = 'none';
-    const fullForm = document.getElementById('pFullForm');
-    const minorForm = document.getElementById('pMinorForm');
-    if (fullForm) fullForm.style.display = 'block';
+    // Mostra solo form classico
+    if (fullForm)  fullForm.style.display  = 'block';
     if (minorForm) minorForm.style.display = 'none';
-    const saveBtn = document.getElementById('pBtnSave');
     if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
   }
   openM('mPlayer');
