@@ -60829,7 +60829,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v22-vapid-fallback" });
+  res.json({ ...data, v: "2026-05-18-v23-push-db-fix" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";
@@ -65172,7 +65172,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-18-v22-vapid-fallback" }, "Server listening");
+    logger.info({ port, bundle: "2026-05-18-v23-push-db-fix" }, "Server listening");
   });
 }
 async function ensureSchema2() {
