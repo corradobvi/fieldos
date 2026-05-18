@@ -27,6 +27,10 @@ const CREATE_SUBS_TABLE = `
 
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
+  // Add updated_at if table was created with an older schema (no-op if already present)
+  await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+  ).catch(() => { /* column already exists — ignore */ });
 }
 
 // GET /api/push/vapid-public — expose the public key to the frontend
@@ -53,7 +57,7 @@ router.post("/push/subscribe", async (req, res) => {
     await pool.execute(
       `INSERT INTO \`push_subscriptions\` (\`user_id\`, \`society_key\`, \`subscription_json\`)
        VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE \`subscription_json\` = ?, \`updated_at\` = NOW()`,
+       ON DUPLICATE KEY UPDATE \`subscription_json\` = ?`,
       [userId, societyKey, subJson, subJson]
     );
     return res.json({ ok: true });
@@ -100,7 +104,6 @@ router.post("/push/send", async (req, res) => {
         sent++;
       } catch (e: any) {
         if (e.statusCode === 410 || e.statusCode === 404) {
-          // Subscription expired — clean it up
           expired = true;
           await pool.execute(
             "DELETE FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
@@ -135,8 +138,9 @@ router.get("/push/debug", async (_req, res) => {
     )) as [any[], any];
     info.total_subscriptions = countRows[0]?.total ?? 0;
 
+    // Fetch recent entries using id for ordering (updated_at may not exist in old schema)
     const [sampleRows] = (await pool.execute(
-      "SELECT user_id, society_key, updated_at FROM `push_subscriptions` ORDER BY updated_at DESC LIMIT 3"
+      "SELECT user_id, society_key FROM `push_subscriptions` ORDER BY id DESC LIMIT 3"
     )) as [any[], any];
     info.recent_subscriptions = sampleRows;
   } catch (e: any) {

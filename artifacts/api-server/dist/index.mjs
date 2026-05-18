@@ -61288,6 +61288,10 @@ var CREATE_SUBS_TABLE = `
 `;
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
+  await pool.execute(
+    "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+  ).catch(() => {
+  });
 }
 router6.get("/push/vapid-public", (_req, res) => {
   if (!VAPID_PUBLIC) return res.status(503).json({ error: "push_not_configured" });
@@ -61304,7 +61308,7 @@ router6.post("/push/subscribe", async (req, res) => {
     await pool.execute(
       `INSERT INTO \`push_subscriptions\` (\`user_id\`, \`society_key\`, \`subscription_json\`)
        VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE \`subscription_json\` = ?, \`updated_at\` = NOW()`,
+       ON DUPLICATE KEY UPDATE \`subscription_json\` = ?`,
       [userId, societyKey, subJson, subJson]
     );
     return res.json({ ok: true });
@@ -61375,7 +61379,7 @@ router6.get("/push/debug", async (_req, res) => {
     );
     info.total_subscriptions = countRows[0]?.total ?? 0;
     const [sampleRows] = await pool.execute(
-      "SELECT user_id, society_key, updated_at FROM `push_subscriptions` ORDER BY updated_at DESC LIMIT 3"
+      "SELECT user_id, society_key FROM `push_subscriptions` ORDER BY id DESC LIMIT 3"
     );
     info.recent_subscriptions = sampleRows;
   } catch (e) {
