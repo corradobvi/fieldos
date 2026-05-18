@@ -21190,21 +21190,20 @@ function pwaApplyUpdate() {
 // ── Subscribe to push notifications for the current user
 async function subscribePush(userId, societyKey) {
   console.log('[Push] subscribePush start — userId:', userId, 'societyKey:', societyKey);
-  if (!_swReg) {
-    console.warn('[Push] subscribePush: service worker not registered yet');
-    return;
-  }
+  if (!('serviceWorker' in navigator)) { console.warn('[Push] subscribePush: serviceWorker not supported'); return; }
   try {
+    const reg = _swReg || await navigator.serviceWorker.ready;
+    if (!reg) { console.warn('[Push] subscribePush: no SW registration'); return; }
     const pubKey = await getPushPublicKey();
     if (!pubKey) {
       console.error('[Push] subscribePush: no VAPID public key — backend push not configured');
       return;
     }
-    let sub = await _swReg.pushManager.getSubscription();
+    let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       console.log('[Push] subscribePush: no existing subscription, creating new one…');
       const key = urlBase64ToUint8Array(pubKey);
-      sub = await _swReg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
       console.log('[Push] subscribePush: pushManager.subscribe ok, endpoint:', sub.endpoint.slice(0, 40) + '…');
     } else {
       console.log('[Push] subscribePush: reusing existing subscription, endpoint:', sub.endpoint.slice(0, 40) + '…');
