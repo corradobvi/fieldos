@@ -61281,7 +61281,7 @@ var CREATE_SUBS_TABLE = `
     \`id\`                INT AUTO_INCREMENT PRIMARY KEY,
     \`user_id\`           INT NOT NULL,
     \`society_key\`       VARCHAR(255) NOT NULL,
-    \`subscription_json\` TEXT NOT NULL,
+    \`subscription\` TEXT NOT NULL,
     \`updated_at\`        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY \`uq_user_society\` (\`user_id\`, \`society_key\`)
   )
@@ -61289,7 +61289,7 @@ var CREATE_SUBS_TABLE = `
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
   const alters = [
-    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `subscription_json` TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `subscription` TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `society_key` VARCHAR(255) NOT NULL DEFAULT ''",
     "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
   ];
@@ -61312,9 +61312,9 @@ router6.post("/push/subscribe", async (req, res) => {
     await ensureTable();
     const subJson = JSON.stringify(subscription);
     await pool.execute(
-      `INSERT INTO \`push_subscriptions\` (\`user_id\`, \`society_key\`, \`subscription_json\`)
+      `INSERT INTO \`push_subscriptions\` (\`user_id\`, \`society_key\`, \`subscription\`)
        VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE \`subscription_json\` = ?`,
+       ON DUPLICATE KEY UPDATE \`subscription\` = ?`,
       [userId, societyKey, subJson, subJson]
     );
     return res.json({ ok: true });
@@ -61334,7 +61334,7 @@ router6.post("/push/send", async (req, res) => {
   try {
     await ensureTable();
     const [rows] = await pool.execute(
-      "SELECT subscription_json FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
+      "SELECT subscription FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ?",
       [userId, societyKey]
     );
     if (!rows.length) return res.json({ ok: true, sent: 0 });
@@ -61344,7 +61344,7 @@ router6.post("/push/send", async (req, res) => {
     for (const row of rows) {
       let sub;
       try {
-        sub = JSON.parse(row.subscription_json);
+        sub = JSON.parse(row.subscription);
       } catch {
         continue;
       }
@@ -63027,7 +63027,7 @@ async function sendPushToUsers(userIds, societyKey, payload) {
   try {
     const placeholders = userIds.map(() => "?").join(",");
     const [r] = await pool.execute(
-      `SELECT user_id, subscription_json FROM push_subscriptions
+      `SELECT user_id, subscription FROM push_subscriptions
        WHERE user_id IN (${placeholders}) AND society_key = ?`,
       [...userIds, societyKey]
     );
@@ -63043,7 +63043,7 @@ async function sendPushToUsers(userIds, societyKey, payload) {
   for (const row of rows) {
     let sub;
     try {
-      sub = JSON.parse(row.subscription_json);
+      sub = JSON.parse(row.subscription);
     } catch {
       errors++;
       continue;

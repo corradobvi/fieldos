@@ -37,7 +37,7 @@ export async function sendPushToUsers(
   try {
     const placeholders = userIds.map(() => "?").join(",");
     const [r] = (await pool.execute(
-      `SELECT user_id, subscription_json FROM push_subscriptions
+      `SELECT user_id, subscription FROM push_subscriptions
        WHERE user_id IN (${placeholders}) AND society_key = ?`,
       [...userIds, societyKey]
     )) as [any[], any];
@@ -55,7 +55,7 @@ export async function sendPushToUsers(
 
   for (const row of rows) {
     let sub: any;
-    try { sub = JSON.parse(row.subscription_json); } catch { errors++; continue; }
+    try { sub = JSON.parse(row.subscription); } catch { errors++; continue; }
     try {
       await webpush.sendNotification(sub, message);
       sent++;
