@@ -2635,39 +2635,73 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="modal">
     <div class="mh"><div class="mt" id="mPlayerTitle">👤 Nuovo giocatore</div><button class="mx" onclick="closeM('mPlayer')">✕</button></div>
     <input type="hidden" id="pId">
+    <!-- Toggle GDPR minor mode (solo nuovo giocatore) -->
+    <div id="pMinorToggle" style="display:none;margin-bottom:12px;">
+      <button type="button" id="pBtnMinorMode" onclick="togglePlayerMinorMode()" style="width:100%;padding:10px 14px;border-radius:10px;border:2px solid var(--border);background:var(--cl);cursor:pointer;font-size:.82rem;font-weight:600;text-align:left;touch-action:manipulation;">
+        <span id="pMinorModeIcon">🔲</span> Inserimento GDPR (minore — genitore completerà i dati)
+      </button>
+    </div>
     <div id="pPhotoArea" style="display:none;text-align:center;margin-bottom:14px;"></div>
     <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <div id="pIndispSection" style="display:none;background:linear-gradient(135deg,#fff1f2,#fff);border:1px solid #fecdd3;border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Nome</label><input class="fi" id="pNome" placeholder="Nome"></div>
-      <div class="fg"><label class="fl">Cognome</label><input class="fi" id="pCogn" placeholder="Cognome"></div>
-    </div>
-    <div class="fg"><label class="fl">Soprannome <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="pSopr" placeholder='es. "Freccia", "Il Muro"'></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">N° maglia</label><input class="fi" id="pNum" type="number" placeholder="10"></div>
-      <div class="fg"><label class="fl">Ruolo</label>
-        <select class="fs" id="pRuolo">
-          <option value="Portiere">🧤 Portiere</option>
-          <option value="Difensore">🛡️ Difensore</option>
-          <option value="Centrocampista">⚙️ Centrocampista</option>
-          <option value="Attaccante">⚡ Attaccante</option>
-          <option value="Ruolo variabile">🔄 Ruolo variabile</option>
-          <option value="Jolly">⚽ Jolly</option>
-        </select>
+    <!-- Full form (standard) -->
+    <div id="pFullForm">
+      <div class="fr">
+        <div class="fg"><label class="fl">Nome</label><input class="fi" id="pNome" placeholder="Nome"></div>
+        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="pCogn" placeholder="Cognome"></div>
+      </div>
+      <div class="fg"><label class="fl">Soprannome <span style="font-weight:400;opacity:.6;">(opzionale)</span></label><input class="fi" id="pSopr" placeholder='es. "Freccia", "Il Muro"'></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">N° maglia</label><input class="fi" id="pNum" type="number" placeholder="10"></div>
+        <div class="fg"><label class="fl">Ruolo</label>
+          <select class="fs" id="pRuolo">
+            <option value="Portiere">🧤 Portiere</option>
+            <option value="Difensore">🛡️ Difensore</option>
+            <option value="Centrocampista">⚙️ Centrocampista</option>
+            <option value="Attaccante">⚡ Attaccante</option>
+            <option value="Ruolo variabile">🔄 Ruolo variabile</option>
+            <option value="Jolly">⚽ Jolly</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Anno nascita</label><input class="fi" id="pAnno" type="number" placeholder="2013"></div>
+        <div class="fg"><label class="fl">Tel. genitore</label><input class="fi" id="pTel" placeholder="+39 ..."></div>
       </div>
     </div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Anno nascita</label><input class="fi" id="pAnno" type="number" placeholder="2013"></div>
-      <div class="fg"><label class="fl">Tel. genitore</label><input class="fi" id="pTel" placeholder="+39 ..."></div>
+    <!-- Minor GDPR form (solo dati minimi) -->
+    <div id="pMinorForm" style="display:none;">
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e;line-height:1.5;">
+        ⚠️ <strong>Modalità GDPR</strong>: inserisci solo Nome, Iniziale cognome e numero maglia. Il genitore completerà cognome e data di nascita in autonomia tramite il codice società.
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Nome *</label><input class="fi" id="pMinorNome" placeholder="Nome"></div>
+        <div class="fg"><label class="fl">Iniziale cognome * <span style="font-weight:400;opacity:.6;">(es. B. o B.V.)</span></label><input class="fi" id="pMinorInitial" placeholder="B." style="font-family:monospace;" autocorrect="off"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">N° maglia</label><input class="fi" id="pMinorNum" type="number" placeholder="10"></div>
+        <div class="fg"><label class="fl">Leva *</label><select class="fs" id="pMinorLeva"></select></div>
+      </div>
+      <div id="pMinorError" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
-      <button class="btn btn-p" style="flex:1;" onclick="savePlayer()">💾 Salva</button>
+      <button class="btn btn-p" style="flex:1;" id="pBtnSave" onclick="savePlayer()">💾 Salva</button>
       <button class="btn" id="btnArchPlayer" onclick="archiviaCurrentPlayer()" style="display:none;background:#fef3c7;color:#b45309;border-color:#fcd34d;">📦 Archivia</button>
       <button class="btn btn-r" id="btnDelPlayer" onclick="deleteCurrentPlayer()" style="display:none;">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mPlayer')">Annulla</button>
     </div>
+  </div>
+</div>
+
+<!-- Tutori/Genitori di un giocatore (pannello mister) -->
+<div class="ov" id="mGuardians">
+  <div class="modal" style="max-width:480px;">
+    <div class="mh"><div class="mt" id="mGuardiansTitle">👨‍👧 Tutori associati</div><button class="mx" onclick="closeM('mGuardians')">✕</button></div>
+    <div id="mGuardiansList" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
+    <div style="margin-top:14px;font-size:.76rem;color:var(--text2);">Puoi aggiungere altri tutori dal flusso di auto-registrazione genitore.</div>
+    <div style="margin-top:10px;text-align:right;"><button class="btn btn-g" onclick="closeM('mGuardians')">Chiudi</button></div>
   </div>
 </div>
 
@@ -3212,8 +3246,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <!-- Step indicator -->
     <div id="srSteps" style="display:flex;gap:6px;margin-bottom:12px;font-size:.7rem;color:var(--text2);">
       <div id="srStepInd1" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--cl);font-weight:700;">1. Codice</div>
-      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Figli</div>
-      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Account</div>
+      <div id="srStepInd2" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">2. Figlio</div>
+      <div id="srStepInd3" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">3. Identità</div>
+      <div id="srStepInd4" style="flex:1;text-align:center;padding:5px;border-radius:5px;background:var(--bg);">4. Account</div>
     </div>
     <!-- STEP 1: codice società -->
     <div id="srStep1">
@@ -3222,20 +3257,39 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;min-height:48px;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
-    <!-- STEP 2: scelta figli -->
+    <!-- STEP 2: scelta figlio dalla lista API -->
     <div id="srStep2" style="display:none;">
-      <div style="font-size:.78rem;color:var(--text2);margin-bottom:10px;">Seleziona uno o più figli/e in rosa.</div>
-      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca tuo figlio in rosa..." oninput="renderSrRoster()" style="min-height:48px;"></div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px;">Cerca e seleziona tuo figlio/a. La lista include i giocatori aggiunti dalla società.</div>
+      <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca per nome..." oninput="renderSrRoster()" style="min-height:48px;"></div>
+      <div id="srRosterLoading" style="display:none;text-align:center;padding:20px;font-size:.82rem;color:var(--text2);">⏳ Carico la lista giocatori…</div>
       <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
       <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:6px;min-height:18px;"></div>
       <div id="srStep2Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
-        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Dati account</button>
+        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Conferma identità</button>
       </div>
     </div>
-    <!-- STEP 3: dati account -->
+    <!-- STEP 3: conferma identità + consenso GDPR -->
     <div id="srStep3" style="display:none;">
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:#92400e;line-height:1.5;">
+        🔐 <strong>Verifica identità</strong>: per proteggere i dati del minore, inserisci cognome e data di nascita. Questi dati vengono verificati dalla società.
+      </div>
+      <div id="srIdentityFields"></div>
+      <div style="background:var(--cl);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="srGdprConsent" style="margin-top:3px;flex-shrink:0;width:18px;height:18px;">
+          <span style="font-size:.78rem;line-height:1.5;color:var(--text1);">Acconsento al trattamento dei dati personali del minore ai sensi del GDPR (Reg. UE 2016/679). Dichiaro di essere genitore o tutore legale.</span>
+        </label>
+      </div>
+      <div id="srStep3Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(2)">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep3Next()">Avanti → Crea account</button>
+      </div>
+    </div>
+    <!-- STEP 4: dati account -->
+    <div id="srStep4" style="display:none;">
       <div class="fg" style="margin-bottom:14px;">
         <label class="fl">Ruolo in famiglia *</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
@@ -3247,17 +3301,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <input type="hidden" id="srRuoloFamiliare" value="">
       </div>
       <div class="fr">
-        <div class="fg"><label class="fl">Nome</label><input class="fi" id="srNome" placeholder="Nome" style="min-height:48px;"></div>
-        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="srCogn" placeholder="Cognome" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Il tuo Nome</label><input class="fi" id="srNome" placeholder="Nome" style="min-height:48px;"></div>
+        <div class="fg"><label class="fl">Il tuo Cognome</label><input class="fi" id="srCogn" placeholder="Cognome" style="min-height:48px;"></div>
       </div>
-      <div class="fg"><label class="fl">Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it" style="min-height:48px;" autocapitalize="off" autocorrect="off"></div>
+      <div class="fg"><label class="fl">La tua Email</label><input class="fi" id="srEmail" type="email" placeholder="email@dominio.it" style="min-height:48px;" autocapitalize="off" autocorrect="off"></div>
       <div class="fr">
         <div class="fg"><label class="fl">Password</label><input class="fi" id="srPass" type="password" placeholder="Min. 8 car., maiuscola, numero, simbolo" style="min-height:48px;" autocomplete="new-password"></div>
         <div class="fg"><label class="fl">Conferma password</label><input class="fi" id="srPass2" type="password" placeholder="Ripeti la password" style="min-height:48px;" autocomplete="new-password"></div>
       </div>
-      <div id="srStep3Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
+      <div id="srStep4Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(2)">← Indietro</button>
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(3)">← Indietro</button>
         <button class="btn btn-p" id="srBtnSubmit" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="submitSelfReg()">🎉 Registrati e accedi</button>
       </div>
     </div>
@@ -5078,13 +5132,19 @@ function renderRosa() {
     const indispBadge = indispNow
       ? ` <span style="display:inline-block;background:#fff7ed;color:#c2410c;border-radius:5px;padding:1px 5px;font-size:.68rem;font-weight:700;" title="${indispNow.tipo ? _indispTipoLabel(indispNow.tipo) : 'Indisponibile'}${indispNow.motivo ? ': '+escapeHtml(indispNow.motivo) : ''}">⚠️ ${indispNow.tipo ? _indispTipoLabel(indispNow.tipo) : 'Ind.'}</span>`
       : '';
+    const incompleteBadge = p.incomplete
+      ? ' <span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:5px;padding:1px 6px;font-size:.68rem;font-weight:700;" title="In attesa del genitore">⏳ Attesa genitore</span>'
+      : '';
+    const displayName = p.incomplete
+      ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
+      : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
     top.innerHTML = `
       ${playerAv(p, 44, '10px', true)}
       <div style="flex:1;min-width:0;">
-        <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.nome)} ${escapeHtml(p.cogn)}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
-        ${indispBadge}
+        <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
+        ${incompleteBadge}${indispBadge}
         ${p.soprannome ? `<div style="font-size:.71rem;color:var(--text3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${escapeHtml(p.soprannome)}"</div>` : ''}
-        <div class="pc-role">${escapeHtml(p.ruolo)} · ${p.anno}</div>
+        <div class="pc-role">${escapeHtml(p.ruolo || '')} · ${p.anno || ''}</div>
       </div>
       <div class="pc-num">#${p.num}</div>`;
     card.appendChild(top);
@@ -5142,7 +5202,18 @@ function renderRosa() {
           }
         };
 
-        btns.appendChild(bMsg);
+        if (p.incomplete) {
+          // Incomplete player: show Genitori button instead of ✉
+          const bGen = document.createElement('button');
+          bGen.className = 'btn btn-g btn-xs';
+          bGen.style.flex = '1';
+          bGen.title = 'Tutori/Genitori';
+          bGen.textContent = '👨‍👧';
+          bGen.onclick = () => openGuardiansModal(p.id);
+          btns.appendChild(bGen);
+        } else {
+          btns.appendChild(bMsg);
+        }
         btns.appendChild(bEdit);
         btns.appendChild(bDel);
       }
@@ -5164,9 +5235,101 @@ function renderRosa() {
   });
 }
 
+var _playerMinorMode = false;
+
+function togglePlayerMinorMode() {
+  _playerMinorMode = !_playerMinorMode;
+  const icon = document.getElementById('pMinorModeIcon');
+  const fullForm = document.getElementById('pFullForm');
+  const minorForm = document.getElementById('pMinorForm');
+  const saveBtn = document.getElementById('pBtnSave');
+  if (_playerMinorMode) {
+    if (icon) icon.textContent = '✅';
+    if (fullForm) fullForm.style.display = 'none';
+    if (minorForm) minorForm.style.display = 'block';
+    if (saveBtn) { saveBtn.textContent = '👶 Crea profilo minore'; saveBtn.onclick = function(){ saveMinorPlayer(); }; }
+    // Populate leva select
+    const levaSelect = document.getElementById('pMinorLeva');
+    if (levaSelect) {
+      levaSelect.innerHTML = '';
+      leve.forEach(function(l) {
+        const opt = document.createElement('option');
+        opt.value = l; opt.textContent = l;
+        levaSelect.appendChild(opt);
+      });
+      if (currentLeva) levaSelect.value = currentLeva;
+    }
+  } else {
+    if (icon) icon.textContent = '🔲';
+    if (fullForm) fullForm.style.display = 'block';
+    if (minorForm) minorForm.style.display = 'none';
+    if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
+  }
+}
+
+async function saveMinorPlayer() {
+  const errEl = document.getElementById('pMinorError');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
+  }
+  if (errEl) errEl.style.display='none';
+
+  const firstName = (document.getElementById('pMinorNome')?.value || '').trim();
+  const initial   = (document.getElementById('pMinorInitial')?.value || '').trim();
+  const numVal    = parseInt(document.getElementById('pMinorNum')?.value || '', 10);
+  const levaKey   = document.getElementById('pMinorLeva')?.value || currentLeva;
+
+  if (!firstName) { _err('⚠️ Inserisci il nome del giocatore.'); return; }
+  if (!initial || !initial.includes('.')) { _err('⚠️ Iniziale cognome non valida (es. B. o B.V.)'); return; }
+  if (!levaKey) { _err('⚠️ Seleziona la leva.'); return; }
+  if (!_v2Token) { _err('⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.'); return; }
+
+  const saveBtn = document.getElementById('pBtnSave');
+  if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='⏳ Creazione…'; }
+
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/players/minor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ firstName, lastNameInitial: initial, levaKey, shirtNumber: isNaN(numVal) ? null : numVal })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      _err('⛔ Errore: ' + (data.detail || data.error || resp.status));
+      if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent='👶 Crea profilo minore'; }
+      return;
+    }
+
+    // Add to in-memory players so renderRosa shows it immediately
+    const newP = {
+      id: data.player.id,
+      nome: firstName,
+      cogn: '',
+      cogn_iniziale: initial,
+      soprannome: '',
+      num: isNaN(numVal) ? 0 : numVal,
+      ruolo: 'Ruolo variabile',
+      leva: levaKey,
+      anno: null,
+      tel: '',
+      incomplete: true
+    };
+    players.push(newP);
+    if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+
+    closeM('mPlayer');
+    renderRosa();
+    toast('👶 Profilo minore creato — in attesa del genitore');
+  } catch(e) {
+    _err('❌ Errore di rete: ' + e.message);
+    if (saveBtn) { saveBtn.disabled=false; saveBtn.textContent='👶 Crea profilo minore'; }
+  }
+}
+
 // Player modal — null = new, id = edit
 function openPlayerModal(id) {
   editingPlayerId = id;
+  _playerMinorMode = false;
   if (id === null) {
     // NEW
     document.getElementById('mPlayerTitle').textContent = '👤 Nuovo giocatore';
@@ -5185,6 +5348,18 @@ function openPlayerModal(id) {
     document.getElementById('pConvStats').style.display = 'none';
     document.getElementById('pMatchStats').style.display = 'none';
     document.getElementById('pIndispSection').style.display = 'none';
+    // Show minor toggle for new players (staff only)
+    const toggleArea = document.getElementById('pMinorToggle');
+    if (toggleArea) toggleArea.style.display = (isAdminLike() || (me && me.role === 'allenatore')) ? 'block' : 'none';
+    // Reset forms
+    const fullForm = document.getElementById('pFullForm');
+    const minorForm = document.getElementById('pMinorForm');
+    if (fullForm) fullForm.style.display = 'block';
+    if (minorForm) minorForm.style.display = 'none';
+    const icon = document.getElementById('pMinorModeIcon');
+    if (icon) icon.textContent = '🔲';
+    const saveBtn = document.getElementById('pBtnSave');
+    if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
   } else {
     // EDIT
     const p = players.find(x => x.id === id);
@@ -5207,8 +5382,90 @@ function openPlayerModal(id) {
     renderPConvStats(p);
     renderPMatchStats(p);
     renderPIndispSection(p);
+    // Hide minor toggle in edit mode
+    const toggleArea = document.getElementById('pMinorToggle');
+    if (toggleArea) toggleArea.style.display = 'none';
+    const fullForm = document.getElementById('pFullForm');
+    const minorForm = document.getElementById('pMinorForm');
+    if (fullForm) fullForm.style.display = 'block';
+    if (minorForm) minorForm.style.display = 'none';
+    const saveBtn = document.getElementById('pBtnSave');
+    if (saveBtn) { saveBtn.textContent = '💾 Salva'; saveBtn.onclick = function(){ savePlayer(); }; }
   }
   openM('mPlayer');
+}
+
+var _guardiansCurrentPlayerId = null;
+
+async function openGuardiansModal(playerId) {
+  _guardiansCurrentPlayerId = playerId;
+  const p = players.find(x => x.id === playerId);
+  const titleEl = document.getElementById('mGuardiansTitle');
+  if (titleEl) titleEl.textContent = '👨‍👧 Tutori — ' + (p ? p.nome + ' ' + (p.cogn || p.cogn_iniziale || '') : 'Giocatore');
+  const listEl = document.getElementById('mGuardiansList');
+  if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:.82rem;">⏳ Carico…</div>';
+  openM('mGuardians');
+
+  if (!_v2Token) {
+    if (listEl) listEl.innerHTML = '<div style="color:#c0392b;font-size:.82rem;">⛔ Non autenticato.</div>';
+    return;
+  }
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/players/' + playerId + '/guardians', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!resp.ok) {
+      if (listEl) listEl.innerHTML = '<div style="color:#c0392b;font-size:.82rem;">⛔ Errore ' + resp.status + '</div>';
+      return;
+    }
+    const guardians = await resp.json();
+    if (listEl) {
+      listEl.innerHTML = '';
+      if (!guardians.length) {
+        listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:.82rem;">Nessun tutore associato. Il genitore deve registrarsi con il codice società.</div>';
+      } else {
+        guardians.forEach(function(g) {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--cl);';
+          const roleEmoji = { mamma:'👩', papa:'👨', nonno:'👴', nonna:'👵', tutore_legale:'⚖️' };
+          const emoji = roleEmoji[g.role] || '👤';
+          row.innerHTML = '<div style="font-size:1.4rem;">' + emoji + '</div>' +
+            '<div style="flex:1;">' +
+              '<div style="font-weight:700;font-size:.88rem;">' + escapeHtml(g.userName) + '</div>' +
+              '<div style="font-size:.72rem;color:var(--text2);">' + escapeHtml(g.email) + ' · ' + escapeHtml(g.role) + (g.consentGiven ? ' · ✅ Consenso GDPR' : '') + '</div>' +
+            '</div>';
+          const delBtn = document.createElement('button');
+          delBtn.className = 'btn btn-r btn-xs';
+          delBtn.textContent = 'Sgancia';
+          delBtn.onclick = (function(gId){ return function() { removeGuardian(playerId, gId); }; })(g.id);
+          row.appendChild(delBtn);
+          listEl.appendChild(row);
+        });
+      }
+    }
+  } catch(e) {
+    if (listEl) listEl.innerHTML = '<div style="color:#c0392b;font-size:.82rem;">❌ Errore di rete: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function removeGuardian(playerId, guardianId) {
+  if (!confirm('Sganciare questo tutore dal giocatore?')) return;
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/players/' + playerId + '/guardians/' + guardianId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (resp.ok) {
+      toast('✅ Tutore sganciato');
+      openGuardiansModal(playerId);
+    } else {
+      const d = await resp.json().catch(()=>({error:'unknown'}));
+      toast('⛔ Errore: ' + (d.error || resp.status));
+    }
+  } catch(e) {
+    toast('❌ Errore di rete');
+  }
 }
 
 function renderPPhotoArea(p) {
@@ -9768,8 +10025,12 @@ function refreshCodiceStatoUI(){
 }
 
 // Apertura modale registrazione autonoma
+// State for new GDPR sr flow
+var _srApiPlayers = []; // players loaded from API for self-reg roster
+
 function openSelfReg(){
   _selfRegSelectedIds = [];
+  _srApiPlayers = [];
   const _srSN = document.getElementById('srSocNome');
   if (_srSN) _srSN.textContent = 'MyVivaio';
   ['srCodice','srNome','srCogn','srEmail','srPass','srPass2','srSearch','srRuoloFamiliare'].forEach(id => {
@@ -9779,9 +10040,11 @@ function openSelfReg(){
     const b = document.getElementById(id);
     if (b) { b.style.border = '2px solid var(--border)'; b.style.background = 'var(--cl)'; }
   });
-  ['srStep1Error','srStep2Error','srStep3Error'].forEach(id => {
+  ['srStep1Error','srStep2Error','srStep3Error','srStep4Error'].forEach(id => {
     const el = document.getElementById(id); if (el) el.style.display='none';
   });
+  const gConsent = document.getElementById('srGdprConsent');
+  if (gConsent) gConsent.checked = false;
   _srVerifiedCode  = '';
   _srVerifiedState = '';
   srShowStep(1);
@@ -9789,11 +10052,11 @@ function openSelfReg(){
 }
 
 function srShowStep(n){
-  for (let i=1;i<=3;i++){
+  for (let i=1;i<=4;i++){
     const el = document.getElementById('srStep'+i);
     if (el) el.style.display = (i===n) ? 'block' : 'none';
   }
-  for (let i=1;i<=3;i++){
+  for (let i=1;i<=4;i++){
     const ind = document.getElementById('srStepInd'+i);
     if (ind) {
       ind.style.background = (i===n) ? 'var(--cl)' : 'var(--bg)';
@@ -9896,10 +10159,30 @@ async function srNextStep1(){
     _selfRegSelectedIds = [];
     srShowStep(2);
     renderSrRoster();
+    // Load API players for GDPR-flow roster
+    srLoadApiPlayers(v);
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
   }
+}
+
+async function srLoadApiPlayers(code) {
+  if (!code) return;
+  const loadEl = document.getElementById('srRosterLoading');
+  if (loadEl) loadEl.style.display = 'block';
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/players/public-incomplete?code=' + encodeURIComponent(code));
+    if (resp.ok) {
+      const data = await resp.json();
+      _srApiPlayers = Array.isArray(data) ? data : [];
+    }
+  } catch(e) {
+    console.warn('[srLoadApiPlayers] failed', e);
+    _srApiPlayers = [];
+  }
+  if (loadEl) loadEl.style.display = 'none';
+  renderSrRoster();
 }
 
 // Accesso genitore dal box nella schermata login
@@ -9955,6 +10238,7 @@ async function loginConCodice() {
 
     // Pre-popola il modal e vai direttamente allo step 2 (selezione figli)
     _selfRegSelectedIds = [];
+    _srApiPlayers = [];
     const srCod = document.getElementById('srCodice');
     if (srCod) srCod.value = v;
     ['srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => {
@@ -9964,6 +10248,7 @@ async function loginConCodice() {
       btn.disabled=false; btn.textContent='Accedi →';
       srShowStep(2);
       renderSrRoster();
+      srLoadApiPlayers(v);
       openM('mSelfReg');
     }, 300);
   } catch(e) {
@@ -9979,7 +10264,63 @@ function srStep2Next(){
   }
   if (errEl) errEl.style.display='none';
   if (_selfRegSelectedIds.length === 0) { _err('⚠️ Seleziona almeno un figlio/a per continuare.'); return; }
+  // Build identity fields for selected API players (incomplete ones)
+  _srBuildIdentityFields();
   srShowStep(3);
+}
+
+function _srBuildIdentityFields() {
+  const host = document.getElementById('srIdentityFields');
+  if (!host) return;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
+  const selected = _selfRegSelectedIds.filter(id => typeof id === 'string' ? apiIds.has(id) : false);
+  if (selected.length === 0) {
+    // All selected are in-memory (old flow) — no identity needed
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:.82rem;color:var(--text2);margin-bottom:12px;';
+    note.textContent = 'Nessuna verifica richiesta per i giocatori selezionati.';
+    host.appendChild(note);
+    return;
+  }
+  selected.forEach(function(sid) {
+    const apiPlayer = _srApiPlayers.find(p => 'api_' + p.id === sid);
+    if (!apiPlayer) return;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--cl);';
+    wrap.innerHTML = '<div style="font-weight:700;margin-bottom:8px;">👶 ' + escapeHtml(apiPlayer.firstName) + ' ' + escapeHtml(apiPlayer.lastNameInitial) + (apiPlayer.shirtNumber ? ' #' + apiPlayer.shirtNumber : '') + ' · ' + escapeHtml(apiPlayer.levaKey) + '</div>' +
+      '<div class="fr">' +
+        '<div class="fg"><label class="fl">Cognome completo *</label><input class="fi" id="srLastName_' + sid.replace('api_','') + '" placeholder="Cognome" style="min-height:44px;"></div>' +
+        '<div class="fg"><label class="fl">Data di nascita *</label><input class="fi" type="date" id="srBirth_' + sid.replace('api_','') + '" style="min-height:44px;"></div>' +
+      '</div>';
+    host.appendChild(wrap);
+  });
+}
+
+function srStep3Next(){
+  const errEl = document.getElementById('srStep3Error');
+  function _err(msg) {
+    if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
+  }
+  if (errEl) errEl.style.display='none';
+  // Validate GDPR consent for API players
+  const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
+  const hasApiSelected = _selfRegSelectedIds.some(id => apiIds.has(id));
+  if (hasApiSelected) {
+    if (!document.getElementById('srGdprConsent').checked) {
+      _err('⚠️ Devi accettare il consenso GDPR per continuare.');
+      return;
+    }
+    // Validate identity fields
+    const selected = _selfRegSelectedIds.filter(id => apiIds.has(id));
+    for (const sid of selected) {
+      const rawId = sid.replace('api_','');
+      const ln = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
+      const bd = (document.getElementById('srBirth_' + rawId)?.value || '').trim();
+      if (!ln || !bd) { _err('⚠️ Inserisci cognome e data di nascita per tutti i figli selezionati.'); return; }
+    }
+  }
+  srShowStep(4);
 }
 
 function setSrRuolo(val, btn) {
@@ -9996,107 +10337,102 @@ function setSrRuolo(val, btn) {
   }
 }
 
+function _srMakeRosterCard(displayId, displayName, displaySub, isApiPlayer) {
+  const sel = _selfRegSelectedIds.includes(displayId);
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.style.cssText = [
+    'cursor:pointer','display:flex','align-items:center','gap:12px','padding:14px 16px',
+    'border-radius:10px','width:100%','text-align:left',
+    'background:' + (sel ? '#d1fae5' : '#ffffff'),
+    'border:2px solid ' + (sel ? '#059669' : '#e2e8f0'),
+    'touch-action:manipulation','-webkit-tap-highlight-color:transparent',
+    'user-select:none','-webkit-user-select:none','min-height:56px','box-sizing:border-box',
+    'transition:background .12s,border-color .12s','outline:none','font-family:inherit'
+  ].join(';');
+
+  const chk = document.createElement('div');
+  chk.style.cssText = [
+    'width:24px','height:24px','border-radius:6px',
+    'border:2px solid ' + (sel ? '#059669' : '#cbd5e1'),
+    'background:' + (sel ? '#059669' : '#ffffff'),
+    'display:flex','align-items:center','justify-content:center','flex-shrink:0','pointer-events:none'
+  ].join(';');
+  if (sel) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width','13'); svg.setAttribute('height','10');
+    svg.setAttribute('viewBox','0 0 13 10'); svg.setAttribute('fill','none');
+    const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    poly.setAttribute('points','1.5,5 5,8.5 11.5,1.5');
+    poly.setAttribute('stroke','#fff'); poly.setAttribute('stroke-width','2.2');
+    poly.setAttribute('stroke-linecap','round'); poly.setAttribute('stroke-linejoin','round');
+    svg.appendChild(poly); chk.appendChild(svg);
+  }
+
+  const txt = document.createElement('div');
+  txt.style.cssText = 'flex:1;min-width:0;pointer-events:none;';
+  const nameEl = document.createElement('div');
+  nameEl.style.cssText = 'font-weight:700;font-size:.9rem;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+  nameEl.textContent = displayName;
+  const subEl = document.createElement('div');
+  subEl.style.cssText = 'font-size:.72rem;color:#64748b;margin-top:2px;';
+  subEl.textContent = displaySub + (isApiPlayer ? ' · 🔐 GDPR' : '');
+  txt.appendChild(nameEl); txt.appendChild(subEl);
+  card.appendChild(chk); card.appendChild(txt);
+
+  card.addEventListener('click', function() {
+    var idx = _selfRegSelectedIds.indexOf(displayId);
+    if (idx >= 0) { _selfRegSelectedIds.splice(idx, 1); }
+    else { _selfRegSelectedIds.push(displayId); }
+    renderSrRoster();
+  });
+  return card;
+}
+
 function renderSrRoster(){
   const host = document.getElementById('srRoster');
   if (!host) return;
   const q = (document.getElementById('srSearch')?.value || '').toLowerCase().trim();
-  let list = players.slice();
-  if (q) list = list.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
-  list.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
 
-  // Svuota il contenitore senza usare innerHTML = '' (più compatibile)
   while (host.firstChild) host.removeChild(host.firstChild);
 
-  if (!list.length) {
+  // API players (GDPR flow — from server)
+  let apiList = _srApiPlayers.slice();
+  if (q) apiList = apiList.filter(p => (p.firstName + ' ' + p.lastNameInitial).toLowerCase().includes(q) || (p.levaKey||'').toLowerCase().includes(q));
+
+  // In-memory players (legacy — same device only)
+  let memList = players.slice();
+  if (q) memList = memList.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
+  memList.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
+
+  if (!apiList.length && !memList.length) {
     const msg = document.createElement('div');
     msg.style.cssText = 'font-size:.78rem;color:#94a3b8;padding:16px;text-align:center;line-height:1.5;';
     msg.textContent = 'Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.';
     host.appendChild(msg);
   } else {
-    list.forEach(function(p) {
-      const sel = _selfRegSelectedIds.includes(p.id);
-
-      // <button> è un elemento interattivo nativo: iOS Safari lo tratta sempre come tappabile
-      // senza delay e senza bisogno di touchend + preventDefault
-      const card = document.createElement('button');
-      card.type = 'button';
-      card.style.cssText = [
-        'cursor:pointer',
-        'display:flex',
-        'align-items:center',
-        'gap:12px',
-        'padding:14px 16px',
-        'border-radius:10px',
-        'width:100%',
-        'text-align:left',
-        'background:' + (sel ? '#d1fae5' : '#ffffff'),
-        'border:2px solid ' + (sel ? '#059669' : '#e2e8f0'),
-        'touch-action:manipulation',
-        '-webkit-tap-highlight-color:transparent',
-        'user-select:none',
-        '-webkit-user-select:none',
-        'min-height:56px',
-        'box-sizing:border-box',
-        'transition:background .12s,border-color .12s',
-        'outline:none',
-        'font-family:inherit'
-      ].join(';');
-
-      // Checkbox visivo
-      const chk = document.createElement('div');
-      chk.style.cssText = [
-        'width:24px',
-        'height:24px',
-        'border-radius:6px',
-        'border:2px solid ' + (sel ? '#059669' : '#cbd5e1'),
-        'background:' + (sel ? '#059669' : '#ffffff'),
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'flex-shrink:0',
-        'pointer-events:none'
-      ].join(';');
-      if (sel) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('width', '13'); svg.setAttribute('height', '10');
-        svg.setAttribute('viewBox', '0 0 13 10'); svg.setAttribute('fill', 'none');
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        poly.setAttribute('points', '1.5,5 5,8.5 11.5,1.5');
-        poly.setAttribute('stroke', '#fff');
-        poly.setAttribute('stroke-width', '2.2');
-        poly.setAttribute('stroke-linecap', 'round');
-        poly.setAttribute('stroke-linejoin', 'round');
-        svg.appendChild(poly);
-        chk.appendChild(svg);
-      }
-
-      // Testo
-      const txt = document.createElement('div');
-      txt.style.cssText = 'flex:1;min-width:0;pointer-events:none;';
-
-      const nome = document.createElement('div');
-      nome.style.cssText = 'font-weight:700;font-size:.9rem;color:#111;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      nome.textContent = p.nome + ' ' + p.cogn;
-
-      const sub = document.createElement('div');
-      sub.style.cssText = 'font-size:.72rem;color:#64748b;margin-top:2px;';
-      sub.textContent = [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · ');
-
-      txt.appendChild(nome);
-      txt.appendChild(sub);
-      card.appendChild(chk);
-      card.appendChild(txt);
-
-      // Un solo listener click — i <button> su iOS Safari non hanno delay con touch-action:manipulation
-      card.addEventListener('click', function() {
-        var idx = _selfRegSelectedIds.indexOf(p.id);
-        if (idx >= 0) { _selfRegSelectedIds.splice(idx, 1); }
-        else { _selfRegSelectedIds.push(p.id); }
-        renderSrRoster();
+    if (apiList.length) {
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:4px 2px;';
+      hdr.textContent = '👶 Giocatori con profilo GDPR';
+      host.appendChild(hdr);
+      apiList.forEach(function(p) {
+        const displayId = 'api_' + p.id;
+        const displayName = p.firstName + ' ' + p.lastNameInitial;
+        const displaySub = [p.levaKey || null, p.shirtNumber ? '#'+p.shirtNumber : null].filter(Boolean).join(' · ');
+        host.appendChild(_srMakeRosterCard(displayId, displayName, displaySub, true));
       });
-
-      host.appendChild(card);
-    });
+    }
+    if (memList.length) {
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:4px 2px;margin-top:' + (apiList.length ? '10px' : '0');
+      hdr.textContent = '👤 Giocatori in rosa';
+      host.appendChild(hdr);
+      memList.forEach(function(p) {
+        const displaySub = [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · ');
+        host.appendChild(_srMakeRosterCard(p.id, p.nome + ' ' + p.cogn, displaySub, false));
+      });
+    }
   }
 
   const infoEl = document.getElementById('srSelectedInfo');
@@ -10111,8 +10447,8 @@ function renderSrRoster(){
   }
 }
 
-function submitSelfReg(){
-  const errEl = document.getElementById('srStep3Error');
+async function submitSelfReg(){
+  const errEl = document.getElementById('srStep4Error');
   const btn   = document.getElementById('srBtnSubmit');
   function _err(msg) {
     if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
@@ -10120,12 +10456,8 @@ function submitSelfReg(){
   }
   if (errEl) errEl.style.display='none';
 
-  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
-
   const _activeCode = codiceSocieta || _srVerifiedCode;
   if (!_activeCode) { _err('⛔ Registrazione disattivata per questa società.'); return; }
-
-  // Se i figli sono stati deselezionati torna allo step 2
   if (_selfRegSelectedIds.length === 0) { _err('⚠️ Nessun figlio/a selezionato. Torna indietro e selezionane almeno uno.'); return; }
 
   const nome  = (document.getElementById('srNome').value  || '').trim();
@@ -10133,61 +10465,108 @@ function submitSelfReg(){
   const email = (document.getElementById('srEmail').value || '').trim().toLowerCase();
   const pass  = document.getElementById('srPass').value  || '';
   const pass2 = document.getElementById('srPass2').value || '';
-
   const titoloFamiliare = (document.getElementById('srRuoloFamiliare')?.value || '').trim();
+
   if (!titoloFamiliare) { _err('⚠️ Seleziona il tuo ruolo in famiglia (Papà, Mamma, Nonno o Nonna).'); return; }
   if (!nome || !cogn) { _err('⚠️ Inserisci nome e cognome.'); return; }
   if (!email || !email.includes('@')) { _err('⚠️ Inserisci un indirizzo email valido.'); return; }
   if (!_pwCheck(pass).valid) { _err('⚠️ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale.'); return; }
   if (pass !== pass2) { _err('⚠️ Le due password non coincidono.'); return; }
 
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Registrazione…'; }
+
+  // Separate API players (GDPR) from in-memory players (legacy)
+  const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
+  const selectedApiIds = _selfRegSelectedIds.filter(id => apiIds.has(id));
+  const selectedMemIds = _selfRegSelectedIds.filter(id => !apiIds.has(id));
+
+  // API GDPR flow — requires guardian-register endpoint
+  if (selectedApiIds.length > 0) {
+    try {
+      if (btn) btn.textContent = '⏳ Creo il tuo account…';
+      const regResp = await fetch(API_BASE + '/api/v2/auth/guardian-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: _activeCode, nome, cognome: cogn, email, password: pass })
+      });
+      const regData = await regResp.json();
+      if (!regResp.ok) {
+        if (regData.error === 'email_exists') { _err('⛔ Email già registrata. Usa il login per accedere.'); return; }
+        if (regData.error === 'password_too_short') { _err('⚠️ Password troppo corta (min. 8 caratteri).'); return; }
+        _err('⛔ Errore durante la registrazione: ' + (regData.error || regResp.status)); return;
+      }
+      const guardianToken = regData.token;
+
+      // Claim each API player
+      if (btn) btn.textContent = '⏳ Associo i giocatori…';
+      for (const sid of selectedApiIds) {
+        const rawId = sid.replace('api_', '');
+        const lastNameFull = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
+        const birthDate    = (document.getElementById('srBirth_' + rawId)?.value    || '').trim();
+        try {
+          await fetch(API_BASE + '/api/v2/players/' + rawId + '/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + guardianToken },
+            body: JSON.stringify({ role: titoloFamiliare, consent: true, lastNameFull, birthDate })
+          });
+        } catch(claimErr) {
+          console.warn('[submitSelfReg] claim failed for', rawId, claimErr);
+        }
+      }
+
+      // Boot as new genitore user (in-memory session)
+      const apiUser = regData.user || {};
+      const newUser = {
+        id: apiUser.id || (nextUserId++),
+        nome, cogn, email,
+        role: 'genitore', titoloFamiliare,
+        leva: (_srApiPlayers.find(p => 'api_' + p.id === selectedApiIds[0])?.levaKey || ''),
+        stato: 'attivo',
+        figli: selectedApiIds.map(sid => { const p = _srApiPlayers.find(x => 'api_' + x.id === sid); return p ? p.firstName + ' ' + p.lastNameInitial : ''; }).filter(Boolean),
+        figliIds: selectedApiIds.map(sid => parseInt(sid.replace('api_',''), 10)),
+        anno: null,
+        v2Token: guardianToken,
+        societyId: apiUser.societyId || currentSocietaId,
+        _isV2: true
+      };
+      _v2Token = guardianToken;
+      try { sessionStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
+      closeM('mSelfReg');
+      setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
+      me = newUser;
+      bootApp(newUser);
+      return;
+    } catch(e) {
+      console.error('[submitSelfReg] API error', e);
+      _err('❌ Errore di rete. Controlla la connessione e riprova.');
+      return;
+    }
+  }
+
+  // Legacy in-memory flow for players not in API (same device as admin)
+  if (typeof window.__fieldosRestoreState === 'function') window.__fieldosRestoreState();
+  const figliPlayers = players.filter(p => selectedMemIds.includes(p.id));
+  if (!figliPlayers.length) { _err('⛔ I giocatori selezionati non sono più in rosa. Torna indietro e riseleziona.'); return; }
+
   if (USERS_DB.find(u => (u.email||'').toLowerCase() === email)) {
     _err('⛔ Email già registrata. Usa la schermata di login per accedere.'); return;
   }
-  if (pendingUsers.find(p => (p.email||'').toLowerCase() === email)) {
-    _err('⏳ Esiste già una richiesta con questa email.'); return;
-  }
-
-  const figliPlayers = players.filter(p => _selfRegSelectedIds.includes(p.id));
-  if (figliPlayers.length === 0) {
-    _err('⛔ I giocatori selezionati non sono più in rosa. Torna indietro e riseleziona.'); return;
-  }
-
-  if (btn) { btn.disabled=true; btn.textContent='⏳ Registrazione…'; }
 
   const figli = figliPlayers.map(p => p.nome + ' ' + p.cogn);
   const figliIds = figliPlayers.map(p => p.id);
   const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
   const levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : '');
-
   const _roleMap = { papa: 'genitore', mamma: 'genitore', nonno: 'nonno', nonna: 'nonno' };
   const newUser = {
-    id: nextUserId++,
-    nome, cogn, email, pass,
-    role: _roleMap[titoloFamiliare] || 'genitore',
-    titoloFamiliare,
-    leva: levaFinal,
-    stato: 'attivo',
-    figli,
-    figlio: figli[0] || null,
-    figliIds,
-    anno: null
+    id: nextUserId++, nome, cogn, email, pass,
+    role: _roleMap[titoloFamiliare] || 'genitore', titoloFamiliare,
+    leva: levaFinal, stato: 'attivo', figli, figlio: figli[0] || null, figliIds, anno: null
   };
   USERS_DB.push(newUser);
-
-  // Notifica admin del nuovo genitore registrato
   USERS_DB.filter(u => u.role === 'admin' || u.role === 'mister_admin').forEach(adm => {
-    if (typeof pushNotifica === 'function') {
-      pushNotifica(adm.id, {
-        type: 'nuovo_genitore',
-        title: `✅ Nuovo genitore: ${nome} ${cogn}`,
-        body: `Figli: ${figli.join(', ')}`
-      });
-    }
+    if (typeof pushNotifica === 'function') pushNotifica(adm.id, { type: 'nuovo_genitore', title: '✅ Nuovo genitore: ' + nome + ' ' + cogn, body: 'Figli: ' + figli.join(', ') });
   });
-
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-
   closeM('mSelfReg');
   setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
   me = newUser;

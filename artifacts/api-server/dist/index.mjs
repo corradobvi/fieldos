@@ -62092,6 +62092,44 @@ router9.post("/auth/verify-code", async (req, res) => {
     return res.status(500).json({ valid: false, error: "server_error" });
   }
 });
+router9.post("/auth/guardian-register", async (req, res) => {
+  const { code, nome, cognome, email, password } = req.body;
+  if (!code || !nome || !cognome || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (password.length < 8) return res.status(400).json({ error: "password_too_short" });
+  const normalizedEmail = email.trim().toLowerCase();
+  const upperCode = code.trim().toUpperCase();
+  try {
+    const [socRows] = await pool.execute(
+      "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [upperCode]
+    );
+    if (!socRows.length) return res.status(400).json({ error: "invalid_code" });
+    const society = socRows[0];
+    const [dup] = await pool.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+      [normalizedEmail, society.id]
+    );
+    if (dup.length) return res.status(409).json({ error: "email_exists" });
+    const hash = hashPassword(password);
+    const [result] = await pool.execute(
+      "INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato) VALUES (?, ?, ?, ?, ?, 'genitore', 'attivo')",
+      [society.id, nome.trim(), cognome.trim(), normalizedEmail, hash]
+    );
+    const userId = result.insertId;
+    const token = signJWT({ userId, societyId: society.id, role: "genitore", email: normalizedEmail });
+    logger.info({ userId, societyId: society.id, email: normalizedEmail }, "guardian-register ok");
+    return res.status(201).json({
+      token,
+      user: { id: userId, societyId: society.id, nome: nome.trim(), cognome: cognome.trim(), email: normalizedEmail, ruolo: "genitore" },
+      society: { id: society.id, nome: society.nome }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "guardian-register error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 router9.post("/auth/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "missing_fields" });
@@ -62966,6 +63004,42 @@ router14.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async 
     });
   } catch (e) {
     logger.error({ err: e }, "POST players/minor error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/public-incomplete", async (req, res) => {
+  const code = req.query.code?.trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: "code_required" });
+  try {
+    const [socRows] = await pool.execute(
+      "SELECT id FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [code]
+    );
+    if (!socRows.length) return res.status(404).json({ error: "society_not_found" });
+    const societyId = socRows[0].id;
+    const levaKey = req.query.levaKey;
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome AS firstName, p.cognome_iniziale AS lastNameInitial,
+              p.numero AS shirtNumber, p.leva AS levaKey, p.incomplete,
+              COUNT(pg.id) AS guardiansCount
+       FROM players p
+       LEFT JOIN player_guardians pg ON pg.player_id = p.id
+       WHERE p.society_id = ? AND p.cognome_iniziale IS NOT NULL
+         ${levaKey ? "AND p.leva = ?" : ""}
+       GROUP BY p.id ORDER BY p.nome`,
+      levaKey ? [societyId, levaKey] : [societyId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastNameInitial: r.lastNameInitial,
+      shirtNumber: r.shirtNumber,
+      levaKey: r.levaKey,
+      incomplete: !!r.incomplete,
+      guardiansCount: Number(r.guardiansCount)
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/public-incomplete error");
     return res.status(500).json({ error: "server_error" });
   }
 });

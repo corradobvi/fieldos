@@ -48,6 +48,48 @@ router.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (r
   }
 });
 
+// GET /api/v2/players/public-incomplete?code=XXXX&levaKey=X
+// Lista giocatori senza auth — solo dati non sensibili. Usato nel flusso auto-registrazione genitore.
+router.get("/players/public-incomplete", async (req, res) => {
+  const code = (req.query.code as string | undefined)?.trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: "code_required" });
+
+  try {
+    const [socRows] = (await pool.execute(
+      "SELECT id FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [code]
+    )) as [any[], any];
+    if (!socRows.length) return res.status(404).json({ error: "society_not_found" });
+    const societyId = (socRows[0] as any).id;
+
+    const levaKey = req.query.levaKey as string | undefined;
+    const [rows] = (await pool.execute(
+      `SELECT p.id, p.nome AS firstName, p.cognome_iniziale AS lastNameInitial,
+              p.numero AS shirtNumber, p.leva AS levaKey, p.incomplete,
+              COUNT(pg.id) AS guardiansCount
+       FROM players p
+       LEFT JOIN player_guardians pg ON pg.player_id = p.id
+       WHERE p.society_id = ? AND p.cognome_iniziale IS NOT NULL
+         ${levaKey ? "AND p.leva = ?" : ""}
+       GROUP BY p.id ORDER BY p.nome`,
+      levaKey ? [societyId, levaKey] : [societyId]
+    )) as [any[], any];
+
+    return res.json((rows as any[]).map((r: any) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastNameInitial: r.lastNameInitial,
+      shirtNumber: r.shirtNumber,
+      levaKey: r.levaKey,
+      incomplete: !!r.incomplete,
+      guardiansCount: Number(r.guardiansCount),
+    })));
+  } catch (e: any) {
+    logger.error({ err: e }, "GET players/public-incomplete error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // GET /api/v2/players/incomplete?levaKey=X
 // Lista giocatori della leva per associazione genitore.
 // Restituisce solo nome + iniziale + numero — mai cognome completo né birth_date.

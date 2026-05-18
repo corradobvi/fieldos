@@ -157,6 +157,51 @@ router.post("/auth/verify-code", async (req, res) => {
   }
 });
 
+// POST /api/v2/auth/guardian-register — genitore si registra con codice società, JWT immediato
+router.post("/auth/guardian-register", async (req, res) => {
+  const { code, nome, cognome, email, password } = req.body as Record<string, any>;
+  if (!code || !nome || !cognome || !email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  if (password.length < 8) return res.status(400).json({ error: "password_too_short" });
+  const normalizedEmail = email.trim().toLowerCase();
+  const upperCode = code.trim().toUpperCase();
+
+  try {
+    const [socRows] = (await pool.execute(
+      "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [upperCode]
+    )) as [any[], any];
+    if (!socRows.length) return res.status(400).json({ error: "invalid_code" });
+    const society = socRows[0];
+
+    const [dup] = (await pool.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+      [normalizedEmail, society.id]
+    )) as [any[], any];
+    if (dup.length) return res.status(409).json({ error: "email_exists" });
+
+    const hash = hashPassword(password);
+    const [result] = (await pool.execute(
+      "INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato) VALUES (?, ?, ?, ?, ?, 'genitore', 'attivo')",
+      [society.id, nome.trim(), cognome.trim(), normalizedEmail, hash]
+    )) as [any, any];
+    const userId: number = result.insertId;
+
+    const token = signJWT({ userId, societyId: society.id, role: "genitore", email: normalizedEmail });
+    logger.info({ userId, societyId: society.id, email: normalizedEmail }, "guardian-register ok");
+
+    return res.status(201).json({
+      token,
+      user: { id: userId, societyId: society.id, nome: nome.trim(), cognome: cognome.trim(), email: normalizedEmail, ruolo: "genitore" },
+      society: { id: society.id, nome: society.nome },
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "guardian-register error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // POST /api/v2/auth/change-password
 router.post("/auth/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body as Record<string, string>;
