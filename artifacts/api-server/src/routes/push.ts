@@ -139,7 +139,7 @@ router.get("/push/debug", async (_req, res) => {
   const railwayKeys  = allEnvKeys.filter(k => k.startsWith("RAILWAY_"));
 
   const info: Record<string, unknown> = {
-    bundle_marker:          "2026-05-18-v22-vapid-fallback",
+    bundle_marker:          "2026-05-18-v20-minor-flow",
     // Module-level constants (read at process startup — cached)
     vapid_public_set:       !!VAPID_PUBLIC,
     vapid_private_set:      !!VAPID_PRIVATE,
