@@ -6,7 +6,7 @@ const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v15-superadmin-routes" });
+  res.json({ ...data, v: "2026-05-18-v16-superadmin-routes" });
 });
 
 // Diagnostica temporanea: mostra host DB (senza password) e testa connessione
