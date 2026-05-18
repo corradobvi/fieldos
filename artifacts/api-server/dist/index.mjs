@@ -64836,16 +64836,16 @@ router23.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
-  const rawLimit = parseInt(String(req.query.limit ?? "50"));
-  const limit = isNaN(rawLimit) ? 50 : Math.min(rawLimit, 100);
+  const rawLimit = parseInt(String(req.query.limit ?? "50"), 10);
+  const safeLimit = Math.min(Math.max(1, isNaN(rawLimit) ? 50 : rawLimit), 100);
   try {
     const [rows] = await pool.execute(
       `SELECT id, action, target_email, performed_by, reason, metadata, created_at
        FROM sa_audit_log
        WHERE target_society_id = ?
        ORDER BY created_at DESC
-       LIMIT ?`,
-      [societyId, limit]
+       LIMIT ${safeLimit}`,
+      [societyId]
     );
     return res.json({ entries: rows });
   } catch (e) {
