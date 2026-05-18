@@ -61288,18 +61288,14 @@ var CREATE_SUBS_TABLE = `
 `;
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `subscription_json` TEXT NOT NULL DEFAULT ''"
-  ).catch(() => {
-  });
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `society_key` VARCHAR(255) NOT NULL DEFAULT ''"
-  ).catch(() => {
-  });
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-  ).catch(() => {
-  });
+  const alters = [
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `subscription_json` TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `society_key` VARCHAR(255) NOT NULL DEFAULT ''",
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+  ];
+  for (const sql2 of alters) {
+    await pool.execute(sql2).catch((e) => logger.warn({ err: e?.message }, "push ensureTable ALTER failed"));
+  }
 }
 router6.get("/push/vapid-public", (_req, res) => {
   if (!VAPID_PUBLIC) return res.status(503).json({ error: "push_not_configured" });
@@ -61406,6 +61402,10 @@ router6.get("/push/debug", async (_req, res) => {
   };
   try {
     await ensureTable();
+    const [colRows] = await pool.execute(
+      "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'push_subscriptions' ORDER BY ORDINAL_POSITION"
+    );
+    info.table_columns = colRows.map((r) => r.COLUMN_NAME);
     const [countRows] = await pool.execute(
       "SELECT COUNT(*) AS total FROM `push_subscriptions`"
     );

@@ -27,16 +27,15 @@ const CREATE_SUBS_TABLE = `
 
 async function ensureTable() {
   await pool.execute(CREATE_SUBS_TABLE);
-  // Idempotent migrations for older schema versions
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `subscription_json` TEXT NOT NULL DEFAULT ''"
-  ).catch(() => {});
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `society_key` VARCHAR(255) NOT NULL DEFAULT ''"
-  ).catch(() => {});
-  await pool.execute(
-    "ALTER TABLE `push_subscriptions` ADD COLUMN `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
-  ).catch(() => {});
+  // Idempotent migrations — IF NOT EXISTS avoids error on already-present columns
+  const alters = [
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `subscription_json` TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `society_key` VARCHAR(255) NOT NULL DEFAULT ''",
+    "ALTER TABLE `push_subscriptions` ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+  ];
+  for (const sql of alters) {
+    await pool.execute(sql).catch((e: any) => logger.warn({ err: e?.message }, "push ensureTable ALTER failed"));
+  }
 }
 
 // GET /api/push/vapid-public — expose the public key to the frontend
@@ -167,6 +166,11 @@ router.get("/push/debug", async (_req, res) => {
 
   try {
     await ensureTable();
+    const [colRows] = (await pool.execute(
+      "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'push_subscriptions' ORDER BY ORDINAL_POSITION"
+    )) as [any[], any];
+    info.table_columns = colRows.map((r: any) => r.COLUMN_NAME);
+
     const [countRows] = (await pool.execute(
       "SELECT COUNT(*) AS total FROM `push_subscriptions`"
     )) as [any[], any];
