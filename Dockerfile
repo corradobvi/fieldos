@@ -1,5 +1,8 @@
-# 2026-05-18-v11 — alpine base to bypass Railway Docker cache completely
+# 2026-05-18-v11 — alpine + nocache
 FROM node:20-alpine
+
+# This RUN always produces a different layer hash — kills any cache
+RUN echo "built at $(date -u +%Y-%m-%dT%H:%M:%SZ)" > /build-timestamp
 
 WORKDIR /app
 
