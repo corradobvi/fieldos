@@ -16,8 +16,8 @@ export function societyKeyFor(societyId: number): string {
 
 // Idempotent VAPID init — safe to call multiple times
 function _initVapid(): boolean {
-  const pub  = process.env["VAPID_PUBLIC_KEY"]  ?? "BE7dMl0ASZvW5M7Ltc7pRRuq5ecjmEYgbj5pjkj5uS9swNhPzzmQ2BW-NWAf8xKX13MMDMhbZRWkh1ykkYv5fOs";
-  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "vhS1XTtxj18YcKoB7yk4O_jGRlkMjpvrS-lF0wK2J7A";
+  const pub  = process.env["VAPID_PUBLIC_KEY"]  ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
+  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
   const subj = process.env["VAPID_SUBJECT"]     ?? "mailto:admin@myvivaio.app";
   if (!pub || !priv) return false;
   try { webpush.setVapidDetails(subj, pub, priv); } catch { /* already set */ }
