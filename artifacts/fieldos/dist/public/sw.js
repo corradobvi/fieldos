@@ -119,6 +119,8 @@ self.addEventListener('push', e => {
       data:              { url },
       requireInteraction: false,
       vibrate:           [200, 100, 200],
+    }).then(() => {
+      if ('setAppBadge' in navigator) navigator.setAppBadge(1).catch(() => {});
     })
   );
 });
@@ -126,6 +128,7 @@ self.addEventListener('push', e => {
 // ── Notification click → open/focus app and navigate ──────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
   const url = (e.notification.data && e.notification.data.url) || '/';
 
   e.waitUntil(
