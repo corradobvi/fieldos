@@ -4502,7 +4502,8 @@ function bootApp(user) {
     document.getElementById('app').classList.add('on');
     const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
     applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
-    goTo('panoramica');
+    // Mister/Allenatore: home operativa diretta, non la panoramica società
+    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin') ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
@@ -11336,7 +11337,7 @@ var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
 function _misterGetShortcuts() {
   var key = 'mister_sc_'+(me?me.id:0);
   try{ var v=JSON.parse(localStorage.getItem(key)||'null'); if(Array.isArray(v)&&v.length===4) return v; }catch(e){}
-  return _MISTER_SC_DEF.slice();
+  return [null,null,null,null];
 }
 
 // Returns the next event (any type: training, match, etc.) for the leva
@@ -11388,7 +11389,7 @@ function buildMobDashboardAllenatore(c) {
   var heroHtml='';
   if (nxt) {
     var hD=parseYmd(nxt.date); var hDFN=nxt.daysFromNow; var isTrH=nxt.isTraining;
-    var hGrad=isTrH?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxt.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxt.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+    var hGrad='linear-gradient(135deg,var(--cp),var(--cs))';
     var hTag=isTrH?'🏃 Allenamento':nxt.type==='torneo'?'🏆 Torneo':nxt.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
     var hMeta=hD.getDate()+' '+MESI[hD.getMonth()]+(nxt.start?' · '+nxt.start:'')+(nxt.luogo?' · '+escapeHtml(nxt.luogo):'');
     var hCTA=isTrH?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv?'📋 Vedi convocazione':'📋 Crea convocazione');
@@ -11474,7 +11475,7 @@ function buildMobDashboardAllenatore(c) {
 
 function openMisterShortcutPicker() {
   if (document.getElementById('scPickerOv')) return;
-  var current=_misterGetShortcuts();
+  var current=_misterGetShortcuts().filter(Boolean);
   window._scPickCurrent=current.slice();
   var allIds=Object.keys(_MISTER_SC_ALL);
   var itemsHtml=allIds.map(function(id){
@@ -11982,7 +11983,7 @@ function buildDashboard(role) {
     let dHeroHtml = '';
     if (nxtEv) {
       const hD=parseYmd(nxtEv.date); const hDFN=nxtEv.daysFromNow; const isTrH2=nxtEv.isTraining;
-      const hGrad=isTrH2?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxtEv.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxtEv.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+      const hGrad='linear-gradient(135deg,var(--cp),var(--cs))';
       const hTag=isTrH2?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
       const cdStr2=hDFN===0?'OGG':hDFN===1?'DOM':hDFN;
       const cdSub2=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
@@ -12035,7 +12036,7 @@ function buildDashboard(role) {
     }).join('');
 
     // Shortcuts
-    const scGrid2=sc2.map(sid=>{const s=_MISTER_SC_ALL[sid];if(!s)return '';return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;" onclick="${s.action}">${s.ic} ${s.lb}</button>`;}).join('');
+    const scGrid2=sc2.map(sid=>{const s=sid?_MISTER_SC_ALL[sid]:null;if(!s)return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;border:2px dashed var(--border2);color:var(--text3);" onclick="openMisterShortcutPicker()">＋ Aggiungi</button>`;return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;" onclick="${s.action}">${s.ic} ${s.lb}</button>`;}).join('');
 
     // Prossimi allenamenti
     const ntD=panoNextTrainingsForLeva(lv,3);
@@ -15797,7 +15798,12 @@ function renderChatList() {
   container.querySelectorAll('.ci[data-chatid]').forEach(el => {
     el.addEventListener('click', () => selectChat(el.getAttribute('data-chatid')));
   });
-  selectChat(currentChatId, /*skipListRefresh*/true);
+  if (window.innerWidth > 640) {
+    selectChat(currentChatId, /*skipListRefresh*/true);
+  } else {
+    const _act=document.querySelector('#chatList .ci[data-chatid="'+CSS.escape(currentChatId)+'"]');
+    if (_act) _act.classList.add('on');
+  }
 }
 
 function selectChat(chatId, skipListRefresh) {
