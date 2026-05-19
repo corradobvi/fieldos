@@ -2339,6 +2339,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
           <button class="tb-user-dd-item" onclick="openAccountScreen();toggleTopUserMenu();event.stopPropagation();">👤 Il mio account</button>
+          <button class="tb-user-dd-item" onclick="openHelpModal();toggleTopUserMenu();event.stopPropagation();">💬 Aiuto</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
         </div>
       </div>
@@ -4535,10 +4536,6 @@ function bootApp(user) {
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { waCheckStatus(); }, 2000);
-    // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
-    const _cb = document.getElementById('asstBtn');
-    const _isMobFam = window.innerWidth <= 640 && me && (me.role === 'genitore' || me.role === 'nonno');
-    if (_cb && !_isMobFam) _cb.classList.add('visible');
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
     if (_saRaw) { try { chatLoadLearned(JSON.parse(_saRaw)); } catch(e) {} }
@@ -19909,6 +19906,47 @@ function toggleTopUserMenu() {
     dd.classList.remove('on');
     document.removeEventListener('click', _closeTopMenuOnClick);
   }
+}
+
+function openHelpModal() {
+  if (document.getElementById('helpModalOv')) return;
+  const _uEmail = (me && me.email) || '';
+  const _uRole  = (me && me.role)  || '';
+  const _socObj = saSocieties && saSocieties.find(function(x){return x.id===currentSocietaId;});
+  const _socNome = (_socObj && _socObj.nome) || '';
+  const waMsg = 'Ciao, ho bisogno di aiuto con MyVivaio.\n\nEmail account: '+_uEmail+'\nSocietà: '+_socNome+'\nRuolo: '+_uRole;
+  const waUrl = 'https://wa.me/393793827922?text='+encodeURIComponent(waMsg);
+  const mlSubj = encodeURIComponent('Richiesta supporto');
+  const mlBody = encodeURIComponent('Email account: '+_uEmail+'\nSocietà: '+_socNome+'\nRuolo: '+_uRole+'\n\nDescrivi il problema:\n\n');
+  const mlUrl = 'mailto:info@myvivaio.app?subject='+mlSubj+'&body='+mlBody;
+  const mob = window.innerWidth <= 640;
+  const ov = document.createElement('div');
+  ov.id = 'helpModalOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(13,26,58,.5);z-index:9000;display:flex;'
+    +(mob?'align-items:flex-end;':'align-items:center;')+'justify-content:center;backdrop-filter:blur(4px);';
+  const innerR = mob ? '20px 20px 0 0' : '18px';
+  const innerP = mob ? '24px 20px calc(28px + env(safe-area-inset-bottom,0px))' : '28px 24px';
+  const innerW = mob ? '100%' : '420px';
+  const innerM = mob ? '' : 'margin:16px;';
+  ov.innerHTML = '<div style="background:var(--white);border-radius:'+innerR+';padding:'+innerP+';width:100%;max-width:'+innerW+';box-shadow:0 24px 80px rgba(13,26,58,.2);'+innerM+'">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.25rem;font-weight:900;">💬 Aiuto & Supporto</div>'
+    +'<button onclick="document.getElementById(\'helpModalOv\').remove()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:6px;line-height:1;">✕</button>'
+    +'</div>'
+    +'<a href="'+waUrl+'" target="_blank" rel="noopener" onclick="document.getElementById(\'helpModalOv\').remove()" style="display:flex;align-items:center;gap:14px;padding:16px;background:#f0fdf4;border:2px solid #bbf7d0;border-radius:14px;text-decoration:none;margin-bottom:12px;min-height:72px;-webkit-tap-highlight-color:transparent;">'
+    +'<span style="font-size:2rem;flex-shrink:0;">📱</span>'
+    +'<div style="flex:1;"><div style="font-weight:700;font-size:.95rem;color:#166534;">Chatta su WhatsApp</div><div style="font-size:.78rem;color:#16a34a;margin-top:2px;">Risposta rapida → clicca per aprire</div></div>'
+    +'<span style="font-size:1.2rem;color:#4ade80;">›</span>'
+    +'</a>'
+    +'<a href="'+mlUrl+'" onclick="document.getElementById(\'helpModalOv\').remove()" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;text-decoration:none;margin-bottom:20px;min-height:72px;-webkit-tap-highlight-color:transparent;">'
+    +'<span style="font-size:2rem;flex-shrink:0;">✉️</span>'
+    +'<div style="flex:1;"><div style="font-weight:700;font-size:.95rem;color:var(--text);">Invia email</div><div style="font-size:.78rem;color:var(--text2);margin-top:2px;">info@myvivaio.app</div></div>'
+    +'<span style="font-size:1.2rem;color:var(--text3);">›</span>'
+    +'</a>'
+    +'<div style="text-align:center;font-size:.75rem;color:var(--text3);">Rispondiamo entro 24 ore nei giorni feriali</div>'
+    +'</div>';
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
 }
 
 function _closeTopMenuOnClick(e) {
