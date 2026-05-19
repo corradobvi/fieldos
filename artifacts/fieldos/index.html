@@ -446,6 +446,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mt{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;font-weight:800;letter-spacing:.4px;}
 .mx{background:var(--bg);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:.83rem;color:var(--text2);transition:all .14s;}
 .mx:hover{background:var(--rbg);color:var(--red);}
+/* Structured modal: fixed header / scrollable body / fixed footer */
+.m-head{flex-shrink:0;padding:16px 20px;border-bottom:.5px solid rgba(0,0,0,.08);display:flex;justify-content:space-between;align-items:center;background:var(--white);}
+.m-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 20px 20px;}
+.m-foot{flex-shrink:0;padding:12px 16px;padding-bottom:max(12px,calc(12px + env(safe-area-inset-bottom)));border-top:.5px solid rgba(0,0,0,.08);background:var(--white);display:flex;gap:8px;}
+#mConv .modal,#mTorneoConvocati .modal{padding:0;display:flex;flex-direction:column;overflow:hidden;}
 
 /* TOAST */
 .toast{position:fixed;bottom:22px;right:22px;background:var(--cp);color:white;padding:12px 18px;border-radius:10px;font-size:.83rem;font-weight:600;box-shadow:0 8px 28px rgba(var(--cp-rgb),.3);z-index:9999;transform:translateY(70px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);}
@@ -528,6 +533,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     padding:20px 16px 28px;
     margin:0;
   }
+  .fr{grid-template-columns:1fr;}
+  .m-body{padding:14px 16px 20px;}
+  .m-foot{padding:10px 16px;padding-bottom:max(10px,calc(10px + env(safe-area-inset-bottom)));}
 
   /* Tables — horizontal scroll via existing wrappers; ensure wrappers work */
   [style*="overflow-x:auto"]{-webkit-overflow-scrolling:touch;}
@@ -2999,36 +3007,41 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 <!-- Nuova / modifica convocazione -->
 <div class="ov" id="mConv">
   <div class="modal" style="max-width:620px;">
-    <div class="mh"><div class="mt" id="mConvTitle">📋 Convocazione</div><button class="mx" onclick="closeM('mConv')">✕</button></div>
-    <input type="hidden" id="convEventId">
-    <div id="mConvEventInfo" style="background:var(--cl);border-radius:9px;padding:11px 13px;margin-bottom:12px;font-size:.84rem;"></div>
-    <div class="fr">
-      <div class="fg"><label class="fl">Ritrovo (orario)</label><input class="fi" id="convRitrovo" type="time"></div>
-      <div class="fg"><label class="fl">Divisa</label><input class="fi" id="convDivisa" placeholder="Es. Casa / Trasferta"></div>
-    </div>
-    <div class="fg"><label class="fl">Note</label><textarea class="fta" id="convNote" style="min-height:55px;" placeholder="Indicazioni aggiuntive..."></textarea></div>
-    <!-- Visibilità a due fasi per i genitori -->
-    <div style="border:1.5px solid var(--border);border-radius:9px;padding:12px;margin-top:10px;background:var(--bg);">
-      <div style="font-weight:700;font-size:.82rem;margin-bottom:8px;color:var(--text);">👁️ Visibilità per genitori</div>
-      <div class="fr" style="margin-bottom:8px;">
-        <div class="fg" style="margin-bottom:0;">
-          <label class="fl">Fase 1 (data/ora) — giorni prima</label>
-          <input class="fi" type="number" id="convFase1Days" min="0" max="365" placeholder="es. 14" style="max-width:100px;">
-        </div>
-        <div class="fg" style="margin-bottom:0;">
-          <label class="fl">Fase 2 (dettagli+convocati) — giorni prima</label>
-          <input class="fi" type="number" id="convFase2Days" min="0" max="365" placeholder="es. 3" style="max-width:100px;">
-        </div>
+    <!-- HEADER FISSO -->
+    <div class="m-head"><div class="mt" id="mConvTitle">📋 Convocazione</div><button class="mx" onclick="closeM('mConv')">✕</button></div>
+    <!-- BODY SCROLLABILE -->
+    <div class="m-body">
+      <input type="hidden" id="convEventId">
+      <div id="mConvEventInfo" style="background:var(--cl);border-radius:9px;padding:11px 13px;margin-bottom:12px;font-size:.84rem;"></div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Ritrovo (orario)</label><input class="fi" id="convRitrovo" type="time"></div>
+        <div class="fg"><label class="fl">Divisa</label><input class="fi" id="convDivisa" placeholder="Es. Casa / Trasferta"></div>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-sm" id="btnConvFase1" onclick="toggleConvFase(1)" style="font-size:.75rem;"></button>
-        <button class="btn btn-sm" id="btnConvFase2" onclick="toggleConvFase(2)" style="font-size:.75rem;"></button>
+      <div class="fg"><label class="fl">Note</label><textarea class="fta" id="convNote" style="min-height:55px;" placeholder="Indicazioni aggiuntive..."></textarea></div>
+      <!-- Visibilità a due fasi per i genitori -->
+      <div style="border:1.5px solid var(--border);border-radius:9px;padding:12px;margin-top:10px;background:var(--bg);">
+        <div style="font-weight:700;font-size:.82rem;margin-bottom:8px;color:var(--text);">👁️ Visibilità per genitori</div>
+        <div class="fr" style="margin-bottom:8px;">
+          <div class="fg" style="margin-bottom:0;">
+            <label class="fl">Fase 1 (data/ora) — giorni prima</label>
+            <input class="fi" type="number" id="convFase1Days" min="0" max="365" placeholder="es. 14" style="max-width:100px;">
+          </div>
+          <div class="fg" style="margin-bottom:0;">
+            <label class="fl">Fase 2 (dettagli+convocati) — giorni prima</label>
+            <input class="fi" type="number" id="convFase2Days" min="0" max="365" placeholder="es. 3" style="max-width:100px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-sm" id="btnConvFase1" onclick="toggleConvFase(1)" style="font-size:.75rem;"></button>
+          <button class="btn btn-sm" id="btnConvFase2" onclick="toggleConvFase(2)" style="font-size:.75rem;"></button>
+        </div>
+        <div id="convFaseStatus" style="font-size:.72rem;color:var(--text2);margin-top:6px;"></div>
       </div>
-      <div id="convFaseStatus" style="font-size:.72rem;color:var(--text2);margin-top:6px;"></div>
+      <div class="fl" style="margin-top:14px;">Giocatori da convocare <span id="convCounter" style="color:var(--text2);font-weight:500;"></span></div>
+      <div id="convRoster" style="display:flex;flex-direction:column;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;margin-top:6px;"></div>
     </div>
-    <div class="fl" style="margin-top:10px;">Giocatori da convocare <span id="convCounter" style="color:var(--text2);font-weight:500;"></span></div>
-    <div id="convRoster" style="display:flex;flex-direction:column;max-height:320px;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;margin-top:6px;"></div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
+    <!-- FOOTER FISSO -->
+    <div class="m-foot">
       <button class="btn btn-p" style="flex:1;" onclick="saveConvocazione()">📤 Salva e notifica</button>
       <button class="btn btn-r" id="btnDelConv" style="display:none;" onclick="deleteConvocazione()">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mConv')">Annulla</button>
@@ -16580,10 +16593,14 @@ function refreshChatBadges() {
 // ═══════════════════════════════════
 // MODAL
 // ═══════════════════════════════════
-function openM(id) { document.getElementById(id).classList.add('on'); }
+function openM(id) {
+  document.getElementById(id).classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
 function closeM(id) {
   if (id === 'mChangePass' && _mustChangePass) return;
   document.getElementById(id).classList.remove('on');
+  if (!document.querySelector('.ov.on')) document.body.style.overflow = '';
 }
 document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
   if (e.target === o && !(o.id === 'mChangePass' && _mustChangePass)) o.classList.remove('on');
@@ -21473,12 +21490,17 @@ async function doRejoinSocieta() {
 <!-- Convocati torneo -->
 <div class="ov" id="mTorneoConvocati">
   <div class="modal" style="max-width:460px;">
-    <div class="mh"><div class="mt">📋 Convocati torneo</div><button class="mx" onclick="closeM('mTorneoConvocati')">✕</button></div>
-    <input type="hidden" id="tcTorneoId">
-    <div id="tcInfo" style="font-weight:700;font-size:.86rem;color:var(--text);margin-bottom:6px;"></div>
-    <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:7px 10px;">Solo i genitori/nonni dei giocatori selezionati accederanno alla chat di questo torneo.</div>
-    <div id="tcPlayerList" style="display:flex;flex-direction:column;max-height:340px;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;margin-top:6px;"></div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
+    <!-- HEADER FISSO -->
+    <div class="m-head"><div class="mt">📋 Convocati torneo</div><button class="mx" onclick="closeM('mTorneoConvocati')">✕</button></div>
+    <!-- BODY SCROLLABILE -->
+    <div class="m-body">
+      <input type="hidden" id="tcTorneoId">
+      <div id="tcInfo" style="font-weight:700;font-size:.86rem;color:var(--text);margin-bottom:6px;"></div>
+      <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:7px 10px;">Solo i genitori/nonni dei giocatori selezionati accederanno alla chat di questo torneo.</div>
+      <div id="tcPlayerList" style="display:flex;flex-direction:column;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;"></div>
+    </div>
+    <!-- FOOTER FISSO -->
+    <div class="m-foot">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mTorneoConvocati')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveTorneoConvocati()">💾 Salva convocati</button>
     </div>
