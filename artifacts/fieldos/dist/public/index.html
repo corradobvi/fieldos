@@ -372,19 +372,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .ris-player-row .rpname{flex:0 0 90px;font-size:.76rem;}
   .ris-player-row .rpstat{width:44px;}
 }
-/* ── Stats table (risultato modal) ── */
-.rpt{width:100%;border-collapse:collapse;table-layout:fixed;}
-.rpt th,.rpt td{padding:6px 4px;border-bottom:1px solid var(--border);vertical-align:middle;}
-.rpt tbody tr:last-child td{border-bottom:none;}
-.rpt thead{position:sticky;top:0;background:var(--white);z-index:1;}
-.rpt thead th{font-size:.61rem;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--text3);text-align:center;padding-bottom:8px;border-bottom:2px solid var(--border);}
-.rph-name{text-align:left!important;width:auto;}
-.rph-sm{width:52px;text-align:center!important;}
+/* ── Stats rows (risultato modal) — flex layout ── */
+.rprow{display:flex;align-items:center;padding:5px 2px;border-bottom:1px solid var(--border);gap:6px;}
+.rprow:last-child{border-bottom:none;}
+.rprow-hd{position:sticky;top:0;background:var(--white);z-index:1;border-bottom:2px solid var(--border)!important;padding-bottom:7px;}
+.rp-name{flex:1;min-width:0;text-align:left;}
+.rp-stats{flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.rp-col{width:44px;display:flex;align-items:center;justify-content:center;}
+.rp-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--text3);}
 .rpi{width:100%;padding:4px 3px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;background:var(--bg);box-sizing:border-box;}
 .rpi:focus{outline:none;border-color:var(--cp);}
 .rpi-ck{width:18px;height:18px;accent-color:var(--cp);cursor:pointer;display:block;margin:auto;}
-@media(max-width:640px){.rph-sm{width:44px;}.rpi{font-size:.78rem;}}
-@media(max-width:390px){.rph-sm{width:40px;}.rpi{font-size:.74rem;}}
+@media(max-width:480px){
+  .rprow{flex-wrap:wrap;}
+  .rp-stats{margin-left:auto;}
+  .rp-col{width:40px;}
+  .rpi{font-size:.78rem;}
+}
 
 /* CALENDAR */
 .cal-gw{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -15909,7 +15913,7 @@ function openRisultato(tipo, ref) {
 function buildRisultatoStats(match, leva) {
   const header = document.getElementById('ptRisStatsHeader');
   const list   = document.getElementById('ptRisStatsList');
-  if (header) header.style.display = 'none'; // replaced by sticky <thead>
+  if (header) header.style.display = 'none';
 
   const roster = players.filter(p => p.leva === leva).sort(byCogn);
   if (roster.length === 0) {
@@ -15918,32 +15922,40 @@ function buildRisultatoStats(match, leva) {
   }
 
   const hasGK = roster.some(p => isGK(p));
-  const gkHd  = hasGK ? '<th class="rph-sm">GS</th><th class="rph-sm">CS</th>' : '';
+  const gkHdrCols = hasGK ? '<div class="rp-col rp-lbl">GS</div><div class="rp-col rp-lbl">CS</div>' : '';
 
-  list.innerHTML = `<table class="rpt">
-    <thead><tr>
-      <th class="rph-name">Giocatore</th>
-      <th class="rph-sm">⚽</th>
-      <th class="rph-sm">🅰️</th>
-      ${gkHd}
-    </tr></thead>
-    <tbody>${roster.map(p => {
-      const st = (match.stats||[]).find(s => s.playerId === p.id) || {};
-      const gk = isGK(p);
-      const gkCells = hasGK
-        ? gk
-          ? `<td class="rph-sm"><input type="number" min="0" max="30" value="${st.golSub||0}" data-pid="${p.id}" data-field="golSub" class="rpi"></td>
-             <td class="rph-sm"><input type="checkbox" ${st.cs?'checked':''} data-pid="${p.id}" data-field="cs" class="rpi-ck"></td>`
-          : '<td></td><td></td>'
-        : '';
-      return `<tr class="ris-player-row">
-        <td class="rph-name"><span style="font-size:.82rem;font-weight:600;">${escapeHtml(p.nome+' '+p.cogn)}</span> <span style="font-size:.65rem;color:var(--text3);">${escapeHtml(p.ruolo||'')}</span></td>
-        <td class="rph-sm"><input type="number" min="0" max="30" value="${st.gol||0}" data-pid="${p.id}" data-field="gol" class="rpi"></td>
-        <td class="rph-sm"><input type="number" min="0" max="30" value="${st.assist||0}" data-pid="${p.id}" data-field="assist" class="rpi"></td>
-        ${gkCells}
-      </tr>`;
-    }).join('')}</tbody>
-  </table>`;
+  const rows = roster.map(p => {
+    const st = (match.stats||[]).find(s => s.playerId === p.id) || {};
+    const gk = isGK(p);
+    const gkDataCols = hasGK
+      ? gk
+        ? `<div class="rp-col"><input type="number" min="0" max="30" value="${st.golSub||0}" data-pid="${p.id}" data-field="golSub" class="rpi" style="width:100%;"></div>
+           <div class="rp-col"><input type="checkbox" ${st.cs?'checked':''} data-pid="${p.id}" data-field="cs" class="rpi-ck"></div>`
+        : '<div class="rp-col"></div><div class="rp-col"></div>'
+      : '';
+    return `<div class="rprow">
+      <div class="rp-name">
+        <span style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;">${escapeHtml(p.nome+' '+p.cogn)}</span>
+        <span style="font-size:.63rem;color:var(--text3);">${escapeHtml(p.ruolo||'')}</span>
+      </div>
+      <div class="rp-stats">
+        <div class="rp-col"><input type="number" min="0" max="30" value="${st.gol||0}" data-pid="${p.id}" data-field="gol" class="rpi" style="width:100%;"></div>
+        <div class="rp-col"><input type="number" min="0" max="30" value="${st.assist||0}" data-pid="${p.id}" data-field="assist" class="rpi" style="width:100%;"></div>
+        ${gkDataCols}
+      </div>
+    </div>`;
+  }).join('');
+
+  list.innerHTML = `
+    <div class="rprow rprow-hd">
+      <div class="rp-name rp-lbl">Giocatore</div>
+      <div class="rp-stats">
+        <div class="rp-col rp-lbl">⚽</div>
+        <div class="rp-col rp-lbl">A</div>
+        ${gkHdrCols}
+      </div>
+    </div>
+    ${rows}`;
 
   const cambiSec = document.getElementById('ptRisCambiSection');
   if (cambiSec) cambiSec.style.display = 'none';
