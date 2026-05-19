@@ -2786,6 +2786,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<!-- Revoca assenza (genitore) -->
+<div class="ov" id="mRevocaAssenza">
+  <div class="modal">
+    <div class="mh"><div class="mt">🔄 Revoca assenza</div><button class="mx" onclick="closeM('mRevocaAssenza')">✕</button></div>
+    <div style="padding:8px 0 16px;font-size:.95rem;color:var(--text1);line-height:1.5;" id="mRevocaAssenzaBody"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-p" style="flex:1;" id="mRevocaAssenzaConfirmBtn">✅ Conferma revoca</button>
+      <button class="btn btn-g" onclick="closeM('mRevocaAssenza')">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <!-- Nuova/modifica leva -->
 <div class="ov" id="mLeva">
   <div class="modal">
@@ -6744,6 +6756,40 @@ function saveAvvisoAssenza(){
   toast('📩 Avviso inviato — assenza giustificata');
   if (document.getElementById('pg-presenze').classList.contains('active')) renderPresenze();
   refreshNotificheBadge();
+}
+
+function openRevocaAssenzaModal(playerId, dateStr) {
+  const p = players.find(x => x.id === playerId);
+  if (!p) { toast('⚠️ Giocatore non trovato'); return; }
+  const dateLong = fmtDateLong(parseYmd(dateStr));
+  document.getElementById('mRevocaAssenzaBody').innerHTML =
+    `Vuoi revocare l'assenza segnalata per <strong>${escapeHtml(p.nome)} ${escapeHtml(p.cogn)}</strong> del <strong>${dateLong}</strong>?<br><br>Il Mister verrà notificato.`;
+  document.getElementById('mRevocaAssenzaConfirmBtn').onclick = () => revocaAssenza(p, dateStr);
+  openM('mRevocaAssenza');
+}
+
+function revocaAssenza(p, dateStr) {
+  if (!Array.isArray(p.assenzeAvvisate)) { toast('⚠️ Nessuna assenza da revocare'); return; }
+  p.assenzeAvvisate = p.assenzeAvvisate.filter(a => a.date !== dateStr);
+  // Reset presenza solo se ancora 'j' (non sovrascritta dal mister)
+  if (getPresenzaForDate(p, dateStr) === 'j') {
+    setPresenzaForDate(p, dateStr, '');
+  }
+  const dateLong = fmtDateLong(parseYmd(dateStr));
+  const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
+  coachIds.forEach(uid => {
+    pushNotifica(uid, {
+      type: 'avviso_assenza_revocata',
+      title: `✅ Assenza revocata · ${p.nome} ${p.cogn}`,
+      body: `${dateLong} (${p.leva})\nRevocata da ${me.nome} ${me.cogn}`,
+    });
+  });
+  saveState();
+  closeM('mRevocaAssenza');
+  toast('✅ Assenza revocata');
+  refreshNotificheBadge();
+  if (document.getElementById('pg-presenze').classList.contains('active')) renderPresenze();
+  buildDashboard(me.role);
 }
 
 // ═══════════════════════════════════
@@ -11813,12 +11859,33 @@ function buildMobDashboardGenitore(c) {
   }
   var settimanaHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')" style="cursor:pointer;">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+(weekRowsH3||'<div style="font-size:.82rem;color:var(--text2);">Nessun evento questa settimana.</div>')+'</div></div>';
 
-  // ── CARD 6: Segnala assenza ───────────────────────────────────────────────
+  // ── CARD 6: Assenze segnalate + Segnala assenza ──────────────────────────
+  var _futAss3=[];
+  figliPlayers.forEach(function(fp){
+    if(!Array.isArray(fp.assenzeAvvisate))return;
+    fp.assenzeAvvisate.forEach(function(a){
+      if(a.date>=todayStr)_futAss3.push({p:fp,date:a.date,motivo:a.motivo||''});
+    });
+  });
+  _futAss3.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+  var assenzaListHtml3='';
+  if(_futAss3.length>0){
+    var _aRows3=_futAss3.map(function(item){
+      var dl=fmtDateLong(parseYmd(item.date));
+      var nm=figliPlayers.length>1?escapeHtml(item.p.nome+' '+item.p.cogn)+' · ':'';
+      var mtv=item.motivo?'<span style="font-size:.78rem;color:var(--text2);display:block;">'+escapeHtml(item.motivo)+'</span>':'';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--sep);">'
+        +'<div><div style="font-size:.88rem;font-weight:600;">'+nm+dl+'</div>'+mtv+'</div>'
+        +'<button class="btn btn-g" style="font-size:.78rem;padding:6px 10px;white-space:nowrap;" onclick="openRevocaAssenzaModal('+item.p.id+',\''+item.date+'\')">✕ Revoca</button>'
+        +'</div>';
+    }).join('');
+    assenzaListHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📩 Assenze segnalate</div>'+_aRows3+'</div>';
+  }
   var avvisaBtn3=canAvvisaAssenza()
     ?'<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="openAvvisaModal()">📵 Segnala assenza</button>'
     :'';
 
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+avvisaBtn3;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+assenzaListHtml3+avvisaBtn3;
 }
 
 function buildDashboard(role) {
