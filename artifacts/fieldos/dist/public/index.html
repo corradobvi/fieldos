@@ -21921,7 +21921,10 @@ async function registerSW() {
     // Controlla aggiornamenti ogni 60 secondi e quando l'app torna in foreground
     setInterval(() => reg.update().catch(() => {}), 60000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+      if (document.visibilityState === 'visible') {
+        reg.update().catch(() => {});
+        clearAppBadgeIfSupported();
+      }
     });
 
     // Listen for SW push messages (navigate to section)
@@ -21937,6 +21940,16 @@ async function registerSW() {
     return null;
   }
 }
+
+function clearAppBadgeIfSupported() {
+  if ('clearAppBadge' in navigator) {
+    navigator.clearAppBadge().catch(() => {});
+  } else if ('setAppBadge' in navigator) {
+    navigator.setAppBadge(0).catch(() => {});
+  }
+}
+window.addEventListener('load',  () => clearAppBadgeIfSupported());
+window.addEventListener('focus', () => clearAppBadgeIfSupported());
 
 function showSwUpdateBanner() {
   const b = document.getElementById('swUpdateBanner');
