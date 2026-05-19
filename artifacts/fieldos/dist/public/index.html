@@ -559,9 +559,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   /* Card headers — allow action buttons to wrap to next line */
   .ch{flex-wrap:wrap;row-gap:6px;}
 
-  /* Match cards — tighter on narrow screens */
-  .mc{padding:10px 11px;gap:8px;}
+  /* Match cards — stack on narrow screens */
+  .mc{padding:10px 11px;gap:6px 8px;flex-wrap:wrap;}
   .mc-team{min-width:50px;}
+  .mc-teams{order:2;flex:0 0 100%;}
+  .mc-actions{order:3;flex:0 0 100%;justify-content:flex-end;padding-top:6px;border-top:1px solid var(--border);}
 
   /* Player cards */
   .pc{padding:12px;}
@@ -15773,11 +15775,22 @@ function openRisultato(tipo, ref) {
   }
   if (!match) return;
   _risCtx = {tipo, ref, match, leva};
+  // For amichevoli, derive home/away display names from tipo+avversario
+  let _casaDisplay, _ospiteDisplay;
+  if (tipo === 'amichevole') {
+    const _polis  = polisName(leva);
+    const _isHome = (match.tipo || 'casa') === 'casa';
+    _casaDisplay   = _isHome ? _polis : match.avversario;
+    _ospiteDisplay = _isHome ? match.avversario : _polis;
+  } else {
+    _casaDisplay   = match.casa;
+    _ospiteDisplay = match.ospite;
+  }
   document.getElementById('ptRisTipo').value = tipo;
   document.getElementById('ptRisRef').value  = String(ref);
   document.getElementById('mPtRisTitle').textContent = tipo === 'amichevole' ? '🤝 Risultato amichevole' : tipo === 'campionato' ? '🏅 Risultato campionato' : '🏆 Risultato torneo';
-  document.getElementById('ptRisCasa').textContent   = match.casa;
-  document.getElementById('ptRisOspite').textContent = match.ospite;
+  document.getElementById('ptRisCasa').textContent   = _casaDisplay;
+  document.getElementById('ptRisOspite').textContent = _ospiteDisplay;
   document.getElementById('ptRisGolC').value = match.played ? match.golCasa   : '';
   document.getElementById('ptRisGolO').value = match.played ? match.golOspiti : '';
   // Hint "inserisci risultato" per partite non ancora giocate
@@ -15787,7 +15800,7 @@ function openRisultato(tipo, ref) {
   const _liveEl = document.getElementById('ptRisLiveIndicator');
   if (_liveEl) _liveEl.style.display = (!match.played && match.data === ymd(new Date())) ? '' : 'none';
   // Nascondi le statistiche giocatori per partite tra avversari (non coinvolgono Polis)
-  const involvesPolis = !leva || match.casa === polisName(leva) || match.ospite === polisName(leva);
+  const involvesPolis = !leva || _casaDisplay === polisName(leva) || _ospiteDisplay === polisName(leva);
   const statsSection = document.getElementById('ptRisStatsSection');
   if (statsSection) statsSection.style.display = involvesPolis ? '' : 'none';
   buildRisultatoStats(match, leva);
