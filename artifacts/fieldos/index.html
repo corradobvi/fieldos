@@ -1099,8 +1099,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mi-hero-title{font-size:1.05rem;font-weight:800;margin-bottom:4px;line-height:1.25;}
 .mi-hero-meta{font-size:.79rem;opacity:.88;line-height:1.4;}
 .mi-hero-cnt{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
-.mi-hero-cd{font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;line-height:1;min-width:52px;text-align:center;flex-shrink:0;}
-.mi-hero-cd-sub{font-size:.55rem;text-transform:uppercase;letter-spacing:0;opacity:.75;margin-top:2px;text-align:center;white-space:nowrap;}
+.mi-hero-cd{font-family:'Barlow Condensed',sans-serif;font-size:1.7rem;font-weight:900;line-height:1;min-width:44px;text-align:center;flex-shrink:0;}
+.mi-hero-cd-sub{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0;opacity:.85;margin-top:3px;text-align:center;white-space:nowrap;}
 .mi-cnt-pill{font-size:.78rem;background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;font-weight:600;white-space:nowrap;}
 .mi-sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .mi-sc-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 8px;background:var(--cl);border-radius:12px;border:none;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent;min-height:72px;transition:background .14s;}
@@ -11394,8 +11394,9 @@ function buildMobDashboardAllenatore(c) {
     var hMeta=hD.getDate()+' '+MESI[hD.getMonth()]+(nxt.start?' · '+nxt.start:'')+(nxt.luogo?' · '+escapeHtml(nxt.luogo):'');
     var hCTA=isTrH?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv?'📋 Vedi convocazione':'📋 Crea convocazione');
     var hCTAact=isTrH?"goTo('presenze')":(hasConv?"goTo('convocazioni')":"goTo('convocazioni')");
-    var cdStr=hDFN===0?'OGG':hDFN===1?'DOM':String(hDFN);
-    var cdSub=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+    var _cdDOW=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+    var cdStr=hD.getDate()+'/'+(hD.getMonth()+1);
+    var cdSub=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW[hD.getDay()];
     var pillsHtml='';
     if (isTrH&&hDFN===0&&hasTodayTrain) {
       pillsHtml='<div class="mi-hero-cnt"><span class="mi-cnt-pill">✅ '+presentToday.length+' presenti</span><span class="mi-cnt-pill">⏳ '+notSignaled.length+' in attesa</span>'+(absentToday.length?'<span class="mi-cnt-pill">❌ '+absentToday.length+' assenti</span>':'')+'</div>';
@@ -11746,8 +11747,10 @@ function buildMobDashboardGenitore(c) {
   if(nxtEv){
     var hDFN=nxtEv.daysFromNow;
     var isTrG=nxtEv.isTraining;
-    var cdStr3=hDFN===0?'OGG':hDFN===1?'DOM':String(hDFN);
-    var cdSub3=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+    var _hDG=parseYmd(nxtEv.date);
+    var _cdDOW3=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+    var cdStr3=_hDG.getDate()+'/'+(_hDG.getMonth()+1);
+    var cdSub3=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW3[_hDG.getDay()];
     var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
     var convBadge3='';
     if(!isTrG){
@@ -11764,8 +11767,8 @@ function buildMobDashboardGenitore(c) {
       +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
       +'<div style="display:flex;align-items:flex-start;gap:14px;">'
       +'<div style="flex-shrink:0;text-align:center;padding:0 8px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:2.1rem;font-weight:900;line-height:1;color:var(--cp);">'+cdStr3+'</div>'
-      +'<div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:0;white-space:nowrap;">'+cdSub3+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.7rem;font-weight:900;line-height:1;color:var(--cp);">'+cdStr3+'</div>'
+      +'<div style="font-size:.65rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0;white-space:nowrap;margin-top:3px;">'+cdSub3+'</div>'
       +'</div>'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-weight:700;font-size:.93rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(nxtEv.title)+'</div>'
@@ -12033,8 +12036,9 @@ function buildDashboard(role) {
       const hD=parseYmd(nxtEv.date); const hDFN=nxtEv.daysFromNow; const isTrH2=nxtEv.isTraining;
       const hGrad='linear-gradient(135deg,var(--cp),var(--cs))';
       const hTag=isTrH2?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
-      const cdStr2=hDFN===0?'OGG':hDFN===1?'DOM':hDFN;
-      const cdSub2=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+      const _cdDOW2=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+      const cdStr2=hD.getDate()+'/'+(hD.getMonth()+1);
+      const cdSub2=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW2[hD.getDay()];
       const hCTA=isTrH2?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv2?'📋 Vedi convocazione':'📋 Crea convocazione');
       const hCTAact=isTrH2?"goTo('presenze')":(hasConv2?"goTo('convocazioni')":"goTo('convocazioni')");
       let dPillsHtml='';
