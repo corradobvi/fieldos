@@ -4756,6 +4756,8 @@ function buildSidebar(role) {
     } else {
       let locked = false;
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
+      // Quote: nascondi completamente dalla nav se piano non include la feature
+      if (locked && item.id === 'pagamenti') return;
       const wip = !!item.wip;
       const d = document.createElement('div');
       d.className = 'ni' + (locked ? ' ni-locked' : '') + (wip ? ' ni-wip' : '');
@@ -4840,8 +4842,9 @@ function goTo(pgId) {
     const _backupCardEl = document.getElementById('backupCard');
     if (_backupCardEl) _backupCardEl.style.display = isAdminLike() ? '' : 'none';
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
+    const _impostSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _quoteCardEl = document.getElementById('quoteCard');
-    if (_quoteCardEl) _quoteCardEl.style.display = (me.role === 'allenatore' || !_isStaff) ? 'none' : '';
+    if (_quoteCardEl) _quoteCardEl.style.display = (isSectionLocked('pagamenti', _impostSoc) || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
@@ -9593,6 +9596,10 @@ function openUserModal(id) {
     document.getElementById('uGiocBlock').style.display = 'none';
     document.getElementById('uAgeWarn').style.display = 'none';
     document.getElementById('uAgeOk').style.display = 'none';
+    const _uPhoneNew = document.getElementById('uPhone');
+    if (_uPhoneNew) _uPhoneNew.value = '';
+    const _permBlockNew = document.getElementById('uPermissionsBlock');
+    if (_permBlockNew) _permBlockNew.style.display = 'none';
     // Password: campo vuoto + auto-genera + label/hint per modalità "creazione"
     document.getElementById('uPass').value = '';
     document.getElementById('uPass').placeholder = 'min. 4 caratteri (o usa Genera)';
@@ -9619,7 +9626,15 @@ function openUserModal(id) {
     document.getElementById('uPassLabel').textContent = 'Reimposta password (opzionale)';
     document.getElementById('uPassHint').textContent = "Compila solo se vuoi cambiare la password. Verrà mostrata una sola volta.";
     document.getElementById('btnSaveUser').textContent = '💾 Salva modifiche';
+    const _uPhone = document.getElementById('uPhone');
+    if (_uPhone) _uPhone.value = u.phone || '';
     onUtenteRuolo();
+    // Sovrascrive i default di onUtenteRuolo con i permessi effettivi dell'utente
+    if (u.permissions != null) {
+      document.querySelectorAll('#uPermissionsToggles input[type=checkbox]').forEach(t => {
+        if (u.permissions[t.dataset.perm] !== undefined) t.checked = !!u.permissions[t.dataset.perm];
+      });
+    }
     if (u.role === 'genitore' || u.role === 'nonno' || u.role === 'dirigente') {
       populateFigliBox(getFigliOf(u));
     }
@@ -9711,23 +9726,25 @@ function onUtenteRuolo() {
   // Permessi granulari — mostra solo per ruoli collaboratore (non admin, non mister_admin che sono sempre full)
   const permBlock = document.getElementById('uPermissionsBlock');
   const permToggles = document.getElementById('uPermissionsToggles');
-  const collabPermsRoles = ['allenatore','dirigente','preparatore_portieri'];
+  const collabPermsRoles = ['allenatore','mister_admin','dirigente','preparatore_portieri'];
   if (permBlock && permToggles) {
     if (collabPermsRoles.includes(r)) {
       permBlock.style.display = 'block';
       // Default per ruolo
+      const _allOn = { gestione_presenze:true, gestione_convocazioni:true, gestione_allenamenti:true, gestione_risultati:true, gestione_comunicazioni_bacheca:true };
       const defaults = {
-        allenatore: { gestione_presenze:true, gestione_convocazioni:true, gestione_allenamenti:true, gestione_risultati:true, gestione_comunicazioni_bacheca:true },
-        dirigente:  { gestione_presenze:false, gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:false, gestione_comunicazioni_bacheca:true },
-        preparatore_portieri: { gestione_presenze:true, gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:false, gestione_comunicazioni_bacheca:false },
+        allenatore:          _allOn,
+        mister_admin:        _allOn,
+        dirigente:           { gestione_presenze:false, gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:true, gestione_comunicazioni_bacheca:true },
+        preparatore_portieri:{ gestione_presenze:true,  gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:false, gestione_comunicazioni_bacheca:false },
       };
       const d = defaults[r] || {};
       const labels = {
-        gestione_presenze: '✅ Gestione presenze',
-        gestione_convocazioni: '📋 Convocazioni',
-        gestione_allenamenti: '🏃 Allenamenti',
-        gestione_risultati: '⚽ Risultati partite',
-        gestione_comunicazioni_bacheca: '📢 Bacheca comunicazioni',
+        gestione_risultati:            '⚽ Competizioni e risultati',
+        gestione_convocazioni:         '📋 Convocazioni',
+        gestione_presenze:             '✅ Gestione presenze',
+        gestione_comunicazioni_bacheca:'📢 Bacheca comunicazioni',
+        gestione_allenamenti:          '🏃 Piano allenamento',
       };
       permToggles.innerHTML = Object.entries(labels).map(([k,label]) =>
         `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.83rem;cursor:pointer;">

@@ -2,11 +2,12 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { requirePermission } from "../../lib/permissions";
 import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
 
-const WRITE_ROLES = ["admin", "allenatore", "dirigente"];
+const WRITE_ROLES = ["admin", "allenatore", "dirigente", "mister_admin"];
 
 // GET /api/v2/events?month=5&year=2026&leva=U14
 router.get("/events", requireAuth, async (req, res) => {

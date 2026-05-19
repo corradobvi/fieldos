@@ -63462,7 +63462,7 @@ var users_default = router15;
 // src/routes/v2/events.ts
 var import_express16 = __toESM(require_express2(), 1);
 var router16 = (0, import_express16.Router)();
-var WRITE_ROLES = ["admin", "allenatore", "dirigente"];
+var WRITE_ROLES = ["admin", "allenatore", "dirigente", "mister_admin"];
 router16.get("/events", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const { month, year: year2, leva } = req.query;
