@@ -1453,6 +1453,49 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cal-week-title{font-weight:800;font-size:.92rem;color:var(--text);}
 
 /* ═══════════════════════════════════════════
+   CALENDARIO GENITORE / GIOCATORE — vista mese
+   ═══════════════════════════════════════════ */
+#calGenitoreView{display:none;}
+#pg-calendario.cal-gen #calWeekView{display:none!important;}
+#pg-calendario.cal-gen #calMonthView{display:none!important;}
+#pg-calendario.cal-gen #calGenitoreView{display:block!important;}
+.cgm-wrap{max-width:520px;margin:0 auto;padding:0 0 32px;}
+.cgm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cgm-title{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:900;color:var(--text1);}
+.cgm-today-btn{background:var(--cp);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:500;padding:7px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cgm-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cgm-nav-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text1);-webkit-tap-highlight-color:transparent;}
+.cgm-nav-label{font-weight:700;font-size:.92rem;color:var(--text1);}
+.cgm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
+.cgm-head{text-align:center;font-size:.68rem;font-weight:700;color:var(--text3);padding:4px 0 8px;text-transform:uppercase;}
+.cgm-cell{display:flex;flex-direction:column;align-items:center;padding:2px 0;cursor:pointer;-webkit-tap-highlight-color:transparent;min-height:44px;}
+.cgm-other{opacity:.22;pointer-events:none;}
+.cgm-day-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.cgm-num{font-size:.88rem;color:var(--text1);font-weight:500;}
+.cgm-today{background:var(--cp);}
+.cgm-today .cgm-num{color:#fff;font-weight:700;}
+.cgm-sel{border:2px solid var(--cp);}
+.cgm-sel .cgm-num{color:var(--cp);font-weight:700;}
+.cgm-dots{display:flex;gap:2px;margin-top:3px;}
+.cgm-dot{width:5px;height:5px;border-radius:50%;}
+.cgm-dot-tr{background:#0F6E56;}
+.cgm-dot-mt{background:var(--cp);}
+.cgm-dot-ev{background:var(--gold,#BA7517);}
+.cgm-sep{height:1px;background:var(--border);margin:16px 0 14px;}
+.cgm-day-label{font-size:.72rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;}
+.cgm-empty{text-align:center;color:var(--text3);font-size:.88rem;padding:28px 0;}
+.cgm-ev-list{display:flex;flex-direction:column;gap:8px;}
+.cgm-ev-card{border-left:3px solid var(--cp);border-radius:0 8px 8px 0;background:var(--cl);padding:12px 14px;}
+.cgm-ev-row1{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;min-height:20px;}
+.cgm-ev-time{font-size:.82rem;font-weight:600;color:var(--text2);}
+.cgm-ev-title{font-size:.95rem;font-weight:700;color:var(--text1);margin-bottom:4px;}
+.cgm-ev-luogo{font-size:.78rem;color:var(--text2);}
+.cgm-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.cgm-badge-conv{background:#dcfce7;color:#166534;}
+.cgm-badge-noconv{background:var(--border);color:var(--text2);}
+.cgm-badge-wait{background:#fef9c3;color:#854d0e;}
+
+/* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
    ═══════════════════════════════════════════ */
 #pwa-splash{
@@ -2533,6 +2576,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <div class="cal-gw" id="calBody" style="margin-top:3px;"></div>
           <div id="calLegend" style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;font-size:.71rem;"></div>
         </div>
+        <!-- Vista mese Genitore/Giocatore (mobile + desktop centrato) -->
+        <div id="calGenitoreView"></div>
       </div>
 
       <!-- PAGAMENTI -->
@@ -3680,6 +3725,9 @@ let calFilterLeva = '__all';
 let calFilterTipo = '__all';
 let calWeekOffset = 0;
 let calWeekSelDay = null;
+let calGenYear = new Date().getFullYear();
+let calGenMonth = new Date().getMonth();
+let calGenSelDay = null;
 let _dayModalDate = null;
 let _deleteTargetId = null;
 let _editPendingData = null;
@@ -13107,6 +13155,7 @@ function buildCalActions(role) {
     bAdd.onclick = () => openEventoModal();
     el.appendChild(bAdd);
   }
+  if (_isCalGenitoreRole()) { renderCal(); return; } // genitore: skip filter dropdowns
   renderCalFilters();
   renderCal();
 }
@@ -13296,7 +13345,148 @@ function renderCalWeek() {
   }
 }
 
+// ── Calendario Genitore / Giocatore — vista mese + dettaglio giorno ──────────
+
+function _isCalGenitoreRole() {
+  return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+}
+
+function calGenMove(dir) {
+  calGenMonth += dir;
+  if (calGenMonth > 11) { calGenMonth = 0; calGenYear++; }
+  if (calGenMonth < 0)  { calGenMonth = 11; calGenYear--; }
+  renderCalGenitore();
+}
+
+function calGenGoToday() {
+  const now = new Date();
+  calGenYear = now.getFullYear();
+  calGenMonth = now.getMonth();
+  calGenSelDay = ymd(now);
+  renderCalGenitore();
+}
+
+function calGenSelectDay(dateStr) {
+  calGenSelDay = dateStr;
+  renderCalGenitore();
+  setTimeout(() => {
+    const el = document.getElementById('calGenDaySection');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
+}
+
+function renderCalGenitore() {
+  const page = document.getElementById('pg-calendario');
+  if (page) page.classList.add('cal-gen');
+  const container = document.getElementById('calGenitoreView');
+  if (!container) return;
+
+  if (!calGenSelDay) calGenSelDay = ymd(new Date());
+
+  const todayStr = ymd(new Date());
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = ymd(tomorrow);
+
+  // Events filtered by role (no UI filter overrides)
+  function genEventsForDay(ds) {
+    return events.filter(ev => {
+      if (!canSeeEvent(ev)) return false;
+      return eventOccursOn(ev, ds);
+    }).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  }
+
+  const MESI_FULL = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const DAY_HEADS = ['L','M','M','G','V','S','D'];
+  const DOW_UP = ['DOMENICA','LUNEDÌ','MARTEDÌ','MERCOLEDÌ','GIOVEDÌ','VENERDÌ','SABATO'];
+
+  const firstDow = new Date(calGenYear, calGenMonth, 1).getDay();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(calGenYear, calGenMonth + 1, 0).getDate();
+
+  // Grid
+  let cells = DAY_HEADS.map(h => `<div class="cgm-head">${h}</div>`).join('');
+  for (let i = 0; i < offset; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = calGenYear + '-' + pad2(calGenMonth + 1) + '-' + pad2(day);
+    const isToday = ds === todayStr;
+    const isSel = ds === calGenSelDay && !isToday;
+    const dayEvs = genEventsForDay(ds);
+    const hasAllen = dayEvs.some(ev => ev.type === 'allenamento' || ev.type === 'allenamento_portieri');
+    const hasMatch = dayEvs.some(ev => ['partita','campionato','torneo','amichevole'].includes(ev.type));
+    const hasOther = dayEvs.some(ev => !['allenamento','allenamento_portieri','partita','campionato','torneo','amichevole'].includes(ev.type));
+    const dots = (hasAllen ? '<span class="cgm-dot cgm-dot-tr"></span>' : '')
+               + (hasMatch ? '<span class="cgm-dot cgm-dot-mt"></span>' : '')
+               + (hasOther ? '<span class="cgm-dot cgm-dot-ev"></span>' : '');
+    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : isSel ? ' cgm-sel' : '');
+    cells += `<div class="cgm-cell" onclick="calGenSelectDay('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
+  }
+
+  const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
+  for (let i = 0; i < trailing; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
+
+  // Day detail header
+  const selD = parseYmd(calGenSelDay);
+  let dayLabel = DOW_UP[selD.getDay()] + ' ' + selD.getDate();
+  if (calGenSelDay === todayStr) dayLabel += ' · OGGI';
+  else if (calGenSelDay === tomorrowStr) dayLabel += ' · DOMANI';
+
+  // Event cards
+  const selEvs = genEventsForDay(calGenSelDay);
+  const myPls = (typeof getMyPlayers === 'function') ? getMyPlayers() : [];
+  let evCards = '';
+  if (!selEvs.length) {
+    evCards = '<div class="cgm-empty">Nessun evento per questo giorno</div>';
+  } else {
+    evCards = selEvs.map(ev => {
+      const tipo = getTipo(ev.type);
+      const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+      const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+      const icon = isAllen ? '🏃' : isMatch ? '⚽' : '📌';
+      const luogoHtml = ev.luogo ? `<div class="cgm-ev-luogo">📍 ${escapeHtml(ev.luogo)}</div>` : '';
+      let badge = '';
+      if (isMatch && ev.id && myPls.length) {
+        const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+        if (conv && conv.playerIds) {
+          badge = myPls.some(p => conv.playerIds.includes(p.id))
+            ? '<span class="cgm-badge cgm-badge-conv">🟢 CONVOCATO</span>'
+            : '<span class="cgm-badge cgm-badge-noconv">⚪ NON CONVOCATO</span>';
+        } else {
+          badge = '<span class="cgm-badge cgm-badge-wait">🟡 IN ATTESA</span>';
+        }
+      }
+      return `<div class="cgm-ev-card" style="border-left-color:${tipo.color};">
+        <div class="cgm-ev-row1"><span class="cgm-ev-time">${ev.start || ''}</span>${badge}</div>
+        <div class="cgm-ev-title">${icon} ${escapeHtml(ev.title || tipo.label)}</div>
+        ${luogoHtml}
+      </div>`;
+    }).join('');
+  }
+
+  container.innerHTML = `<div class="cgm-wrap">
+    <div class="cgm-header">
+      <div class="cgm-title">📅 ${MESI_FULL[calGenMonth]} ${calGenYear}</div>
+      <button class="cgm-today-btn" onclick="calGenGoToday()">Oggi</button>
+    </div>
+    <div class="cgm-nav">
+      <button class="cgm-nav-btn" onclick="calGenMove(-1)">‹</button>
+      <span class="cgm-nav-label">${MESI_FULL[calGenMonth]} ${calGenYear}</span>
+      <button class="cgm-nav-btn" onclick="calGenMove(1)">›</button>
+    </div>
+    <div class="cgm-grid">${cells}</div>
+    <div class="cgm-sep" id="calGenDaySection"></div>
+    <div class="cgm-day-label">${dayLabel}</div>
+    <div class="cgm-ev-list">${evCards}</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderCal() {
+  if (_isCalGenitoreRole()) { renderCalGenitore(); return; }
+  // Remove genitore mode if present (e.g. after role switch)
+  const _page = document.getElementById('pg-calendario');
+  if (_page) _page.classList.remove('cal-gen');
   // Mobile: use week view
   if (window.innerWidth <= 640) { renderCalWeek(); return; }
   const lab = document.getElementById('calLabel');
