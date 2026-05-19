@@ -279,6 +279,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .pc-mini-l{font-size:.58rem;color:var(--text3);}
 .pc-btns{display:flex;gap:4px;}
 
+/* CONV PLAYER ROW — custom checkbox */
+.conv-ck{appearance:none;-webkit-appearance:none;width:28px;height:28px;border:2px solid #ccc;border-radius:6px;background:white;flex-shrink:0;cursor:pointer;transition:background .15s,border-color .15s;}
+.conv-ck:checked{background:var(--cp);border-color:var(--cp);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpolyline points='2.5%2C8 6.5%2C12 13.5%2C4' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:70%;}
+.conv-ck:disabled{opacity:.4;cursor:not-allowed;}
+
 /* CHAT */
 .chat-wrap{display:grid;grid-template-columns:260px 1fr;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;height:calc(100vh - 180px);min-height:420px;box-shadow:var(--sh);}
 .cl{background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;}
@@ -3022,7 +3027,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="convFaseStatus" style="font-size:.72rem;color:var(--text2);margin-top:6px;"></div>
     </div>
     <div class="fl" style="margin-top:10px;">Giocatori da convocare <span id="convCounter" style="color:var(--text2);font-weight:500;"></span></div>
-    <div id="convRoster" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto;border:1.5px solid var(--border);border-radius:9px;padding:8px;margin-top:6px;background:var(--white);"></div>
+    <div id="convRoster" style="display:flex;flex-direction:column;max-height:320px;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;margin-top:6px;"></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveConvocazione()">📤 Salva e notifica</button>
       <button class="btn btn-r" id="btnDelConv" style="display:none;" onclick="deleteConvocazione()">🗑 Elimina</button>
@@ -7457,37 +7462,38 @@ function openConvocazioneModal(eventId) {
       const indisp = d && d.status === 'indisponibile';
       const isSel = selected.has(p.id) && !indisp;
       const calIndisp = playerIndispOnDate(p.id, ev.date);
-      const opac = indisp ? 'opacity:.65;' : '';
-      let statusHtml;
+
+      // RIGA B: status disponibilità
+      let statusSpan;
       if (indisp) {
-        statusHtml = `<span style="font-size:.72rem;color:var(--red);">⚠️ Indisponibile (famiglia)${d.motivo ? ' · '+escapeHtml(d.motivo) : ''}</span>`;
+        statusSpan = `<span style="color:#A32D2D;">Indisponibile (famiglia)${d.motivo ? ' — '+escapeHtml(d.motivo) : ''}</span>`;
       } else if (calIndisp) {
-        const tl = calIndisp.tipo ? _indispTipoLabel(calIndisp.tipo) : '⚠️ Indisponibile';
-        const fineStr = calIndisp.dataFine ? ' fino al ' + fmtDateShort(calIndisp.dataFine) : '';
-        const src = calIndisp.byStaff ? ' (staff)' : ' (famiglia)';
-        statusHtml = `<span style="font-size:.72rem;color:#b91c1c;font-weight:600;">${tl}${fineStr}${src}${calIndisp.motivo ? ' · '+escapeHtml(calIndisp.motivo) : ''}</span>`;
+        const _src = calIndisp.byStaff ? ' (staff)' : ' (famiglia)';
+        statusSpan = `<span style="color:#A32D2D;">Indisponibile${_src}</span>`;
       } else {
-        statusHtml = `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
+        statusSpan = `<span style="color:#0F6E56;">Disponibile</span>`;
       }
-      const _indispBtnTitle = calIndisp && calIndisp.byStaff ? 'Indisponibilità segnalata manualmente dal mister' : calIndisp ? 'Modifica indisponibilità' : 'Segna indisponibile';
-      const indispBtnHtml = canMarkIndisp
-        ? `<button class="btn btn-g btn-xs" style="flex-shrink:0;padding:3px 7px;font-size:.72rem;" title="${_indispBtnTitle}" onclick="openIndispModal(${p.id},${calIndisp ? calIndisp.id : 'null'})">⚠️</button>`
-        : '';
-      const _rowStyle = isSel
-        ? 'background:var(--cl);border:1.5px solid var(--cp);'
-        : calIndisp ? 'background:#fee2e2;border:1.5px solid transparent;'
-        : indisp    ? 'background:#fff7ed;border:1.5px solid transparent;'
-        : 'background:var(--bg);border:1.5px solid transparent;';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;${_rowStyle}${opac}margin-bottom:5px;">
-        <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:24px;height:24px;accent-color:var(--cp);cursor:${indisp?'not-allowed':'pointer'};flex-shrink:0;">
-        ${playerAv(p, 36, '50%', false)}
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:.87rem;line-height:1.3;">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="color:var(--text3);font-style:italic;font-weight:400;">"${escapeHtml(p.soprannome)}"</span>` : ''}</div>
-          <div style="font-size:.73rem;color:var(--text2);margin-bottom:2px;">${escapeHtml(p.leva)}</div>
-          <div>${statusHtml}</div>
+
+      // ⚠️ SOLO quando il mister ha segnalato manualmente l'indisponibilità
+      const manualIndispBtn = (canMarkIndisp && calIndisp && calIndisp.byStaff)
+        ? `<button onclick="event.preventDefault();event.stopPropagation();openIndispModal(${p.id},${calIndisp.id})" title="Indisponibilità segnalata manualmente dal mister" style="background:none;border:none;font-size:1.25rem;cursor:pointer;flex-shrink:0;padding:4px;line-height:1;">⚠️</button>`
+        : (canMarkIndisp && !calIndisp && !indisp)
+          ? `<button onclick="event.preventDefault();event.stopPropagation();openIndispModal(${p.id},null)" title="Segna indisponibile" style="background:none;border:none;font-size:.9rem;cursor:pointer;flex-shrink:0;padding:4px;line-height:1;color:var(--text3);">⊘</button>`
+          : '';
+
+      const rowBg = isSel ? 'var(--cl)' : calIndisp ? '#fee2e2' : indisp ? '#fff7ed' : 'white';
+      const rowOpacity = indisp ? 'opacity:.7;' : '';
+      const ini = ((p.nome||'?')[0]+(p.cogn||'?')[0]).toUpperCase();
+
+      return `<label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid rgba(0,0,0,.08);background:${rowBg};min-height:64px;box-sizing:border-box;width:100%;cursor:${indisp?'default':'pointer'};${rowOpacity}">
+        <input type="checkbox" class="conv-ck" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()">
+        <div style="width:40px;height:40px;border-radius:50%;background:${ruoloColor(p.ruolo||'')};display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px;flex-shrink:0;">${ini}</div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow:hidden;">
+          <div style="font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="font-weight:400;font-size:13px;color:var(--text2);">"${escapeHtml(p.soprannome)}"</span>` : ''}</div>
+          <div style="font-size:12px;color:var(--text2);">${escapeHtml(p.leva)} · ${statusSpan}</div>
         </div>
-        ${indispBtnHtml}
-      </div>`;
+        ${manualIndispBtn}
+      </label>`;
     }).join('');
   }
   updateConvCounter();
@@ -16268,10 +16274,15 @@ function openTorneoConvocatiModal(torneoId) {
   } else {
     list.innerHTML = levaPlayers.map(p => {
       const chk = convocatiSet.has(p.id) ? 'checked' : '';
-      const num = p.numero ? `<span style="font-size:.73rem;color:var(--text3);margin-left:4px;">#${p.numero}</span>` : '';
-      return `<label style="display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;border:1px solid var(--border);background:var(--white);cursor:pointer;">
-        <input type="checkbox" value="${p.id}" ${chk} style="accent-color:var(--cp);width:17px;height:17px;cursor:pointer;flex-shrink:0;">
-        <span style="font-weight:600;font-size:.86rem;">${escapeHtml(p.nome + ' ' + p.cogn)}${num}</span>
+      const ini = ((p.nome||'?')[0]+(p.cogn||'?')[0]).toUpperCase();
+      const rowBg = convocatiSet.has(p.id) ? 'var(--cl)' : 'white';
+      return `<label style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:.5px solid rgba(0,0,0,.08);background:${rowBg};min-height:64px;box-sizing:border-box;width:100%;cursor:pointer;">
+        <input type="checkbox" class="conv-ck" value="${p.id}" ${chk} onchange="this.closest('label').style.background=this.checked?'var(--cl)':'white'">
+        <div style="width:40px;height:40px;border-radius:50%;background:${ruoloColor(p.ruolo||'')};display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:13px;flex-shrink:0;">${ini}</div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow:hidden;">
+          <div style="font-weight:500;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">${escapeHtml(p.nome+' '+p.cogn)}${p.num ? ` <span style="font-weight:400;font-size:13px;color:var(--text2);">#${p.num}</span>` : ''}</div>
+          <div style="font-size:12px;color:var(--text2);">${escapeHtml(p.leva||p.ruolo||'')}</div>
+        </div>
       </label>`;
     }).join('');
   }
@@ -21466,7 +21477,7 @@ async function doRejoinSocieta() {
     <input type="hidden" id="tcTorneoId">
     <div id="tcInfo" style="font-weight:700;font-size:.86rem;color:var(--text);margin-bottom:6px;"></div>
     <div style="font-size:.75rem;color:var(--text2);margin-bottom:10px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:7px;padding:7px 10px;">Solo i genitori/nonni dei giocatori selezionati accederanno alla chat di questo torneo.</div>
-    <div id="tcPlayerList" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;padding:2px;"></div>
+    <div id="tcPlayerList" style="display:flex;flex-direction:column;max-height:340px;overflow-y:auto;border:1.5px solid var(--border);border-radius:9px;margin-top:6px;"></div>
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mTorneoConvocati')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveTorneoConvocati()">💾 Salva convocati</button>
