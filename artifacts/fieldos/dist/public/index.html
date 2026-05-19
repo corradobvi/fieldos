@@ -4520,7 +4520,7 @@ function bootApp(user) {
     const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
     applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
     // Mister/Allenatore: home operativa diretta, non la panoramica società
-    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin') ? 'dashboard' : 'panoramica');
+    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
@@ -11652,135 +11652,183 @@ function buildMobDashboard(role, c) {
     </div>`;
 }
 
+// ─── Selettore figlio genitore ────────────────────────────────────────────────
+function openGenFiglioSelector(){
+  var figliNames=getFigliOf(me);
+  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  if(figliPlayers.length<2)return;
+  if(document.getElementById('genFiglioSelOv'))return;
+  var _scKey='gen_sel_'+(me?me.id:0);
+  var _savedId=localStorage.getItem(_scKey)||String((figliPlayers[0]||{}).id||'');
+  var ov=document.createElement('div');
+  ov.id='genFiglioSelOv';ov.className='sc-picker-ov';
+  var items=figliPlayers.map(function(p){
+    var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    var isSel=String(p.id)===_savedId;
+    return '<div class="sc-pi'+(isSel?' sel':'')+'" onclick="selectGenFiglio('+p.id+')" style="display:flex;align-items:center;gap:12px;padding:13px 14px;">'
+      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">'+escapeHtml(p.nome+' '+p.cogn)+'</div><div style="font-size:.74rem;color:var(--text2);">'+escapeHtml(p.leva||'')+(p.num?' · #'+p.num:'')+'</div></div>'
+      +(isSel?'<span style="color:var(--cp);font-weight:900;font-size:1.1rem;">✓</span>':'')
+      +'</div>';
+  }).join('');
+  ov.innerHTML='<div class="sc-picker-sheet">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
+    +'<div style="font-weight:800;font-size:1rem;">👥 Seleziona figlio</div>'
+    +'<button style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;color:var(--text2);line-height:1;" onclick="document.getElementById(\'genFiglioSelOv\').remove()">✕</button>'
+    +'</div><div style="display:flex;flex-direction:column;gap:6px;">'+items+'</div>'
+    +'</div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+function selectGenFiglio(playerId){
+  var _scKey='gen_sel_'+(me?me.id:0);
+  localStorage.setItem(_scKey,String(playerId));
+  var ov=document.getElementById('genFiglioSelOv');if(ov)ov.remove();
+  if(me)buildDashboard(me.role);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildMobDashboardGenitore(c) {
-  const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-  const todayStr = ymd(new Date());
+  var todayStr=ymd(new Date());
+  var figliNames=getFigliOf(me);
+  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
 
-  const figliNames = getFigliOf(me);
-  const figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
-  const p = figliPlayers[0];
+  // Selezione figlio attivo (da localStorage se ≥2 figli)
+  var _genScKey='gen_sel_'+(me?me.id:0);
+  var selectedPlayer=figliPlayers[0];
+  if(figliPlayers.length>=2){
+    var _savedId=localStorage.getItem(_genScKey);
+    if(_savedId){var _sf=figliPlayers.find(function(p){return String(p.id)===_savedId;});if(_sf)selectedPlayer=_sf;}
+  }
+  var p=selectedPlayer;
 
-  // — Hero card figlio —
-  let heroHtml = '';
-  if (p) {
-    const ms = playerMatchStats(p.id, p.leva);
-    const totalGol = ms.a.gol + ms.c.gol + ms.t.gol;
-    const totalAss = ms.a.assist + ms.c.assist + ms.t.assist;
-    const s = calcStats(p);
-    const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
-    heroHtml = `<div class="mob-fam-card">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div class="mob-fam-av">${ini}</div>
-        <div style="flex:1;">
-          <div class="mob-fam-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-          <div class="mob-fam-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
-        </div>
-      </div>
-      <div class="mob-fam-stats">
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalGol}</div><div class="mob-fam-stat-l">Gol</div></div>
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalAss}</div><div class="mob-fam-stat-l">Assist</div></div>
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${s.percAll}<span style="font-size:.85rem;">%</span></div><div class="mob-fam-stat-l">Presenze</div></div>
-      </div>
-      <div class="mob-fam-num">#${p.num||'—'}</div>
-    </div>`;
-  } else {
-    heroHtml = `<div class="mob-dash-card" style="text-align:center;padding:28px;">
-      <div style="font-size:2rem;margin-bottom:8px;">👤</div>
-      <div style="font-size:1rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
-      <div style="font-size:.82rem;color:var(--text3);margin-top:4px;">Chiedi all'amministratore di collegare il profilo.</div>
-    </div>`;
+  // ── CARD 1: Selettore figlio (solo se ≥2) ────────────────────────────────
+  var selectorHtml='';
+  if(figliPlayers.length>=2&&p){
+    var _sIni=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    selectorHtml='<div class="mob-dash-card" style="padding:11px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;" onclick="openGenFiglioSelector()">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:34px;height:34px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;">'+_sIni+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">'+escapeHtml(p.nome+' '+p.cogn)+'</div><div style="font-size:.73rem;color:var(--text2);">'+escapeHtml(p.leva||'')+'</div></div>'
+      +'<span style="font-size:.78rem;color:var(--cp);font-weight:600;flex-shrink:0;">Cambia ▾</span>'
+      +'</div></div>';
   }
 
-  // — Quote da pagare —
-  let quotaHtml = '';
-  if (p) {
-    const myPlayers = getMyPlayers();
-    const myIds = myPlayers.map(x => x.id);
-    const pending = quotes.filter(q => myIds.includes(q.playerId) && q.stato !== 'pagato');
-    const totDovuto = pending.reduce((s, q) => s + (Number(q.importo) || 0), 0);
-    if (totDovuto > 0) {
-      quotaHtml = `<div class="mob-quota-banner" onclick="goTo('pagamenti')">
-        <div class="mob-quota-ico">💰</div>
-        <div class="mob-quota-body">
-          <div class="mob-quota-label">Quote da pagare</div>
-          <div class="mob-quota-sub">${pending.length} rata${pending.length !== 1 ? 'e' : ''} in sospeso</div>
-        </div>
-        <div class="mob-quota-amt">€${totDovuto}</div>
-      </div>`;
+  // ── CARD 2: Profilo figlio ────────────────────────────────────────────────
+  var heroHtml2='';
+  if(p){
+    var ms=playerMatchStats(p.id,p.leva);
+    var totalGol=ms.a.gol+ms.c.gol+ms.t.gol;
+    var totalAss=ms.a.assist+ms.c.assist+ms.t.assist;
+    var s=calcStats(p);
+    var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+      +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(p.nome+' '+p.cogn)+'</div>'
+      +'<div style="font-size:.76rem;opacity:.85;margin-top:3px;">'+escapeHtml(p.ruolo||'Giocatore')+(p.num?' · #'+p.num:'')+' · '+escapeHtml(p.leva||'')+'</div>'
+      +'</div></div>'
+      +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
+      +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalAss+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Assist</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Presenze</div>'
+      +'</div>'
+      +'</div></div>';
+  } else {
+    heroHtml2='<div class="mob-dash-card" style="text-align:center;padding:28px;">'
+      +'<div style="font-size:2rem;margin-bottom:8px;">👤</div>'
+      +'<div style="font-size:1rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>'
+      +'<div style="font-size:.82rem;color:var(--text3);margin-top:4px;">Chiedi all\'allenatore di collegare il profilo.</div>'
+      +'</div>';
+  }
+
+  // ── CARD 3: Prossimo impegno ─────────────────────────────────────────────
+  var lv=p?p.leva:null;
+  var nxtEv=lv?_misterNextAnyEvent(lv):null;
+  var impegnoHtml='';
+  if(nxtEv){
+    var hDFN=nxtEv.daysFromNow;
+    var isTrG=nxtEv.isTraining;
+    var cdStr3=hDFN===0?'OGG':hDFN===1?'DOM':String(hDFN);
+    var cdSub3=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+    var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
+    var convBadge3='';
+    if(!isTrG){
+      var convG=nxtEv.id?getConvocazione(nxtEv.id):null;
+      if(convG&&convG.playerIds&&p){
+        convBadge3=convG.playerIds.includes(p.id)
+          ?'<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>'
+          :'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--border);color:var(--text2);border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">⚪ NON CONVOCATO</span>';
+      } else {
+        convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟡 IN ATTESA DI CONVOCAZIONE</span>';
+      }
     }
-  }
-
-  // — Prossimo impegno —
-  const childLeve = p ? [p.leva].filter(Boolean) : [];
-  const _allNextMob = panoAllNextMatchesAcrossLeve(childLeve);
-  const nextMatches = isFamily()
-    ? _allNextMob.filter(m => getVisibilitaGenitore(m) !== 'none')
-    : _allNextMob;
-  const nextM = nextMatches[0];
-
-  let impegnoHtml = '';
-  if (nextM) {
-    const d = parseYmd(nextM.data);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const diffDays = Math.round((d - today) / 86400000);
-    const tipoLabel = nextM.tipo === 'campionato' ? '🏅 Campionato' : nextM.tipo === 'torneo' ? ('🏆 ' + (nextM.torneoNome||'Torneo')) : '🤝 Amichevole';
-    const luogoLabel = nextM.casa ? '🏠 Casa' : '✈️ Trasferta';
-    const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
-    const mobFase = isFamily() ? getVisibilitaGenitore(nextM) : 'fase2';
-    const mobInfoHtml = mobFase === 'fase1'
-      ? `<div class="mob-impegno-title">⚽ ${tipoLabel}</div><div class="mob-impegno-meta">⏳ Dettagli disponibili a breve</div>`
-      : `<div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div><div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div><div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>`;
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
-      <div class="mob-impegno-hd">Prossimo impegno <span style="color:var(--cp);font-size:.65rem;">${MESI[d.getMonth()].toUpperCase()}</span></div>
-      <div class="mob-impegno-row">
-        <div class="mob-impegno-cd">
-          <div class="mob-impegno-cd-n">${d.getDate()}</div>
-          <div class="mob-impegno-cd-l">${MESI[d.getMonth()]}</div>
-        </div>
-        <div class="mob-impegno-info">${mobInfoHtml}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);text-align:center;flex-shrink:0;background:var(--cl);border-radius:10px;padding:6px 10px;">${cdStr}</div>
-      </div>
-    </div>`;
+    impegnoHtml='<div class="mob-dash-card" onclick="goTo(\'calendario\')" style="-webkit-tap-highlight-color:transparent;">'
+      +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
+      +'<div style="display:flex;align-items:flex-start;gap:14px;">'
+      +'<div style="flex-shrink:0;text-align:center;min-width:44px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:2.1rem;font-weight:900;line-height:1;color:var(--cp);">'+cdStr3+'</div>'
+      +'<div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">'+cdSub3+'</div>'
+      +'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-weight:700;font-size:.93rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(nxtEv.title)+'</div>'
+      +'<div style="font-size:.76rem;color:var(--text2);margin-top:3px;">'+evType3+(nxtEv.start?' · '+nxtEv.start:'')+(nxtEv.luogo?' · '+escapeHtml(nxtEv.luogo):'')+'</div>'
+      +convBadge3
+      +'</div></div></div>';
   } else {
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
-      <div class="mob-impegno-hd">Prossimo impegno</div>
-      <div style="font-size:.88rem;color:var(--text2);padding:4px 0;">Nessun impegno programmato</div>
-    </div>`;
+    impegnoHtml='<div class="mob-dash-card">'
+      +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
+      +'<div style="font-size:.84rem;color:var(--text2);">Nessun impegno in programma</div>'
+      +'</div>';
   }
 
-  // — Ultimo avviso non letto —
-  const myNotif = notifiche.filter(n => n.userId === me.id && !n.read).sort((a, b) => (b.ts||0) - (a.ts||0));
-  let avvisoHtml = '';
-  if (myNotif.length) {
-    const n = myNotif[0];
-    const isUrgent = n.tipo === 'urgente' || n.priority === 'high';
-    const isEvento = n.tipo === 'evento';
-    const icBg = isUrgent ? '#fef2f2' : isEvento ? '#fffbeb' : '#eff6ff';
-    const icColor = isUrgent ? '#dc2626' : isEvento ? '#d97706' : '#2563eb';
-    const ic = isUrgent ? '🚨' : isEvento ? '🎉' : '📣';
-    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
-      <div class="mob-avviso-ic" style="background:${icBg};color:${icColor};">${ic}</div>
-      <div class="mob-avviso-body">
-        <div class="mob-avviso-title">${escapeHtml((n.titolo||n.title||n.message||n.text||'').slice(0,60))}</div>
-        <div class="mob-avviso-meta">${panoFmtDateShort(n.date||n.createdAt||'')}${myNotif.length > 1 ? ' · ' + myNotif.length + ' non letti' : ''}</div>
-      </div>
-      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
-    </div>`;
-  } else {
-    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
-      <div class="mob-avviso-ic" style="background:#f0fdf4;color:#16a34a;">✓</div>
-      <div class="mob-avviso-body">
-        <div class="mob-avviso-title" style="color:var(--text2);">Nessun avviso non letto</div>
-        <div class="mob-avviso-meta">Tocca per vedere tutti gli avvisi</div>
-      </div>
-      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
-    </div>`;
-  }
+  // ── CARD 4: Da fare (solo se presente) ───────────────────────────────────
+  var todoItems3=[];
+  var visScopes3=commVisibleScopes().map(function(s){return s.id;});
+  var commN3=comunicazioni.filter(function(cv){return visScopes3.includes(cv.scope)&&!commIsRead(cv);}).length;
+  if(commN3>0)todoItems3.push({ic:'📣',col:'var(--cp)',text:commN3+' comunicazion'+(commN3>1?'i':'e')+' non lett'+(commN3>1?'e':'a'),act:"goTo('comunicazioni')"});
+  var chatN3=(typeof chatTotalUnread==='function')?chatTotalUnread(me):0;
+  if(chatN3>0)todoItems3.push({ic:'💬',col:'var(--cp)',text:chatN3+' messaggio'+(chatN3>1?'i':'')+' non lett'+(chatN3>1?'i':'o'),act:"goTo('chat')"});
+  var dafareHtml3=todoItems3.length
+    ?'<div class="mob-dash-card"><div class="mob-dash-card-hd">🔔 Da fare</div><div style="display:flex;flex-direction:column;gap:8px;">'+todoItems3.map(function(t){return '<div class="mi-todo-row" style="border-color:'+t.col+';" onclick="'+t.act+'"><span style="font-size:1.05rem;flex-shrink:0;">'+t.ic+'</span><div style="flex:1;font-size:.86rem;font-weight:600;">'+t.text+'</div><span style="color:var(--text3);font-size:1.1rem;">›</span></div>';}).join('')+'</div></div>'
+    :'';
 
-  const avvisaBtn = canAvvisaAssenza()
-    ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;margin-bottom:0;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
-    : '';
-  c.innerHTML = pwaBannerHtml() + heroHtml + avvisaBtn + quotaHtml + impegnoHtml + avvisoHtml;
+  // ── CARD 5: Settimana ────────────────────────────────────────────────────
+  var _GSD3=['lun','mar','mer','gio','ven','sab','dom'];
+  var _todD3=new Date();_todD3.setHours(0,0,0,0);
+  var _dow3=_todD3.getDay();
+  var _mon3=new Date(_todD3);_mon3.setDate(_todD3.getDate()-(_dow3===0?6:_dow3-1));
+  var _isTrD3=function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  var _isMtD3=function(ev){return ev.type==='campionato'||ev.type==='partita'||ev.type==='torneo'||ev.type==='amichevole';};
+  var weekRowsH3='';
+  for(var wi3=0;wi3<7;wi3++){
+    var wd3=new Date(_mon3);wd3.setDate(_mon3.getDate()+wi3);
+    var wds3=ymd(wd3);var isT5=wds3===todayStr;
+    var wevs3=lv?events.filter(function(ev){return(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,wds3);}):[];
+    var hasTr5=wevs3.some(_isTrD3);var hasM5=wevs3.some(_isMtD3);
+    var dots5=(hasTr5?'<span class="mi-week-dot" style="background:var(--green);"></span>':'')+(hasM5?'<span class="mi-week-dot" style="background:var(--cp);"></span>':'');
+    var wtc5=isT5?'var(--cp)':'var(--text1)';var wfw5=isT5?'800':'400';
+    var evLbl5=wevs3.map(function(ev){return escapeHtml((ev.title||ev.type||'').slice(0,16));}).join(', ');
+    weekRowsH3+='<div class="mi-week-row'+(isT5?' today':'')+'" onclick="goTo(\'calendario\')"><div class="mi-week-day" style="color:'+wtc5+';font-weight:'+wfw5+';">'+_GSD3[wi3]+'</div><div class="mi-week-num" style="color:'+wtc5+';font-weight:'+wfw5+';">'+wd3.getDate()+'</div><div class="mi-week-dots">'+dots5+'</div><div class="mi-week-label">'+evLbl5+'</div></div>';
+  }
+  var settimanaHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')" style="cursor:pointer;">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+(weekRowsH3||'<div style="font-size:.82rem;color:var(--text2);">Nessun evento questa settimana.</div>')+'</div></div>';
+
+  // ── CARD 6: Segnala assenza ───────────────────────────────────────────────
+  var avvisaBtn3=canAvvisaAssenza()
+    ?'<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="openAvvisaModal()">📵 Segnala assenza</button>'
+    :'';
+
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+avvisaBtn3;
 }
 
 function buildDashboard(role) {
@@ -12076,7 +12124,11 @@ function buildDashboard(role) {
   } else if (role === 'genitore' || role === 'nonno') {
     const figliNames = getFigliOf(me);
     const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
-    const childLeve = [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
+    // Rispetta figlio selezionato da localStorage
+    const _dGenKey='gen_sel_'+(me?me.id:0);
+    const _dSavedId=localStorage.getItem(_dGenKey);
+    const _dSelP=(_dSavedId&&figliPlayers.find(p=>String(p.id)===_dSavedId))||figliPlayers[0]||null;
+    const childLeve = _dSelP ? [_dSelP.leva].filter(Boolean) : [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
     const nextMatchEv = childLeve.length ? panoNextMatchForLeva(childLeve[0]) : null;
     const _nextFase = nextMatchEv ? getVisibilitaGenitore(nextMatchEv, childLeve[0]||'') : 'none';
     const nextMatchEvForDisplay = _nextFase !== 'none' ? nextMatchEv : null;
@@ -12100,7 +12152,7 @@ function buildDashboard(role) {
       const convBadge = nextMatchEv
         ? (isConv ? `<span class="pill pill-g" style="flex-shrink:0;">✅ Convocato</span>` : (conv ? `<span class="pill" style="background:var(--border);color:var(--text2);flex-shrink:0;">Non conv.</span>` : ''))
         : '';
-      return `<div style="background:linear-gradient(135deg,var(--cp),#0f5fb5);color:#fff;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;">
+      return `<div style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
           <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-size:1.2rem;font-weight:900;flex-shrink:0;">${escapeHtml((p.nome.charAt(0)||'')+(p.cogn.charAt(0)||''))}</div>
           <div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;line-height:1.1;">${escapeHtml(p.nome+' '+p.cogn)}</div>
