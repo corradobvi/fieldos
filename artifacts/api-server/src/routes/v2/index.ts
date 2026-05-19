@@ -18,7 +18,8 @@ import migrateRouter       from "./migrate";
 import stripeRouter        from "./stripe";
 import demoWaRouter        from "./demo-wa";
 import superadminRouter    from "./superadmin";
-import accountRouter       from "./account";
+import accountRouter            from "./account";
+import notifPrefsRouter        from "./notification-preferences";
 
 const router = Router();
 
@@ -115,5 +116,6 @@ router.use(stripeRouter);
 router.use(demoWaRouter);
 router.use(superadminRouter);
 router.use(accountRouter);
+router.use(notifPrefsRouter);
 
 export default router;

@@ -60,7 +60,7 @@ router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "d
         body:  _pushBody,
         url:   "/comunicazioni",
         tag:   "comunicazione",
-      }))
+      }, "notify_comunicazioni"))
       .catch(e => logger.warn({ err: e }, "comunicazione push error"));
 
     return res.status(201).json({ id: result.insertId });

@@ -73,7 +73,7 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
         body:  _msgPreview,
         url:   "/chat",
         tag:   `chat_${chatId}`,
-      }))
+      }, "notify_chat"))
       .catch(e => logger.warn({ err: e }, "chat push error"));
 
     return res.status(201).json({ id: result.insertId });

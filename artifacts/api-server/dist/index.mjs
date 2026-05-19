@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router28;
+    module.exports = Router29;
     module.exports.Route = Route;
-    function Router28(options) {
-      if (!(this instanceof Router28)) {
-        return new Router28(options);
+    function Router29(options) {
+      if (!(this instanceof Router29)) {
+        return new Router29(options);
       }
       const opts = options || {};
-      function router28(req, res, next) {
-        router28.handle(req, res, next);
+      function router29(req, res, next) {
+        router29.handle(req, res, next);
       }
-      Object.setPrototypeOf(router28, this);
-      router28.caseSensitive = opts.caseSensitive;
-      router28.mergeParams = opts.mergeParams;
-      router28.params = {};
-      router28.strict = opts.strict;
-      router28.stack = [];
-      return router28;
+      Object.setPrototypeOf(router29, this);
+      router29.caseSensitive = opts.caseSensitive;
+      router29.mergeParams = opts.mergeParams;
+      router29.params = {};
+      router29.strict = opts.strict;
+      router29.stack = [];
+      return router29;
     }
-    Router28.prototype = function() {
+    Router29.prototype = function() {
     };
-    Router28.prototype.param = function param(name, fn) {
+    Router29.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router28.prototype.handle = function handle(req, res, callback) {
+    Router29.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router28.prototype.use = function use(handler) {
+    Router29.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router28.prototype.route = function route(path2) {
+    Router29.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router28.prototype[method] = function(path2) {
+      Router29.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router28 = require_router();
+    var Router29 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router28 = null;
+      var router29 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router28 === null) {
-            router28 = new Router28({
+          if (router29 === null) {
+            router29 = new Router29({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router28;
+          return router29;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router28 = this.router;
+      var router29 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router28.use(path2, fn2);
+          return router29.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router28.use(path2, function mounted_app(req, res, next) {
+        router29.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router28 = require_router();
+    var Router29 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router28.Route;
-    exports.Router = Router28;
+    exports.Route = Router29.Route;
+    exports.Router = Router29;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -50574,14 +50574,14 @@ var require_src2 = __commonJS({
 });
 
 // src/app.ts
-var import_express28 = __toESM(require_express2(), 1);
+var import_express29 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express27 = __toESM(require_express2(), 1);
+var import_express28 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -61701,7 +61701,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express26 = __toESM(require_express2(), 1);
+var import_express27 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -61950,7 +61950,15 @@ ALTER TABLE players ADD COLUMN parental_consent_given_by INT NULL;
 ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
-ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0
+ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS user_notification_preferences (
+  user_id INT PRIMARY KEY,
+  notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,
+  notify_comunicazioni TINYINT(1) NOT NULL DEFAULT 1,
+  notify_chat TINYINT(1) NOT NULL DEFAULT 1,
+  notify_reminders TINYINT(1) NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -62883,15 +62891,32 @@ function _initVapid() {
   }
   return true;
 }
-async function sendPushToUsers(userIds, societyKey, payload) {
-  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
-  let rows = [];
+async function filterByPref(userIds, prefKey) {
+  if (!userIds.length) return [];
   try {
     const placeholders = userIds.map(() => "?").join(",");
+    const [rows] = await pool.execute(
+      `SELECT user_id FROM user_notification_preferences
+       WHERE user_id IN (${placeholders}) AND \`${prefKey}\` = 0`,
+      userIds
+    );
+    const optedOut = new Set(rows.map((r) => r.user_id));
+    return userIds.filter((id) => !optedOut.has(id));
+  } catch {
+    return userIds;
+  }
+}
+async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
+  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
+  const filteredIds = prefKey ? await filterByPref(userIds, prefKey) : userIds;
+  if (!filteredIds.length) return { sent: 0, errors: 0 };
+  let rows = [];
+  try {
+    const placeholders = filteredIds.map(() => "?").join(",");
     const [r] = await pool.execute(
       `SELECT user_id, subscription FROM push_subscriptions
        WHERE user_id IN (${placeholders}) AND society_key = ?`,
-      [...userIds, societyKey]
+      [...filteredIds, societyKey]
     );
     rows = r;
   } catch (e) {
@@ -63489,7 +63514,7 @@ router16.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, r
         body: `${titolo} \u2014 ${_where}`.slice(0, 100),
         url: "/calendario",
         tag: "convocazione"
-      })).catch((e) => logger.warn({ err: e }, "convocazione push error"));
+      }, "notify_convocazioni")).catch((e) => logger.warn({ err: e }, "convocazione push error"));
     }
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
@@ -63697,7 +63722,7 @@ router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", 
       body: _pushBody,
       url: "/comunicazioni",
       tag: "comunicazione"
-    })).catch((e) => logger.warn({ err: e }, "comunicazione push error"));
+    }, "notify_comunicazioni")).catch((e) => logger.warn({ err: e }, "comunicazione push error"));
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
     logger.error({ err: e }, "POST comunicazione error");
@@ -63786,7 +63811,7 @@ router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       body: _msgPreview,
       url: "/chat",
       tag: `chat_${chatId}`
-    })).catch((e) => logger.warn({ err: e }, "chat push error"));
+    }, "notify_chat")).catch((e) => logger.warn({ err: e }, "chat push error"));
     return res.status(201).json({ id: result.insertId });
   } catch (e) {
     logger.error({ err: e }, "POST chat message error");
@@ -65330,8 +65355,70 @@ router25.put("/account/marketing-consent", requireAuth, async (req, res) => {
 });
 var account_default = router25;
 
-// src/routes/v2/index.ts
+// src/routes/v2/notification-preferences.ts
+var import_express26 = __toESM(require_express2(), 1);
 var router26 = (0, import_express26.Router)();
+var VALID_KEYS = ["notify_convocazioni", "notify_comunicazioni", "notify_chat", "notify_reminders"];
+async function ensureRow(userId) {
+  await pool.execute(
+    `INSERT IGNORE INTO user_notification_preferences (user_id) VALUES (?)`,
+    [userId]
+  );
+}
+router26.get("/users/me/notification-preferences", requireAuth, async (req, res) => {
+  const { userId } = req.jwtUser;
+  try {
+    await ensureRow(userId);
+    const [rows] = await pool.execute(
+      `SELECT notify_convocazioni, notify_comunicazioni, notify_chat, notify_reminders
+       FROM user_notification_preferences WHERE user_id = ?`,
+      [userId]
+    );
+    if (!rows.length) {
+      return res.json({ notify_convocazioni: true, notify_comunicazioni: true, notify_chat: true, notify_reminders: true });
+    }
+    const r = rows[0];
+    return res.json({
+      notify_convocazioni: !!r.notify_convocazioni,
+      notify_comunicazioni: !!r.notify_comunicazioni,
+      notify_chat: !!r.notify_chat,
+      notify_reminders: !!r.notify_reminders
+    });
+  } catch (e) {
+    logger.error({ err: e }, "GET notification-preferences error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router26.put("/users/me/notification-preferences", requireAuth, async (req, res) => {
+  const { userId } = req.jwtUser;
+  const body = req.body;
+  const updates = {};
+  for (const key of VALID_KEYS) {
+    if (key in body && typeof body[key] === "boolean") {
+      updates[key] = body[key];
+    }
+  }
+  if (!Object.keys(updates).length) {
+    return res.status(400).json({ error: "no_valid_fields" });
+  }
+  try {
+    await ensureRow(userId);
+    const setClauses = Object.keys(updates).map((k) => `\`${k}\` = ?`).join(", ");
+    const vals = [...Object.values(updates).map((v) => v ? 1 : 0), userId];
+    await pool.execute(
+      `UPDATE user_notification_preferences SET ${setClauses} WHERE user_id = ?`,
+      vals
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT notification-preferences error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var notification_preferences_default = router26;
+
+// src/routes/v2/index.ts
+var router27 = (0, import_express27.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -65370,7 +65457,7 @@ async function ensureSchema() {
   _schemaReady = true;
   logger.info("v2: schema ready");
 }
-router26.use(async (_req, _res, next) => {
+router27.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -65379,7 +65466,7 @@ router26.use(async (_req, _res, next) => {
     next();
   }
 });
-router26.get("/schema-info", async (_req, res) => {
+router27.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -65397,40 +65484,41 @@ router26.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router26.use(auth_default2);
-router26.use(self_register_default);
-router26.use(society_default);
-router26.use(leve_default);
-router26.use(minors_default);
-router26.use(players_default);
-router26.use(users_default);
-router26.use(events_default);
-router26.use(presenze_default);
-router26.use(comunicazioni_default);
-router26.use(chat_default);
-router26.use(quote_default);
-router26.use(migrate_default);
-router26.use(stripe_default);
-router26.use(demo_wa_default);
-router26.use(superadmin_default);
-router26.use(account_default);
-var v2_default = router26;
+router27.use(auth_default2);
+router27.use(self_register_default);
+router27.use(society_default);
+router27.use(leve_default);
+router27.use(minors_default);
+router27.use(players_default);
+router27.use(users_default);
+router27.use(events_default);
+router27.use(presenze_default);
+router27.use(comunicazioni_default);
+router27.use(chat_default);
+router27.use(quote_default);
+router27.use(migrate_default);
+router27.use(stripe_default);
+router27.use(demo_wa_default);
+router27.use(superadmin_default);
+router27.use(account_default);
+router27.use(notification_preferences_default);
+var v2_default = router27;
 
 // src/routes/index.ts
-var router27 = (0, import_express27.Router)();
-router27.use(health_default);
-router27.use(login_default);
-router27.use(auth_default);
-router27.use(state_default);
-router27.use(assist_default);
-router27.use(push_default);
-router27.use(upload_default);
-router27.use(public_default);
-router27.use("/v2", v2_default);
-var routes_default = router27;
+var router28 = (0, import_express28.Router)();
+router28.use(health_default);
+router28.use(login_default);
+router28.use(auth_default);
+router28.use(state_default);
+router28.use(assist_default);
+router28.use(push_default);
+router28.use(upload_default);
+router28.use(public_default);
+router28.use("/v2", v2_default);
+var routes_default = router28;
 
 // src/app.ts
-var app = (0, import_express28.default)();
+var app = (0, import_express29.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -65451,17 +65539,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express28.default.json({
+app.use(import_express29.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express28.default.urlencoded({ extended: true }));
+app.use(import_express29.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express28.default.static(staticDir));
+  app.use(import_express29.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });

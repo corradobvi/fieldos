@@ -846,6 +846,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-panel.active{display:block;}
 .ac-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
 .ac-card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:16px;}
+.ac-toggle{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;}.ac-toggle input{opacity:0;width:0;height:0;}.ac-toggle-sl{position:absolute;inset:0;background:#ccc;border-radius:26px;cursor:pointer;transition:.25s;}.ac-toggle input:checked+.ac-toggle-sl{background:var(--cp);}.ac-toggle-sl:before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;}.ac-toggle input:checked+.ac-toggle-sl:before{transform:translateX(20px);}
 .ac-av-wrap{display:flex;justify-content:center;margin-bottom:10px;}
 .ac-av{width:68px;height:68px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .ac-role-lbl{text-align:center;margin-bottom:18px;}
@@ -2242,24 +2243,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
 
-      <!-- ── Panel: Comunicazioni ── -->
+      <!-- ── Panel: Notifiche ── -->
       <div class="ac-panel" id="acPanelComunicazioni">
         <div class="ac-card">
-          <div class="ac-card-title">💬 Comunicazioni e Privacy</div>
-          <p style="font-size:.85rem;color:var(--text2);margin:0 0 16px;line-height:1.55;">Gestisci le tue preferenze di comunicazione. Puoi modificare il consenso in qualsiasi momento.</p>
+          <div class="ac-card-title">🔔 Preferenze notifiche push</div>
+          <p style="font-size:.85rem;color:var(--text2);margin:0 0 16px;line-height:1.55;">Scegli quali notifiche ricevere sul tuo dispositivo. Le modifiche vengono salvate automaticamente.</p>
           <div id="acCommLoading" style="text-align:center;padding:16px;font-size:.85rem;color:var(--text2);">⏳ Caricamento…</div>
           <div id="acCommContent" style="display:none;">
-            <label style="display:flex;align-items:center;gap:14px;cursor:pointer;padding:14px 0;border-top:1px solid var(--border);">
-              <input type="checkbox" id="acMktConsent" onchange="_acToggleMarketing(this.checked)"
-                style="width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:var(--cl);">
-              <div>
-                <div style="font-size:.92rem;font-weight:600;">Comunicazioni commerciali</div>
-                <div style="font-size:.8rem;color:var(--text2);margin-top:3px;">Offerte, promozioni e novità su MyVivaio</div>
-              </div>
-            </label>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Convocazioni</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Nuovi allenamenti e partite</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifConv" onchange="_acSaveNotifPref('notify_convocazioni',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Comunicazioni</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Avvisi e comunicati della società</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifComm" onchange="_acSaveNotifPref('notify_comunicazioni',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Chat</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Nuovi messaggi in chat</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifChat" onchange="_acSaveNotifPref('notify_chat',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Promemoria</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Reminder su eventi imminenti</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifRemind" onchange="_acSaveNotifPref('notify_reminders',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
           </div>
           <div id="acCommUnavail" style="display:none;font-size:.84rem;color:var(--text2);text-align:center;padding:16px 0;">
-            Questa funzione è disponibile per gli account registrati direttamente su MyVivaio.
+            Accedi all'app per gestire le preferenze di notifica.
           </div>
         </div>
       </div>
@@ -4832,9 +4841,6 @@ function renderProfiloFiglio(el) {
       <div style="font-size:2.5rem;margin-bottom:12px;">👤</div>
       <div style="font-size:1.05rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
       <div style="font-size:.85rem;color:var(--text3);margin-top:6px;">Chiedi all'amministratore di collegare il profilo del tuo figlio/a.</div>
-    </div>
-    <div style="margin-top:16px;">
-      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
     </div>`;
     return;
   }
@@ -4906,24 +4912,7 @@ function renderProfiloFiglio(el) {
     </div>
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
-    ${docsHtml}
-    <div class="mob-dash-card" style="margin-top:8px;">
-      <div class="mob-dash-card-hd">Il tuo account</div>
-      <div style="font-size:.84rem;color:var(--text2);margin-bottom:12px;">${escapeHtml(me.email||'')}</div>
-      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
-    </div>
-    <div class="mob-dash-card" style="margin-top:8px;">
-      <div class="mob-dash-card-hd">🔐 Sicurezza</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="fg" style="margin:0;"><label class="fl">Password attuale</label>
-          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"><button type="button" class="fi-eye" onclick="_toggleEye('cpProfOld',this)" tabindex="-1" aria-label="Mostra/nascondi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-        </div>
-        <div class="fg" style="margin:0;"><label class="fl">Nuova password</label><input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
-        <div class="fg" style="margin:0;"><label class="fl">Conferma nuova password</label><input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password"></div>
-        <div id="cpProfMsg" style="display:none;font-size:.83rem;padding:8px 11px;border-radius:8px;font-weight:600;"></div>
-        <button class="btn btn-p" onclick="changePasswordProfile()">💾 Aggiorna password</button>
-      </div>
-    </div>`;
+    ${docsHtml}`;
 }
 
 // ═══════════════════════════════════
@@ -16894,7 +16883,7 @@ function acAllowedTabs() {
     tabs.push({ id:'piano',     ic:'⚽', lb:'Il mio piano' });
     tabs.push({ id:'pagamenti', ic:'📄', lb:'Pagamenti' });
   }
-  tabs.push({ id:'comunicazioni', ic:'💬', lb:'Comunicazioni' });
+  tabs.push({ id:'comunicazioni', ic:'🔔', lb:'Notifiche' });
   // Gestione/Tutorial/FAQ disabilitati fino al lancio (codice mantenuto)
   return tabs;
 }
@@ -17293,13 +17282,13 @@ async function acCancelConfirmed() {
 }
 
 async function _acLoadComunicazioni() {
-  const loadEl  = document.getElementById('acCommLoading');
-  const contEl  = document.getElementById('acCommContent');
-  const unavEl  = document.getElementById('acCommUnavail');
+  const loadEl = document.getElementById('acCommLoading');
+  const contEl = document.getElementById('acCommContent');
+  const unavEl = document.getElementById('acCommUnavail');
   if (!loadEl) return;
-  loadEl.style.display  = 'block';
-  if (contEl) contEl.style.display  = 'none';
-  if (unavEl) unavEl.style.display  = 'none';
+  loadEl.style.display = 'block';
+  if (contEl) contEl.style.display = 'none';
+  if (unavEl) unavEl.style.display = 'none';
 
   if (!_v2Token) {
     loadEl.style.display = 'none';
@@ -17307,13 +17296,16 @@ async function _acLoadComunicazioni() {
     return;
   }
   try {
-    const r = await fetch(API_BASE + '/api/v2/account/consents', {
+    const r = await fetch(API_BASE + '/api/v2/users/me/notification-preferences', {
       headers: { 'Authorization': 'Bearer ' + _v2Token }
     });
     if (!r.ok) throw new Error('fetch_error');
     const data = await r.json();
-    const cb = document.getElementById('acMktConsent');
-    if (cb) cb.checked = !!data.marketingConsent;
+    const set = (id, key) => { const el = document.getElementById(id); if (el) el.checked = !!data[key]; };
+    set('acNotifConv',   'notify_convocazioni');
+    set('acNotifComm',   'notify_comunicazioni');
+    set('acNotifChat',   'notify_chat');
+    set('acNotifRemind', 'notify_reminders');
     loadEl.style.display = 'none';
     if (contEl) contEl.style.display = 'block';
   } catch(e) {
@@ -17322,21 +17314,21 @@ async function _acLoadComunicazioni() {
   }
 }
 
-async function _acToggleMarketing(checked) {
+async function _acSaveNotifPref(key, checked) {
   if (!_v2Token) return;
+  const elMap = { notify_convocazioni: 'acNotifConv', notify_comunicazioni: 'acNotifComm', notify_chat: 'acNotifChat', notify_reminders: 'acNotifRemind' };
   try {
-    const r = await fetch(API_BASE + '/api/v2/account/marketing-consent', {
+    const r = await fetch(API_BASE + '/api/v2/users/me/notification-preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-      body: JSON.stringify({ consent: checked })
+      body: JSON.stringify({ [key]: checked })
     });
     if (!r.ok) throw new Error();
-    toast(checked ? '✅ Consenso marketing attivato' : '✅ Consenso marketing disattivato');
+    toast('✅ Preferenza salvata');
   } catch(e) {
     toast('❌ Errore nel salvataggio. Riprova.');
-    // Ripristina il valore precedente
-    const cb = document.getElementById('acMktConsent');
-    if (cb) cb.checked = !checked;
+    const el = document.getElementById(elMap[key]);
+    if (el) el.checked = !checked;
   }
 }
 

@@ -24,22 +24,46 @@ function _initVapid(): boolean {
   return true;
 }
 
+type NotifPrefKey = "notify_convocazioni" | "notify_comunicazioni" | "notify_chat" | "notify_reminders";
+
+// Filters out users who have opted out of a specific notification type.
+async function filterByPref(userIds: number[], prefKey: NotifPrefKey): Promise<number[]> {
+  if (!userIds.length) return [];
+  try {
+    const placeholders = userIds.map(() => "?").join(",");
+    const [rows] = (await pool.execute(
+      `SELECT user_id FROM user_notification_preferences
+       WHERE user_id IN (${placeholders}) AND \`${prefKey}\` = 0`,
+      userIds
+    )) as [any[], any];
+    const optedOut = new Set(rows.map((r: any) => r.user_id as number));
+    return userIds.filter(id => !optedOut.has(id));
+  } catch {
+    return userIds; // table may not exist yet — send to all
+  }
+}
+
 // Sends a push to all subscriptions for the given userIds + societyKey.
 // Never throws — errors are isolated. Expired subs (410/404) are removed.
+// prefKey: when set, users with that preference disabled are skipped.
 export async function sendPushToUsers(
   userIds: number[],
   societyKey: string,
-  payload: PushPayload
+  payload: PushPayload,
+  prefKey?: NotifPrefKey
 ): Promise<{ sent: number; errors: number }> {
   if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
 
+  const filteredIds = prefKey ? await filterByPref(userIds, prefKey) : userIds;
+  if (!filteredIds.length) return { sent: 0, errors: 0 };
+
   let rows: any[] = [];
   try {
-    const placeholders = userIds.map(() => "?").join(",");
+    const placeholders = filteredIds.map(() => "?").join(",");
     const [r] = (await pool.execute(
       `SELECT user_id, subscription FROM push_subscriptions
        WHERE user_id IN (${placeholders}) AND society_key = ?`,
-      [...userIds, societyKey]
+      [...filteredIds, societyKey]
     )) as [any[], any];
     rows = r;
   } catch (e: any) {

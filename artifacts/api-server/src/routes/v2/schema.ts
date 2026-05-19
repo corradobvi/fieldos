@@ -247,7 +247,15 @@ ALTER TABLE players ADD COLUMN parental_consent_given_by INT NULL;
 ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
-ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0
+ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
+CREATE TABLE IF NOT EXISTS user_notification_preferences (
+  user_id INT PRIMARY KEY,
+  notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,
+  notify_comunicazioni TINYINT(1) NOT NULL DEFAULT 1,
+  notify_chat TINYINT(1) NOT NULL DEFAULT 1,
+  notify_reminders TINYINT(1) NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
 `;
 
 export const SEED_SQL = `

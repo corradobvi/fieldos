@@ -81,7 +81,7 @@ router.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res
           body:  `${titolo} — ${_where}`.slice(0, 100),
           url:   "/calendario",
           tag:   "convocazione",
-        }))
+        }, "notify_convocazioni"))
         .catch(e => logger.warn({ err: e }, "convocazione push error"));
     }
 
