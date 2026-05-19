@@ -21918,8 +21918,11 @@ async function registerSW() {
       if (!_reloading) { _reloading = true; window.location.reload(); }
     });
 
-    // Controlla aggiornamenti ogni 60 secondi
+    // Controlla aggiornamenti ogni 60 secondi e quando l'app torna in foreground
     setInterval(() => reg.update().catch(() => {}), 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
 
     // Listen for SW push messages (navigate to section)
     navigator.serviceWorker.addEventListener('message', evt => {

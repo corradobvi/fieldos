@@ -1,9 +1,8 @@
 'use strict';
 // MyVivaio Service Worker — skip-waiting update pattern
-// Bump CACHE_VERSION on each deploy to trigger update detection
-const CACHE_VERSION = 'myvivaio-v7';
-const CACHE_NAME    = 'myvivaio-' + CACHE_VERSION;
-const RUNTIME_CACHE = 'myvivaio-runtime-' + CACHE_VERSION;
+// Bump CACHE_NAME on each deploy to trigger update detection
+const CACHE_NAME    = 'myvivaio-v8';
+const RUNTIME_CACHE = 'myvivaio-runtime-v8';
 
 // Files to precache (app shell)
 const PRECACHE = [

@@ -145,9 +145,7 @@ async function _mysqlPrivacyCheck(
     if (!rows.length) return { privacyPending: false, v2Token: null };
     const mysqlUser = rows[0];
     const privacyPending = mysqlUser.privacy_accepted_at === null;
-    const v2Token = privacyPending
-      ? signJWT({ userId: mysqlUser.id, societyId, role, email })
-      : null;
+    const v2Token = signJWT({ userId: mysqlUser.id, societyId, role, email });
     return { privacyPending, v2Token };
   } catch {
     return { privacyPending: false, v2Token: null };
