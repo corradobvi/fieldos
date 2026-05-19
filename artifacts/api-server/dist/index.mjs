@@ -61951,6 +61951,7 @@ ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN permissions JSON NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
   notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,
@@ -61979,7 +61980,7 @@ router9.post("/auth/login", async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
               u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
-              u.privacy_accepted_at,
+              u.privacy_accepted_at, u.permissions,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -62012,7 +62013,8 @@ router9.post("/auth/login", async (req, res) => {
         ruolo: user.ruolo,
         leva: user.leva,
         tempPassword: user.temp_password === 1,
-        figli: user.figli ? JSON.parse(user.figli) : []
+        figli: user.figli ? JSON.parse(user.figli) : [],
+        permissions: user.permissions ? typeof user.permissions === "string" ? JSON.parse(user.permissions) : user.permissions : null
       },
       society: {
         id: user.society_id,
@@ -62135,6 +62137,28 @@ router9.post("/auth/guardian-register", async (req, res) => {
     });
   } catch (e) {
     logger.error({ err: e }, "guardian-register error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router9.post("/auth/force-password", requireAuth, async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword) return res.status(400).json({ error: "missing_fields" });
+  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  const userId = req.jwtUser.userId;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT temp_password FROM users WHERE id = ?",
+      [userId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    if (!rows[0].temp_password) return res.status(403).json({ error: "not_temp_password" });
+    await pool.execute(
+      "UPDATE users SET password_hash = ?, temp_password = FALSE WHERE id = ?",
+      [hashPassword(newPassword), userId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "force-password error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -63237,7 +63261,7 @@ var import_express15 = __toESM(require_express2(), 1);
 var router15 = (0, import_express15.Router)();
 var PIANO_NORM_U = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 var COLLAB_LIMITS = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
-var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "dirigente"]);
+var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "dirigente", "preparatore_portieri", "mister_admin"]);
 async function getCollabLimit(societyId) {
   const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
   const raw = rows[0]?.piano || "demo";
@@ -63248,14 +63272,15 @@ router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, created_at
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, created_at
        FROM users WHERE society_id = ? ORDER BY cognome, nome`,
       [societyId]
     );
     return res.json(rows.map((u) => ({
       ...u,
       figli: u.figli ? JSON.parse(u.figli) : [],
-      tempPassword: u.temp_password === 1
+      tempPassword: u.temp_password === 1,
+      permissions: u.permissions ? typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions : null
     })));
   } catch (e) {
     logger.error({ err: e }, "GET users error");
@@ -63264,7 +63289,7 @@ router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
 });
 router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
-  const { nome, cognome, email, password, ruolo, leva, figli } = req.body;
+  const { nome, cognome, email, password, ruolo, leva, figli, phone, permissions } = req.body;
   if (!nome || !cognome || !email || !password || !ruolo) {
     return res.status(400).json({ error: "missing_fields" });
   }
@@ -63275,7 +63300,7 @@ router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       const maxCollab = await getCollabLimit(societyId);
       if (isFinite(maxCollab)) {
         const [cnt] = await pool.execute(
-          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso'`,
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
           [societyId]
         );
         if (cnt[0].n >= maxCollab) {
@@ -63289,8 +63314,8 @@ router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
     );
     if (existing.length) return res.status(409).json({ error: "email_exists" });
     const [result] = await pool.execute(
-      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, temp_password)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, phone, permissions, temp_password)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
       [
         societyId,
         nome.trim(),
@@ -63299,7 +63324,9 @@ router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
         hash,
         ruolo,
         leva ?? null,
-        figli ? JSON.stringify(figli) : null
+        figli ? JSON.stringify(figli) : null,
+        phone ?? null,
+        permissions ? JSON.stringify(permissions) : null
       ]
     );
     return res.status(201).json({ id: result.insertId });
@@ -63310,7 +63337,7 @@ router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
 });
 router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
-  const { nome, cognome, email, password, ruolo, leva, stato, figli } = req.body;
+  const { nome, cognome, email, password, ruolo, leva, stato, figli, phone, permissions } = req.body;
   try {
     if (ruolo && COLLAB_ROLES.has(ruolo)) {
       const [curRows] = await pool.execute(
@@ -63322,7 +63349,7 @@ router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
         const maxCollab = await getCollabLimit(societyId);
         if (isFinite(maxCollab)) {
           const [cnt] = await pool.execute(
-            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso' AND id != ?`,
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
             [societyId, req.params.id]
           );
           if (cnt[0].n >= maxCollab) {
@@ -63360,6 +63387,14 @@ router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
     if (figli !== void 0) {
       updates.push("figli = ?");
       params.push(figli ? JSON.stringify(figli) : null);
+    }
+    if (phone !== void 0) {
+      updates.push("phone = ?");
+      params.push(phone ?? null);
+    }
+    if (permissions !== void 0) {
+      updates.push("permissions = ?");
+      params.push(permissions ? JSON.stringify(permissions) : null);
     }
     if (password) {
       updates.push("password_hash = ?");
@@ -63598,6 +63633,48 @@ var events_default = router16;
 
 // src/routes/v2/presenze.ts
 var import_express17 = __toESM(require_express2(), 1);
+
+// src/lib/permissions.ts
+function requirePermission(key) {
+  return async (req, res, next) => {
+    if (!req.jwtUser) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    if (req.jwtUser.role === "admin" || req.jwtUser.role === "mister_admin") {
+      next();
+      return;
+    }
+    try {
+      const [rows] = await pool.execute(
+        "SELECT permissions FROM users WHERE id = ? LIMIT 1",
+        [req.jwtUser.userId]
+      );
+      if (!rows.length) {
+        next();
+        return;
+      }
+      if (rows[0].permissions === null || rows[0].permissions === void 0) {
+        next();
+        return;
+      }
+      let perms = {};
+      try {
+        perms = typeof rows[0].permissions === "string" ? JSON.parse(rows[0].permissions) : rows[0].permissions;
+      } catch {
+      }
+      if (perms[key] === true) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: "permission_denied", permission: key });
+    } catch (e) {
+      res.status(500).json({ error: "server_error" });
+    }
+  };
+}
+
+// src/routes/v2/presenze.ts
 var router17 = (0, import_express17.Router)();
 router17.get("/presenze", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
@@ -63620,7 +63697,7 @@ router17.get("/presenze", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { playerId, eventId, stato, nota } = req.body;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -63642,7 +63719,7 @@ router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "diri
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId, presenze } = req.body;
   if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
@@ -63697,7 +63774,7 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
   if (!testo) return res.status(400).json({ error: "testo_required" });

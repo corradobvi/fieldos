@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { requirePermission } from "../../lib/permissions";
 import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
@@ -37,7 +38,7 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/comunicazioni
-router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body as Record<string, any>;
   if (!testo) return res.status(400).json({ error: "testo_required" });

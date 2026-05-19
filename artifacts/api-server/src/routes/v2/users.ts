@@ -7,7 +7,7 @@ const router = Router();
 
 const PIANO_NORM_U: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 const COLLAB_LIMITS: Record<string, number> = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
-const COLLAB_ROLES = new Set(["allenatore", "dirigente"]);
+const COLLAB_ROLES = new Set(["allenatore", "dirigente", "preparatore_portieri", "mister_admin"]);
 
 async function getCollabLimit(societyId: number): Promise<number> {
   const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]) as [any[], any];
@@ -21,7 +21,7 @@ router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
   try {
     const [rows] = (await pool.execute(
-      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, created_at
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, created_at
        FROM users WHERE society_id = ? ORDER BY cognome, nome`,
       [societyId]
     )) as [any[], any];
@@ -30,6 +30,9 @@ router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
       ...u,
       figli: u.figli ? JSON.parse(u.figli) : [],
       tempPassword: u.temp_password === 1,
+      permissions: u.permissions
+        ? (typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions)
+        : null,
     })));
   } catch (e: any) {
     logger.error({ err: e }, "GET users error");
@@ -40,7 +43,7 @@ router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
 // POST /api/v2/users
 router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
-  const { nome, cognome, email, password, ruolo, leva, figli } = req.body as Record<string, any>;
+  const { nome, cognome, email, password, ruolo, leva, figli, phone, permissions } = req.body as Record<string, any>;
 
   if (!nome || !cognome || !email || !password || !ruolo) {
     return res.status(400).json({ error: "missing_fields" });
@@ -54,7 +57,7 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       const maxCollab = await getCollabLimit(societyId);
       if (isFinite(maxCollab)) {
         const [cnt] = await pool.execute(
-          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso'`,
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
           [societyId]
         ) as [any[], any];
         if (cnt[0].n >= maxCollab) {
@@ -70,10 +73,11 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
     if (existing.length) return res.status(409).json({ error: "email_exists" });
 
     const [result] = (await pool.execute(
-      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, temp_password)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, phone, permissions, temp_password)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
       [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, ruolo,
-       leva ?? null, figli ? JSON.stringify(figli) : null]
+       leva ?? null, figli ? JSON.stringify(figli) : null,
+       phone ?? null, permissions ? JSON.stringify(permissions) : null]
     )) as [any, any];
 
     return res.status(201).json({ id: result.insertId });
@@ -86,7 +90,7 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
 // PUT /api/v2/users/:id
 router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
-  const { nome, cognome, email, password, ruolo, leva, stato, figli } = req.body as Record<string, any>;
+  const { nome, cognome, email, password, ruolo, leva, stato, figli, phone, permissions } = req.body as Record<string, any>;
 
   try {
     // Se il ruolo sta cambiando verso un ruolo collaboratore, verifica il limite
@@ -100,7 +104,7 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
         const maxCollab = await getCollabLimit(societyId);
         if (isFinite(maxCollab)) {
           const [cnt] = await pool.execute(
-            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente') AND stato != 'sospeso' AND id != ?`,
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
             [societyId, req.params.id]
           ) as [any[], any];
           if (cnt[0].n >= maxCollab) {
@@ -120,6 +124,8 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
     if (leva !== undefined) { updates.push("leva = ?"); params.push(leva ?? null); }
     if (stato)   { updates.push("stato = ?");   params.push(stato); }
     if (figli !== undefined) { updates.push("figli = ?"); params.push(figli ? JSON.stringify(figli) : null); }
+    if (phone !== undefined) { updates.push("phone = ?"); params.push(phone ?? null); }
+    if (permissions !== undefined) { updates.push("permissions = ?"); params.push(permissions ? JSON.stringify(permissions) : null); }
     if (password) {
       updates.push("password_hash = ?");
       updates.push("temp_password = TRUE");

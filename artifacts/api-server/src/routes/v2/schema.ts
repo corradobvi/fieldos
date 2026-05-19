@@ -248,6 +248,7 @@ ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN permissions JSON NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
   notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,

@@ -2930,6 +2930,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="fg"><label class="fl">Stato</label>
       <select class="fs" id="uStato"><option value="attivo">Attivo</option><option value="sospeso">Sospeso</option><option value="slegato">Slegato</option></select>
     </div>
+    <div class="fg" id="uPhoneBlock">
+      <label class="fl">📱 WhatsApp (opzionale)</label>
+      <input class="fi" id="uPhone" type="tel" placeholder="Es. +39 333 1234567">
+      <div style="font-size:.7rem;color:var(--text2);margin-top:3px;">Usato per inviare le credenziali via WhatsApp.</div>
+    </div>
+    <div id="uPermissionsBlock" style="display:none;background:var(--cl);border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;margin-bottom:10px;">
+      <div style="font-size:.8rem;font-weight:700;margin-bottom:6px;">🔑 Permessi</div>
+      <div id="uPermissionsToggles"></div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" onclick="saveUser()" id="btnSaveUser">✅ Crea account</button>
       <button class="btn btn-r" id="btnDelUser" style="display:none;" onclick="deleteCurrentUser()">🗑 Elimina</button>
@@ -2957,8 +2966,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <button class="btn btn-g btn-sm" onclick="copyCredsField('credsPass','📋 Password copiata')">📋</button>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:14px;">
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
       <button class="btn btn-p" style="flex:1;" onclick="copyCredsBoth()">📋 Copia entrambe</button>
+      <button class="btn" id="credsWABtn" style="flex:1;background:#25d366;color:#fff;display:none;" onclick="openCredsWA()">💬 Invia su WhatsApp</button>
       <button class="btn btn-g" onclick="closeM('mCredsOut')">Chiudi</button>
     </div>
   </div>
@@ -4020,6 +4030,21 @@ const ROLE_CFG = {
 // ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
 function isAdminLike() { return !!(me && (me.role === 'admin' || me.role === 'mister_admin')); }
 
+// ─── Permessi granulari collaboratori ───
+// true se me ha il permesso key (admin→sempre; permissions null→legacy compat→true; altrimenti perms[key]===true)
+function hasPerm(key) {
+  if (!me) return false;
+  if (me.role === 'admin' || me.role === 'mister_admin') return true;
+  if (me.permissions == null) return true;
+  return !!me.permissions[key];
+}
+function canPostBacheca()      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca'); }
+function canEditAllenamenti()  { return isAdminLike() || hasPerm('gestione_allenamenti'); }
+function canEnterResult()      { return isAdminLike() || hasPerm('gestione_risultati'); }
+
+// ─── Guardia first-login: blocca tutto finché non cambia password ───
+let _mustChangePass = false;
+
 // ─── Ordinamento giocatori per cognome (usato in tutta l'app) ───
 function byCogn(a, b) {
   return a.cogn.localeCompare(b.cogn, 'it') || a.nome.localeCompare(b.nome, 'it');
@@ -4620,7 +4645,7 @@ function bootApp(user) {
     if (typeof checkDocumentiReminders === 'function') checkDocumentiReminders();
     if (typeof refreshQuotaBadge === 'function') refreshQuotaBadge();
     showUnreadConvToast();
-    if (me && me.tempPassword) setTimeout(() => openM('mChangePass'), 600);
+    if (me && me.tempPassword) { _mustChangePass = true; history.pushState(null, '', location.href); setTimeout(() => openM('mChangePass'), 600); }
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
@@ -4774,6 +4799,7 @@ function renderSbLeve() {
 // ═══════════════════════════════════
 
 function goTo(pgId) {
+  if (_mustChangePass) { setTimeout(() => openM('mChangePass'), 50); return; }
   if (pgId === 'gestcomp' && (!me || !['admin','dirigente','allenatore'].includes(me.role))) pgId = 'partite';
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
@@ -5923,7 +5949,7 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 // Permessi:
-function canEditPresenze(){ return me && (me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
+function canEditPresenze(){ return me && (isAdminLike() || hasPerm('gestione_presenze')); }
 function isGKCoach(){ return me && me.role === 'preparatore_portieri'; }
 function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
@@ -6905,7 +6931,7 @@ function revocaAssenza(p, dateStr) {
 // CONVOCAZIONI + DISPONIBILITÀ + NOTIFICHE
 // ═══════════════════════════════════
 
-function canCreateConvocazione(){ return me && (isAdminLike() || me.role === 'allenatore'); }
+function canCreateConvocazione(){ return me && (isAdminLike() || hasPerm('gestione_convocazioni')); }
 function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
@@ -8019,7 +8045,7 @@ function commWritableScopes() {
   if (isAdminLike()) {
     return [{id:'pubblica', label:'🏠 Pubblica'}].concat(leve.map(lv=>({id:'leva:'+lv, label:'⚽ '+lv})));
   }
-  if (me.role === 'allenatore' || me.role === 'dirigente') {
+  if (hasPerm('gestione_comunicazioni_bacheca')) {
     return userLeve().map(lv=>({id:'leva:'+lv, label:'⚽ '+lv}));
   }
   return [];
@@ -9616,10 +9642,28 @@ function genPassword() {
 }
 
 // Mostra il modale credenziali con email + password
-function showCredsModal(email, pass) {
+function showCredsModal(email, pass, nome) {
   document.getElementById('credsEmail').value = email;
   document.getElementById('credsPass').value = pass;
+  window._credsNome = nome || '';
+  const waBtn = document.getElementById('credsWABtn');
+  const phoneEl = document.getElementById('uPhone');
+  if (waBtn) {
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    waBtn.style.display = phone ? '' : 'none';
+  }
   openM('mCredsOut');
+}
+function openCredsWA() {
+  const email = document.getElementById('credsEmail').value;
+  const pass = document.getElementById('credsPass').value;
+  const nome = window._credsNome || '';
+  const phoneEl = document.getElementById('uPhone');
+  const rawPhone = phoneEl ? phoneEl.value.trim() : '';
+  if (!rawPhone) { toast('⚠️ Nessun numero WhatsApp salvato'); return; }
+  const phone = rawPhone.replace(/\D/g, '').replace(/^0/, '39');
+  const msg = encodeURIComponent(`Ciao${nome ? ' ' + nome.split(' ')[0] : ''}! 👋\n\nEcco le tue credenziali per accedere a MyVivaio:\n\n📧 Email: ${email}\n🔑 Password: ${pass}\n\nAl primo accesso ti verrà chiesto di cambiare la password.\n\nBuona partita! ⚽`);
+  window.open('https://wa.me/' + phone + '?text=' + msg, '_blank');
 }
 function copyCredsField(id, msg) {
   const inp = document.getElementById(id);
@@ -9659,6 +9703,38 @@ function onUtenteRuolo() {
     : r === 'nonno'
     ? 'Puoi associare più nonni/nonne allo stesso giocatore. Tutti vedono le stesse info del nipote/a e ricevono le stesse notifiche.'
     : 'Puoi associare più genitori allo stesso giocatore (mamma, papà, ecc.). Tutti vedono le stesse info e ricevono le stesse notifiche.';
+
+  // Permessi granulari — mostra solo per ruoli collaboratore (non admin, non mister_admin che sono sempre full)
+  const permBlock = document.getElementById('uPermissionsBlock');
+  const permToggles = document.getElementById('uPermissionsToggles');
+  const collabPermsRoles = ['allenatore','dirigente','preparatore_portieri'];
+  if (permBlock && permToggles) {
+    if (collabPermsRoles.includes(r)) {
+      permBlock.style.display = 'block';
+      // Default per ruolo
+      const defaults = {
+        allenatore: { gestione_presenze:true, gestione_convocazioni:true, gestione_allenamenti:true, gestione_risultati:true, gestione_comunicazioni_bacheca:true },
+        dirigente:  { gestione_presenze:false, gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:false, gestione_comunicazioni_bacheca:true },
+        preparatore_portieri: { gestione_presenze:true, gestione_convocazioni:false, gestione_allenamenti:false, gestione_risultati:false, gestione_comunicazioni_bacheca:false },
+      };
+      const d = defaults[r] || {};
+      const labels = {
+        gestione_presenze: '✅ Gestione presenze',
+        gestione_convocazioni: '📋 Convocazioni',
+        gestione_allenamenti: '🏃 Allenamenti',
+        gestione_risultati: '⚽ Risultati partite',
+        gestione_comunicazioni_bacheca: '📢 Bacheca comunicazioni',
+      };
+      permToggles.innerHTML = Object.entries(labels).map(([k,label]) =>
+        `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.83rem;cursor:pointer;">
+          <input type="checkbox" data-perm="${k}" ${d[k] ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--primary);">
+          ${label}
+        </label>`
+      ).join('');
+    } else {
+      permBlock.style.display = 'none';
+    }
+  }
 }
 
 function checkAge() {
@@ -9740,6 +9816,17 @@ function saveUser() {
   const role  = document.getElementById('uRuolo').value;
   const leva  = document.getElementById('uLeva').value;
   const stato = document.getElementById('uStato').value;
+  const phone = (document.getElementById('uPhone') || {}).value?.trim() || null;
+  // Leggi permessi dai toggle (solo per ruoli collab)
+  const _collabPerms = ['allenatore','dirigente','preparatore_portieri','mister_admin'];
+  let permissions = null;
+  if (_collabPerms.includes(role)) {
+    const toggles = document.querySelectorAll('#uPermissionsToggles input[type=checkbox]');
+    if (toggles.length) {
+      permissions = {};
+      toggles.forEach(t => { permissions[t.dataset.perm] = t.checked; });
+    }
+  }
   if (!nome || !cogn || !email || !role) { toast('⚠️ Compila tutti i campi'); return; }
   // Validazione password: obbligatoria in creazione, opzionale in modifica
   if (editingUserId === null) {
@@ -9777,8 +9864,8 @@ function saveUser() {
   }
 
   if (editingUserId === null) {
-    // Verifica limiti collaboratori per il piano attivo (solo mister/dirigente contano)
-    const _collabRoles = ['allenatore','dirigente'];
+    // Verifica limiti collaboratori per il piano attivo
+    const _collabRoles = ['allenatore','dirigente','preparatore_portieri','mister_admin'];
     if (_collabRoles.includes(role)) {
       const _soc = saSocieties.find(x => x.id === currentSocietaId);
       if (!canAddCollab(_soc, role)) {
@@ -9787,15 +9874,15 @@ function saveUser() {
         return;
       }
     }
-    USERS_DB.push({ id: nextUserId++, nome, cogn, email, pass, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno });
+    USERS_DB.push({ id: nextUserId++, nome, cogn, email, pass, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno, phone: phone||null, permissions, tempPassword: true });
     closeM('mNewUser');
     renderUsersTable();
-    showCredsModal(email, pass);
+    showCredsModal(email, pass, nome + ' ' + cogn);
   } else {
     const u = USERS_DB.find(x => x.id === editingUserId);
     if (!u) return;
     // Verifica limite se il ruolo sta cambiando verso un ruolo collaboratore
-    const _collabRoles = ['allenatore','dirigente'];
+    const _collabRoles = ['allenatore','dirigente','preparatore_portieri','mister_admin'];
     if (_collabRoles.includes(role) && !_collabRoles.includes(u.role)) {
       const _soc = saSocieties.find(x => x.id === currentSocietaId);
       if (!canAddCollab(_soc, role)) {
@@ -9804,13 +9891,13 @@ function saveUser() {
         return;
       }
     }
-    Object.assign(u, { nome, cogn, email, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno });
-    if (pass) u.pass = pass;
+    Object.assign(u, { nome, cogn, email, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno, phone: phone||null, permissions });
+    if (pass) { u.pass = pass; u.tempPassword = true; }
     closeM('mNewUser');
     renderUsersTable();
     if (pass) {
       toast(`🔐 Password aggiornata per ${nome} ${cogn}`);
-      showCredsModal(email, pass);
+      showCredsModal(email, pass, nome + ' ' + cogn);
     } else {
       toast(`✅ ${nome} ${cogn} aggiornato`);
     }
@@ -16403,8 +16490,21 @@ function refreshChatBadges() {
 // MODAL
 // ═══════════════════════════════════
 function openM(id) { document.getElementById(id).classList.add('on'); }
-function closeM(id) { document.getElementById(id).classList.remove('on'); }
-document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('on'); }));
+function closeM(id) {
+  if (id === 'mChangePass' && _mustChangePass) return;
+  document.getElementById(id).classList.remove('on');
+}
+document.querySelectorAll('.ov').forEach(o => o.addEventListener('click', e => {
+  if (e.target === o && !(o.id === 'mChangePass' && _mustChangePass)) o.classList.remove('on');
+}));
+// ESC blocca mChangePass se _mustChangePass
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && _mustChangePass) { e.stopImmediatePropagation(); e.preventDefault(); openM('mChangePass'); }
+}, true);
+// Browser back blocca quando _mustChangePass
+window.addEventListener('popstate', function() {
+  if (_mustChangePass) { history.pushState(null, '', location.href); setTimeout(() => openM('mChangePass'), 50); }
+});
 
 
 
@@ -16595,7 +16695,7 @@ function getCollabLimiti(soc) {
 
 // Conta i collaboratori staff attivi (allenatore + dirigente; preparatore_portieri e altri ruoli non contano)
 function countCollab(roleFilter) {
-  const staffRoles = ['allenatore','dirigente'];
+  const staffRoles = ['allenatore','dirigente','preparatore_portieri','mister_admin'];
   const users = USERS_DB.filter(u => u.stato === 'attivo' && staffRoles.includes(u.role));
   if (roleFilter) return users.filter(u => u.role === roleFilter).length;
   return users.length;
@@ -20245,12 +20345,32 @@ function saveNewPassword() {
   const cp = document.getElementById('cpConfPass').value;
   if (!_pwCheck(np).valid) { toast('❌ La password deve avere almeno 8 caratteri, una maiuscola, un numero e un carattere speciale'); return; }
   if (np !== cp) { toast('❌ Le password non coincidono'); return; }
-  const u = USERS_DB.find(x => x.id === me.id);
-  if (u) { u.pass = np; u.tempPassword = false; }
-  if (me) { me.pass = np; me.tempPassword = false; }
-  window.__fieldosSaveState();
-  closeM('mChangePass');
-  toast('✅ Password aggiornata');
+
+  function _applyLocally() {
+    const u = USERS_DB.find(x => x.id === me.id);
+    if (u) { u.pass = np; u.tempPassword = false; }
+    if (me) { me.pass = np; me.tempPassword = false; }
+    window.__fieldosSaveState();
+    _mustChangePass = false;
+    document.getElementById('mChangePass').classList.remove('on');
+    toast('✅ Password aggiornata');
+  }
+
+  if (_v2Token) {
+    fetch('/api/v2/auth/force-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ newPassword: np })
+    }).then(r => {
+      if (!r.ok && r.status !== 403) { toast('⚠️ Errore server, riprova'); return; }
+      _applyLocally();
+    }).catch(() => {
+      // Offline or error: apply locally anyway so user isn't stuck
+      _applyLocally();
+    });
+  } else {
+    _applyLocally();
+  }
 }
 
 // ═══════════════════════════════════

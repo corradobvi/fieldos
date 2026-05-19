@@ -16,7 +16,7 @@ router.post("/auth/login", async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
               u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
-              u.privacy_accepted_at,
+              u.privacy_accepted_at, u.permissions,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -55,6 +55,9 @@ router.post("/auth/login", async (req, res) => {
         leva: user.leva,
         tempPassword: user.temp_password === 1,
         figli: user.figli ? JSON.parse(user.figli) : [],
+        permissions: user.permissions
+          ? (typeof user.permissions === "string" ? JSON.parse(user.permissions) : user.permissions)
+          : null,
       },
       society: {
         id: user.society_id,
@@ -198,6 +201,34 @@ router.post("/auth/guardian-register", async (req, res) => {
     });
   } catch (e: any) {
     logger.error({ err: e }, "guardian-register error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/auth/force-password — cambia password senza richiedere quella attuale (solo temp_password=TRUE)
+router.post("/auth/force-password", requireAuth, async (req, res) => {
+  const { newPassword } = req.body as Record<string, string>;
+  if (!newPassword) return res.status(400).json({ error: "missing_fields" });
+  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+
+  const userId = req.jwtUser!.userId;
+
+  try {
+    const [rows] = (await pool.execute(
+      "SELECT temp_password FROM users WHERE id = ?", [userId]
+    )) as [any[], any];
+
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    if (!rows[0].temp_password) return res.status(403).json({ error: "not_temp_password" });
+
+    await pool.execute(
+      "UPDATE users SET password_hash = ?, temp_password = FALSE WHERE id = ?",
+      [hashPassword(newPassword), userId]
+    );
+
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "force-password error");
     return res.status(500).json({ error: "server_error" });
   }
 });

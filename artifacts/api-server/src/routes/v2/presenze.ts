@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { requirePermission } from "../../lib/permissions";
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.get("/presenze", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/presenze — upsert singola presenza
-router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { playerId, eventId, stato, nota } = req.body as Record<string, any>;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -56,7 +57,7 @@ router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirige
 });
 
 // POST /api/v2/presenze/bulk — salva presenze di un intero evento
-router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente"), async (req, res) => {
+router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { eventId, presenze } = req.body as { eventId: number; presenze: Array<{ playerId: number; stato: string; nota?: string }> };
 
