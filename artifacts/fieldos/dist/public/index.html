@@ -372,6 +372,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .ris-player-row .rpname{flex:0 0 90px;font-size:.76rem;}
   .ris-player-row .rpstat{width:44px;}
 }
+/* ── Stats table (risultato modal) ── */
+.rpt{width:100%;border-collapse:collapse;table-layout:fixed;}
+.rpt th,.rpt td{padding:6px 4px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.rpt tbody tr:last-child td{border-bottom:none;}
+.rpt thead{position:sticky;top:0;background:var(--white);z-index:1;}
+.rpt thead th{font-size:.61rem;text-transform:uppercase;letter-spacing:.5px;font-weight:800;color:var(--text3);text-align:center;padding-bottom:8px;border-bottom:2px solid var(--border);}
+.rph-name{text-align:left!important;width:auto;}
+.rph-sm{width:52px;text-align:center!important;}
+.rpi{width:100%;padding:4px 3px;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;background:var(--bg);box-sizing:border-box;}
+.rpi:focus{outline:none;border-color:var(--cp);}
+.rpi-ck{width:18px;height:18px;accent-color:var(--cp);cursor:pointer;display:block;margin:auto;}
+@media(max-width:640px){.rph-sm{width:44px;}.rpi{font-size:.78rem;}}
+@media(max-width:390px){.rph-sm{width:40px;}.rpi{font-size:.74rem;}}
 
 /* CALENDAR */
 .cal-gw{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
@@ -15809,56 +15822,44 @@ function openRisultato(tipo, ref) {
 function buildRisultatoStats(match, leva) {
   const header = document.getElementById('ptRisStatsHeader');
   const list   = document.getElementById('ptRisStatsList');
-  const adv    = advStats(leva);
+  if (header) header.style.display = 'none'; // replaced by sticky <thead>
+
   const roster = players.filter(p => p.leva === leva).sort(byCogn);
   if (roster.length === 0) {
     list.innerHTML = '<div style="color:var(--text3);font-size:.8rem;padding:10px 0;">Nessun giocatore nella rosa per questa leva.</div>';
-    header.innerHTML = '';
     return;
   }
-  // Header labels
-  const hdCols = ['<span style="flex:0 0 130px;font-size:.62rem;font-weight:800;color:var(--text3);text-transform:uppercase;">Giocatore</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">⚽</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🅰️</span>'];
-  if (adv) { hdCols.push(
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;" title="Titolare">🔵</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">min</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🟨</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">🟥</span>'); }
-  const gkRoster = roster.filter(p => isGK(p));
-  if (gkRoster.length > 0) hdCols.push('<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">GS</span>',
-    '<span class="rpstat" style="font-size:.62rem;font-weight:800;color:var(--text3);text-align:center;">CS</span>');
-  header.style.cssText = 'display:flex;gap:8px;align-items:center;padding:4px 0 8px;border-bottom:1px solid var(--border);margin-bottom:4px;';
-  header.innerHTML = hdCols.join('');
 
-  list.innerHTML = roster.map(p => {
-    const st = (match.stats||[]).find(s => s.playerId === p.id) || {};
-    const gk = isGK(p);
-    const advcols = adv ? `
-      <div class="rpstat" title="Titolare"><input type="checkbox" ${st.titolare?'checked':''} data-pid="${p.id}" data-field="titolare" style="width:16px;height:16px;accent-color:#0369a1;cursor:pointer;"></div>
-      <div class="rpstat"><input type="number" min="0" max="120" value="${st.minuti||0}" data-pid="${p.id}" data-field="minuti"></div>
-      <div class="rpstat"><input type="number" min="0" max="2" value="${st.gialli||0}" data-pid="${p.id}" data-field="gialli"></div>
-      <div class="rpstat"><input type="number" min="0" max="1" value="${st.rossi||0}" data-pid="${p.id}" data-field="rossi"></div>` : '';
-    const gkcols = gk ? `
-      <div class="rpstat"><input type="number" min="0" max="30" value="${st.golSub||0}" data-pid="${p.id}" data-field="golSub"></div>
-      <div class="rpstat" style="display:flex;align-items:center;justify-content:center;"><input type="checkbox" ${st.cs?'checked':''} data-pid="${p.id}" data-field="cs" style="width:16px;height:16px;accent-color:var(--cp);cursor:pointer;"></div>` : gkRoster.length > 0 ? '<div class="rpstat"></div><div class="rpstat"></div>' : '';
-    return `<div class="ris-player-row">
-      <div class="rpname">${escapeHtml(p.nome+' '+p.cogn)} <span style="font-size:.65rem;color:var(--text3);">${escapeHtml(p.ruolo||'')}</span></div>
-      <div class="rpstat"><input type="number" min="0" max="30" value="${st.gol||0}" data-pid="${p.id}" data-field="gol"></div>
-      <div class="rpstat"><input type="number" min="0" max="30" value="${st.assist||0}" data-pid="${p.id}" data-field="assist"></div>
-      ${advcols}${gkcols}
-    </div>`;
-  }).join('');
+  const hasGK = roster.some(p => isGK(p));
+  const gkHd  = hasGK ? '<th class="rph-sm">GS</th><th class="rph-sm">CS</th>' : '';
 
-  // Sezione Cambi (solo U14+)
+  list.innerHTML = `<table class="rpt">
+    <thead><tr>
+      <th class="rph-name">Giocatore</th>
+      <th class="rph-sm">⚽</th>
+      <th class="rph-sm">🅰️</th>
+      ${gkHd}
+    </tr></thead>
+    <tbody>${roster.map(p => {
+      const st = (match.stats||[]).find(s => s.playerId === p.id) || {};
+      const gk = isGK(p);
+      const gkCells = hasGK
+        ? gk
+          ? `<td class="rph-sm"><input type="number" min="0" max="30" value="${st.golSub||0}" data-pid="${p.id}" data-field="golSub" class="rpi"></td>
+             <td class="rph-sm"><input type="checkbox" ${st.cs?'checked':''} data-pid="${p.id}" data-field="cs" class="rpi-ck"></td>`
+          : '<td></td><td></td>'
+        : '';
+      return `<tr class="ris-player-row">
+        <td class="rph-name"><span style="font-size:.82rem;font-weight:600;">${escapeHtml(p.nome+' '+p.cogn)}</span> <span style="font-size:.65rem;color:var(--text3);">${escapeHtml(p.ruolo||'')}</span></td>
+        <td class="rph-sm"><input type="number" min="0" max="30" value="${st.gol||0}" data-pid="${p.id}" data-field="gol" class="rpi"></td>
+        <td class="rph-sm"><input type="number" min="0" max="30" value="${st.assist||0}" data-pid="${p.id}" data-field="assist" class="rpi"></td>
+        ${gkCells}
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+
   const cambiSec = document.getElementById('ptRisCambiSection');
-  if (cambiSec) {
-    if (!adv) { cambiSec.style.display = 'none'; return; }
-    cambiSec.style.display = '';
-    const rosterOpts = roster.map(p => `<option value="${p.id}">${escapeHtml(p.nome+' '+p.cogn)}</option>`).join('');
-    window._risCambiRosterOpts = rosterOpts;
-    _renderRisCambi(match.cambi || []);
-  }
+  if (cambiSec) cambiSec.style.display = 'none';
 }
 let _risCambiData = [];
 function _renderRisCambi(cambi) {
@@ -15900,13 +15901,17 @@ function savePtRisultato() {
   const gc = Math.max(0, parseInt(gcRaw) || 0);
   const go = Math.max(0, parseInt(goRaw) || 0);
   match.golCasa = gc; match.golOspiti = go; match.played = true;
-  // Read stats
+  // Read stats — merge with existing entry to preserve legacy fields (titolare/minuti/gialli/rossi)
   const stats = [];
   document.querySelectorAll('#ptRisStatsList .ris-player-row').forEach(row => {
     const inputs = row.querySelectorAll('input[data-pid]');
     if (!inputs.length) return;
     const pid = parseInt(inputs[0].dataset.pid);
-    const s = {playerId: pid, gol:0, assist:0, titolare:false, minuti:0, gialli:0, rossi:0, golSub:0, cs:false};
+    const existing = (match.stats||[]).find(st => st.playerId === pid) || {};
+    const s = Object.assign(
+      {playerId: pid, gol:0, assist:0, titolare:false, minuti:0, gialli:0, rossi:0, golSub:0, cs:false},
+      existing
+    );
     inputs.forEach(inp => {
       if (inp.type === 'checkbox') s[inp.dataset.field] = inp.checked;
       else s[inp.dataset.field] = parseInt(inp.value) || 0;
@@ -21311,31 +21316,37 @@ async function doRejoinSocieta() {
 
 <!-- Inserisci risultato + statistiche -->
 <div class="ov" id="mPtRisultato">
-  <div class="modal" style="width:600px;max-width:96vw;">
-    <div class="mh"><div class="mt" id="mPtRisTitle">📊 Risultato</div><span id="ptRisLiveIndicator" style="display:none;background:#dc2626;color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;margin-right:8px;animation:pulse 1.5s infinite;">🔴 LIVE</span><button class="mx" onclick="closeM('mPtRisultato')">✕</button></div>
+  <div class="modal" style="width:600px;max-width:96vw;display:flex;flex-direction:column;max-height:90vh;overflow:hidden;">
+    <!-- Fixed header -->
+    <div class="mh" style="flex-shrink:0;"><div class="mt" id="mPtRisTitle">📊 Risultato</div><span id="ptRisLiveIndicator" style="display:none;background:#dc2626;color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;margin-right:8px;animation:pulse 1.5s infinite;">🔴 LIVE</span><button class="mx" onclick="closeM('mPtRisultato')">✕</button></div>
     <input type="hidden" id="ptRisTipo">
     <input type="hidden" id="ptRisRef">
-    <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;background:var(--bg);border-radius:10px;padding:14px;flex-wrap:wrap;">
-      <div style="flex:1;text-align:right;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisCasa"></div>
-      <div style="display:flex;align-items:center;gap:7px;">
-        <input class="fi" id="ptRisGolC" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:var(--text3);">—</span>
-        <input class="fi" id="ptRisGolO" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
+    <!-- Fixed score row -->
+    <div style="flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px;background:var(--bg);border-radius:10px;padding:14px;flex-wrap:wrap;">
+        <div style="flex:1;text-align:right;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisCasa"></div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <input class="fi" id="ptRisGolC" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:var(--text3);">—</span>
+          <input class="fi" id="ptRisGolO" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
+        </div>
+        <div style="flex:1;text-align:left;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisOspite"></div>
       </div>
-      <div style="flex:1;text-align:left;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisOspite"></div>
+      <div id="ptRisScoreHint" style="display:none;font-size:.75rem;color:var(--text3);text-align:center;margin:-8px 0 10px;">⬆️ Inserisci il risultato per salvare</div>
     </div>
-    <div id="ptRisScoreHint" style="display:none;font-size:.75rem;color:var(--text3);text-align:center;margin:-10px 0 10px;">⬆️ Inserisci il risultato per salvare</div>
-    <div id="ptRisStatsSection">
+    <!-- Scrollable stats section -->
+    <div id="ptRisStatsSection" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;color:var(--text2);" id="ptRisStatsTitle">📋 Statistiche giocatori</div>
-      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:6px;" id="ptRisStatsHeader"></div>
-      <div id="ptRisStatsList" style="max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+      <div id="ptRisStatsHeader" style="display:none;"></div>
+      <div id="ptRisStatsList"></div>
       <div id="ptRisCambiSection" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
         <div style="font-weight:800;font-size:.84rem;margin-bottom:6px;color:var(--text2);">🔄 Cambi effettuati</div>
         <div id="ptRisCambiList"></div>
         <button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="addRisCambio()">+ Aggiungi cambio</button>
       </div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
+    <!-- Fixed footer -->
+    <div style="display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--border);margin-top:8px;flex-shrink:0;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtRisultato')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtRisultato()">Salva risultato</button>
     </div>
