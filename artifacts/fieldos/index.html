@@ -2726,6 +2726,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="convVisibSettingsBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="levaStatsVisibCard">
+            <div class="ch"><div class="ct">📊 Statistiche partite visibili a genitori/giocatori</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
+              Quando attivo, i genitori e i giocatori vedono le statistiche di tutte le partite della stagione nel profilo del figlio/giocatore. Quando spento, solo lo staff.
+            </div>
+            <div id="levaStatsSettingsBox"></div>
+          </div>
         </div>
       </div>
 
@@ -3721,6 +3728,7 @@ let nextQuoteId = 1;
 let quoteSettings = {};
 let documenti = [];
 let nextDocId = 1;
+let levaStatsSettings = {};
 let calFilterLeva = '__all';
 let calFilterTipo = '__all';
 let calWeekOffset = 0;
@@ -4775,13 +4783,15 @@ function goTo(pgId) {
   if (pgId === 'impostazioni') {
     if (!me) return;
     const _isStaff = isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
-    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings();
+    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings(); renderLevaStatsSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
     ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
     });
     const _convVisibCardEl = document.getElementById('convVisibCard');
     if (_convVisibCardEl) _convVisibCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
+    const _levaStatsCardEl = document.getElementById('levaStatsVisibCard');
+    if (_levaStatsCardEl) _levaStatsCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
     const _backupCardEl = document.getElementById('backupCard');
     if (_backupCardEl) _backupCardEl.style.display = isAdminLike() ? '' : 'none';
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
@@ -4972,7 +4982,43 @@ function renderProfiloFiglio(el) {
     </div>
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
-    ${docsHtml}`;
+    ${docsHtml}
+    ${(()=>{
+      const _ss = levaStatsSettings[p.leva] || {};
+      if (!_ss.showStatsToFamily) return '';
+      const _tot = {
+        pres: ms.a.pres+ms.c.pres+ms.t.pres, gol: ms.a.gol+ms.c.gol+ms.t.gol,
+        assist: ms.a.assist+ms.c.assist+ms.t.assist, minuti: ms.a.minuti+ms.c.minuti+ms.t.minuti,
+        gialli: ms.a.gialli+ms.c.gialli+ms.t.gialli, rossi: ms.a.rossi+ms.c.rossi+ms.t.rossi,
+        golSub: ms.a.golSub+ms.c.golSub+ms.t.golSub, cs: ms.a.cs+ms.c.cs+ms.t.cs
+      };
+      if (_tot.pres === 0) return '';
+      const _adv = (typeof advStats === 'function') ? advStats(p.leva) : false;
+      const _gk  = isGK(p);
+      const _rows = [
+        ['Presenze', ms.a.pres, ms.c.pres, ms.t.pres, _tot.pres],
+        ['Gol ⚽',   ms.a.gol,  ms.c.gol,  ms.t.gol,  _tot.gol],
+        ['Assist 🅰️',ms.a.assist,ms.c.assist,ms.t.assist,_tot.assist],
+        ...(_adv ? [
+          ['Minuti',   ms.a.minuti, ms.c.minuti, ms.t.minuti, _tot.minuti],
+          ['Gialli 🟨',ms.a.gialli, ms.c.gialli, ms.t.gialli, _tot.gialli],
+          ['Rossi 🟥', ms.a.rossi,  ms.c.rossi,  ms.t.rossi,  _tot.rossi],
+        ] : []),
+        ...(_gk ? [
+          ['Gol subiti',  ms.a.golSub, ms.c.golSub, ms.t.golSub, _tot.golSub],
+          ['Clean sheet', ms.a.cs,     ms.c.cs,     ms.t.cs,     _tot.cs],
+        ] : []),
+      ];
+      return `<div style="background:var(--cl);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;margin-bottom:10px;color:var(--text1);">⚽ STATISTICHE STAGIONE</div>
+        <table class="pst">
+          <thead><tr><th>Statistica</th><th>Amich.</th><th>Camp.</th><th>Tornei</th><th class="tot">TOT</th></tr></thead>
+          <tbody>${_rows.map(([lbl,...vals]) =>
+            `<tr><td>${String(lbl)}</td>${vals.map((v,i) => `<td${i===3?' class="tot"':''}>${v}</td>`).join('')}</tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>`;
+    })()}`;
 }
 
 // ═══════════════════════════════════
@@ -7832,6 +7878,29 @@ function saveConvVisibLeva(lv) {
   levaConvSettings[lv].fase2Days = f2Raw !== '' ? parseInt(f2Raw) : null;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast(`✅ Impostazioni ${lv} salvate`);
+}
+
+function renderLevaStatsSettings() {
+  const el = document.getElementById('levaStatsSettingsBox'); if (!el) return;
+  if (!leve.length) { el.innerHTML = '<div style="color:var(--text2);font-size:.78rem;">Nessuna leva configurata.</div>'; return; }
+  el.innerHTML = leve.map(lv => {
+    const s = levaStatsSettings[lv] || {};
+    const checked = s.showStatsToFamily ? 'checked' : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+      <div>
+        <div style="font-weight:700;font-size:.88rem;">${escapeHtml(lv)}</div>
+        <div style="font-size:.74rem;color:var(--text3);">Mostra statistiche partite a genitori/giocatori</div>
+      </div>
+      <label class="ac-toggle"><input type="checkbox" ${checked} onchange="saveLevaStatsLeva('${lv}',this.checked)"><span class="ac-toggle-sl"></span></label>
+    </div>`;
+  }).join('');
+}
+
+function saveLevaStatsLeva(lv, val) {
+  if (!levaStatsSettings[lv]) levaStatsSettings[lv] = {};
+  levaStatsSettings[lv].showStatsToFamily = !!val;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  toast(`✅ Impostazioni stats ${lv} salvate`);
 }
 
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
@@ -14315,7 +14384,7 @@ function renderPtAmichevoli() {
         : '<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
-    const risBtn = (!m.annullata && isPast && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
+    const risBtn = (!m.annullata && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
     return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
   };
@@ -14482,7 +14551,7 @@ function renderPtTornei() {
       const altriMatches = sorted.filter(m => m.casa !== polis && m.ospite !== polis);
       const polisHtml = polisMatches.map(m => {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
-        const risBtn = m.played && canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ Modifica risultato</button>` : '';
+        const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
         const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
@@ -15709,8 +15778,14 @@ function openRisultato(tipo, ref) {
   document.getElementById('mPtRisTitle').textContent = tipo === 'amichevole' ? '🤝 Risultato amichevole' : tipo === 'campionato' ? '🏅 Risultato campionato' : '🏆 Risultato torneo';
   document.getElementById('ptRisCasa').textContent   = match.casa;
   document.getElementById('ptRisOspite').textContent = match.ospite;
-  document.getElementById('ptRisGolC').value = match.played ? match.golCasa   : 0;
-  document.getElementById('ptRisGolO').value = match.played ? match.golOspiti : 0;
+  document.getElementById('ptRisGolC').value = match.played ? match.golCasa   : '';
+  document.getElementById('ptRisGolO').value = match.played ? match.golOspiti : '';
+  // Hint "inserisci risultato" per partite non ancora giocate
+  const _scoreHint = document.getElementById('ptRisScoreHint');
+  if (_scoreHint) _scoreHint.style.display = match.played ? 'none' : '';
+  // Indicatore LIVE: oggi e non ancora giocata
+  const _liveEl = document.getElementById('ptRisLiveIndicator');
+  if (_liveEl) _liveEl.style.display = (!match.played && match.data === ymd(new Date())) ? '' : 'none';
   // Nascondi le statistiche giocatori per partite tra avversari (non coinvolgono Polis)
   const involvesPolis = !leva || match.casa === polisName(leva) || match.ospite === polisName(leva);
   const statsSection = document.getElementById('ptRisStatsSection');
@@ -15806,8 +15881,11 @@ function _readRisCambi() {
 function savePtRisultato() {
   if (!_risCtx) return;
   const {tipo, ref, match, leva} = _risCtx;
-  const gc = parseInt(document.getElementById('ptRisGolC').value) || 0;
-  const go = parseInt(document.getElementById('ptRisGolO').value) || 0;
+  const gcRaw = document.getElementById('ptRisGolC').value.trim();
+  const goRaw = document.getElementById('ptRisGolO').value.trim();
+  if (gcRaw === '' || goRaw === '') { toast('⚠️ Inserisci il risultato prima di salvare'); return; }
+  const gc = Math.max(0, parseInt(gcRaw) || 0);
+  const go = Math.max(0, parseInt(goRaw) || 0);
   match.golCasa = gc; match.golOspiti = go; match.played = true;
   // Read stats
   const stats = [];
@@ -20574,7 +20652,8 @@ async function doRejoinSocieta() {
       nextCampoId:   nextCampoId,
       indisponibilita: indisponibilita,
       nextIndispId:    nextIndispId,
-      levaConvSettings: levaConvSettings
+      levaConvSettings:  levaConvSettings,
+      levaStatsSettings: levaStatsSettings
     };
   }
 
@@ -20775,7 +20854,8 @@ async function doRejoinSocieta() {
       if (typeof s.nextCampoId === 'number') nextCampoId = s.nextCampoId;
       if (Array.isArray(s.indisponibilita)) indisponibilita = s.indisponibilita;
       if (typeof s.nextIndispId === 'number') nextIndispId = s.nextIndispId;
-      if (s.levaConvSettings && typeof s.levaConvSettings === 'object') levaConvSettings = s.levaConvSettings;
+      if (s.levaConvSettings  && typeof s.levaConvSettings  === 'object') levaConvSettings  = s.levaConvSettings;
+      if (s.levaStatsSettings && typeof s.levaStatsSettings === 'object') levaStatsSettings = s.levaStatsSettings;
       lastSnap = raw;
     } catch (e) {
       console.error('FieldOS: ripristino fallito', e);
@@ -21219,18 +21299,19 @@ async function doRejoinSocieta() {
 <!-- Inserisci risultato + statistiche -->
 <div class="ov" id="mPtRisultato">
   <div class="modal" style="width:600px;max-width:96vw;">
-    <div class="mh"><div class="mt" id="mPtRisTitle">📊 Risultato</div><button class="mx" onclick="closeM('mPtRisultato')">✕</button></div>
+    <div class="mh"><div class="mt" id="mPtRisTitle">📊 Risultato</div><span id="ptRisLiveIndicator" style="display:none;background:#dc2626;color:#fff;font-size:.65rem;font-weight:800;padding:2px 8px;border-radius:20px;letter-spacing:.5px;margin-right:8px;animation:pulse 1.5s infinite;">🔴 LIVE</span><button class="mx" onclick="closeM('mPtRisultato')">✕</button></div>
     <input type="hidden" id="ptRisTipo">
     <input type="hidden" id="ptRisRef">
     <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;background:var(--bg);border-radius:10px;padding:14px;flex-wrap:wrap;">
       <div style="flex:1;text-align:right;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisCasa"></div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <input class="fi" id="ptRisGolC" type="number" min="0" max="99" value="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
+        <input class="fi" id="ptRisGolC" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
         <span style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:var(--text3);">—</span>
-        <input class="fi" id="ptRisGolO" type="number" min="0" max="99" value="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
+        <input class="fi" id="ptRisGolO" type="number" min="0" max="99" placeholder="0" style="width:54px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:1.5rem;font-weight:900;padding:5px;">
       </div>
       <div style="flex:1;text-align:left;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisOspite"></div>
     </div>
+    <div id="ptRisScoreHint" style="display:none;font-size:.75rem;color:var(--text3);text-align:center;margin:-10px 0 10px;">⬆️ Inserisci il risultato per salvare</div>
     <div id="ptRisStatsSection">
       <div style="font-weight:800;font-size:.84rem;margin-bottom:8px;color:var(--text2);" id="ptRisStatsTitle">📋 Statistiche giocatori</div>
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:6px;" id="ptRisStatsHeader"></div>
