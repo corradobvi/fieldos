@@ -13180,8 +13180,6 @@ function renderCalWeek() {
   const DAYS_SHORT = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 
-  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
-
   strip.innerHTML = '';
   let days = [];
   for (let i=0; i<7; i++) {
@@ -13201,7 +13199,7 @@ function renderCalWeek() {
 
   days.forEach(d => {
     const ds = ymd(d);
-    const evs = allEv.filter(e=>e.date===ds);
+    const evs = eventsForDay(ds);
     const isToday = ds===ymd(new Date());
     const isSel = ds===calWeekSelDay;
     const btn = document.createElement('div');
@@ -13213,7 +13211,7 @@ function renderCalWeek() {
 
   // Render eventi del giorno selezionato
   if (dayEvs) {
-    const dayEvList = allEv.filter(e=>e.date===calWeekSelDay).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+    const dayEvList = eventsForDay(calWeekSelDay);
     const selDate = parseYmd(calWeekSelDay);
     const selLabel = `${selDate.getDate()} ${MESI_IT[selDate.getMonth()]}`;
     if (!dayEvList.length) {
