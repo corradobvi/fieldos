@@ -1164,8 +1164,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     border-radius:20px 20px 0 0;
     max-height:92vh;padding:20px 16px 32px;margin:0;
   }
-  /* Chat full-height */
-  .chat-wrap{height:calc(100dvh - 52px - 72px);}
+  /* Chat: layout fisso tra topbar e bottom nav */
+  .chat-wrap{height:auto!important;}
+  #pg-chat.on{
+    display:flex!important;flex-direction:column;
+    position:fixed!important;top:52px;left:0;right:0;
+    bottom:calc(72px + env(safe-area-inset-bottom,0px));
+    z-index:10;background:var(--bg);
+    padding:0!important;overflow:hidden;animation:none;
+  }
+  #pg-chat .sec-h{
+    flex-shrink:0;padding:8px 14px 6px;margin-bottom:0!important;
+    background:var(--white);border-bottom:1px solid var(--border);
+  }
+  #pg-chat.chat-panel-open .sec-h{display:none!important;}
+  #pg-chat .chat-wrap{
+    flex:1!important;min-height:0!important;
+    border:none!important;border-radius:0!important;box-shadow:none!important;
+  }
   .cm-inp{padding:10px 12px;gap:8px;}
   .cm-inp input{font-size:15px!important;padding:11px 14px;border-radius:22px;}
   .cm-inp .btn{min-height:44px;padding:10px 16px;}
@@ -11462,7 +11478,7 @@ function buildMobDashboardAllenatore(c) {
     +'<div style="font-size:.88rem;font-weight:700;color:var(--text);">In arrivo a settembre 2026</div>'
     +(isPro
       ?'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Inclusa nel tuo piano '+(_plan==='societa'?'Società':'Mister Pro')+'</div>'
-      :'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:10px;border-radius:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>')
+      :'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro e Società</div>')
     +'</div></div>';
 
   c.innerHTML=pwaBannerHtml()+heroHtml+dafareHtml
@@ -12046,7 +12062,7 @@ function buildDashboard(role) {
     const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
     const _planD=_socD?getEffectivePlan(_socD):'mister';
     const isProD=_planD==='mister_pro'||_planD==='societa';
-    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>`}</div></div>`;
+    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro e Società</div>`}</div></div>`;
 
     c.innerHTML = dHeroHtml
       +`<div class="g2">`
@@ -15842,12 +15858,16 @@ function selectChat(chatId, skipListRefresh) {
   // Mobile: mostra il pannello messaggi
   const wrap = document.getElementById('chatWrap');
   if (wrap) wrap.classList.add('chat-panel-open');
+  const _pgChat = document.getElementById('pg-chat');
+  if (_pgChat) _pgChat.classList.add('chat-panel-open');
   if (!skipListRefresh) renderChatList();
 }
 
 function chatGoBack() {
   const wrap = document.getElementById('chatWrap');
   if (wrap) wrap.classList.remove('chat-panel-open');
+  const _pgChat = document.getElementById('pg-chat');
+  if (_pgChat) _pgChat.classList.remove('chat-panel-open');
 }
 
 function renderChatMessages() {
