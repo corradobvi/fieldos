@@ -63744,6 +63744,30 @@ router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", 
     return res.status(500).json({ error: "server_error" });
   }
 });
+router17.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { leva, title, body, tag } = req.body;
+  if (!leva || !title) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?
+         AND ruolo IN ('admin','dirigente','allenatore','preparatore_portieri','mister_admin')
+         AND (leva = ? OR ruolo IN ('admin','dirigente','mister_admin'))`,
+      [societyId, userId, leva]
+    );
+    const ids = rows.map((r) => r.id);
+    sendPushToUsers(ids, societyKeyFor(societyId), {
+      title,
+      body: body || "",
+      url: "/presenze",
+      tag: tag || "assenza"
+    }).catch((e) => logger.warn({ err: e }, "notify-coaches push error"));
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenze/notify-coaches error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 var presenze_default = router17;
 
 // src/routes/v2/comunicazioni.ts

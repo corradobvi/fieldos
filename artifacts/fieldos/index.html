@@ -263,8 +263,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 /* PLAYER CARD */
 .pc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;}
-.pc-top{display:flex;align-items:center;gap:10px;}
-.pc-av{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;flex-shrink:0;}
+.pc-top{display:flex;align-items:center;gap:12px;}
+.pc-av{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:800;flex-shrink:0;}
+#rosaGrid{grid-template-columns:1fr!important;}
 .pc-name{font-weight:800;font-size:.88rem;}
 .pc-role{font-size:.71rem;color:var(--text2);}
 .pc-num{margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;color:var(--cp);opacity:.2;}
@@ -4811,6 +4812,8 @@ function goTo(pgId) {
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const pg = document.getElementById('pg-' + pgId);
   if (pg) pg.classList.add('on');
+  const _mainEl = document.querySelector('.main');
+  if (_mainEl) _mainEl.scrollTop = 0;
   const ni = document.querySelector(`.ni[data-pg="${pgId}"]`);
   if (ni) ni.classList.add('on');
   document.getElementById('sidebar').classList.remove('on');
@@ -5336,7 +5339,7 @@ function renderRosa() {
       ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
       : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
     top.innerHTML = `
-      ${playerAv(p, 44, '10px', true)}
+      ${playerAv(p, 56, '12px', true)}
       <div style="flex:1;min-width:0;">
         <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
         ${incompleteBadge}${indispBadge}
@@ -6895,6 +6898,13 @@ function saveAvvisoAssenza(){
     });
   });
   closeM('mAvvisa');
+  if (_v2Token && p.leva) {
+    fetch(API_BASE + '/api/v2/presenze/notify-coaches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ leva: p.leva, title: `📩 Avviso assenza · ${p.nome} ${p.cogn}`, body: `${dateLong} (${p.leva})${motivo ? ' — ' + motivo : ''} — da ${me.nome} ${me.cogn}`.slice(0,100), tag: 'avviso_assenza' }),
+    }).catch(()=>{});
+  }
   toast('📩 Avviso inviato — assenza giustificata');
   if (document.getElementById('pg-presenze').classList.contains('active')) renderPresenze();
   refreshNotificheBadge();
@@ -6928,6 +6938,13 @@ function revocaAssenza(p, dateStr) {
   });
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   closeM('mRevocaAssenza');
+  if (_v2Token && p.leva) {
+    fetch(API_BASE + '/api/v2/presenze/notify-coaches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ leva: p.leva, title: `✅ Assenza revocata · ${p.nome} ${p.cogn}`, body: `${dateLong} (${p.leva}) — revocata da ${me.nome} ${me.cogn}`.slice(0,100), tag: 'assenza_revocata' }),
+    }).catch(()=>{});
+  }
   toast('✅ Assenza revocata');
   refreshNotificheBadge();
   if (document.getElementById('pg-presenze').classList.contains('active')) renderPresenze();
@@ -7440,7 +7457,6 @@ function openConvocazioneModal(eventId) {
       const indisp = d && d.status === 'indisponibile';
       const isSel = selected.has(p.id) && !indisp;
       const calIndisp = playerIndispOnDate(p.id, ev.date);
-      const bg = calIndisp ? '#fee2e2' : (indisp ? '#fff7ed' : 'var(--bg)');
       const opac = indisp ? 'opacity:.65;' : '';
       let statusHtml;
       if (indisp) {
@@ -7453,14 +7469,21 @@ function openConvocazioneModal(eventId) {
       } else {
         statusHtml = `<span style="font-size:.72rem;color:var(--green);">✓ Disponibile</span>`;
       }
+      const _indispBtnTitle = calIndisp && calIndisp.byStaff ? 'Indisponibilità segnalata manualmente dal mister' : calIndisp ? 'Modifica indisponibilità' : 'Segna indisponibile';
       const indispBtnHtml = canMarkIndisp
-        ? `<button class="btn btn-g btn-xs" style="flex-shrink:0;padding:3px 7px;font-size:.72rem;" title="${calIndisp ? 'Modifica indisponibilità' : 'Segna indisponibile'}" onclick="openIndispModal(${p.id},${calIndisp ? calIndisp.id : 'null'})">⚠️</button>`
+        ? `<button class="btn btn-g btn-xs" style="flex-shrink:0;padding:3px 7px;font-size:.72rem;" title="${_indispBtnTitle}" onclick="openIndispModal(${p.id},${calIndisp ? calIndisp.id : 'null'})">⚠️</button>`
         : '';
-      return `<div style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;background:${bg};${opac}margin-bottom:3px;">
-        <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:17px;height:17px;accent-color:var(--cp);cursor:${indisp?'not-allowed':'pointer'};flex-shrink:0;">
-        ${playerAv(p, 28, '50%', false)}
+      const _rowStyle = isSel
+        ? 'background:var(--cl);border:1.5px solid var(--cp);'
+        : calIndisp ? 'background:#fee2e2;border:1.5px solid transparent;'
+        : indisp    ? 'background:#fff7ed;border:1.5px solid transparent;'
+        : 'background:var(--bg);border:1.5px solid transparent;';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:9px;${_rowStyle}${opac}margin-bottom:5px;">
+        <input type="checkbox" data-pid="${p.id}" ${isSel?'checked':''} ${indisp?'disabled':''} onchange="updateConvCounter()" style="width:24px;height:24px;accent-color:var(--cp);cursor:${indisp?'not-allowed':'pointer'};flex-shrink:0;">
+        ${playerAv(p, 36, '50%', false)}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:.86rem;">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="color:var(--text3);font-style:italic;font-weight:400;">"${escapeHtml(p.soprannome)}"</span>` : ''} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
+          <div style="font-weight:700;font-size:.87rem;line-height:1.3;">${escapeHtml(p.nome+' '+p.cogn)}${p.soprannome ? ` <span style="color:var(--text3);font-style:italic;font-weight:400;">"${escapeHtml(p.soprannome)}"</span>` : ''}</div>
+          <div style="font-size:.73rem;color:var(--text2);margin-bottom:2px;">${escapeHtml(p.leva)}</div>
           <div>${statusHtml}</div>
         </div>
         ${indispBtnHtml}
@@ -8137,6 +8160,7 @@ function renderComunicazioni() {
 
   const scopes = commVisibleScopes();
   if (!scopes.length) { cont.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Nessuna bacheca disponibile.</div>'; return; }
+  if (me && (me.role === 'genitore' || me.role === 'nonno') && _commActiveTab === 'pubblica') _commActiveTab = 'notifiche';
   if (!scopes.find(s=>s.id===_commActiveTab) && _commActiveTab !== 'notifiche') _commActiveTab = scopes[0].id;
 
   const unreadPerScope = {};
@@ -8150,8 +8174,8 @@ function renderComunicazioni() {
     : '';
 
   const tabsHtml = `<div class="pt-tabs" style="margin-bottom:14px;">
-    ${scopes.map(s=>`<button class="pt-tab${_commActiveTab===s.id?' on':''}" onclick="commSwitchTab('${escapeHtml(s.id)}')">${escapeHtml(s.label)}${mkDot(unreadPerScope[s.id])}</button>`).join('')}
     <button class="pt-tab${_commActiveTab==='notifiche'?' on':''}" onclick="commSwitchTab('notifiche')">🔔 Notifiche${mkDot(notifUnread)}</button>
+    ${scopes.map(s=>`<button class="pt-tab${_commActiveTab===s.id?' on':''}" onclick="commSwitchTab('${escapeHtml(s.id)}')">${escapeHtml(s.label)}${mkDot(unreadPerScope[s.id])}</button>`).join('')}
   </div>`;
 
   cont.innerHTML = tabsHtml
@@ -12467,33 +12491,60 @@ function buildDashboard(role) {
     }).join('')
     : `<div style="background:var(--cl);border-radius:10px;padding:18px;text-align:center;color:var(--text2);"><div style="font-size:1.8rem;margin-bottom:8px;">👤</div>Nessun figlio collegato al tuo profilo.</div>`;
 
-    const visScopes = commVisibleScopes().map(s=>s.id);
-    const avvisiNonLetti = comunicazioni.filter(cv => visScopes.includes(cv.scope) && !commIsRead(cv)).slice(0,5);
-    const avvisiDeskHtml = avvisiNonLetti.length
-      ? avvisiNonLetti.map(n=>`<div style="padding:8px 10px;background:#f0f6ff;border-radius:8px;border-left:3px solid var(--cp);margin-bottom:5px;cursor:pointer;" onclick="goTo('comunicazioni')">
-          <div style="font-size:.83rem;font-weight:700;">${escapeHtml((n.titolo||'').slice(0,60))}</div>
-          ${n.testo?`<div style="font-size:.73rem;color:var(--text2);margin-top:2px;">${escapeHtml(n.testo.slice(0,80))}</div>`:''}
-        </div>`).join('')
-      : `<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun avviso non letto.</div>`;
-
-    const standingsHtml = childLeve.map(lv=>`<div style="margin-bottom:10px;"><div style="font-size:.79rem;font-weight:700;color:var(--text2);margin-bottom:5px;">${escapeHtml(lv)}</div>${miniStandings(lv)}</div>`).join('')
-      || `<div style="font-size:.82rem;color:var(--text2);font-style:italic;">Classifica non disponibile.</div>`;
-
+    const lv0 = childLeve[0] || '';
+    const lastResult = lv0 ? panoLastResultForLeva(lv0) : null;
+    let lastResultHtml = '';
+    if (lastResult) {
+      const _polis = _campPolis(lv0);
+      const _isH = lastResult.casa === _polis;
+      const _myG = _isH ? lastResult.golCasa : lastResult.golOspiti;
+      const _oppG = _isH ? lastResult.golOspiti : lastResult.golCasa;
+      const _out = _myG > _oppG ? 'V' : _myG < _oppG ? 'P' : 'N';
+      const _outC = _out === 'V' ? 'var(--green)' : _out === 'P' ? 'var(--red)' : 'var(--gold)';
+      const _outL = _out === 'V' ? 'Vittoria' : _out === 'P' ? 'Sconfitta' : 'Pareggio';
+      const _avv = _isH ? lastResult.ospite : lastResult.casa;
+      lastResultHtml = `<div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--cl);border-radius:9px;">
+        <div style="background:${_outC};border-radius:7px;padding:6px 12px;text-align:center;flex-shrink:0;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;color:white;line-height:1;">${_myG}-${_oppG}</div>
+          <div style="font-size:.52rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.8);">${_outL}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:.84rem;">${escapeHtml(_polis)} vs ${escapeHtml(_avv||'?')}</div>
+          <div style="font-size:.72rem;color:var(--text2);">${fmtDateLong(parseYmd(lastResult.data))}</div>
+        </div>
+      </div>`;
+    }
+    const allFutureMatches = lv0 ? panoAllNextMatchesAcrossLeve([lv0]) : [];
+    const secondMatch = allFutureMatches[1] || null;
+    let inArrivoHtml = '';
+    if (secondMatch) {
+      const _smD = parseYmd(secondMatch.data);
+      const _smC = secondMatch.tipo === 'torneo' ? '#e03055' : secondMatch.tipo === 'amichevole' ? '#7c3aed' : 'var(--cp)';
+      const _smL = secondMatch.tipo === 'torneo' ? 'Torneo' : secondMatch.tipo === 'amichevole' ? 'Amich.' : 'Partita';
+      const _smPolis = _campPolis(lv0);
+      const _smTitle = secondMatch.casa ? `${escapeHtml(_smPolis)} vs ${escapeHtml(secondMatch.avversario)}` : `${escapeHtml(secondMatch.avversario)} vs ${escapeHtml(_smPolis)}`;
+      inArrivoHtml = `<div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--cl);border-radius:9px;">
+        <div style="background:${_smC};border-radius:7px;padding:6px 10px;text-align:center;min-width:42px;flex-shrink:0;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:white;line-height:1;">${_smD.getDate()}</div>
+          <div style="font-size:.52rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.8);">${MESI_SHORT[_smD.getMonth()]}</div>
+        </div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:.84rem;">${_smTitle}</div>
+          <div style="font-size:.72rem;color:var(--text2);">${secondMatch.orario||''}${secondMatch.luogo?' · '+escapeHtml(secondMatch.luogo):''}</div>
+        </div>
+        <span class="pill" style="background:${_smC};color:#fff;">${_smL}</span>
+      </div>`;
+    }
     const avvisaGenitoreBtn = canAvvisaAssenza()
-      ? `<div style="margin-bottom:16px;"><button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="openAvvisaModal()">📵 Avvisa assenza</button></div>`
+      ? `<button class="btn btn-r" style="width:100%;padding:12px;font-size:.95rem;margin-bottom:4px;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
       : '';
 
     c.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">${childCards}</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">${childCards}</div>
       ${avvisaGenitoreBtn}
-      <div class="g2">
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card"><div class="ch"><div class="ct">⚽ Prossima partita</div></div>${nextMatchCardHtml}</div>
-          <div class="card"><div class="ch"><div class="ct">📣 Avvisi non letti</div><button class="btn btn-g btn-sm" onclick="goTo('comunicazioni')">Tutti →</button></div>${avvisiDeskHtml}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="card"><div class="ch"><div class="ct">🏅 Classifica campionato</div></div>${standingsHtml}</div>
-        </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        ${lastResult ? `<div class="card"><div class="ch"><div class="ct">⚽ Ultima partita</div></div>${lastResultHtml}</div>` : ''}
+        <div class="card"><div class="ch"><div class="ct">📅 Prossima partita</div></div>${nextMatchCardHtml}</div>
+        ${secondMatch ? `<div class="card"><div class="ch"><div class="ct">🗓 In arrivo</div></div>${inArrivoHtml}</div>` : ''}
       </div>`;
 
   } else if (role === 'giocatore') {
@@ -14853,7 +14904,7 @@ function _gcTorneoHd(t) {
   const tipoLabel = t.tipo===2?'Doppio girone':t.tipo===3?'Gironi + Scontri diretti':'Girone unico';
   const convCount = (t.convocati || []).length;
   const convLabel = convCount ? `${convCount} convoc.` : 'Nessun convocato';
-  const editBtns = canEditPt(t.leva)?`<button class="btn btn-sm" style="background:#1A7A4A;color:white;font-size:.72rem;" onclick="openTorneoConvocatiModal('${t.id}')" title="Gestisci convocati">📋 ${convLabel}</button><button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
+  const editBtns = canEditPt(t.leva)?`<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
   return `<div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">${editBtns}</div></div>`;
 }
 

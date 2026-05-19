@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
+import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
 
@@ -83,6 +84,29 @@ router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "d
     return res.json({ ok: true, updated: presenze.length });
   } catch (e: any) {
     logger.error({ err: e }, "POST presenze/bulk error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/presenze/notify-coaches — web push to coaches of a leva (fire-and-forget)
+router.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { leva, title, body, tag } = req.body as Record<string, any>;
+  if (!leva || !title) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?
+         AND ruolo IN ('admin','dirigente','allenatore','preparatore_portieri','mister_admin')
+         AND (leva = ? OR ruolo IN ('admin','dirigente','mister_admin'))`,
+      [societyId, userId, leva]
+    )) as [any[], any];
+    const ids = rows.map((r: any) => r.id as number);
+    sendPushToUsers(ids, societyKeyFor(societyId), {
+      title, body: body || "", url: "/presenze", tag: tag || "assenza",
+    }).catch((e: any) => logger.warn({ err: e }, "notify-coaches push error"));
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "POST presenze/notify-coaches error");
     return res.status(500).json({ error: "server_error" });
   }
 });
