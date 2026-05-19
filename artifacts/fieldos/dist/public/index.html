@@ -4570,17 +4570,15 @@ function buildMobNav(role) {
   if (role === 'genitore' || role === 'nonno') {
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
-      {id:'chat',         ic:'💬', lb:'Chat',      badge:'mn-chat'},
-      {id:'comunicazioni',ic:'📣', lb:'Avvisi',    badge:'mn-comm'},
-      {id:'calendario',   ic:'📅', lb:'Calendario'},
+      {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
+      {id:'comunicazioni',ic:'🔔', lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'📣',lb:'Avvisi', badge:'mn-comm'},
-      {id:'calendario',  ic:'📅', lb:'Cal'},
+      {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
   } else if (isMister) {
