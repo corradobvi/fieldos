@@ -846,6 +846,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ac-panel.active{display:block;}
 .ac-card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;}
 .ac-card-title{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);margin-bottom:16px;}
+.ac-toggle{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;}.ac-toggle input{opacity:0;width:0;height:0;}.ac-toggle-sl{position:absolute;inset:0;background:#ccc;border-radius:26px;cursor:pointer;transition:.25s;}.ac-toggle input:checked+.ac-toggle-sl{background:var(--cp);}.ac-toggle-sl:before{content:'';position:absolute;width:20px;height:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;}.ac-toggle input:checked+.ac-toggle-sl:before{transform:translateX(20px);}
 .ac-av-wrap{display:flex;justify-content:center;margin-bottom:10px;}
 .ac-av{width:68px;height:68px;border-radius:50%;background:var(--cp);color:#fff;font-size:1.5rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .ac-role-lbl{text-align:center;margin-bottom:18px;}
@@ -1164,8 +1165,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     border-radius:20px 20px 0 0;
     max-height:92vh;padding:20px 16px 32px;margin:0;
   }
-  /* Chat full-height */
-  .chat-wrap{height:calc(100dvh - 52px - 72px);}
+  /* Chat: layout fisso tra topbar e bottom nav */
+  .chat-wrap{height:auto!important;}
+  #pg-chat.on{
+    display:flex!important;flex-direction:column;
+    position:fixed!important;top:52px;left:0;right:0;
+    bottom:calc(72px + env(safe-area-inset-bottom,0px));
+    z-index:10;background:var(--bg);
+    padding:0!important;overflow:hidden;animation:none;
+  }
+  #pg-chat .sec-h{
+    flex-shrink:0;padding:8px 14px 6px;margin-bottom:0!important;
+    background:var(--white);border-bottom:1px solid var(--border);
+  }
+  #pg-chat.chat-panel-open .sec-h{display:none!important;}
+  #pg-chat .chat-wrap{
+    flex:1!important;min-height:0!important;
+    border:none!important;border-radius:0!important;box-shadow:none!important;
+  }
   .cm-inp{padding:10px 12px;gap:8px;}
   .cm-inp input{font-size:15px!important;padding:11px 14px;border-radius:22px;}
   .cm-inp .btn{min-height:44px;padding:10px 16px;}
@@ -2226,24 +2243,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
 
-      <!-- ── Panel: Comunicazioni ── -->
+      <!-- ── Panel: Notifiche ── -->
       <div class="ac-panel" id="acPanelComunicazioni">
         <div class="ac-card">
-          <div class="ac-card-title">💬 Comunicazioni e Privacy</div>
-          <p style="font-size:.85rem;color:var(--text2);margin:0 0 16px;line-height:1.55;">Gestisci le tue preferenze di comunicazione. Puoi modificare il consenso in qualsiasi momento.</p>
+          <div class="ac-card-title">🔔 Preferenze notifiche push</div>
+          <p style="font-size:.85rem;color:var(--text2);margin:0 0 16px;line-height:1.55;">Scegli quali notifiche ricevere sul tuo dispositivo. Le modifiche vengono salvate automaticamente.</p>
           <div id="acCommLoading" style="text-align:center;padding:16px;font-size:.85rem;color:var(--text2);">⏳ Caricamento…</div>
           <div id="acCommContent" style="display:none;">
-            <label style="display:flex;align-items:center;gap:14px;cursor:pointer;padding:14px 0;border-top:1px solid var(--border);">
-              <input type="checkbox" id="acMktConsent" onchange="_acToggleMarketing(this.checked)"
-                style="width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:var(--cl);">
-              <div>
-                <div style="font-size:.92rem;font-weight:600;">Comunicazioni commerciali</div>
-                <div style="font-size:.8rem;color:var(--text2);margin-top:3px;">Offerte, promozioni e novità su MyVivaio</div>
-              </div>
-            </label>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Convocazioni</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Nuovi allenamenti e partite</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifConv" onchange="_acSaveNotifPref('notify_convocazioni',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Comunicazioni</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Avvisi e comunicati della società</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifComm" onchange="_acSaveNotifPref('notify_comunicazioni',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Chat</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Nuovi messaggi in chat</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifChat" onchange="_acSaveNotifPref('notify_chat',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);">
+              <div><div style="font-size:.92rem;font-weight:600;">Promemoria</div><div style="font-size:.8rem;color:var(--text2);margin-top:2px;">Reminder su eventi imminenti</div></div>
+              <label class="ac-toggle"><input type="checkbox" id="acNotifRemind" onchange="_acSaveNotifPref('notify_reminders',this.checked)"><span class="ac-toggle-sl"></span></label>
+            </div>
           </div>
           <div id="acCommUnavail" style="display:none;font-size:.84rem;color:var(--text2);text-align:center;padding:16px 0;">
-            Questa funzione è disponibile per gli account registrati direttamente su MyVivaio.
+            Accedi all'app per gestire le preferenze di notifica.
           </div>
         </div>
       </div>
@@ -2323,6 +2348,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
           <button class="tb-user-dd-item" onclick="openAccountScreen();toggleTopUserMenu();event.stopPropagation();">👤 Il mio account</button>
+          <button class="tb-user-dd-item" onclick="openHelpModal();toggleTopUserMenu();event.stopPropagation();">💬 Aiuto</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
         </div>
       </div>
@@ -4502,7 +4528,8 @@ function bootApp(user) {
     document.getElementById('app').classList.add('on');
     const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
     applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
-    goTo('panoramica');
+    // Mister/Allenatore: home operativa diretta, non la panoramica società
+    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
@@ -4518,10 +4545,6 @@ function bootApp(user) {
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { waCheckStatus(); }, 2000);
-    // Mostra pulsante assistente (nascosto su mobile per genitore/nonno)
-    const _cb = document.getElementById('asstBtn');
-    const _isMobFam = window.innerWidth <= 640 && me && (me.role === 'genitore' || me.role === 'nonno');
-    if (_cb && !_isMobFam) _cb.classList.add('visible');
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
     if (_saRaw) { try { chatLoadLearned(JSON.parse(_saRaw)); } catch(e) {} }
@@ -4556,17 +4579,15 @@ function buildMobNav(role) {
   if (role === 'genitore' || role === 'nonno') {
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
-      {id:'chat',         ic:'💬', lb:'Chat',      badge:'mn-chat'},
-      {id:'comunicazioni',ic:'📣', lb:'Avvisi',    badge:'mn-comm'},
-      {id:'calendario',   ic:'📅', lb:'Calendario'},
+      {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
+      {id:'comunicazioni',ic:'🔔', lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'📣',lb:'Avvisi', badge:'mn-comm'},
-      {id:'calendario',  ic:'📅', lb:'Cal'},
+      {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
   } else if (isMister) {
@@ -4820,9 +4841,6 @@ function renderProfiloFiglio(el) {
       <div style="font-size:2.5rem;margin-bottom:12px;">👤</div>
       <div style="font-size:1.05rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
       <div style="font-size:.85rem;color:var(--text3);margin-top:6px;">Chiedi all'amministratore di collegare il profilo del tuo figlio/a.</div>
-    </div>
-    <div style="margin-top:16px;">
-      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
     </div>`;
     return;
   }
@@ -4894,24 +4912,7 @@ function renderProfiloFiglio(el) {
     </div>
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
-    ${docsHtml}
-    <div class="mob-dash-card" style="margin-top:8px;">
-      <div class="mob-dash-card-hd">Il tuo account</div>
-      <div style="font-size:.84rem;color:var(--text2);margin-bottom:12px;">${escapeHtml(me.email||'')}</div>
-      <button class="btn btn-r" style="width:100%;" onclick="logout()">🚪 Esci dall'app</button>
-    </div>
-    <div class="mob-dash-card" style="margin-top:8px;">
-      <div class="mob-dash-card-hd">🔐 Sicurezza</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div class="fg" style="margin:0;"><label class="fl">Password attuale</label>
-          <div class="fi-wrap"><input class="fi" type="password" id="cpProfOld" placeholder="••••••••" autocomplete="current-password"><button type="button" class="fi-eye" onclick="_toggleEye('cpProfOld',this)" tabindex="-1" aria-label="Mostra/nascondi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-        </div>
-        <div class="fg" style="margin:0;"><label class="fl">Nuova password</label><input class="fi" type="password" id="cpProfNew" placeholder="Min. 8 car., maiuscola, numero, simbolo" autocomplete="new-password"></div>
-        <div class="fg" style="margin:0;"><label class="fl">Conferma nuova password</label><input class="fi" type="password" id="cpProfConf" placeholder="Ripeti la nuova password" autocomplete="new-password"></div>
-        <div id="cpProfMsg" style="display:none;font-size:.83rem;padding:8px 11px;border-radius:8px;font-weight:600;"></div>
-        <button class="btn btn-p" onclick="changePasswordProfile()">💾 Aggiorna password</button>
-      </div>
-    </div>`;
+    ${docsHtml}`;
 }
 
 // ═══════════════════════════════════
@@ -11336,7 +11337,7 @@ var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
 function _misterGetShortcuts() {
   var key = 'mister_sc_'+(me?me.id:0);
   try{ var v=JSON.parse(localStorage.getItem(key)||'null'); if(Array.isArray(v)&&v.length===4) return v; }catch(e){}
-  return _MISTER_SC_DEF.slice();
+  return [null,null,null,null];
 }
 
 // Returns the next event (any type: training, match, etc.) for the leva
@@ -11388,7 +11389,7 @@ function buildMobDashboardAllenatore(c) {
   var heroHtml='';
   if (nxt) {
     var hD=parseYmd(nxt.date); var hDFN=nxt.daysFromNow; var isTrH=nxt.isTraining;
-    var hGrad=isTrH?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxt.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxt.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+    var hGrad='linear-gradient(135deg,var(--cp),var(--cs))';
     var hTag=isTrH?'🏃 Allenamento':nxt.type==='torneo'?'🏆 Torneo':nxt.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
     var hMeta=hD.getDate()+' '+MESI[hD.getMonth()]+(nxt.start?' · '+nxt.start:'')+(nxt.luogo?' · '+escapeHtml(nxt.luogo):'');
     var hCTA=isTrH?(hDFN===0?'✅ Segna presenze':'📩 Assenze segnalate'):(hasConv?'📋 Vedi convocazione':'📋 Crea convocazione');
@@ -11461,7 +11462,7 @@ function buildMobDashboardAllenatore(c) {
     +'<div style="font-size:.88rem;font-weight:700;color:var(--text);">In arrivo a settembre 2026</div>'
     +(isPro
       ?'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Inclusa nel tuo piano '+(_plan==='societa'?'Società':'Mister Pro')+'</div>'
-      :'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:10px;border-radius:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>')
+      :'<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro e Società</div>')
     +'</div></div>';
 
   c.innerHTML=pwaBannerHtml()+heroHtml+dafareHtml
@@ -11474,7 +11475,7 @@ function buildMobDashboardAllenatore(c) {
 
 function openMisterShortcutPicker() {
   if (document.getElementById('scPickerOv')) return;
-  var current=_misterGetShortcuts();
+  var current=_misterGetShortcuts().filter(Boolean);
   window._scPickCurrent=current.slice();
   var allIds=Object.keys(_MISTER_SC_ALL);
   var itemsHtml=allIds.map(function(id){
@@ -11638,135 +11639,183 @@ function buildMobDashboard(role, c) {
     </div>`;
 }
 
+// ─── Selettore figlio genitore ────────────────────────────────────────────────
+function openGenFiglioSelector(){
+  var figliNames=getFigliOf(me);
+  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  if(figliPlayers.length<2)return;
+  if(document.getElementById('genFiglioSelOv'))return;
+  var _scKey='gen_sel_'+(me?me.id:0);
+  var _savedId=localStorage.getItem(_scKey)||String((figliPlayers[0]||{}).id||'');
+  var ov=document.createElement('div');
+  ov.id='genFiglioSelOv';ov.className='sc-picker-ov';
+  var items=figliPlayers.map(function(p){
+    var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    var isSel=String(p.id)===_savedId;
+    return '<div class="sc-pi'+(isSel?' sel':'')+'" onclick="selectGenFiglio('+p.id+')" style="display:flex;align-items:center;gap:12px;padding:13px 14px;">'
+      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">'+escapeHtml(p.nome+' '+p.cogn)+'</div><div style="font-size:.74rem;color:var(--text2);">'+escapeHtml(p.leva||'')+(p.num?' · #'+p.num:'')+'</div></div>'
+      +(isSel?'<span style="color:var(--cp);font-weight:900;font-size:1.1rem;">✓</span>':'')
+      +'</div>';
+  }).join('');
+  ov.innerHTML='<div class="sc-picker-sheet">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">'
+    +'<div style="font-weight:800;font-size:1rem;">👥 Seleziona figlio</div>'
+    +'<button style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;color:var(--text2);line-height:1;" onclick="document.getElementById(\'genFiglioSelOv\').remove()">✕</button>'
+    +'</div><div style="display:flex;flex-direction:column;gap:6px;">'+items+'</div>'
+    +'</div>';
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  document.body.appendChild(ov);
+}
+function selectGenFiglio(playerId){
+  var _scKey='gen_sel_'+(me?me.id:0);
+  localStorage.setItem(_scKey,String(playerId));
+  var ov=document.getElementById('genFiglioSelOv');if(ov)ov.remove();
+  if(me)buildDashboard(me.role);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function buildMobDashboardGenitore(c) {
-  const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-  const todayStr = ymd(new Date());
+  var todayStr=ymd(new Date());
+  var figliNames=getFigliOf(me);
+  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
 
-  const figliNames = getFigliOf(me);
-  const figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
-  const p = figliPlayers[0];
+  // Selezione figlio attivo (da localStorage se ≥2 figli)
+  var _genScKey='gen_sel_'+(me?me.id:0);
+  var selectedPlayer=figliPlayers[0];
+  if(figliPlayers.length>=2){
+    var _savedId=localStorage.getItem(_genScKey);
+    if(_savedId){var _sf=figliPlayers.find(function(p){return String(p.id)===_savedId;});if(_sf)selectedPlayer=_sf;}
+  }
+  var p=selectedPlayer;
 
-  // — Hero card figlio —
-  let heroHtml = '';
-  if (p) {
-    const ms = playerMatchStats(p.id, p.leva);
-    const totalGol = ms.a.gol + ms.c.gol + ms.t.gol;
-    const totalAss = ms.a.assist + ms.c.assist + ms.t.assist;
-    const s = calcStats(p);
-    const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
-    heroHtml = `<div class="mob-fam-card">
-      <div style="display:flex;align-items:flex-start;gap:12px;">
-        <div class="mob-fam-av">${ini}</div>
-        <div style="flex:1;">
-          <div class="mob-fam-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-          <div class="mob-fam-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
-        </div>
-      </div>
-      <div class="mob-fam-stats">
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalGol}</div><div class="mob-fam-stat-l">Gol</div></div>
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${totalAss}</div><div class="mob-fam-stat-l">Assist</div></div>
-        <div class="mob-fam-stat"><div class="mob-fam-stat-n">${s.percAll}<span style="font-size:.85rem;">%</span></div><div class="mob-fam-stat-l">Presenze</div></div>
-      </div>
-      <div class="mob-fam-num">#${p.num||'—'}</div>
-    </div>`;
-  } else {
-    heroHtml = `<div class="mob-dash-card" style="text-align:center;padding:28px;">
-      <div style="font-size:2rem;margin-bottom:8px;">👤</div>
-      <div style="font-size:1rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>
-      <div style="font-size:.82rem;color:var(--text3);margin-top:4px;">Chiedi all'amministratore di collegare il profilo.</div>
-    </div>`;
+  // ── CARD 1: Selettore figlio (solo se ≥2) ────────────────────────────────
+  var selectorHtml='';
+  if(figliPlayers.length>=2&&p){
+    var _sIni=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    selectorHtml='<div class="mob-dash-card" style="padding:11px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;" onclick="openGenFiglioSelector()">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:34px;height:34px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;">'+_sIni+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">'+escapeHtml(p.nome+' '+p.cogn)+'</div><div style="font-size:.73rem;color:var(--text2);">'+escapeHtml(p.leva||'')+'</div></div>'
+      +'<span style="font-size:.78rem;color:var(--cp);font-weight:600;flex-shrink:0;">Cambia ▾</span>'
+      +'</div></div>';
   }
 
-  // — Quote da pagare —
-  let quotaHtml = '';
-  if (p) {
-    const myPlayers = getMyPlayers();
-    const myIds = myPlayers.map(x => x.id);
-    const pending = quotes.filter(q => myIds.includes(q.playerId) && q.stato !== 'pagato');
-    const totDovuto = pending.reduce((s, q) => s + (Number(q.importo) || 0), 0);
-    if (totDovuto > 0) {
-      quotaHtml = `<div class="mob-quota-banner" onclick="goTo('pagamenti')">
-        <div class="mob-quota-ico">💰</div>
-        <div class="mob-quota-body">
-          <div class="mob-quota-label">Quote da pagare</div>
-          <div class="mob-quota-sub">${pending.length} rata${pending.length !== 1 ? 'e' : ''} in sospeso</div>
-        </div>
-        <div class="mob-quota-amt">€${totDovuto}</div>
-      </div>`;
+  // ── CARD 2: Profilo figlio ────────────────────────────────────────────────
+  var heroHtml2='';
+  if(p){
+    var ms=playerMatchStats(p.id,p.leva);
+    var totalGol=ms.a.gol+ms.c.gol+ms.t.gol;
+    var totalAss=ms.a.assist+ms.c.assist+ms.t.assist;
+    var s=calcStats(p);
+    var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+      +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(p.nome+' '+p.cogn)+'</div>'
+      +'<div style="font-size:.76rem;opacity:.85;margin-top:3px;">'+escapeHtml(p.ruolo||'Giocatore')+(p.num?' · #'+p.num:'')+' · '+escapeHtml(p.leva||'')+'</div>'
+      +'</div></div>'
+      +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
+      +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalAss+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Assist</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Presenze</div>'
+      +'</div>'
+      +'</div></div>';
+  } else {
+    heroHtml2='<div class="mob-dash-card" style="text-align:center;padding:28px;">'
+      +'<div style="font-size:2rem;margin-bottom:8px;">👤</div>'
+      +'<div style="font-size:1rem;font-weight:700;color:var(--text2);">Nessun figlio collegato</div>'
+      +'<div style="font-size:.82rem;color:var(--text3);margin-top:4px;">Chiedi all\'allenatore di collegare il profilo.</div>'
+      +'</div>';
+  }
+
+  // ── CARD 3: Prossimo impegno ─────────────────────────────────────────────
+  var lv=p?p.leva:null;
+  var nxtEv=lv?_misterNextAnyEvent(lv):null;
+  var impegnoHtml='';
+  if(nxtEv){
+    var hDFN=nxtEv.daysFromNow;
+    var isTrG=nxtEv.isTraining;
+    var cdStr3=hDFN===0?'OGG':hDFN===1?'DOM':String(hDFN);
+    var cdSub3=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
+    var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
+    var convBadge3='';
+    if(!isTrG){
+      var convG=nxtEv.id?getConvocazione(nxtEv.id):null;
+      if(convG&&convG.playerIds&&p){
+        convBadge3=convG.playerIds.includes(p.id)
+          ?'<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>'
+          :'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--border);color:var(--text2);border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">⚪ NON CONVOCATO</span>';
+      } else {
+        convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟡 IN ATTESA DI CONVOCAZIONE</span>';
+      }
     }
-  }
-
-  // — Prossimo impegno —
-  const childLeve = p ? [p.leva].filter(Boolean) : [];
-  const _allNextMob = panoAllNextMatchesAcrossLeve(childLeve);
-  const nextMatches = isFamily()
-    ? _allNextMob.filter(m => getVisibilitaGenitore(m) !== 'none')
-    : _allNextMob;
-  const nextM = nextMatches[0];
-
-  let impegnoHtml = '';
-  if (nextM) {
-    const d = parseYmd(nextM.data);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const diffDays = Math.round((d - today) / 86400000);
-    const tipoLabel = nextM.tipo === 'campionato' ? '🏅 Campionato' : nextM.tipo === 'torneo' ? ('🏆 ' + (nextM.torneoNome||'Torneo')) : '🤝 Amichevole';
-    const luogoLabel = nextM.casa ? '🏠 Casa' : '✈️ Trasferta';
-    const cdStr = diffDays === 0 ? 'OGG' : diffDays === 1 ? 'DOM' : diffDays + 'g';
-    const mobFase = isFamily() ? getVisibilitaGenitore(nextM) : 'fase2';
-    const mobInfoHtml = mobFase === 'fase1'
-      ? `<div class="mob-impegno-title">⚽ ${tipoLabel}</div><div class="mob-impegno-meta">⏳ Dettagli disponibili a breve</div>`
-      : `<div class="mob-impegno-title">vs ${escapeHtml(nextM.avversario)}</div><div class="mob-impegno-meta">${nextM.orario ? nextM.orario + ' · ' : ''}${escapeHtml(nextM.leva)} · ${tipoLabel}</div><div class="mob-impegno-meta">${luogoLabel}${nextM.luogo ? ' · ' + escapeHtml(nextM.luogo) : ''}</div>`;
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
-      <div class="mob-impegno-hd">Prossimo impegno <span style="color:var(--cp);font-size:.65rem;">${MESI[d.getMonth()].toUpperCase()}</span></div>
-      <div class="mob-impegno-row">
-        <div class="mob-impegno-cd">
-          <div class="mob-impegno-cd-n">${d.getDate()}</div>
-          <div class="mob-impegno-cd-l">${MESI[d.getMonth()]}</div>
-        </div>
-        <div class="mob-impegno-info">${mobInfoHtml}</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);text-align:center;flex-shrink:0;background:var(--cl);border-radius:10px;padding:6px 10px;">${cdStr}</div>
-      </div>
-    </div>`;
+    impegnoHtml='<div class="mob-dash-card" onclick="goTo(\'calendario\')" style="-webkit-tap-highlight-color:transparent;">'
+      +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
+      +'<div style="display:flex;align-items:flex-start;gap:14px;">'
+      +'<div style="flex-shrink:0;text-align:center;min-width:54px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:2.1rem;font-weight:900;line-height:1;color:var(--cp);">'+cdStr3+'</div>'
+      +'<div style="font-size:.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">'+cdSub3+'</div>'
+      +'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-weight:700;font-size:.93rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(nxtEv.title)+'</div>'
+      +'<div style="font-size:.76rem;color:var(--text2);margin-top:3px;">'+evType3+(nxtEv.start?' · '+nxtEv.start:'')+(nxtEv.luogo?' · '+escapeHtml(nxtEv.luogo):'')+'</div>'
+      +convBadge3
+      +'</div></div></div>';
   } else {
-    impegnoHtml = `<div class="mob-impegno" onclick="goTo('partite')">
-      <div class="mob-impegno-hd">Prossimo impegno</div>
-      <div style="font-size:.88rem;color:var(--text2);padding:4px 0;">Nessun impegno programmato</div>
-    </div>`;
+    impegnoHtml='<div class="mob-dash-card">'
+      +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
+      +'<div style="font-size:.84rem;color:var(--text2);">Nessun impegno in programma</div>'
+      +'</div>';
   }
 
-  // — Ultimo avviso non letto —
-  const myNotif = notifiche.filter(n => n.userId === me.id && !n.read).sort((a, b) => (b.ts||0) - (a.ts||0));
-  let avvisoHtml = '';
-  if (myNotif.length) {
-    const n = myNotif[0];
-    const isUrgent = n.tipo === 'urgente' || n.priority === 'high';
-    const isEvento = n.tipo === 'evento';
-    const icBg = isUrgent ? '#fef2f2' : isEvento ? '#fffbeb' : '#eff6ff';
-    const icColor = isUrgent ? '#dc2626' : isEvento ? '#d97706' : '#2563eb';
-    const ic = isUrgent ? '🚨' : isEvento ? '🎉' : '📣';
-    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
-      <div class="mob-avviso-ic" style="background:${icBg};color:${icColor};">${ic}</div>
-      <div class="mob-avviso-body">
-        <div class="mob-avviso-title">${escapeHtml((n.titolo||n.title||n.message||n.text||'').slice(0,60))}</div>
-        <div class="mob-avviso-meta">${panoFmtDateShort(n.date||n.createdAt||'')}${myNotif.length > 1 ? ' · ' + myNotif.length + ' non letti' : ''}</div>
-      </div>
-      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
-    </div>`;
-  } else {
-    avvisoHtml = `<div class="mob-avviso-card" onclick="goTo('comunicazioni')">
-      <div class="mob-avviso-ic" style="background:#f0fdf4;color:#16a34a;">✓</div>
-      <div class="mob-avviso-body">
-        <div class="mob-avviso-title" style="color:var(--text2);">Nessun avviso non letto</div>
-        <div class="mob-avviso-meta">Tocca per vedere tutti gli avvisi</div>
-      </div>
-      <div style="font-size:1.2rem;color:var(--text3);flex-shrink:0;">›</div>
-    </div>`;
-  }
+  // ── CARD 4: Da fare (solo se presente) ───────────────────────────────────
+  var todoItems3=[];
+  var visScopes3=commVisibleScopes().map(function(s){return s.id;});
+  var commN3=comunicazioni.filter(function(cv){return visScopes3.includes(cv.scope)&&!commIsRead(cv);}).length;
+  if(commN3>0)todoItems3.push({ic:'📣',col:'var(--cp)',text:commN3+' comunicazion'+(commN3>1?'i':'e')+' non lett'+(commN3>1?'e':'a'),act:"goTo('comunicazioni')"});
+  var chatN3=(typeof chatTotalUnread==='function')?chatTotalUnread(me):0;
+  if(chatN3>0)todoItems3.push({ic:'💬',col:'var(--cp)',text:chatN3+' messaggio'+(chatN3>1?'i':'')+' non lett'+(chatN3>1?'i':'o'),act:"goTo('chat')"});
+  var dafareHtml3=todoItems3.length
+    ?'<div class="mob-dash-card"><div class="mob-dash-card-hd">🔔 Da fare</div><div style="display:flex;flex-direction:column;gap:8px;">'+todoItems3.map(function(t){return '<div class="mi-todo-row" style="border-color:'+t.col+';" onclick="'+t.act+'"><span style="font-size:1.05rem;flex-shrink:0;">'+t.ic+'</span><div style="flex:1;font-size:.86rem;font-weight:600;">'+t.text+'</div><span style="color:var(--text3);font-size:1.1rem;">›</span></div>';}).join('')+'</div></div>'
+    :'';
 
-  const avvisaBtn = canAvvisaAssenza()
-    ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;margin-bottom:0;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
-    : '';
-  c.innerHTML = pwaBannerHtml() + heroHtml + avvisaBtn + quotaHtml + impegnoHtml + avvisoHtml;
+  // ── CARD 5: Settimana ────────────────────────────────────────────────────
+  var _GSD3=['lun','mar','mer','gio','ven','sab','dom'];
+  var _todD3=new Date();_todD3.setHours(0,0,0,0);
+  var _dow3=_todD3.getDay();
+  var _mon3=new Date(_todD3);_mon3.setDate(_todD3.getDate()-(_dow3===0?6:_dow3-1));
+  var _isTrD3=function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  var _isMtD3=function(ev){return ev.type==='campionato'||ev.type==='partita'||ev.type==='torneo'||ev.type==='amichevole';};
+  var weekRowsH3='';
+  for(var wi3=0;wi3<7;wi3++){
+    var wd3=new Date(_mon3);wd3.setDate(_mon3.getDate()+wi3);
+    var wds3=ymd(wd3);var isT5=wds3===todayStr;
+    var wevs3=lv?events.filter(function(ev){return(!ev.leve||!ev.leve.length||ev.leve.includes(lv))&&eventOccursOn(ev,wds3);}):[];
+    var hasTr5=wevs3.some(_isTrD3);var hasM5=wevs3.some(_isMtD3);
+    var dots5=(hasTr5?'<span class="mi-week-dot" style="background:var(--green);"></span>':'')+(hasM5?'<span class="mi-week-dot" style="background:var(--cp);"></span>':'');
+    var wtc5=isT5?'var(--cp)':'var(--text1)';var wfw5=isT5?'800':'400';
+    var evLbl5=wevs3.map(function(ev){return escapeHtml((ev.title||ev.type||'').slice(0,16));}).join(', ');
+    weekRowsH3+='<div class="mi-week-row'+(isT5?' today':'')+'" onclick="goTo(\'calendario\')"><div class="mi-week-day" style="color:'+wtc5+';font-weight:'+wfw5+';">'+_GSD3[wi3]+'</div><div class="mi-week-num" style="color:'+wtc5+';font-weight:'+wfw5+';">'+wd3.getDate()+'</div><div class="mi-week-dots">'+dots5+'</div><div class="mi-week-label">'+evLbl5+'</div></div>';
+  }
+  var settimanaHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')" style="cursor:pointer;">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+(weekRowsH3||'<div style="font-size:.82rem;color:var(--text2);">Nessun evento questa settimana.</div>')+'</div></div>';
+
+  // ── CARD 6: Segnala assenza ───────────────────────────────────────────────
+  var avvisaBtn3=canAvvisaAssenza()
+    ?'<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="openAvvisaModal()">📵 Segnala assenza</button>'
+    :'';
+
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+avvisaBtn3;
 }
 
 function buildDashboard(role) {
@@ -11982,7 +12031,7 @@ function buildDashboard(role) {
     let dHeroHtml = '';
     if (nxtEv) {
       const hD=parseYmd(nxtEv.date); const hDFN=nxtEv.daysFromNow; const isTrH2=nxtEv.isTraining;
-      const hGrad=isTrH2?'linear-gradient(135deg,#0b7a3e,#1aaa5a)':nxtEv.type==='torneo'?'linear-gradient(135deg,#c81e3d,#e03055)':nxtEv.type==='amichevole'?'linear-gradient(135deg,#5b21b6,#7c3aed)':'linear-gradient(135deg,var(--cp),#0f5fb5)';
+      const hGrad='linear-gradient(135deg,var(--cp),var(--cs))';
       const hTag=isTrH2?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita campionato';
       const cdStr2=hDFN===0?'OGG':hDFN===1?'DOM':hDFN;
       const cdSub2=hDFN===0?'oggi':hDFN===1?'domani':'giorni';
@@ -12035,7 +12084,7 @@ function buildDashboard(role) {
     }).join('');
 
     // Shortcuts
-    const scGrid2=sc2.map(sid=>{const s=_MISTER_SC_ALL[sid];if(!s)return '';return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;" onclick="${s.action}">${s.ic} ${s.lb}</button>`;}).join('');
+    const scGrid2=sc2.map(sid=>{const s=sid?_MISTER_SC_ALL[sid]:null;if(!s)return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;border:2px dashed var(--border2);color:var(--text3);" onclick="openMisterShortcutPicker()">＋ Aggiungi</button>`;return `<button class="btn btn-g btn-sm" style="display:flex;align-items:center;gap:6px;padding:10px 12px;font-size:.83rem;min-height:44px;justify-content:flex-start;" onclick="${s.action}">${s.ic} ${s.lb}</button>`;}).join('');
 
     // Prossimi allenamenti
     const ntD=panoNextTrainingsForLeva(lv,3);
@@ -12045,7 +12094,7 @@ function buildDashboard(role) {
     const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
     const _planD=_socD?getEffectivePlan(_socD):'mister';
     const isProD=_planD==='mister_pro'||_planD==='societa';
-    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openPianoModal()">Scopri Mister Pro</button>`}</div></div>`;
+    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro e Società</div>`}</div></div>`;
 
     c.innerHTML = dHeroHtml
       +`<div class="g2">`
@@ -12062,7 +12111,11 @@ function buildDashboard(role) {
   } else if (role === 'genitore' || role === 'nonno') {
     const figliNames = getFigliOf(me);
     const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
-    const childLeve = [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
+    // Rispetta figlio selezionato da localStorage
+    const _dGenKey='gen_sel_'+(me?me.id:0);
+    const _dSavedId=localStorage.getItem(_dGenKey);
+    const _dSelP=(_dSavedId&&figliPlayers.find(p=>String(p.id)===_dSavedId))||figliPlayers[0]||null;
+    const childLeve = _dSelP ? [_dSelP.leva].filter(Boolean) : [...new Set(figliPlayers.map(p=>p.leva).filter(Boolean))];
     const nextMatchEv = childLeve.length ? panoNextMatchForLeva(childLeve[0]) : null;
     const _nextFase = nextMatchEv ? getVisibilitaGenitore(nextMatchEv, childLeve[0]||'') : 'none';
     const nextMatchEvForDisplay = _nextFase !== 'none' ? nextMatchEv : null;
@@ -12086,7 +12139,7 @@ function buildDashboard(role) {
       const convBadge = nextMatchEv
         ? (isConv ? `<span class="pill pill-g" style="flex-shrink:0;">✅ Convocato</span>` : (conv ? `<span class="pill" style="background:var(--border);color:var(--text2);flex-shrink:0;">Non conv.</span>` : ''))
         : '';
-      return `<div style="background:linear-gradient(135deg,var(--cp),#0f5fb5);color:#fff;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;">
+      return `<div style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;">
         <div style="display:flex;align-items:flex-start;gap:12px;">
           <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed';font-size:1.2rem;font-weight:900;flex-shrink:0;">${escapeHtml((p.nome.charAt(0)||'')+(p.cogn.charAt(0)||''))}</div>
           <div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;line-height:1.1;">${escapeHtml(p.nome+' '+p.cogn)}</div>
@@ -15797,7 +15850,12 @@ function renderChatList() {
   container.querySelectorAll('.ci[data-chatid]').forEach(el => {
     el.addEventListener('click', () => selectChat(el.getAttribute('data-chatid')));
   });
-  selectChat(currentChatId, /*skipListRefresh*/true);
+  if (window.innerWidth > 640) {
+    selectChat(currentChatId, /*skipListRefresh*/true);
+  } else {
+    const _act=document.querySelector('#chatList .ci[data-chatid="'+CSS.escape(currentChatId)+'"]');
+    if (_act) _act.classList.add('on');
+  }
 }
 
 function selectChat(chatId, skipListRefresh) {
@@ -15836,12 +15894,16 @@ function selectChat(chatId, skipListRefresh) {
   // Mobile: mostra il pannello messaggi
   const wrap = document.getElementById('chatWrap');
   if (wrap) wrap.classList.add('chat-panel-open');
+  const _pgChat = document.getElementById('pg-chat');
+  if (_pgChat) _pgChat.classList.add('chat-panel-open');
   if (!skipListRefresh) renderChatList();
 }
 
 function chatGoBack() {
   const wrap = document.getElementById('chatWrap');
   if (wrap) wrap.classList.remove('chat-panel-open');
+  const _pgChat = document.getElementById('pg-chat');
+  if (_pgChat) _pgChat.classList.remove('chat-panel-open');
 }
 
 function renderChatMessages() {
@@ -16821,7 +16883,7 @@ function acAllowedTabs() {
     tabs.push({ id:'piano',     ic:'⚽', lb:'Il mio piano' });
     tabs.push({ id:'pagamenti', ic:'📄', lb:'Pagamenti' });
   }
-  tabs.push({ id:'comunicazioni', ic:'💬', lb:'Comunicazioni' });
+  tabs.push({ id:'comunicazioni', ic:'🔔', lb:'Notifiche' });
   // Gestione/Tutorial/FAQ disabilitati fino al lancio (codice mantenuto)
   return tabs;
 }
@@ -17220,13 +17282,13 @@ async function acCancelConfirmed() {
 }
 
 async function _acLoadComunicazioni() {
-  const loadEl  = document.getElementById('acCommLoading');
-  const contEl  = document.getElementById('acCommContent');
-  const unavEl  = document.getElementById('acCommUnavail');
+  const loadEl = document.getElementById('acCommLoading');
+  const contEl = document.getElementById('acCommContent');
+  const unavEl = document.getElementById('acCommUnavail');
   if (!loadEl) return;
-  loadEl.style.display  = 'block';
-  if (contEl) contEl.style.display  = 'none';
-  if (unavEl) unavEl.style.display  = 'none';
+  loadEl.style.display = 'block';
+  if (contEl) contEl.style.display = 'none';
+  if (unavEl) unavEl.style.display = 'none';
 
   if (!_v2Token) {
     loadEl.style.display = 'none';
@@ -17234,13 +17296,16 @@ async function _acLoadComunicazioni() {
     return;
   }
   try {
-    const r = await fetch(API_BASE + '/api/v2/account/consents', {
+    const r = await fetch(API_BASE + '/api/v2/users/me/notification-preferences', {
       headers: { 'Authorization': 'Bearer ' + _v2Token }
     });
     if (!r.ok) throw new Error('fetch_error');
     const data = await r.json();
-    const cb = document.getElementById('acMktConsent');
-    if (cb) cb.checked = !!data.marketingConsent;
+    const set = (id, key) => { const el = document.getElementById(id); if (el) el.checked = !!data[key]; };
+    set('acNotifConv',   'notify_convocazioni');
+    set('acNotifComm',   'notify_comunicazioni');
+    set('acNotifChat',   'notify_chat');
+    set('acNotifRemind', 'notify_reminders');
     loadEl.style.display = 'none';
     if (contEl) contEl.style.display = 'block';
   } catch(e) {
@@ -17249,21 +17314,21 @@ async function _acLoadComunicazioni() {
   }
 }
 
-async function _acToggleMarketing(checked) {
+async function _acSaveNotifPref(key, checked) {
   if (!_v2Token) return;
+  const elMap = { notify_convocazioni: 'acNotifConv', notify_comunicazioni: 'acNotifComm', notify_chat: 'acNotifChat', notify_reminders: 'acNotifRemind' };
   try {
-    const r = await fetch(API_BASE + '/api/v2/account/marketing-consent', {
+    const r = await fetch(API_BASE + '/api/v2/users/me/notification-preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-      body: JSON.stringify({ consent: checked })
+      body: JSON.stringify({ [key]: checked })
     });
     if (!r.ok) throw new Error();
-    toast(checked ? '✅ Consenso marketing attivato' : '✅ Consenso marketing disattivato');
+    toast('✅ Preferenza salvata');
   } catch(e) {
     toast('❌ Errore nel salvataggio. Riprova.');
-    // Ripristina il valore precedente
-    const cb = document.getElementById('acMktConsent');
-    if (cb) cb.checked = !checked;
+    const el = document.getElementById(elMap[key]);
+    if (el) el.checked = !checked;
   }
 }
 
@@ -19885,6 +19950,47 @@ function toggleTopUserMenu() {
   }
 }
 
+function openHelpModal() {
+  if (document.getElementById('helpModalOv')) return;
+  const _uEmail = (me && me.email) || '';
+  const _uRole  = (me && me.role)  || '';
+  const _socObj = saSocieties && saSocieties.find(function(x){return x.id===currentSocietaId;});
+  const _socNome = (_socObj && _socObj.nome) || '';
+  const waMsg = 'Ciao, ho bisogno di aiuto con MyVivaio.\n\nEmail account: '+_uEmail+'\nSocietà: '+_socNome+'\nRuolo: '+_uRole;
+  const waUrl = 'https://wa.me/393793827922?text='+encodeURIComponent(waMsg);
+  const mlSubj = encodeURIComponent('Richiesta supporto');
+  const mlBody = encodeURIComponent('Email account: '+_uEmail+'\nSocietà: '+_socNome+'\nRuolo: '+_uRole+'\n\nDescrivi il problema:\n\n');
+  const mlUrl = 'mailto:info@myvivaio.app?subject='+mlSubj+'&body='+mlBody;
+  const mob = window.innerWidth <= 640;
+  const ov = document.createElement('div');
+  ov.id = 'helpModalOv';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(13,26,58,.5);z-index:9000;display:flex;'
+    +(mob?'align-items:flex-end;':'align-items:center;')+'justify-content:center;backdrop-filter:blur(4px);';
+  const innerR = mob ? '20px 20px 0 0' : '18px';
+  const innerP = mob ? '24px 20px calc(28px + env(safe-area-inset-bottom,0px))' : '28px 24px';
+  const innerW = mob ? '100%' : '420px';
+  const innerM = mob ? '' : 'margin:16px;';
+  ov.innerHTML = '<div style="background:var(--white);border-radius:'+innerR+';padding:'+innerP+';width:100%;max-width:'+innerW+';box-shadow:0 24px 80px rgba(13,26,58,.2);'+innerM+'">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">'
+    +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.25rem;font-weight:900;">💬 Aiuto & Supporto</div>'
+    +'<button onclick="document.getElementById(\'helpModalOv\').remove()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:6px;line-height:1;">✕</button>'
+    +'</div>'
+    +'<a href="'+waUrl+'" target="_blank" rel="noopener" onclick="document.getElementById(\'helpModalOv\').remove()" style="display:flex;align-items:center;gap:14px;padding:16px;background:#f0fdf4;border:2px solid #bbf7d0;border-radius:14px;text-decoration:none;margin-bottom:12px;min-height:72px;-webkit-tap-highlight-color:transparent;">'
+    +'<span style="font-size:2rem;flex-shrink:0;">📱</span>'
+    +'<div style="flex:1;"><div style="font-weight:700;font-size:.95rem;color:#166534;">Chatta su WhatsApp</div><div style="font-size:.78rem;color:#16a34a;margin-top:2px;">Risposta rapida → clicca per aprire</div></div>'
+    +'<span style="font-size:1.2rem;color:#4ade80;">›</span>'
+    +'</a>'
+    +'<a href="'+mlUrl+'" onclick="document.getElementById(\'helpModalOv\').remove()" style="display:flex;align-items:center;gap:14px;padding:16px;background:var(--bg);border:2px solid var(--border);border-radius:14px;text-decoration:none;margin-bottom:20px;min-height:72px;-webkit-tap-highlight-color:transparent;">'
+    +'<span style="font-size:2rem;flex-shrink:0;">✉️</span>'
+    +'<div style="flex:1;"><div style="font-weight:700;font-size:.95rem;color:var(--text);">Invia email</div><div style="font-size:.78rem;color:var(--text2);margin-top:2px;">info@myvivaio.app</div></div>'
+    +'<span style="font-size:1.2rem;color:var(--text3);">›</span>'
+    +'</a>'
+    +'<div style="text-align:center;font-size:.75rem;color:var(--text3);">Rispondiamo entro 24 ore nei giorni feriali</div>'
+    +'</div>';
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.remove(); });
+  document.body.appendChild(ov);
+}
+
 function _closeTopMenuOnClick(e) {
   const btn = document.getElementById('tbUserBtn');
   if (btn && !btn.contains(e.target)) {
@@ -21812,8 +21918,14 @@ async function registerSW() {
       if (!_reloading) { _reloading = true; window.location.reload(); }
     });
 
-    // Controlla aggiornamenti ogni 60 secondi
+    // Controlla aggiornamenti ogni 60 secondi e quando l'app torna in foreground
     setInterval(() => reg.update().catch(() => {}), 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        reg.update().catch(() => {});
+        clearAppBadgeIfSupported();
+      }
+    });
 
     // Listen for SW push messages (navigate to section)
     navigator.serviceWorker.addEventListener('message', evt => {
@@ -21828,6 +21940,16 @@ async function registerSW() {
     return null;
   }
 }
+
+function clearAppBadgeIfSupported() {
+  if ('clearAppBadge' in navigator) {
+    navigator.clearAppBadge().catch(() => {});
+  } else if ('setAppBadge' in navigator) {
+    navigator.setAppBadge(0).catch(() => {});
+  }
+}
+window.addEventListener('load',  () => clearAppBadgeIfSupported());
+window.addEventListener('focus', () => clearAppBadgeIfSupported());
 
 function showSwUpdateBanner() {
   const b = document.getElementById('swUpdateBanner');
