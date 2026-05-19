@@ -6832,7 +6832,7 @@ function revocaAssenza(p, dateStr) {
       body: `${dateLong} (${p.leva})\nRevocata da ${me.nome} ${me.cogn}`,
     });
   });
-  saveState();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   closeM('mRevocaAssenza');
   toast('✅ Assenza revocata');
   refreshNotificheBadge();
@@ -16282,7 +16282,7 @@ function createAdHocChat() {
   const newChat = { id: nextAdHocChatId++, name, avatar: '💬', color: '#6366f1', members, createdBy: me.id, ts: Date.now() };
   adHocChats.push(newChat);
   closeM('mNewChat');
-  saveState();
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   currentChatId = 'adhoc_' + newChat.id;
   renderChatList();
 }
