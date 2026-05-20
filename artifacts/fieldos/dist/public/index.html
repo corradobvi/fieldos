@@ -19356,6 +19356,11 @@ async function saForceSyncAll() {
 function showSuperAdminPanel() {
   document.getElementById('loginScreen').classList.add('hide');
   setTimeout(() => { document.getElementById('loginScreen').style.display = 'none'; }, 380);
+  // Assicura che la demo Stella Azzurra sia sempre visibile nel pannello SA
+  if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
+    saSocieties.push({...STELLA_AZZ_SOC_DEF, fromMySQL: false});
+    saSaveState();
+  }
   const p = document.getElementById('saPanel');
   p.style.display = 'flex';
   renderSaPanel();
