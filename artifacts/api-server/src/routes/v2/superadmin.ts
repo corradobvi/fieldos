@@ -224,6 +224,36 @@ router.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
   }
 });
 
+// PATCH /api/v2/superadmin/societies/:id — aggiorna nome/citta in MySQL
+router.patch("/superadmin/societies/:id", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { nome, citta } = req.body as { nome?: string; citta?: string };
+  if (!nome && !citta) return res.status(400).json({ error: "nothing_to_update" });
+
+  const updates: string[] = [];
+  const params: any[] = [];
+  if (nome) { updates.push("nome = ?"); params.push(nome.trim()); }
+  if (citta !== undefined) { updates.push("citta = ?"); params.push(citta?.trim() ?? null); }
+  params.push(societyId);
+
+  try {
+    const [result] = (await pool.execute(
+      `UPDATE societies SET ${updates.join(", ")} WHERE id = ?`, params
+    )) as [any, any];
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, performed_by, reason, created_at) VALUES ('rename', ?, 'SUPERADMIN', ?, NOW())`,
+      [societyId, nome ? `Rinominata in: ${nome}` : `Città aggiornata`]
+    ).catch(() => {});
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "superadmin/patch society error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // POST /api/v2/superadmin/societies/:id/set-plan — aggiorna piano in MySQL + audit log
 // Necessario per prevenire che _syncSubscriptionStatus lato client sovrascriva il piano
 // impostato manualmente dal SA (che aggiorna solo il blob, non MySQL).
