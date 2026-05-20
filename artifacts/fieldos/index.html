@@ -2771,6 +2771,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="levaStatsSettingsBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="adminAsMisterCard">
+            <div class="ch"><div class="ct">⚽ Sono anche il mister (per leva)</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
+              Quando attivo, oltre ai poteri admin puoi segnare presenze, creare convocazioni, inserire risultati e gestire allenamenti di quella leva come se fossi un allenatore. Utile quando sei tu stesso il mister sul campo.
+            </div>
+            <div id="adminAsMisterBox"></div>
+          </div>
         </div>
       </div>
 
@@ -3785,6 +3792,7 @@ let quoteSettings = {};
 let documenti = [];
 let nextDocId = 1;
 let levaStatsSettings = {};
+let adminAsMister = {}; // leva → boolean; true = admin agisce anche da mister su quella leva
 let calFilterLeva = '__all';
 let calFilterTipo = '__all';
 let calWeekOffset = 0;
@@ -4060,6 +4068,9 @@ const ROLE_CFG = {
 
 // ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
 function isAdminLike() { return !!(me && (me.role === 'admin' || me.role === 'mister_admin')); }
+function isAdminMisterForLeva(leva) {
+  return !!(me && me.role === 'admin' && leva && adminAsMister[leva] === true);
+}
 
 // ─── Permessi granulari collaboratori ───
 // true se me ha il permesso key (admin→sempre; permissions null→legacy compat→true; altrimenti perms[key]===true)
@@ -4069,9 +4080,23 @@ function hasPerm(key) {
   if (me.permissions == null) return true;
   return !!me.permissions[key];
 }
-function canPostBacheca()      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca'); }
-function canEditAllenamenti()  { return isAdminLike() || hasPerm('gestione_allenamenti'); }
-function canEnterResult()      { return isAdminLike() || hasPerm('gestione_risultati'); }
+function canPostBacheca(leva)      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca') || isAdminMisterForLeva(leva); }
+function canEditAllenamenti(leva)  { return isAdminLike() || hasPerm('gestione_allenamenti')           || isAdminMisterForLeva(leva); }
+function canEnterResult(leva)      { return isAdminLike() || hasPerm('gestione_risultati')             || isAdminMisterForLeva(leva); }
+
+// Inizializza adminAsMister per le leve che non hanno ancora un valore.
+// Chiamata al boot (admin) e quando si aggiunge una nuova leva.
+function _seedAdminAsMister() {
+  if (!me || me.role !== 'admin') return;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || (soc && soc.piano) || 'mister');
+  const defaultOn = (piano === 'mister' || piano === 'mister_pro');
+  let changed = false;
+  leve.forEach(function(lv) {
+    if (!(lv in adminAsMister)) { adminAsMister[lv] = defaultOn; changed = true; }
+  });
+  if (changed && typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+}
 
 // ─── Guardia first-login: blocca tutto finché non cambia password ───
 let _mustChangePass = false;
@@ -4696,6 +4721,8 @@ function bootApp(user) {
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
+    // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
+    if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
@@ -4729,7 +4756,8 @@ function buildMobNav(role) {
   // Bell icon: show only for mister roles (Avvisi moved to bell in header)
   const bell = document.getElementById('tbBell');
   const isMister = role === 'allenatore' || role === 'mister_admin';
-  if (bell) bell.classList.toggle('on', isMister);
+  const isAdminMister = role === 'admin' && isAdminMisterForLeva(currentLeva);
+  if (bell) bell.classList.toggle('on', isMister || isAdminMister);
   let items;
   if (role === 'genitore' || role === 'nonno') {
     items = [
@@ -4745,8 +4773,8 @@ function buildMobNav(role) {
       {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
-  } else if (isMister) {
-    // Mister: 4 tab grandi — profilo via avatar in topbar, avvisi via campanella
+  } else if (isMister || isAdminMister) {
+    // Mister (o admin che è anche mister per la leva corrente): 4 tab operativi
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
       {id:'chat',         ic:'💬', lb:'Chat',        badge:'mn-chat'},
@@ -4875,7 +4903,7 @@ function goTo(pgId) {
   if (pgId === 'impostazioni') {
     if (!me) return;
     const _isStaff = isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
-    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings(); renderLevaStatsSettings();
+    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings(); renderLevaStatsSettings(); renderAdminAsMisterSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
     ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
@@ -5161,6 +5189,8 @@ function switchLeva(l) {
   renderStats();
   renderPartite();
   renderGestComp();
+  // Admin-mister: aggiorna bottom nav in base alla leva selezionata
+  if (me && me.role === 'admin') buildMobNav(me.role);
 }
 
 function openAddLeva() {
@@ -5201,11 +5231,14 @@ function addLeva(v) {
     return;
   }
   leve.push(v);
+  // Imposta default adminAsMister per la nuova leva (basato sul piano corrente)
+  if (me && me.role === 'admin') _seedAdminAsMister();
   closeM('mLeva');
   document.getElementById('levaName').value = '';
   renderSbLeve();
   populateLevaSelect();
   renderLeveImpostazioni();
+  renderAdminAsMisterSettings();
   switchLeva(v);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast(`✅ Leva "${v}" aggiunta!`);
@@ -6001,7 +6034,7 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 // Permessi:
-function canEditPresenze(){ return me && (isAdminLike() || hasPerm('gestione_presenze')); }
+function canEditPresenze(leva){ return !!(me && (isAdminLike() || hasPerm('gestione_presenze') || isAdminMisterForLeva(leva))); }
 function isGKCoach(){ return me && me.role === 'preparatore_portieri'; }
 function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
@@ -6997,7 +7030,7 @@ function revocaAssenza(p, dateStr) {
 // CONVOCAZIONI + DISPONIBILITÀ + NOTIFICHE
 // ═══════════════════════════════════
 
-function canCreateConvocazione(){ return me && (isAdminLike() || hasPerm('gestione_convocazioni')); }
+function canCreateConvocazione(leva){ return !!(me && (isAdminLike() || hasPerm('gestione_convocazioni') || isAdminMisterForLeva(leva))); }
 function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
@@ -8015,6 +8048,36 @@ function saveLevaStatsLeva(lv, val) {
   levaStatsSettings[lv].showStatsToFamily = !!val;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast(`✅ Impostazioni stats ${lv} salvate`);
+}
+
+// ─── ADMIN-AS-MISTER PER LEVA ────────────────────────────
+
+function renderAdminAsMisterSettings() {
+  const card = document.getElementById('adminAsMisterCard');
+  const el = document.getElementById('adminAsMisterBox');
+  if (!card || !el) return;
+  const isAdmin = me && me.role === 'admin';
+  card.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) return;
+  if (!leve.length) { el.innerHTML = '<div style="color:var(--text2);font-size:.78rem;">Nessuna leva configurata.</div>'; return; }
+  el.innerHTML = leve.map(lv => {
+    const checked = adminAsMister[lv] ? 'checked' : '';
+    const safeLv = lv.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+      <div>
+        <div style="font-weight:700;font-size:.88rem;">${escapeHtml(lv)}</div>
+        <div style="font-size:.74rem;color:var(--text3);">Permessi operativi da mister su questa leva</div>
+      </div>
+      <label class="ac-toggle"><input type="checkbox" ${checked} onchange="saveAdminAsMisterLeva('${safeLv}',this.checked)"><span class="ac-toggle-sl"></span></label>
+    </div>`;
+  }).join('');
+}
+
+function saveAdminAsMisterLeva(lv, val) {
+  adminAsMister[lv] = !!val;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (me) buildMobNav(me.role);
+  toast(val ? `✅ ${lv}: sei anche il mister di questa leva` : `⬜ ${lv}: rimosso ruolo mister`);
 }
 
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
@@ -17355,6 +17418,7 @@ function buildDemoStellaState() {
     nextCampoId:2,
     indisponibilita:[], nextIndispId:1,
     levaConvSettings:{},
+    adminAsMister:{},
     demoResetAt: nowMs + 86400000
   };
 }
@@ -20980,7 +21044,8 @@ async function doRejoinSocieta() {
       indisponibilita: indisponibilita,
       nextIndispId:    nextIndispId,
       levaConvSettings:  levaConvSettings,
-      levaStatsSettings: levaStatsSettings
+      levaStatsSettings: levaStatsSettings,
+      adminAsMister:     adminAsMister
     };
   }
 
@@ -21183,6 +21248,7 @@ async function doRejoinSocieta() {
       if (typeof s.nextIndispId === 'number') nextIndispId = s.nextIndispId;
       if (s.levaConvSettings  && typeof s.levaConvSettings  === 'object') levaConvSettings  = s.levaConvSettings;
       if (s.levaStatsSettings && typeof s.levaStatsSettings === 'object') levaStatsSettings = s.levaStatsSettings;
+      if (s.adminAsMister     && typeof s.adminAsMister     === 'object') adminAsMister     = s.adminAsMister;
       lastSnap = raw;
     } catch (e) {
       console.error('FieldOS: ripristino fallito', e);
