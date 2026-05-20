@@ -20,6 +20,8 @@ import demoWaRouter        from "./demo-wa";
 import superadminRouter    from "./superadmin";
 import accountRouter            from "./account";
 import notifPrefsRouter        from "./notification-preferences";
+import allenamentiRouter       from "./allenamenti";
+import aiAllenamentiRouter     from "./ai-allenamenti";
 
 const router = Router();
 
@@ -99,6 +101,19 @@ router.get("/schema-info", async (_req, res) => {
   }
 });
 
+// GET /api/v2/health/ai-key — diagnostic: verifica presenza ANTHROPIC_API_KEY senza esporla
+router.get("/health/ai-key", (_req, res) => {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) {
+    return res.json({ configured: false, keyLength: null, keyPrefix: null });
+  }
+  return res.json({
+    configured: true,
+    keyLength: key.length,
+    keyPrefix: key.slice(0, 7) + "...",
+  });
+});
+
 router.use(authRouter);
 router.use(selfRegisterRouter);
 router.use(societyRouter);
@@ -117,5 +132,7 @@ router.use(demoWaRouter);
 router.use(superadminRouter);
 router.use(accountRouter);
 router.use(notifPrefsRouter);
+router.use(allenamentiRouter);
+router.use(aiAllenamentiRouter);
 
 export default router;
