@@ -4917,7 +4917,8 @@ function goTo(pgId) {
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _impostSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _quoteCardEl = document.getElementById('quoteCard');
-    if (_quoteCardEl) _quoteCardEl.style.display = (isSectionLocked('pagamenti', _impostSoc) || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
+    const _effectivePianoImpost = pianoNorm((currentSocietyMeta?.piano) || (_impostSoc?.piano) || 'mister');
+    if (_quoteCardEl) _quoteCardEl.style.display = (_effectivePianoImpost !== 'societa' || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)

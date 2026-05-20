@@ -262,21 +262,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .bar-f{height:100%;border-radius:3px;background:var(--cp);}
 
 /* PLAYER CARD */
-.pc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;}
-.pc-top{display:flex;align-items:center;gap:12px;}
-.pc-av{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:800;flex-shrink:0;}
-#rosaGrid{grid-template-columns:1fr!important;}
-.pc-name{font-weight:800;font-size:.88rem;}
-.pc-role{font-size:.71rem;color:var(--text2);}
-.pc-num{margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:1.8rem;font-weight:900;color:var(--cp);opacity:.2;}
-.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.ps{text-align:center;background:var(--bg);border-radius:7px;padding:7px 4px;}
-.ps-n{font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:900;color:var(--cp);}
-.ps-l{font-size:.6rem;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;}
+.pc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:12px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:8px;}
+.pc-top{display:flex;align-items:center;gap:10px;}
+.pc-av{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;flex-shrink:0;}
+.pc-name{font-weight:800;font-size:.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pc-role{font-size:.68rem;color:var(--text2);}
+.pc-num{margin-left:auto;font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;color:var(--cp);opacity:.2;flex-shrink:0;}
+.pc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.ps{text-align:center;background:var(--bg);border-radius:6px;padding:5px 3px;}
+.ps-n{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;color:var(--cp);}
+.ps-l{font-size:.57rem;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;}
 .pc-mini{display:flex;gap:3px;}
-.pc-mini-box{flex:1;text-align:center;background:var(--bg);border-radius:6px;padding:5px;}
-.pc-mini-v{font-size:.85rem;font-weight:800;color:var(--cp);}
-.pc-mini-l{font-size:.58rem;color:var(--text3);}
+.pc-mini-box{flex:1;text-align:center;background:var(--bg);border-radius:5px;padding:4px;}
+.pc-mini-v{font-size:.78rem;font-weight:800;color:var(--cp);}
+.pc-mini-l{font-size:.56rem;color:var(--text3);}
 .pc-btns{display:flex;gap:4px;}
 
 /* CONV PLAYER ROW — custom checkbox */
@@ -302,10 +301,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ci-time{font-size:.63rem;color:var(--text3);}
 .ci-msg{font-size:.74rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ci-un{background:var(--ca);color:var(--ca-text);font-size:.58rem;font-weight:800;min-width:17px;height:17px;padding:0 4px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.cm{display:flex;flex-direction:column;background:var(--bg);}
+.cm{display:flex;flex-direction:column;background:var(--bg);min-width:0;}
 .cm-tb{padding:11px 16px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
 .cm-back{display:none;background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--cp);padding:0 4px 0 0;line-height:1;}
-.cm-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.cm-msgs{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .msg{display:flex;gap:8px;max-width:70%;}
 .msg.me{align-self:flex-end;flex-direction:row-reverse;}
 .msg-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;flex-shrink:0;align-self:flex-end;}
@@ -313,8 +312,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .msg.me .msg-b{background:var(--cp);color:white;border:none;border-radius:12px 12px 4px 12px;}
 .msg-img{max-width:220px;max-height:220px;border-radius:10px;display:block;cursor:pointer;object-fit:cover;}
 .msg-t{font-size:.61rem;color:var(--text3);margin-top:2px;}
-.cm-inp{padding:11px 14px;background:var(--white);border-top:1px solid var(--border);display:flex;gap:7px;align-items:center;}
-.cm-inp input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.83rem;background:var(--bg);color:var(--text);}
+.cm-inp{padding:11px 14px;background:var(--white);border-top:1px solid var(--border);display:flex;gap:7px;align-items:center;box-sizing:border-box;width:100%;}
+.cm-inp input{flex:1;min-width:0;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.83rem;background:var(--bg);color:var(--text);}
 .cm-inp input:focus{outline:none;border-color:var(--cp);}
 .btn-attach{background:none;border:1.5px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--text2);transition:all .15s;flex-shrink:0;}
 .btn-attach:hover{border-color:var(--cp);color:var(--cp);background:var(--cl);}
@@ -634,8 +633,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .card{padding:14px 12px;}
   .modal{padding:18px 14px 24px;}
 
-  /* Rosa — single column so player cards have room */
-  #rosaGrid{grid-template-columns:1fr;}
+  /* Rosa — 2 colonne su mobile */
+  #rosaGrid{grid-template-columns:repeat(2,1fr);}
 
   /* Tabs text */
   .pt-tab{padding:7px 11px;font-size:.78rem;}
@@ -1216,9 +1215,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     flex:1!important;min-height:0!important;
     border:none!important;border-radius:0!important;box-shadow:none!important;
   }
-  .cm-inp{padding:10px 12px;gap:8px;}
+  /* BUG 1: input row safe-area + prevent overflow */
+  .cm-inp{padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));gap:8px;}
   .cm-inp input{font-size:15px!important;padding:11px 14px;border-radius:22px;}
-  .cm-inp .btn{min-height:44px;padding:10px 16px;}
+  .cm-inp .btn{min-height:44px;padding:10px 16px;flex-shrink:0;}
+  /* BUG 1: messaggi — padding-right safe area */
+  .cm-msgs{padding:14px max(14px,env(safe-area-inset-right,0px)) 14px max(14px,env(safe-area-inset-left,0px));}
+  /* BUG 2: in conversazione — nasconde bottom nav e resetta bottom del container */
+  body.in-chat-conv .mob-nav{display:none!important;}
+  body.in-chat-conv #pg-chat.on{bottom:0!important;}
   .msg{font-size:.93rem;line-height:1.45;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
@@ -2766,6 +2771,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="levaStatsSettingsBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="adminAsMisterCard">
+            <div class="ch"><div class="ct">⚽ Sono anche il mister (per leva)</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
+              Quando attivo, oltre ai poteri admin puoi segnare presenze, creare convocazioni, inserire risultati e gestire allenamenti di quella leva come se fossi un allenatore. Utile quando sei tu stesso il mister sul campo.
+            </div>
+            <div id="adminAsMisterBox"></div>
+          </div>
         </div>
       </div>
 
@@ -3633,6 +3645,8 @@ let _saDrillId = null;
 
 // Società corrente attiva (0 = Polis ASD, N = id in saSocieties)
 let currentSocietaId = 0;
+// Metadati freschi da MySQL ricevuti al login (sovrascrivono blob per piano/billingMode)
+let currentSocietyMeta = null;
 
 // Chiave localStorage per ogni società (Polis usa la chiave storica)
 function societyStorageKey(id) {
@@ -3689,6 +3703,7 @@ let chatMessaggi = [];
 let nextChatMsgId = 1;
 let chatLastSeen = {};
 let currentChatId = null;
+let _chatKbCleanup = null;
 let torneoChats = {};
 let adHocChats = [];
 let nextAdHocChatId = 1;
@@ -3777,6 +3792,7 @@ let quoteSettings = {};
 let documenti = [];
 let nextDocId = 1;
 let levaStatsSettings = {};
+let adminAsMister = {}; // leva → boolean; true = admin agisce anche da mister su quella leva
 let calFilterLeva = '__all';
 let calFilterTipo = '__all';
 let calWeekOffset = 0;
@@ -4052,6 +4068,9 @@ const ROLE_CFG = {
 
 // ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
 function isAdminLike() { return !!(me && (me.role === 'admin' || me.role === 'mister_admin')); }
+function isAdminMisterForLeva(leva) {
+  return !!(me && me.role === 'admin' && leva && adminAsMister[leva] === true);
+}
 
 // ─── Permessi granulari collaboratori ───
 // true se me ha il permesso key (admin→sempre; permissions null→legacy compat→true; altrimenti perms[key]===true)
@@ -4061,9 +4080,23 @@ function hasPerm(key) {
   if (me.permissions == null) return true;
   return !!me.permissions[key];
 }
-function canPostBacheca()      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca'); }
-function canEditAllenamenti()  { return isAdminLike() || hasPerm('gestione_allenamenti'); }
-function canEnterResult()      { return isAdminLike() || hasPerm('gestione_risultati'); }
+function canPostBacheca(leva)      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca') || isAdminMisterForLeva(leva); }
+function canEditAllenamenti(leva)  { return isAdminLike() || hasPerm('gestione_allenamenti')           || isAdminMisterForLeva(leva); }
+function canEnterResult(leva)      { return isAdminLike() || hasPerm('gestione_risultati')             || isAdminMisterForLeva(leva); }
+
+// Inizializza adminAsMister per le leve che non hanno ancora un valore.
+// Chiamata al boot (admin) e quando si aggiunge una nuova leva.
+function _seedAdminAsMister() {
+  if (!me || me.role !== 'admin') return;
+  const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || (soc && soc.piano) || 'mister');
+  const defaultOn = (piano === 'mister' || piano === 'mister_pro');
+  let changed = false;
+  leve.forEach(function(lv) {
+    if (!(lv in adminAsMister)) { adminAsMister[lv] = defaultOn; changed = true; }
+  });
+  if (changed && typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+}
 
 // ─── Guardia first-login: blocca tutto finché non cambia password ───
 let _mustChangePass = false;
@@ -4430,13 +4463,25 @@ async function doLogin() {
               lastActivity:    null,
               scadenzaDemo:    ms.demo_scadenza ? new Date(ms.demo_scadenza).getTime() : Date.now() + 14 * 86400000,
               billingMode:     _bm,
-              stripeCustomerId: _scid
+              stripeCustomerId: _scid,
+              fromMySQL:       true
             });
             _changed = true;
           } else {
-            // Sync billing_mode e stripe_customer_id da MySQL (source of truth) per società già nel blob
+            // Per entry create da MySQL: aggiorna tutti i metadati (MySQL è source of truth)
+            // Per entry create manualmente nel blob SA: aggiorna solo billing (evita sovrascrittura)
+            if (existing.fromMySQL) {
+              const _stato = ms.stato === 'attiva' ? 'attivo' : (ms.stato || 'attivo');
+              if (existing.nome  !== (ms.nome  || '')) { existing.nome  = ms.nome  || ''; _changed = true; }
+              if (existing.citta !== (ms.citta || '')) { existing.citta = ms.citta || ''; _changed = true; }
+              if (existing.email !== (ms.email || '')) { existing.email = ms.email || ''; _changed = true; }
+              if (existing.stato !== _stato)            { existing.stato = _stato;         _changed = true; }
+              if (ms.piano && existing.piano !== ms.piano) { existing.piano = ms.piano;   _changed = true; }
+              if (ms.utenti != null && existing.utenti !== ms.utenti) { existing.utenti = ms.utenti; _changed = true; }
+              if (ms.demo_scadenza) { const _ds = new Date(ms.demo_scadenza).getTime(); if (existing.scadenzaDemo !== _ds) { existing.scadenzaDemo = _ds; _changed = true; } }
+            }
             if (existing.billingMode !== _bm || existing.stripeCustomerId !== _scid) {
-              existing.billingMode     = _bm;
+              existing.billingMode      = _bm;
               existing.stripeCustomerId = _scid;
               _changed = true;
             }
@@ -4479,6 +4524,10 @@ async function doLogin() {
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
+      // FIX 3: salva metadati freschi da MySQL (piano/billingMode sorgente di verità)
+      if (data.societyPiano || data.societyBillingMode) {
+        currentSocietyMeta = { piano: data.societyPiano || null, billingMode: data.societyBillingMode || null };
+      }
       if (typeof window.__fieldosSetSocietaKey === 'function') {
         if (data.stateJson) {
           // ORDINE CRITICO: scrivi in localStorage PRIMA di chiamare __fieldosSetSocietaKey,
@@ -4672,6 +4721,8 @@ function bootApp(user) {
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
+    // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
+    if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
@@ -4705,7 +4756,8 @@ function buildMobNav(role) {
   // Bell icon: show only for mister roles (Avvisi moved to bell in header)
   const bell = document.getElementById('tbBell');
   const isMister = role === 'allenatore' || role === 'mister_admin';
-  if (bell) bell.classList.toggle('on', isMister);
+  const isAdminMister = role === 'admin' && isAdminMisterForLeva(currentLeva);
+  if (bell) bell.classList.toggle('on', isMister || isAdminMister);
   let items;
   if (role === 'genitore' || role === 'nonno') {
     items = [
@@ -4721,8 +4773,8 @@ function buildMobNav(role) {
       {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
-  } else if (isMister) {
-    // Mister: 4 tab grandi — profilo via avatar in topbar, avvisi via campanella
+  } else if (isMister || isAdminMister) {
+    // Mister (o admin che è anche mister per la leva corrente): 4 tab operativi
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
       {id:'chat',         ic:'💬', lb:'Chat',        badge:'mn-chat'},
@@ -4851,7 +4903,7 @@ function goTo(pgId) {
   if (pgId === 'impostazioni') {
     if (!me) return;
     const _isStaff = isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente';
-    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings(); renderLevaStatsSettings();
+    renderUsersTable(); renderLeveImpostazioni(); renderCampiSettings(); renderConvVisibSettings(); renderLevaStatsSettings(); renderAdminAsMisterSettings();
     // Sezioni visibili solo allo staff (admin/mister/dirigente)
     ['codiceCard','quoteCard','convVisibCard','colorCard'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = '';
@@ -4865,7 +4917,8 @@ function goTo(pgId) {
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _impostSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _quoteCardEl = document.getElementById('quoteCard');
-    if (_quoteCardEl) _quoteCardEl.style.display = (isSectionLocked('pagamenti', _impostSoc) || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
+    const _effectivePianoImpost = pianoNorm((currentSocietyMeta?.piano) || (_impostSoc?.piano) || 'mister');
+    if (_quoteCardEl) _quoteCardEl.style.display = (_effectivePianoImpost !== 'societa' || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
@@ -5137,6 +5190,8 @@ function switchLeva(l) {
   renderStats();
   renderPartite();
   renderGestComp();
+  // Admin-mister: aggiorna bottom nav in base alla leva selezionata
+  if (me && me.role === 'admin') buildMobNav(me.role);
 }
 
 function openAddLeva() {
@@ -5177,11 +5232,14 @@ function addLeva(v) {
     return;
   }
   leve.push(v);
+  // Imposta default adminAsMister per la nuova leva (basato sul piano corrente)
+  if (me && me.role === 'admin') _seedAdminAsMister();
   closeM('mLeva');
   document.getElementById('levaName').value = '';
   renderSbLeve();
   populateLevaSelect();
   renderLeveImpostazioni();
+  renderAdminAsMisterSettings();
   switchLeva(v);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast(`✅ Leva "${v}" aggiunta!`);
@@ -5357,7 +5415,7 @@ function renderRosa() {
       ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
       : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
     top.innerHTML = `
-      ${playerAv(p, 56, '12px', true)}
+      ${playerAv(p, 40, '10px', true)}
       <div style="flex:1;min-width:0;">
         <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
         ${incompleteBadge}${indispBadge}
@@ -5977,7 +6035,7 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 // Permessi:
-function canEditPresenze(){ return me && (isAdminLike() || hasPerm('gestione_presenze')); }
+function canEditPresenze(leva = currentLeva){ return !!(me && (isAdminLike() || hasPerm('gestione_presenze') || isAdminMisterForLeva(leva))); }
 function isGKCoach(){ return me && me.role === 'preparatore_portieri'; }
 function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
@@ -6054,7 +6112,7 @@ function renderPresenze() {
       b.onclick = () => openAvvisaModal();
       actions.appendChild(b);
     }
-    if (me.role === 'allenatore' || me.role === 'preparatore_portieri') {
+    if (me.role === 'allenatore' || me.role === 'preparatore_portieri' || isAdminMisterForLeva(currentLeva)) {
       const gkBtn = document.createElement('button');
       gkBtn.className = 'btn btn-sm';
       gkBtn.style.cssText = currentPresPortieriMode ? 'background:#0369a1;color:white;' : 'background:var(--bg);border-color:var(--border);';
@@ -6069,7 +6127,9 @@ function renderPresenze() {
     }
   }
 
-  if (isAdminLike() || me.role === 'dirigente') {
+  if (isAdminMisterForLeva(currentLeva)) {
+    renderPresenzeAllenatore(cont);
+  } else if (isAdminLike() || me.role === 'dirigente') {
     renderPresenzeOverview(cont, me.role === 'dirigente' ? userLeve() : leve);
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
@@ -6973,7 +7033,7 @@ function revocaAssenza(p, dateStr) {
 // CONVOCAZIONI + DISPONIBILITÀ + NOTIFICHE
 // ═══════════════════════════════════
 
-function canCreateConvocazione(){ return me && (isAdminLike() || hasPerm('gestione_convocazioni')); }
+function canCreateConvocazione(leva = currentLeva){ return !!(me && (isAdminLike() || hasPerm('gestione_convocazioni') || isAdminMisterForLeva(leva))); }
 function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
@@ -7991,6 +8051,36 @@ function saveLevaStatsLeva(lv, val) {
   levaStatsSettings[lv].showStatsToFamily = !!val;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast(`✅ Impostazioni stats ${lv} salvate`);
+}
+
+// ─── ADMIN-AS-MISTER PER LEVA ────────────────────────────
+
+function renderAdminAsMisterSettings() {
+  const card = document.getElementById('adminAsMisterCard');
+  const el = document.getElementById('adminAsMisterBox');
+  if (!card || !el) return;
+  const isAdmin = me && me.role === 'admin';
+  card.style.display = isAdmin ? '' : 'none';
+  if (!isAdmin) return;
+  if (!leve.length) { el.innerHTML = '<div style="color:var(--text2);font-size:.78rem;">Nessuna leva configurata.</div>'; return; }
+  el.innerHTML = leve.map(lv => {
+    const checked = adminAsMister[lv] ? 'checked' : '';
+    const safeLv = lv.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;">
+      <div>
+        <div style="font-weight:700;font-size:.88rem;">${escapeHtml(lv)}</div>
+        <div style="font-size:.74rem;color:var(--text3);">Permessi operativi da mister su questa leva</div>
+      </div>
+      <label class="ac-toggle"><input type="checkbox" ${checked} onchange="saveAdminAsMisterLeva('${safeLv}',this.checked)"><span class="ac-toggle-sl"></span></label>
+    </div>`;
+  }).join('');
+}
+
+function saveAdminAsMisterLeva(lv, val) {
+  adminAsMister[lv] = !!val;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (me) buildMobNav(me.role);
+  toast(val ? `✅ ${lv}: sei anche il mister di questa leva` : `⬜ ${lv}: rimosso ruolo mister`);
 }
 
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
@@ -11877,7 +11967,7 @@ function saveMisterShortcuts() {
 
 function buildMobDashboard(role, c) {
   if (role === 'mister_admin') role = 'admin';
-  if (role === 'allenatore') { buildMobDashboardAllenatore(c); return; }
+  if (role === 'allenatore' || isAdminMisterForLeva(currentLeva)) { buildMobDashboardAllenatore(c); return; }
   if (role === 'genitore' || role === 'nonno') { buildMobDashboardGenitore(c); return; }
   const todayStr = ymd(new Date());
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
@@ -16442,6 +16532,12 @@ function selectChat(chatId, skipListRefresh) {
   if (wrap) wrap.classList.add('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.add('chat-panel-open');
+  // BUG 2: su mobile, nasconde bottom nav e gestisce tastiera
+  if (window.innerWidth <= 640) {
+    document.body.classList.add('in-chat-conv');
+    if (_chatKbCleanup) { try { _chatKbCleanup(); } catch(_e) {} }
+    _chatKbCleanup = _setupChatKb();
+  }
   if (!skipListRefresh) renderChatList();
 }
 
@@ -16450,6 +16546,33 @@ function chatGoBack() {
   if (wrap) wrap.classList.remove('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.remove('chat-panel-open');
+  // BUG 2: ripristina bottom nav e pulizia keyboard handler
+  document.body.classList.remove('in-chat-conv');
+  if (_chatKbCleanup) { try { _chatKbCleanup(); } catch(_e) {} _chatKbCleanup = null; }
+}
+
+function _setupChatKb() {
+  const vv = window.visualViewport;
+  if (!vv) return null;
+  const TOPBAR_H = 52;
+  function _update() {
+    const el = document.getElementById('pg-chat');
+    if (!el || !el.classList.contains('on')) return;
+    el.style.top = (vv.offsetTop + TOPBAR_H) + 'px';
+    el.style.height = (vv.height - TOPBAR_H) + 'px';
+    el.style.bottom = 'auto';
+    // Scroll messaggi in fondo dopo resize
+    const msgs = document.getElementById('chatMsgs');
+    if (msgs) msgs.scrollTop = msgs.scrollHeight;
+  }
+  vv.addEventListener('resize', _update);
+  vv.addEventListener('scroll', _update);
+  return function() {
+    vv.removeEventListener('resize', _update);
+    vv.removeEventListener('scroll', _update);
+    const el = document.getElementById('pg-chat');
+    if (el) { el.style.top = ''; el.style.height = ''; el.style.bottom = ''; }
+  };
 }
 
 function renderChatMessages() {
@@ -17298,6 +17421,7 @@ function buildDemoStellaState() {
     nextCampoId:2,
     indisponibilita:[], nextIndispId:1,
     levaConvSettings:{},
+    adminAsMister:{},
     demoResetAt: nowMs + 86400000
   };
 }
@@ -19129,7 +19253,9 @@ function saFaqEditAnswer(id, newAns) {
 
 // Controlla piano all'avvio e mostra banner/modal
 function checkPianoOnBoot(soc) {
-  const status = getPianoStatus(soc);
+  // FIX 4: usa piano da MySQL (currentSocietyMeta) se disponibile, più aggiornato del blob
+  const effectiveSoc = currentSocietyMeta?.piano ? { ...soc, piano: currentSocietyMeta.piano } : soc;
+  const status = getPianoStatus(effectiveSoc);
   refreshDemoBanner();
   if (status === 'expired_demo') {
     setTimeout(() => openPianoModal(true), 400);
@@ -19146,7 +19272,6 @@ async function _syncSubscriptionStatus() {
     const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId);
     if (!resp.ok) return;
     const data = await resp.json();
-    if (data.billingMode === 'omaggio') return; // SA controlla il piano, Stripe non sovrascrive
     if (!data.piano) return;
     const soc = saSocieties.find(x => x.id === currentSocietaId);
     if (!soc) return;
@@ -19344,6 +19469,11 @@ async function saForceSyncAll() {
 function showSuperAdminPanel() {
   document.getElementById('loginScreen').classList.add('hide');
   setTimeout(() => { document.getElementById('loginScreen').style.display = 'none'; }, 380);
+  // Assicura che la demo Stella Azzurra sia sempre visibile nel pannello SA
+  if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
+    saSocieties.push({...STELLA_AZZ_SOC_DEF, fromMySQL: false});
+    saSaveState();
+  }
   const p = document.getElementById('saPanel');
   p.style.display = 'flex';
   renderSaPanel();
@@ -20022,6 +20152,21 @@ async function _saBMConfirmClick(btn, mode, cancelSub) {
   const allBtns = btn.closest('div').querySelectorAll('button');
   allBtns.forEach(b => { b.disabled = true; });
 
+  // Società solo-blob (demo, Baiardo, ecc.) — aggiorna solo il blob locale senza chiamata API
+  if (!s.fromMySQL) {
+    s.billingMode = mode;
+    saSaveState();
+    allBtns.forEach(b => { b.disabled = false; });
+    btn.textContent = origText;
+    try { _saDrillRenderBilling(s); } catch(e) {}
+    try { renderSaPanel(); } catch(e) {}
+    const _t = document.createElement('div');
+    _t.textContent = mode === 'omaggio' ? '✓ Modalità Omaggio attivata' : '✓ Fatturazione Stripe attivata';
+    _t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#4ade80;border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:10px 18px;font-size:.85rem;font-weight:600;z-index:200000;pointer-events:none;';
+    document.body.appendChild(_t); setTimeout(() => _t.remove(), 3000);
+    return;
+  }
+
   let fetchOk = false;
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + drillId + '/set-billing-mode', {
@@ -20319,6 +20464,9 @@ function saEditSociety(id) {
   document.getElementById('saSocNote').value = s.note || '';
   document.getElementById('saSocPiano').value = pianoNorm(s.piano) || 'demo';
 
+  // Pre-fill email from MySQL data (always available from saSocieties merge)
+  if (s.email) document.getElementById('saAdminEmail').value = s.email;
+
   // Load admin fields — try localStorage first, then server (fresh mobile device)
   const stKey = id === 0 ? 'fieldos_state_v1' : 'fieldos_state_soc_' + id;
   const loadAdminFields = (rawJson) => {
@@ -20328,7 +20476,7 @@ function saEditSociety(id) {
       if (admin) {
         document.getElementById('saAdminNome').value = admin.nome || '';
         document.getElementById('saAdminCogn').value = admin.cogn || '';
-        document.getElementById('saAdminEmail').value = admin.email || '';
+        document.getElementById('saAdminEmail').value = admin.email || s.email || '';
         document.getElementById('saAdminPass').value = admin.pass || '';
       }
     } catch(e) {}
@@ -20899,7 +21047,8 @@ async function doRejoinSocieta() {
       indisponibilita: indisponibilita,
       nextIndispId:    nextIndispId,
       levaConvSettings:  levaConvSettings,
-      levaStatsSettings: levaStatsSettings
+      levaStatsSettings: levaStatsSettings,
+      adminAsMister:     adminAsMister
     };
   }
 
@@ -21102,6 +21251,7 @@ async function doRejoinSocieta() {
       if (typeof s.nextIndispId === 'number') nextIndispId = s.nextIndispId;
       if (s.levaConvSettings  && typeof s.levaConvSettings  === 'object') levaConvSettings  = s.levaConvSettings;
       if (s.levaStatsSettings && typeof s.levaStatsSettings === 'object') levaStatsSettings = s.levaStatsSettings;
+      if (s.adminAsMister     && typeof s.adminAsMister     === 'object') adminAsMister     = s.adminAsMister;
       lastSnap = raw;
     } catch (e) {
       console.error('FieldOS: ripristino fallito', e);
