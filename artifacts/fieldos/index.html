@@ -4430,19 +4430,23 @@ async function doLogin() {
               lastActivity:    null,
               scadenzaDemo:    ms.demo_scadenza ? new Date(ms.demo_scadenza).getTime() : Date.now() + 14 * 86400000,
               billingMode:     _bm,
-              stripeCustomerId: _scid
+              stripeCustomerId: _scid,
+              fromMySQL:       true
             });
             _changed = true;
           } else {
-            // MySQL è source of truth per tutti i metadati società
-            const _stato = ms.stato === 'attiva' ? 'attivo' : (ms.stato || 'attivo');
-            if (existing.nome  !== (ms.nome  || '')) { existing.nome  = ms.nome  || ''; _changed = true; }
-            if (existing.citta !== (ms.citta || '')) { existing.citta = ms.citta || ''; _changed = true; }
-            if (existing.email !== (ms.email || '')) { existing.email = ms.email || ''; _changed = true; }
-            if (existing.stato !== _stato)            { existing.stato = _stato;         _changed = true; }
-            if (ms.piano && existing.piano !== ms.piano) { existing.piano = ms.piano;   _changed = true; }
-            if (ms.utenti != null && existing.utenti !== ms.utenti) { existing.utenti = ms.utenti; _changed = true; }
-            if (ms.demo_scadenza) { const _ds = new Date(ms.demo_scadenza).getTime(); if (existing.scadenzaDemo !== _ds) { existing.scadenzaDemo = _ds; _changed = true; } }
+            // Per entry create da MySQL: aggiorna tutti i metadati (MySQL è source of truth)
+            // Per entry create manualmente nel blob SA: aggiorna solo billing (evita sovrascrittura)
+            if (existing.fromMySQL) {
+              const _stato = ms.stato === 'attiva' ? 'attivo' : (ms.stato || 'attivo');
+              if (existing.nome  !== (ms.nome  || '')) { existing.nome  = ms.nome  || ''; _changed = true; }
+              if (existing.citta !== (ms.citta || '')) { existing.citta = ms.citta || ''; _changed = true; }
+              if (existing.email !== (ms.email || '')) { existing.email = ms.email || ''; _changed = true; }
+              if (existing.stato !== _stato)            { existing.stato = _stato;         _changed = true; }
+              if (ms.piano && existing.piano !== ms.piano) { existing.piano = ms.piano;   _changed = true; }
+              if (ms.utenti != null && existing.utenti !== ms.utenti) { existing.utenti = ms.utenti; _changed = true; }
+              if (ms.demo_scadenza) { const _ds = new Date(ms.demo_scadenza).getTime(); if (existing.scadenzaDemo !== _ds) { existing.scadenzaDemo = _ds; _changed = true; } }
+            }
             if (existing.billingMode !== _bm || existing.stripeCustomerId !== _scid) {
               existing.billingMode      = _bm;
               existing.stripeCustomerId = _scid;
