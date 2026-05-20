@@ -6034,7 +6034,7 @@ function buildRosaSection() {
 // ═══════════════════════════════════
 
 // Permessi:
-function canEditPresenze(leva){ return !!(me && (isAdminLike() || hasPerm('gestione_presenze') || isAdminMisterForLeva(leva))); }
+function canEditPresenze(leva = currentLeva){ return !!(me && (isAdminLike() || hasPerm('gestione_presenze') || isAdminMisterForLeva(leva))); }
 function isGKCoach(){ return me && me.role === 'preparatore_portieri'; }
 function canAvvisaAssenza(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
@@ -6111,7 +6111,7 @@ function renderPresenze() {
       b.onclick = () => openAvvisaModal();
       actions.appendChild(b);
     }
-    if (me.role === 'allenatore' || me.role === 'preparatore_portieri') {
+    if (me.role === 'allenatore' || me.role === 'preparatore_portieri' || isAdminMisterForLeva(currentLeva)) {
       const gkBtn = document.createElement('button');
       gkBtn.className = 'btn btn-sm';
       gkBtn.style.cssText = currentPresPortieriMode ? 'background:#0369a1;color:white;' : 'background:var(--bg);border-color:var(--border);';
@@ -6126,7 +6126,9 @@ function renderPresenze() {
     }
   }
 
-  if (isAdminLike() || me.role === 'dirigente') {
+  if (isAdminMisterForLeva(currentLeva)) {
+    renderPresenzeAllenatore(cont);
+  } else if (isAdminLike() || me.role === 'dirigente') {
     renderPresenzeOverview(cont, me.role === 'dirigente' ? userLeve() : leve);
   } else if (me.role === 'allenatore') {
     renderPresenzeAllenatore(cont);
@@ -7030,7 +7032,7 @@ function revocaAssenza(p, dateStr) {
 // CONVOCAZIONI + DISPONIBILITÀ + NOTIFICHE
 // ═══════════════════════════════════
 
-function canCreateConvocazione(leva){ return !!(me && (isAdminLike() || hasPerm('gestione_convocazioni') || isAdminMisterForLeva(leva))); }
+function canCreateConvocazione(leva = currentLeva){ return !!(me && (isAdminLike() || hasPerm('gestione_convocazioni') || isAdminMisterForLeva(leva))); }
 function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore' || (me.role === 'dirigente' && getFigliOf(me).length > 0)); }
 
 // Restituisce i player records gestiti dall'utente corrente
@@ -11964,7 +11966,7 @@ function saveMisterShortcuts() {
 
 function buildMobDashboard(role, c) {
   if (role === 'mister_admin') role = 'admin';
-  if (role === 'allenatore') { buildMobDashboardAllenatore(c); return; }
+  if (role === 'allenatore' || isAdminMisterForLeva(currentLeva)) { buildMobDashboardAllenatore(c); return; }
   if (role === 'genitore' || role === 'nonno') { buildMobDashboardGenitore(c); return; }
   const todayStr = ymd(new Date());
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
