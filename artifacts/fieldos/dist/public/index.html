@@ -4434,9 +4434,17 @@ async function doLogin() {
             });
             _changed = true;
           } else {
-            // Sync billing_mode e stripe_customer_id da MySQL (source of truth) per società già nel blob
+            // MySQL è source of truth per tutti i metadati società
+            const _stato = ms.stato === 'attiva' ? 'attivo' : (ms.stato || 'attivo');
+            if (existing.nome  !== (ms.nome  || '')) { existing.nome  = ms.nome  || ''; _changed = true; }
+            if (existing.citta !== (ms.citta || '')) { existing.citta = ms.citta || ''; _changed = true; }
+            if (existing.email !== (ms.email || '')) { existing.email = ms.email || ''; _changed = true; }
+            if (existing.stato !== _stato)            { existing.stato = _stato;         _changed = true; }
+            if (ms.piano && existing.piano !== ms.piano) { existing.piano = ms.piano;   _changed = true; }
+            if (ms.utenti != null && existing.utenti !== ms.utenti) { existing.utenti = ms.utenti; _changed = true; }
+            if (ms.demo_scadenza) { const _ds = new Date(ms.demo_scadenza).getTime(); if (existing.scadenzaDemo !== _ds) { existing.scadenzaDemo = _ds; _changed = true; } }
             if (existing.billingMode !== _bm || existing.stripeCustomerId !== _scid) {
-              existing.billingMode     = _bm;
+              existing.billingMode      = _bm;
               existing.stripeCustomerId = _scid;
               _changed = true;
             }
@@ -20319,6 +20327,9 @@ function saEditSociety(id) {
   document.getElementById('saSocNote').value = s.note || '';
   document.getElementById('saSocPiano').value = pianoNorm(s.piano) || 'demo';
 
+  // Pre-fill email from MySQL data (always available from saSocieties merge)
+  if (s.email) document.getElementById('saAdminEmail').value = s.email;
+
   // Load admin fields — try localStorage first, then server (fresh mobile device)
   const stKey = id === 0 ? 'fieldos_state_v1' : 'fieldos_state_soc_' + id;
   const loadAdminFields = (rawJson) => {
@@ -20328,7 +20339,7 @@ function saEditSociety(id) {
       if (admin) {
         document.getElementById('saAdminNome').value = admin.nome || '';
         document.getElementById('saAdminCogn').value = admin.cogn || '';
-        document.getElementById('saAdminEmail').value = admin.email || '';
+        document.getElementById('saAdminEmail').value = admin.email || s.email || '';
         document.getElementById('saAdminPass').value = admin.pass || '';
       }
     } catch(e) {}
