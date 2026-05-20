@@ -4917,8 +4917,12 @@ function goTo(pgId) {
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _impostSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _quoteCardEl = document.getElementById('quoteCard');
-    const _effectivePianoImpost = pianoNorm((currentSocietyMeta?.piano) || (_impostSoc?.piano) || 'mister');
-    if (_quoteCardEl) _quoteCardEl.style.display = (_effectivePianoImpost !== 'societa' || me.role === 'allenatore' || !_isStaff) ? 'none' : '';
+    // Mostra SOLO se MySQL ha confermato piano=societa, oppure demo stella (sempre sbloccata).
+    // Non usare saSocieties blob come fonte per mostrare: potrebbe avere dati stale.
+    const _pianoCerto = pianoNorm(currentSocietyMeta?.piano);
+    const _quoteShow = _isStaff && me.role !== 'allenatore' &&
+      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
+    if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
