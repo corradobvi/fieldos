@@ -61094,9 +61094,27 @@ router3.post("/login", async (req, res) => {
       if (!user) return null;
       return { state, stateKey, societyId, user, stateJson: stateRows[0].state_json };
     }
+    async function _mysqlSocietyCheck(societyId) {
+      if (societyId <= 0) return { ok: true };
+      try {
+        const [rows] = await pool.execute(
+          "SELECT stato, piano, billing_mode FROM societies WHERE id = ? LIMIT 1",
+          [societyId]
+        );
+        if (!rows.length) return { ok: true };
+        const ms = rows[0];
+        const msStato = ms.stato || "attiva";
+        if (msStato === "sospesa") return { ok: false, error: "society_suspended", message: "La societ\xE0 \xE8 sospesa. Contatta il supporto." };
+        if (msStato === "archiviata") return { ok: false, error: "society_archived", message: "La societ\xE0 \xE8 archiviata. Contatta il supporto." };
+        if (msStato !== "attiva") return { ok: false, error: "society_suspended", message: "La societ\xE0 non \xE8 attiva. Contatta il supporto." };
+        return { ok: true, piano: ms.piano ?? null, billingMode: ms.billing_mode ?? null };
+      } catch {
+        return { ok: true };
+      }
+    }
     const checkedKeys = /* @__PURE__ */ new Set();
     for (const soc of societies) {
-      const stato = soc.stato ?? "attivo";
+      const blobStato = soc.stato ?? "attivo";
       const stateKey = soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
       checkedKeys.add(stateKey);
       const found = await searchKey(stateKey, soc.id);
@@ -61104,23 +61122,31 @@ router3.post("/login", async (req, res) => {
       if (found.user.stato === "sospeso") {
         return res.status(403).json({ error: "suspended" });
       }
-      if (stato === "sospeso") {
-        return res.status(403).json({ error: "society_suspended", message: "La societ\xE0 \xE8 sospesa. Contatta il supporto." });
+      const msCheck = await _mysqlSocietyCheck(soc.id);
+      if (!msCheck.ok) {
+        return res.status(403).json({ error: msCheck.error, message: msCheck.message });
       }
-      if (stato === "archiviato") {
-        return res.status(403).json({ error: "society_archived", message: "La societ\xE0 \xE8 archiviata. Contatta il supporto." });
-      }
-      if (stato === "eliminato") {
-        return res.status(403).json({ error: "society_deleted", message: "La societ\xE0 \xE8 stata eliminata." });
+      if (msCheck.piano === void 0) {
+        if (blobStato === "sospeso") return res.status(403).json({ error: "society_suspended", message: "La societ\xE0 \xE8 sospesa. Contatta il supporto." });
+        if (blobStato === "archiviato") return res.status(403).json({ error: "society_archived", message: "La societ\xE0 \xE8 archiviata. Contatta il supporto." });
+        if (blobStato === "eliminato") return res.status(403).json({ error: "society_deleted", message: "La societ\xE0 \xE8 stata eliminata." });
       }
       const scadenzaDemo = soc.scadenzaDemo;
-      const pianoSoc = soc.piano ?? "demo";
+      const pianoSoc = msCheck.piano || soc.piano || "demo";
       if (pianoSoc === "demo" && scadenzaDemo && scadenzaDemo < Date.now()) {
         return res.status(403).json({ error: "demo_expired" });
       }
       logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
       const _pc = await _mysqlPrivacyCheck(normalizedEmail, soc.id, found.user.role ?? "admin");
-      return res.json({ societyId: soc.id, stateKey, user: found.user, stateJson: found.stateJson, ..._pc });
+      return res.json({
+        societyId: soc.id,
+        stateKey,
+        user: found.user,
+        stateJson: found.stateJson,
+        societyPiano: msCheck.piano ?? null,
+        societyBillingMode: msCheck.billingMode ?? null,
+        ..._pc
+      });
     }
     const [allKeys] = await pool.execute(
       "SELECT `key` FROM `society_state` WHERE (`key` LIKE 'fieldos_state_soc_%' OR `key` = 'fieldos_state_v1') AND `key` NOT LIKE 'fieldos_demo%'"
@@ -61135,9 +61161,21 @@ router3.post("/login", async (req, res) => {
       if (found.user.stato === "sospeso") {
         return res.status(403).json({ error: "suspended" });
       }
+      const msCheck2 = await _mysqlSocietyCheck(societyId);
+      if (!msCheck2.ok) {
+        return res.status(403).json({ error: msCheck2.error, message: msCheck2.message });
+      }
       logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
       const _pc2 = await _mysqlPrivacyCheck(normalizedEmail, societyId, found.user.role ?? "admin");
-      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson, ..._pc2 });
+      return res.json({
+        societyId,
+        stateKey,
+        user: found.user,
+        stateJson: found.stateJson,
+        societyPiano: msCheck2.piano ?? null,
+        societyBillingMode: msCheck2.billingMode ?? null,
+        ..._pc2
+      });
     }
     return res.status(401).json({ error: "invalid_credentials" });
   } catch (e) {
@@ -65234,6 +65272,40 @@ router24.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
     return res.json({ ok: true, new_expires_at: newExpiresAt.toISOString() });
   } catch (e) {
     logger.error({ err: e }, "superadmin/extend-demo error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router24.patch("/superadmin/societies/:id", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const societyId = parseInt(req.params.id);
+  if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
+  const { nome, citta } = req.body;
+  if (!nome && !citta) return res.status(400).json({ error: "nothing_to_update" });
+  const updates = [];
+  const params = [];
+  if (nome) {
+    updates.push("nome = ?");
+    params.push(nome.trim());
+  }
+  if (citta !== void 0) {
+    updates.push("citta = ?");
+    params.push(citta?.trim() ?? null);
+  }
+  params.push(societyId);
+  try {
+    const [result] = await pool.execute(
+      `UPDATE societies SET ${updates.join(", ")} WHERE id = ?`,
+      params
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    await pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, performed_by, reason, created_at) VALUES ('rename', ?, 'SUPERADMIN', ?, NOW())`,
+      [societyId, nome ? `Rinominata in: ${nome}` : `Citt\xE0 aggiornata`]
+    ).catch(() => {
+    });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "superadmin/patch society error");
     return res.status(500).json({ error: "server_error" });
   }
 });

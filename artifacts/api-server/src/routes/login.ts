@@ -62,11 +62,33 @@ router.post("/login", async (req, res) => {
       return { state, stateKey, societyId, user, stateJson: stateRows[0].state_json as string };
     }
 
+    // Helper: query MySQL per stato/piano/billing_mode di una società
+    async function _mysqlSocietyCheck(societyId: number): Promise<{
+      ok: boolean; error?: string; message?: string;
+      piano?: string | null; billingMode?: string | null;
+    }> {
+      if (societyId <= 0) return { ok: true };
+      try {
+        const [rows] = (await pool.execute(
+          "SELECT stato, piano, billing_mode FROM societies WHERE id = ? LIMIT 1",
+          [societyId]
+        )) as [any[], any];
+        if (!rows.length) return { ok: true }; // blob-only society, allow
+        const ms = rows[0];
+        const msStato: string = ms.stato || 'attiva';
+        if (msStato === 'sospesa')  return { ok: false, error: "society_suspended",  message: "La società è sospesa. Contatta il supporto." };
+        if (msStato === 'archiviata') return { ok: false, error: "society_archived", message: "La società è archiviata. Contatta il supporto." };
+        if (msStato !== 'attiva')   return { ok: false, error: "society_suspended",  message: "La società non è attiva. Contatta il supporto." };
+        return { ok: true, piano: ms.piano ?? null, billingMode: ms.billing_mode ?? null };
+      } catch {
+        return { ok: true }; // DB error: allow login, don't lock users out
+      }
+    }
+
     // 2. Cerca nelle società elencate nel SA state
     const checkedKeys = new Set<string>();
     for (const soc of societies) {
-      // Blocca accesso se società non attiva
-      const stato = soc.stato ?? "attivo";
+      const blobStato = soc.stato ?? "attivo";
       const stateKey: string =
         soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
       checkedKeys.add(stateKey);
@@ -78,26 +100,33 @@ router.post("/login", async (req, res) => {
         return res.status(403).json({ error: "suspended" });
       }
 
-      if (stato === "sospeso") {
-        return res.status(403).json({ error: "society_suspended", message: "La società è sospesa. Contatta il supporto." });
+      // FIX 1: verifica stato direttamente da MySQL (source of truth)
+      const msCheck = await _mysqlSocietyCheck(soc.id as number);
+      if (!msCheck.ok) {
+        return res.status(403).json({ error: msCheck.error, message: msCheck.message });
       }
-      if (stato === "archiviato") {
-        return res.status(403).json({ error: "society_archived", message: "La società è archiviata. Contatta il supporto." });
-      }
-      if (stato === "eliminato") {
-        return res.status(403).json({ error: "society_deleted", message: "La società è stata eliminata." });
+      // Fallback to blob stato if no MySQL row
+      if (msCheck.piano === undefined) {
+        if (blobStato === "sospeso")   return res.status(403).json({ error: "society_suspended",  message: "La società è sospesa. Contatta il supporto." });
+        if (blobStato === "archiviato") return res.status(403).json({ error: "society_archived",  message: "La società è archiviata. Contatta il supporto." });
+        if (blobStato === "eliminato") return res.status(403).json({ error: "society_deleted",    message: "La società è stata eliminata." });
       }
 
-      // Demo scaduta
+      // Demo scaduta (da blob)
       const scadenzaDemo = soc.scadenzaDemo as number | undefined;
-      const pianoSoc     = (soc.piano as string | undefined) ?? "demo";
+      const pianoSoc = msCheck.piano || (soc.piano as string | undefined) || "demo";
       if (pianoSoc === "demo" && scadenzaDemo && scadenzaDemo < Date.now()) {
         return res.status(403).json({ error: "demo_expired" });
       }
 
       logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
       const _pc = await _mysqlPrivacyCheck(normalizedEmail, soc.id as number, found.user.role ?? 'admin');
-      return res.json({ societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson, ..._pc });
+      // FIX 2: includi piano e billingMode da MySQL nella risposta
+      return res.json({
+        societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson,
+        societyPiano: msCheck.piano ?? null, societyBillingMode: msCheck.billingMode ?? null,
+        ..._pc
+      });
     }
 
     // 3. Fallback: scansiona chiavi orfane nel DB (non elencate nel SA state)
@@ -116,9 +145,19 @@ router.post("/login", async (req, res) => {
       if (found.user.stato === "sospeso") {
         return res.status(403).json({ error: "suspended" });
       }
+      // FIX 1: verifica stato MySQL anche per chiavi orfane
+      const msCheck2 = await _mysqlSocietyCheck(societyId);
+      if (!msCheck2.ok) {
+        return res.status(403).json({ error: msCheck2.error, message: msCheck2.message });
+      }
       logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
       const _pc2 = await _mysqlPrivacyCheck(normalizedEmail, societyId, found.user.role ?? 'admin');
-      return res.json({ societyId, stateKey, user: found.user, stateJson: found.stateJson, ..._pc2 });
+      // FIX 2: includi piano e billingMode da MySQL
+      return res.json({
+        societyId, stateKey, user: found.user, stateJson: found.stateJson,
+        societyPiano: msCheck2.piano ?? null, societyBillingMode: msCheck2.billingMode ?? null,
+        ..._pc2
+      });
     }
 
     return res.status(401).json({ error: "invalid_credentials" });

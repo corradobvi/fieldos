@@ -3632,6 +3632,8 @@ let _saDrillId = null;
 
 // Società corrente attiva (0 = Polis ASD, N = id in saSocieties)
 let currentSocietaId = 0;
+// Metadati freschi da MySQL ricevuti al login (sovrascrivono blob per piano/billingMode)
+let currentSocietyMeta = null;
 
 // Chiave localStorage per ogni società (Polis usa la chiave storica)
 function societyStorageKey(id) {
@@ -4490,6 +4492,10 @@ async function doLogin() {
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
+      // FIX 3: salva metadati freschi da MySQL (piano/billingMode sorgente di verità)
+      if (data.societyPiano || data.societyBillingMode) {
+        currentSocietyMeta = { piano: data.societyPiano || null, billingMode: data.societyBillingMode || null };
+      }
       if (typeof window.__fieldosSetSocietaKey === 'function') {
         if (data.stateJson) {
           // ORDINE CRITICO: scrivi in localStorage PRIMA di chiamare __fieldosSetSocietaKey,
@@ -19140,7 +19146,9 @@ function saFaqEditAnswer(id, newAns) {
 
 // Controlla piano all'avvio e mostra banner/modal
 function checkPianoOnBoot(soc) {
-  const status = getPianoStatus(soc);
+  // FIX 4: usa piano da MySQL (currentSocietyMeta) se disponibile, più aggiornato del blob
+  const effectiveSoc = currentSocietyMeta?.piano ? { ...soc, piano: currentSocietyMeta.piano } : soc;
+  const status = getPianoStatus(effectiveSoc);
   refreshDemoBanner();
   if (status === 'expired_demo') {
     setTimeout(() => openPianoModal(true), 400);
@@ -19157,7 +19165,6 @@ async function _syncSubscriptionStatus() {
     const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId);
     if (!resp.ok) return;
     const data = await resp.json();
-    if (data.billingMode === 'omaggio') return; // SA controlla il piano, Stripe non sovrascrive
     if (!data.piano) return;
     const soc = saSocieties.find(x => x.id === currentSocietaId);
     if (!soc) return;
