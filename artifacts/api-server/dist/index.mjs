@@ -77685,7 +77685,7 @@ router3.post("/login", async (req, res) => {
       if (societyId <= 0) return { ok: true };
       try {
         const [rows] = await pool.execute(
-          "SELECT stato, piano, billing_mode FROM societies WHERE id = ? LIMIT 1",
+          "SELECT stato, piano, billing_mode, colore_primario, colore_accento, logo_url, nome, citta, codice FROM societies WHERE id = ? LIMIT 1",
           [societyId]
         );
         if (!rows.length) return { ok: true };
@@ -77694,7 +77694,17 @@ router3.post("/login", async (req, res) => {
         if (msStato === "sospesa") return { ok: false, error: "society_suspended", message: "La societ\xE0 \xE8 sospesa. Contatta il supporto." };
         if (msStato === "archiviata") return { ok: false, error: "society_archived", message: "La societ\xE0 \xE8 archiviata. Contatta il supporto." };
         if (msStato !== "attiva") return { ok: false, error: "society_suspended", message: "La societ\xE0 non \xE8 attiva. Contatta il supporto." };
-        return { ok: true, piano: ms.piano ?? null, billingMode: ms.billing_mode ?? null };
+        return {
+          ok: true,
+          piano: ms.piano ?? null,
+          billingMode: ms.billing_mode ?? null,
+          colorePrimario: ms.colore_primario ?? null,
+          coloreAccento: ms.colore_accento ?? null,
+          logoUrl: ms.logo_url ?? null,
+          nomeSocieta: ms.nome ?? null,
+          citta: ms.citta ?? null,
+          codiceSocieta: ms.codice ?? null
+        };
       } catch {
         return { ok: true };
       }
@@ -77737,6 +77747,12 @@ router3.post("/login", async (req, res) => {
         stateJson: found.stateJson,
         societyPiano: msCheck.piano ?? null,
         societyBillingMode: msCheck.billingMode ?? null,
+        societyColorePrimario: msCheck.colorePrimario ?? null,
+        societyColoreAccento: msCheck.coloreAccento ?? null,
+        societyLogoUrl: msCheck.logoUrl ?? null,
+        societyNomeSocieta: msCheck.nomeSocieta ?? null,
+        societyCitta: msCheck.citta ?? null,
+        societyCodice: msCheck.codiceSocieta ?? null,
         privacyPending: _pc.privacyPending,
         v2Token: _pc.v2Token
       });
@@ -77767,6 +77783,12 @@ router3.post("/login", async (req, res) => {
         stateJson: found.stateJson,
         societyPiano: msCheck2.piano ?? null,
         societyBillingMode: msCheck2.billingMode ?? null,
+        societyColorePrimario: msCheck2.colorePrimario ?? null,
+        societyColoreAccento: msCheck2.coloreAccento ?? null,
+        societyLogoUrl: msCheck2.logoUrl ?? null,
+        societyNomeSocieta: msCheck2.nomeSocieta ?? null,
+        societyCitta: msCheck2.citta ?? null,
+        societyCodice: msCheck2.codiceSocieta ?? null,
         privacyPending: _pc2.privacyPending,
         v2Token: _pc2.v2Token
       });
@@ -84241,8 +84263,20 @@ router11.get("/society", requireAuth, async (req, res) => {
   }
 });
 router11.put("/society", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, userId } = req.jwtUser;
   const { nome, citta, colorePrimario, coloreAccento, logoUrl, codice } = req.body;
+  try {
+    const [ownerRows] = await pool.execute(
+      "SELECT is_account_owner FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    if (!ownerRows.length || !ownerRows[0].is_account_owner) {
+      return res.status(403).json({ error: "forbidden", message: "Solo l'admin titolare pu\xF2 modificare i dati della societ\xE0" });
+    }
+  } catch (e) {
+    logger.error({ err: e }, "PUT society owner-check error");
+    return res.status(500).json({ error: "server_error" });
+  }
   try {
     if (codice !== void 0) {
       const [conflict] = await pool.execute(
@@ -87094,6 +87128,20 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   } catch (e) {
     logger.error({ err: e }, "superadmin/audit-log error");
     return res.status(500).json({ error: "server_error" });
+  }
+});
+router24.get("/superadmin/verify-primi-calci", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [rows] = await pool.execute(
+      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='primi_calci' GROUP BY categoria ORDER BY categoria"
+    );
+    const [total] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='primi_calci'"
+    );
+    return res.json({ total: total[0].n, by_category: rows });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
   }
 });
 var superadmin_default = router24;
