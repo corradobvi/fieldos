@@ -101,6 +101,25 @@ router.get("/schema-info", async (_req, res) => {
   }
 });
 
+// GET /api/v2/health/allenamenti-tables — verifica creazione tabelle allenamenti (temp diagnostic)
+router.get("/health/allenamenti-tables", async (_req, res) => {
+  try {
+    const tables = [
+      "sessioni_libreria", "allenamenti", "allenamento_sessioni",
+      "allenamento_note_vocali", "ai_budget_utilizzo", "ai_richieste_log", "ai_societa_allowlist",
+    ];
+    const results: Record<string, boolean> = {};
+    for (const t of tables) {
+      const [rows] = await pool.execute(`SHOW TABLES LIKE '${t}'`) as [any[], any];
+      results[t] = rows.length > 0;
+    }
+    const allOk = Object.values(results).every(Boolean);
+    return res.json({ ok: allOk, tables: results });
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, error: e?.message });
+  }
+});
+
 // GET /api/v2/health/ai-key — diagnostic: verifica presenza ANTHROPIC_API_KEY senza esporla
 router.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
