@@ -1,4 +1,4 @@
-# 2026-05-18-v16 — fix superadmin routes
+# 2026-05-21-v17 — juniores seed
 FROM node:20-slim
 
 WORKDIR /app
