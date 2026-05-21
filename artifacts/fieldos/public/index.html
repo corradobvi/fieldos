@@ -4941,6 +4941,21 @@ function goTo(pgId) {
     const _quoteShow = _isStaff && me.role !== 'allenatore' &&
       (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
     if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
+    // BUG 5: "+ Aggiungi utente" disabilitato su piano Mister (non include collaboratori)
+    const _btnAddUser = document.querySelector('#usersCard .ch button.btn-p');
+    if (_btnAddUser) {
+      const _misterOnly = (_pianoCerto === 'mister');
+      _btnAddUser.disabled = _misterOnly;
+      _btnAddUser.title = _misterOnly ? 'Disponibile da Mister Pro' : '';
+      _btnAddUser.style.cursor = _misterOnly ? 'not-allowed' : '';
+      _btnAddUser.style.opacity = _misterOnly ? '0.45' : '';
+    }
+    // BUG 6: card "Accesso AI — Allenamenti" nascosta su piano Mister
+    const _aiCardEl = document.getElementById('aiAllowlistCard');
+    if (_aiCardEl) {
+      const _aiShow = _pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietaId === DEMO_STELLA_ID;
+      _aiCardEl.style.display = _aiShow ? '' : 'none';
+    }
     const _codiceCardEl = document.getElementById('codiceCard');
     if (_codiceCardEl) _codiceCardEl.style.display = (isAdminLike() || me.role === 'preparatore_portieri') ? '' : 'none';
     // usersCard: admin e dirigente (ma dirigente vede solo — senza bottoni modifica)
@@ -14026,6 +14041,9 @@ function _pickSelectSessione(jsonStr) {
 function _pickScrivi() {
   _closePickSessione();
   _allSt._nsAddToAll = true;
+  // Hide the fullscreen costruttore without resetting state so mNuovaSessione is visible
+  const fsEl = document.getElementById('_allFsModal');
+  if (fsEl) fsEl.classList.remove('on');
   _initNuovaSessioneModal(null);
 }
 
@@ -14059,7 +14077,10 @@ async function saveSessione() {
   _allSt._nsAddToAll = false;
   closeM('mNuovaSessione');
   toast('✅ Sessione aggiunta all\'allenamento');
-  _openCostruisciAllenamento(_allSt._costruttore.id);
+  // Restore the fullscreen costruttore without resetting its state
+  const fsEl = document.getElementById('_allFsModal');
+  if (fsEl) { fsEl.classList.add('on'); document.body.style.overflow = 'hidden'; }
+  _renderCostruisciSessioni();
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -14238,7 +14259,7 @@ async function _callAiSpunto() {
       body: JSON.stringify({ domanda: domanda })
     });
     if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiSpunto(); return; }
-    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.detail||d.error||'Errore AI'); }
     const d = await r.json();
     _allSt._aiBudget = d.budget || _allSt._aiBudget;
     _renderAiBudgetBar();
@@ -14294,7 +14315,7 @@ async function _callAiSessione() {
       body: JSON.stringify({ eta_leva: eta_leva, categoria: categoria, obiettivi: obiettivi, durata_minuti: durata, materiali: materiali||null, num_giocatori: num_giocatori, note_extra: note_extra||null })
     });
     if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiSess(); return; }
-    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.detail||d.error||'Errore AI'); }
     const d = await r.json();
     _allSt._aiBudget = d.budget || _allSt._aiBudget;
     _renderAiBudgetBar();
@@ -14388,7 +14409,7 @@ async function _callAiAllenamento() {
       body: JSON.stringify({ eta_leva: eta_leva, obiettivo: obiettivo, durata_totale_minuti: durata_totale, num_sessioni: num_sessioni, materiali: materiali||null, num_giocatori: num_giocatori, categorie_preferite: [] })
     });
     if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiAll(); return; }
-    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.detail||d.error||'Errore AI'); }
     const d = await r.json();
     _allSt._aiBudget = d.budget || _allSt._aiBudget;
     _renderAiBudgetBar();

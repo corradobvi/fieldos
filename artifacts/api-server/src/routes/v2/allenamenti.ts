@@ -128,7 +128,8 @@ router.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
   if (ambito === "personale") {
     conditions.push("sl.mister_id = ?"); params.push(userId);
   } else if (ambito === "community") {
-    conditions.push("sl.visibilita = 'pubblica' AND sl.ufficiale_myvivaio = FALSE");
+    conditions.push("sl.visibilita = 'pubblica' AND sl.ufficiale_myvivaio = FALSE AND sl.mister_id != ?");
+    params.push(userId);
   } else if (ambito === "ufficiali") {
     conditions.push("sl.ufficiale_myvivaio = TRUE");
   } else { // tutte

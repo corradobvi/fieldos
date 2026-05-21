@@ -2,7 +2,7 @@ import { logger } from "./logger";
 
 const API_URL  = "https://api.anthropic.com/v1/messages";
 const API_KEY  = process.env.ANTHROPIC_API_KEY ?? "";
-export const AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929";
+export const AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 
 export interface ChiamataClaudeResult {
   testo: string;
