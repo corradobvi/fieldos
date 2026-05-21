@@ -1,3 +1,4 @@
+// v2 router — 2026-05-21
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
