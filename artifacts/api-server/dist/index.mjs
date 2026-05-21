@@ -77699,8 +77699,13 @@ router3.post("/login", async (req, res) => {
         return { ok: true };
       }
     }
+    const sortedSocieties = [...societies].sort((a, b) => {
+      if (a.id === 0 && b.id !== 0) return 1;
+      if (a.id !== 0 && b.id === 0) return -1;
+      return 0;
+    });
     const checkedKeys = /* @__PURE__ */ new Set();
-    for (const soc of societies) {
+    for (const soc of sortedSocieties) {
       const blobStato = soc.stato ?? "attivo";
       const stateKey = soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
       checkedKeys.add(stateKey);
@@ -78719,7 +78724,8 @@ ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
 UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0;
 ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL;
 ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL;
-ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL
+ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL;
+ALTER TABLE societies MODIFY COLUMN logo_url MEDIUMTEXT
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
