@@ -82526,8 +82526,8 @@ router27.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => 
        LEFT JOIN users u ON u.id = sl.mister_id
        ${where}
        ORDER BY sl.usata_count DESC, sl.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limitN, offsetN]
+       LIMIT ${limitN} OFFSET ${offsetN}`,
+      params
     );
     return res.json({ total, items: rows.map((r) => ({ ...r, tag: r.tag ?? [] })) });
   } catch (e) {
@@ -82712,13 +82712,13 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
     const join = isGenitore ? "" : "LEFT JOIN users u ON u.id = a.creato_da";
     const [rows] = await pool.execute(
       `SELECT ${selectFields} FROM allenamenti a ${join} ${where}
-       ORDER BY a.data DESC LIMIT ? OFFSET ?`,
-      [...params, limitN, offsetN]
+       ORDER BY a.data DESC LIMIT ${limitN} OFFSET ${offsetN}`,
+      params
     );
     return res.json({ items: rows });
   } catch (e) {
     logger.error({ err: e }, "GET allenamenti error");
-    return res.status(500).json({ error: "server_error", _d: e?.message, _c: e?.errno, _sql: e?.sql?.slice(0, 200) });
+    return res.status(500).json({ error: "server_error" });
   }
 });
 router27.get("/allenamenti/:id", requireAuth, async (req, res) => {

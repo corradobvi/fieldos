@@ -157,8 +157,8 @@ router.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
        LEFT JOIN users u ON u.id = sl.mister_id
        ${where}
        ORDER BY sl.usata_count DESC, sl.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, limitN, offsetN]
+       LIMIT ${limitN} OFFSET ${offsetN}`,
+      params
     )) as [any[], any];
 
     return res.json({ total, items: rows.map(r => ({ ...r, tag: r.tag ?? [] })) });
@@ -354,14 +354,14 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
 
     const [rows] = (await pool.execute(
       `SELECT ${selectFields} FROM allenamenti a ${join} ${where}
-       ORDER BY a.data DESC LIMIT ? OFFSET ?`,
-      [...params, limitN, offsetN]
+       ORDER BY a.data DESC LIMIT ${limitN} OFFSET ${offsetN}`,
+      params
     )) as [any[], any];
 
     return res.json({ items: rows });
   } catch (e: any) {
     logger.error({ err: e }, "GET allenamenti error");
-    return res.status(500).json({ error: "server_error", _d: e?.message, _c: e?.errno, _sql: e?.sql?.slice(0,200) });
+    return res.status(500).json({ error: "server_error" });
   }
 });
 
