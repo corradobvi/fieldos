@@ -504,4 +504,15 @@ router.post("/superadmin/fix3-v1-cleanup", async (req, res) => {
   }
 });
 
+router.get("/superadmin/verify-allievi", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [countRow] = await pool.execute("SELECT COUNT(*) AS totale_allievi FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='allievi'") as [any[], any];
+    const [catRows] = await pool.execute("SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='allievi' GROUP BY categoria ORDER BY categoria") as [any[], any];
+    return res.json({ totale_allievi: countRow[0].totale_allievi, per_categoria: catRows });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
+
 export default router;
