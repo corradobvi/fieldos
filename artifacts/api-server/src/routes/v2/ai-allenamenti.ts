@@ -15,6 +15,7 @@ const router = Router();
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const CATEGORIE_IT: Record<string, string> = {
+  riscaldamento:       "Riscaldamento",
   tecnica_individuale: "Tecnica individuale",
   tattica:             "Tattica",
   possesso_palla:      "Possesso palla",
@@ -56,7 +57,7 @@ Rispondi SEMPRE in JSON valido con questa struttura esatta:
       "titolo": "stringa max 200 caratteri",
       "descrizione": "descrizione dettagliata (min 80 caratteri)",
       "durata_minuti": numero intero tra 5 e 90,
-      "categoria": "uno tra: tecnica_individuale|tattica|possesso_palla|finalizzazione|atletica_fisico|portieri",
+      "categoria": "uno tra: riscaldamento|tecnica_individuale|tattica|possesso_palla|finalizzazione|atletica_fisico|portieri",
       "tag": ["array", "di", "stringhe", "max 6 tag"]
     }
   ]
@@ -229,7 +230,7 @@ router.post("/ai/sessione-singola", requireAuth, async (req, res) => {
 
   const { categoria, eta_leva, durata_minuti, obiettivi, salva_in_libreria } = req.body;
 
-  const CATEGORIE_VALIDE = ["tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
+  const CATEGORIE_VALIDE = ["riscaldamento","tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
   const LEVE_VALIDE      = ["pulcini","esordienti","giovanissimi","allievi","juniores"];
 
   if (!categoria || !CATEGORIE_VALIDE.includes(categoria)) {
@@ -352,7 +353,7 @@ router.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
   } = req.body;
 
   const LEVE_VALIDE = ["pulcini","esordienti","giovanissimi","allievi","juniores"];
-  const CATEGORIE_VALIDE = ["tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
+  const CATEGORIE_VALIDE = ["riscaldamento","tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
 
   if (!eta_leva || !LEVE_VALIDE.includes(eta_leva)) {
     return res.status(400).json({ error: "eta_leva non valida", valide: LEVE_VALIDE });

@@ -78716,7 +78716,8 @@ CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
   FOREIGN KEY fk_asal_abilitato_da (abilitato_da) REFERENCES users(id)     ON DELETE RESTRICT
 );
 ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
-UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0
+UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0;
+ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -82382,6 +82383,7 @@ import path from "path";
 import fs from "fs";
 var router27 = (0, import_express27.Router)();
 var CATEGORIE_VALIDE = /* @__PURE__ */ new Set([
+  "riscaldamento",
   "tecnica_individuale",
   "tattica",
   "possesso_palla",
@@ -83471,6 +83473,7 @@ async function getBudgetInfo(userId, societaId) {
 import { randomUUID as randomUUID3 } from "crypto";
 var router28 = (0, import_express28.Router)();
 var CATEGORIE_IT = {
+  riscaldamento: "Riscaldamento",
   tecnica_individuale: "Tecnica individuale",
   tattica: "Tattica",
   possesso_palla: "Possesso palla",
@@ -83509,7 +83512,7 @@ Rispondi SEMPRE in JSON valido con questa struttura esatta:
       "titolo": "stringa max 200 caratteri",
       "descrizione": "descrizione dettagliata (min 80 caratteri)",
       "durata_minuti": numero intero tra 5 e 90,
-      "categoria": "uno tra: tecnica_individuale|tattica|possesso_palla|finalizzazione|atletica_fisico|portieri",
+      "categoria": "uno tra: riscaldamento|tecnica_individuale|tattica|possesso_palla|finalizzazione|atletica_fisico|portieri",
       "tag": ["array", "di", "stringhe", "max 6 tag"]
     }
   ]
@@ -83657,7 +83660,7 @@ router28.post("/ai/spunto-rapido", requireAuth, async (req, res) => {
 router28.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const { categoria, eta_leva, durata_minuti, obiettivi, salva_in_libreria } = req.body;
-  const CATEGORIE_VALIDE2 = ["tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
+  const CATEGORIE_VALIDE2 = ["riscaldamento", "tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
   const LEVE_VALIDE = ["pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
   if (!categoria || !CATEGORIE_VALIDE2.includes(categoria)) {
     return res.status(400).json({ error: "categoria non valida", valide: CATEGORIE_VALIDE2 });
@@ -83784,7 +83787,7 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
     data_allenamento
   } = req.body;
   const LEVE_VALIDE = ["pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
-  const CATEGORIE_VALIDE2 = ["tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
+  const CATEGORIE_VALIDE2 = ["riscaldamento", "tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
   if (!eta_leva || !LEVE_VALIDE.includes(eta_leva)) {
     return res.status(400).json({ error: "eta_leva non valida", valide: LEVE_VALIDE });
   }

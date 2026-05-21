@@ -13,7 +13,7 @@ const router = Router();
 // ─── Costanti ENUM ──────────────────────────────────────────────────────────
 
 const CATEGORIE_VALIDE = new Set([
-  "tecnica_individuale", "tattica", "possesso_palla",
+  "riscaldamento", "tecnica_individuale", "tattica", "possesso_palla",
   "finalizzazione", "atletica_fisico", "portieri",
 ]);
 const ETA_LEVA_VALIDE = new Set([

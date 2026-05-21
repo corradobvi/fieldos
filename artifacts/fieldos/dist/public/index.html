@@ -13406,11 +13406,11 @@ let _allSt = {
   _nsTags: [],
 };
 const _ALL_CAT_IT = {
-  tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
+  riscaldamento:'Riscaldamento', tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
   finalizzazione:'Finalizzazione', atletica_fisico:'Atletica/Fisico', portieri:'Portieri',
 };
 const _ALL_CAT_BG = {
-  tecnica_individuale:'#dbeafe', tattica:'#fce7f3', possesso_palla:'#d1fae5',
+  riscaldamento:'#dcfce7', tecnica_individuale:'#dbeafe', tattica:'#fce7f3', possesso_palla:'#d1fae5',
   finalizzazione:'#fee2e2', atletica_fisico:'#fff7ed', portieri:'#ede9fe',
 };
 const _ALL_LEVA_IT = {
@@ -23693,7 +23693,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ── Modal: Nuova / Modifica Sessione ─────────────────────────────────── -->
 <div class="ov" id="mNuovaSessione">
-  <div class="modal" style="max-width:600px;">
+  <div class="modal" style="max-width:760px;">
     <div class="mh">
       <div class="mt" id="mNuovaSessioneTitle">Nuova sessione</div>
       <button class="mx" onclick="closeM('mNuovaSessione')">✕</button>
@@ -23721,6 +23721,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <label class="fl">Categoria <span style="color:var(--red);">*</span></label>
           <select class="fi" id="nsCategoria">
             <option value="">Scegli...</option>
+            <option value="riscaldamento">Riscaldamento</option>
             <option value="tecnica_individuale">Tecnica individuale</option>
             <option value="tattica">Tattica</option>
             <option value="possesso_palla">Possesso palla</option>

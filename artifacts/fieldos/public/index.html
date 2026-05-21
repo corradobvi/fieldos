@@ -3939,6 +3939,7 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
@@ -4833,6 +4834,8 @@ function buildSidebar(role) {
       d.textContent = item.s;
       nav.appendChild(d);
     } else {
+      // Allenamenti per admin: visibile solo se adminAsMister è attivo sulla leva corrente
+      if (item.id === 'allenamenti' && role === 'admin' && !isAdminMisterForLeva(currentLeva)) return;
       let locked = false;
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       // Quote: nascondi completamente dalla nav se piano non include la feature
@@ -5202,8 +5205,8 @@ function switchLeva(l) {
   renderStats();
   renderPartite();
   renderGestComp();
-  // Admin-mister: aggiorna bottom nav in base alla leva selezionata
-  if (me && me.role === 'admin') buildMobNav(me.role);
+  // Admin-mister: aggiorna bottom nav e sidebar (allenamenti appare/sparisce per leva)
+  if (me && me.role === 'admin') buildSidebar(me.role);
 }
 
 function openAddLeva() {
@@ -8091,7 +8094,7 @@ function renderAdminAsMisterSettings() {
 function saveAdminAsMisterLeva(lv, val) {
   adminAsMister[lv] = !!val;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  if (me) buildMobNav(me.role);
+  if (me) buildSidebar(me.role);
   toast(val ? `✅ ${lv}: sei anche il mister di questa leva` : `⬜ ${lv}: rimosso ruolo mister`);
 }
 
@@ -9207,7 +9210,7 @@ function renderStats() {
 
   // Squadra stats
   const qs = document.getElementById('squadraStats');
-  const totGol = list.reduce((s,p) => s + p.partite.reduce((a,x) => a+x.gol,0), 0);
+  const totGol = list.reduce((s,p) => s + (p.partite||[]).reduce((a,x) => a+x.gol,0), 0);
   qs.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:9px;">
       <div style="background:var(--bg);border-radius:8px;padding:11px;display:flex;justify-content:space-between;align-items:center;">
@@ -13403,11 +13406,11 @@ let _allSt = {
   _nsTags: [],
 };
 const _ALL_CAT_IT = {
-  tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
+  riscaldamento:'Riscaldamento', tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
   finalizzazione:'Finalizzazione', atletica_fisico:'Atletica/Fisico', portieri:'Portieri',
 };
 const _ALL_CAT_BG = {
-  tecnica_individuale:'#dbeafe', tattica:'#fce7f3', possesso_palla:'#d1fae5',
+  riscaldamento:'#dcfce7', tecnica_individuale:'#dbeafe', tattica:'#fce7f3', possesso_palla:'#d1fae5',
   finalizzazione:'#fee2e2', atletica_fisico:'#fff7ed', portieri:'#ede9fe',
 };
 const _ALL_LEVA_IT = {
@@ -15114,7 +15117,7 @@ function playerMatchStats(playerId, leva) {
   amichevoli.filter(m => m.leva === leva && m.played).forEach(m =>
     add(a, (m.stats||[]).find(s => s.playerId === playerId)));
   const camp = campionato[leva];
-  if (camp) camp.partite.filter(m => m.played).forEach(m =>
+  if (camp) (camp.partite||[]).filter(m => m.played).forEach(m =>
     add(c, (m.stats||[]).find(s => s.playerId === playerId)));
   tornei.filter(tr => tr.leva === leva).forEach(tr =>
     (tr.fasi||[]).forEach(f =>
@@ -16636,7 +16639,7 @@ function openRisultato(tipo, ref) {
     leva  = match && match.leva;
   } else if (tipo === 'campionato') {
     const camp = campionato[currentLeva];
-    match = camp && camp.partite.find(m => m.id === ref);
+    match = camp && (camp.partite||[]).find(m => m.id === ref);
     leva  = currentLeva;
   } else if (tipo === 'torneo') {
     const parts = String(ref).split('__');
@@ -18080,7 +18083,7 @@ function _prefillRegisterFromUrl() {
       const el = document.getElementById('rPhone');
       if (el) el.value = decodeURIComponent(phone);
     }
-    if (piano === 'mister' || piano === 'societa') {
+    if (piano === 'mister' || piano === 'mister_pro' || piano === 'societa') {
       selectPiano(piano);
     }
     // always update badge to reflect current piano
@@ -18092,7 +18095,9 @@ function _updatePianoBadge(piano) {
   const badge = document.getElementById('rfPianoBadge');
   if (!badge) return;
   if (piano === 'societa') {
-    badge.textContent = '🏟️ Piano Società — 10 giorni gratis';
+    badge.textContent = '🏟️ Piano Società — 14 giorni gratis';
+  } else if (piano === 'mister_pro') {
+    badge.textContent = '🏅 Piano Mister Pro — 14 giorni gratis';
   } else {
     badge.textContent = '⚽ Piano Mister — 14 giorni gratis';
   }
@@ -23688,7 +23693,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ── Modal: Nuova / Modifica Sessione ─────────────────────────────────── -->
 <div class="ov" id="mNuovaSessione">
-  <div class="modal" style="max-width:600px;">
+  <div class="modal" style="max-width:760px;">
     <div class="mh">
       <div class="mt" id="mNuovaSessioneTitle">Nuova sessione</div>
       <button class="mx" onclick="closeM('mNuovaSessione')">✕</button>
@@ -23716,6 +23721,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <label class="fl">Categoria <span style="color:var(--red);">*</span></label>
           <select class="fi" id="nsCategoria">
             <option value="">Scegli...</option>
+            <option value="riscaldamento">Riscaldamento</option>
             <option value="tecnica_individuale">Tecnica individuale</option>
             <option value="tattica">Tattica</option>
             <option value="possesso_palla">Possesso palla</option>

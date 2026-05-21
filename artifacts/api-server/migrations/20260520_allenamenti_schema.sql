@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS sessioni_libreria (
   descrizione        TEXT         NOT NULL,
   durata_minuti      SMALLINT     NOT NULL,
   categoria          ENUM(
+                       'riscaldamento',
                        'tecnica_individuale',
                        'tattica',
                        'possesso_palla',
