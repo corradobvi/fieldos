@@ -454,20 +454,4 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
-// TEMPORARY — verify primi_calci seed
-router.get("/superadmin/verify-primi-calci", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [rows] = await pool.execute(
-      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='primi_calci' GROUP BY categoria ORDER BY categoria"
-    ) as [any[], any];
-    const [total] = await pool.execute(
-      "SELECT COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='primi_calci'"
-    ) as [any[], any];
-    return res.json({ total: (total as any[])[0].n, by_category: rows });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
-
 export default router;
