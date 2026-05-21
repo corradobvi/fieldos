@@ -4699,7 +4699,8 @@ function bootApp(user) {
     localStorage.setItem('mv_session', JSON.stringify({
       userId: user.id,
       societaId: currentSocietaId,
-      stateKey: window._mvSocietaKey || societyStorageKey(currentSocietaId)
+      stateKey: window._mvSocietaKey || societyStorageKey(currentSocietaId),
+      societyMeta: currentSocietyMeta
     }));
   } catch(_) {}
 
@@ -24759,6 +24760,7 @@ function tryRestoreSession() {
 
     // Imposta la chiave attiva → chiama restoreState() che popola USERS_DB, players, ecc.
     currentSocietaId = typeof sess.societaId === 'number' ? sess.societaId : 0;
+    currentSocietyMeta = sess.societyMeta || null;
     if (typeof window.__fieldosSetSocietaKey === 'function') {
       window.__fieldosSetSocietaKey(sess.stateKey);
     }
