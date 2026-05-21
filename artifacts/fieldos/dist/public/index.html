@@ -7747,6 +7747,11 @@ function getFasePt(dateStr, leva, evObj) {
   if (d <= f1) return 'fase1';
   return 'none';
 }
+// Helper: precedenza visibilità partita torneo — partita > torneo > leva
+function getFasePartitaTorneo(partita, torneo, leva) {
+  const subito = !!(partita?.visibilitaSubito || torneo?.visibilitaSubito);
+  return getFasePt(partita.data, leva, { visibilitaSubito: subito });
+}
 function getFaseForFamily(ev) {
   if (!ev) return 'none';
   if (ev.visibilitaMode === 'nascosto') return 'none';
@@ -11505,7 +11510,7 @@ function panoAllNextMatchesAcrossLeve(leveArr) {
     (tornei||[]).filter(t => t.leva === lv).forEach(t => {
       (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
         const isHome = m.casa === polis;
-        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome, visibilitaSubito: !!t.visibilitaSubito });
+        results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome, visibilitaSubito: !!(m.visibilitaSubito || t.visibilitaSubito) });
       }));
     });
     // Fallback: eventi calendario di tipo partita/amichevole non già coperti dai dati strutturati
@@ -17329,7 +17334,7 @@ function getPtVirtualEvents(dateStr) {
       }
       (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m=>{
         if (family) {
-          const fase = getFasePt(m.data, lv, m);
+          const fase = getFasePartitaTorneo(m, t, lv);
           if (fase === 'none') return;
           if (fase === 'fase1') { out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:'🏆 Partita torneo',color:'#e03055',priority:3}); return; }
         }
@@ -17722,6 +17727,16 @@ function openRisultato(tipo, ref) {
   const statsSection = document.getElementById('ptRisStatsSection');
   if (statsSection) statsSection.style.display = involvesPolis ? '' : 'none';
   buildRisultatoStats(match, leva);
+  // Toggle visibilità — solo tornei
+  const _visibSection = document.getElementById('ptRisTorneoVisibSection');
+  if (_visibSection) {
+    _visibSection.style.display = tipo === 'torneo' ? '' : 'none';
+    if (tipo === 'torneo') {
+      document.querySelectorAll('input[name="ptRisVisib"]').forEach(r => {
+        r.checked = r.value === (match.visibilitaSubito ? 'subito' : 'default');
+      });
+    }
+  }
   openM('mPtRisultato');
 }
 function buildRisultatoStats(match, leva) {
@@ -17832,6 +17847,10 @@ function savePtRisultato() {
     stats.push(s);
   });
   match.stats = stats;
+  // Salva visibilitaSubito per partite torneo
+  if (tipo === 'torneo') {
+    match.visibilitaSubito = document.querySelector('input[name="ptRisVisib"]:checked')?.value === 'subito';
+  }
   const cambiSec = document.getElementById('ptRisCambiSection');
   if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
@@ -23019,6 +23038,8 @@ async function doRejoinSocieta() {
       if (s.campionato && typeof s.campionato === 'object') campionato = s.campionato;
       if (typeof s.nextCampId === 'number') nextCampId = s.nextCampId;
       if (Array.isArray(s.tornei)) tornei = s.tornei;
+      // Migrazione idempotente: aggiunge visibilitaSubito=false a partite di torneo esistenti
+      if (Array.isArray(tornei)) tornei.forEach(t => (t.fasi||[]).forEach(f => (f.partite||[]).forEach(m => { if (m.visibilitaSubito === undefined) m.visibilitaSubito = false; })));
       if (typeof s.nextTorneoId === 'number') nextTorneoId = s.nextTorneoId;
       if (typeof s.nextFaseId === 'number') nextFaseId = s.nextFaseId;
       if (typeof s.nextTornMatchId === 'number') nextTornMatchId = s.nextTornMatchId;
@@ -23539,6 +23560,14 @@ async function doRejoinSocieta() {
         <div style="flex:1;text-align:left;font-weight:800;font-size:.9rem;min-width:80px;" id="ptRisOspite"></div>
       </div>
       <div id="ptRisScoreHint" style="display:none;font-size:.75rem;color:var(--text3);text-align:center;margin:-8px 0 10px;">⬆️ Inserisci il risultato per salvare</div>
+    </div>
+    <!-- Visibility toggle — solo per partite torneo -->
+    <div id="ptRisTorneoVisibSection" style="display:none;padding:8px 0 4px;border-top:1px solid var(--border);margin-top:2px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--text2);margin-bottom:6px;">👁 Visibilità partita</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer;"><input type="radio" name="ptRisVisib" value="default" style="accent-color:var(--cp);"> Segui impostazioni Fase 1/2 della leva</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;cursor:pointer;"><input type="radio" name="ptRisVisib" value="subito" style="accent-color:var(--cp);"> Rendi visibile subito (ignora Fase 1/2)</label>
+      </div>
     </div>
     <!-- Scrollable stats section -->
     <div id="ptRisStatsSection" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;">
