@@ -82705,13 +82705,14 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
       params.push(userId, societyId);
     }
     const where = "WHERE " + conditions.join(" AND ");
-    const selectFields = isGenitore ? "a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, COUNT(als.id) AS num_sessioni" : `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.visibilita_genitori,
-         COUNT(als.id) AS num_sessioni, CONCAT(u.nome, ' ', u.cognome) AS creato_da_nome`;
-    const join = isGenitore ? "LEFT JOIN allenamento_sessioni als ON als.allenamento_id = a.id" : `LEFT JOIN allenamento_sessioni als ON als.allenamento_id = a.id
-         LEFT JOIN users u ON u.id = a.creato_da`;
+    const selectFields = isGenitore ? `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti,
+         (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni` : `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.visibilita_genitori,
+         (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni,
+         CONCAT(u.nome, ' ', u.cognome) AS creato_da_nome`;
+    const join = isGenitore ? "" : "LEFT JOIN users u ON u.id = a.creato_da";
     const [rows] = await pool.execute(
       `SELECT ${selectFields} FROM allenamenti a ${join} ${where}
-       GROUP BY a.id ORDER BY a.data DESC LIMIT ? OFFSET ?`,
+       ORDER BY a.data DESC LIMIT ? OFFSET ?`,
       [...params, limitN, offsetN]
     );
     return res.json({ items: rows });
