@@ -84574,6 +84574,47 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router24.get("/fix3-v1-cleanup", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [v1] = await pool.execute(
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_state_v1'"
+    );
+    const [s38] = await pool.execute(
+      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_soc_38'"
+    );
+    const v1State = v1.length ? JSON.parse(v1[0].state_json) : null;
+    const s38Users = s38.length ? JSON.parse(s38[0].users_db ?? "[]") : [];
+    return res.json({
+      v1_nomeSocieta: v1State?.nomeSocieta ?? null,
+      v1_usersDb: v1State?.USERS_DB ?? [],
+      v1_full_state_json: v1[0]?.state_json ?? null,
+      soc38_usersDb: s38Users
+    });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+router24.post("/fix3-v1-cleanup", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [before] = await pool.execute(
+      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_v1'"
+    );
+    const beforeUsers = before.length ? JSON.parse(before[0].users_db ?? "[]") : [];
+    await pool.execute(
+      "UPDATE society_state SET state_json = JSON_SET(state_json, '$.USERS_DB', JSON_ARRAY()) WHERE `key` = 'fieldos_state_v1'"
+    );
+    const [after] = await pool.execute(
+      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_v1'"
+    );
+    const afterUsers = after.length ? JSON.parse(after[0].users_db ?? "[]") : [];
+    logger.info({ removedCount: beforeUsers.length }, "fix3: USERS_DB di fieldos_state_v1 svuotato");
+    return res.json({ removed: beforeUsers, afterCount: afterUsers.length, ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
