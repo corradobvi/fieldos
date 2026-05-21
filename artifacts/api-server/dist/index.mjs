@@ -81826,6 +81826,67 @@ function _generateTempPassword2() {
   }
   return chars.join("");
 }
+router24.post("/superadmin/societies", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const { nome, citta, piano, adminNome, adminCogn, adminEmail, adminPass } = req.body;
+  if (!nome?.trim() || !adminNome?.trim() || !adminCogn?.trim() || !adminEmail?.trim() || !adminPass) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const VALID_PIANI2 = ["demo", "mister", "mister_pro", "societa"];
+  const pianoNorm = VALID_PIANI2.includes(piano) ? piano : "demo";
+  const DEMO_DAYS2 = { mister: 14, mister_pro: 14, societa: 10, demo: 14 };
+  const demoExpires = new Date(Date.now() + (DEMO_DAYS2[pianoNorm] ?? 14) * 24 * 60 * 60 * 1e3);
+  const clean = nome.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5).padEnd(3, "X");
+  const codice = clean + Math.floor(Math.random() * 900 + 100);
+  const normalizedEmail = adminEmail.trim().toLowerCase();
+  let conn = null;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const [dup] = await conn.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? LIMIT 1",
+      [normalizedEmail]
+    );
+    if (dup.length) {
+      await conn.rollback();
+      return res.status(409).json({ error: "email_exists" });
+    }
+    const [socRes] = await conn.execute(
+      `INSERT INTO societies (nome, citta, codice, piano, subscription_status, demo_scadenza, stato, billing_mode)
+       VALUES (?, ?, ?, ?, 'demo', ?, 'attiva', 'omaggio')`,
+      [nome.trim(), (citta ?? "").trim(), codice, pianoNorm, demoExpires]
+    );
+    const societyId = socRes.insertId;
+    const hash = hashPassword(adminPass);
+    const [userRes] = await conn.execute(
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato, temp_password, is_account_owner)
+       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', 1, 1)`,
+      [societyId, adminNome.trim(), adminCogn.trim(), normalizedEmail, hash]
+    );
+    const userId = userRes.insertId;
+    await conn.commit();
+    pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, performed_by) VALUES ('create_society', ?, ?, 'SUPERADMIN')`,
+      [societyId, normalizedEmail]
+    ).catch(() => {
+    });
+    logger.info({ societyId, userId, email: normalizedEmail }, "superadmin: society+admin created in MySQL");
+    return res.status(201).json({
+      ok: true,
+      societyId,
+      userId,
+      codice,
+      demoExpires: demoExpires.toISOString()
+    });
+  } catch (e) {
+    if (conn) await conn.rollback().catch(() => {
+    });
+    logger.error({ err: e }, "superadmin/create-society error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 router24.get("/superadmin/societies", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });

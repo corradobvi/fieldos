@@ -4490,6 +4490,12 @@ async function doLogin() {
             }
           }
         }
+        // BUG1 FIX: bump saNextSocId above highest MySQL id to prevent collisions
+        const _maxMySQLId = saSocieties.reduce((mx, x) => x.fromMySQL ? Math.max(mx, x.id) : mx, 0);
+        if (_maxMySQLId >= saNextSocId) {
+          saNextSocId = _maxMySQLId + 1;
+          _changed = true;
+        }
         if (_changed) saSaveState();
       }
     } catch (_) {}
@@ -20917,7 +20923,7 @@ function saBackStep() {
   document.getElementById('mSaNewSocTitle').textContent = '🏢 Nuova società — 1/2';
 }
 
-function saFinishCreate() {
+async function saFinishCreate() {
   if (saNewSocStep === 'edit') { saSaveEditFull(); return; }
   const nome   = document.getElementById('saSocNome').value.trim();
   const citta  = document.getElementById('saSocCitta').value.trim();
@@ -20933,12 +20939,30 @@ function saFinishCreate() {
   if (!aEmail || !aEmail.includes('@')) { alert('Email admin non valida.'); return; }
   if (aPass.length < 4) { alert('Password minimo 4 caratteri.'); return; }
 
-  const socId = saNextSocId++;
+  // Crea società + admin in MySQL — ottieni il societyId reale
+  const btn = document.getElementById('saStep2SaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creazione…'; }
+
+  let socId;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/superadmin/societies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      body: JSON.stringify({ nome, citta, piano, adminNome: aNome, adminCogn: aCogn, adminEmail: aEmail, adminPass: aPass })
+    });
+    if (resp.status === 409) { alert('Email admin già registrata.'); if (btn) { btn.disabled = false; btn.textContent = '✅ Crea società'; } return; }
+    if (!resp.ok) { alert('Errore server durante la creazione. Riprova.'); if (btn) { btn.disabled = false; btn.textContent = '✅ Crea società'; } return; }
+    const data = await resp.json();
+    socId = data.societyId;
+  } catch(e) {
+    alert('Errore di rete. Riprova.'); if (btn) { btn.disabled = false; btn.textContent = '✅ Crea società'; } return;
+  }
+
   const adminUser = {
     id:1, nome:aNome, cogn:aCogn, email:aEmail, pass:aPass,
     role:'admin', leva:'Tutte', stato:'attivo',
     figlio:null, figli:[], anno:null,
-    societaId:socId, tempPassword:true
+    societaId:socId, tempPassword:true, is_account_owner:true
   };
   const initialState = {
     nomeSocieta: nome,
@@ -20969,17 +20993,31 @@ function saFinishCreate() {
     playerPhotos:{}, squadFotos:{},
     campi:[], nextCampoId:1
   };
-  localStorage.setItem('fieldos_state_soc_'+socId, JSON.stringify(initialState));
+  const stateJson = JSON.stringify(initialState);
+  localStorage.setItem('fieldos_state_soc_'+socId, stateJson);
+
+  // Carica blob sul server (login da qualsiasi device)
+  fetch(API_BASE + '/api/state/fieldos_state_soc_' + socId, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stateJson })
+  }).catch(() => {});
+
+  // Aggiorna saNextSocId se necessario (BUG1 defense-in-depth)
+  if (socId >= saNextSocId) saNextSocId = socId + 1;
 
   saSocieties.push({
     id:socId, nome, citta, colori, leva, piano, stato:'attivo',
     email:aEmail, note, utenti:1, giocatori:0,
     createdAt:Date.now(), lastActivity:null,
+    fromMySQL:true,
     scadenzaDemo: piano === 'demo' ? Date.now() + DEMO_GIORNI * 86400000 : null
   });
   saLog('Società creata', nome);
   saLog('Admin creato', aNome+' '+aCogn+' — '+aEmail);
   saSaveState();
+
+  if (btn) { btn.disabled = false; btn.textContent = '✅ Crea società'; }
 
   // Step 3: riepilogo credenziali
   saNewSocStep = 3;

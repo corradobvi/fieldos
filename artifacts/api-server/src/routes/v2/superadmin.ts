@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { hashPassword } from "../../lib/auth";
 import { sendPasswordResetEmail, sendSuspendEmail, sendReactivateEmail, sendDemoExtendedEmail } from "../../lib/email";
+import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
@@ -29,6 +30,75 @@ function _generateTempPassword(): string {
   }
   return chars.join("");
 }
+
+// POST /api/v2/superadmin/societies — crea società + admin in MySQL (SA panel)
+router.post("/superadmin/societies", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+
+  const { nome, citta, piano, adminNome, adminCogn, adminEmail, adminPass } =
+    req.body as Record<string, any>;
+
+  if (!nome?.trim() || !adminNome?.trim() || !adminCogn?.trim() || !adminEmail?.trim() || !adminPass) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+
+  const VALID_PIANI = ["demo", "mister", "mister_pro", "societa"];
+  const pianoNorm   = VALID_PIANI.includes(piano) ? (piano as string) : "demo";
+  const DEMO_DAYS: Record<string, number> = { mister: 14, mister_pro: 14, societa: 10, demo: 14 };
+  const demoExpires = new Date(Date.now() + (DEMO_DAYS[pianoNorm] ?? 14) * 24 * 60 * 60 * 1000);
+  const clean       = (nome as string).trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5).padEnd(3, "X");
+  const codice      = clean + Math.floor(Math.random() * 900 + 100);
+  const normalizedEmail = (adminEmail as string).trim().toLowerCase();
+
+  let conn: PoolConnection | null = null;
+  try {
+    conn = await (pool as any).getConnection();
+    await conn.beginTransaction();
+
+    const [dup] = (await conn.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? LIMIT 1", [normalizedEmail]
+    )) as [any[], any];
+    if (dup.length) {
+      await conn.rollback();
+      return res.status(409).json({ error: "email_exists" });
+    }
+
+    const [socRes] = (await conn.execute(
+      `INSERT INTO societies (nome, citta, codice, piano, subscription_status, demo_scadenza, stato, billing_mode)
+       VALUES (?, ?, ?, ?, 'demo', ?, 'attiva', 'omaggio')`,
+      [(nome as string).trim(), ((citta as string) ?? "").trim(), codice, pianoNorm, demoExpires]
+    )) as [any, any];
+    const societyId: number = socRes.insertId;
+
+    const hash = hashPassword(adminPass as string);
+    const [userRes] = (await conn.execute(
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato, temp_password, is_account_owner)
+       VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', 1, 1)`,
+      [societyId, (adminNome as string).trim(), (adminCogn as string).trim(), normalizedEmail, hash]
+    )) as [any, any];
+    const userId: number = userRes.insertId;
+
+    await conn.commit();
+
+    pool.execute(
+      `INSERT INTO sa_audit_log (action, target_society_id, target_email, performed_by) VALUES ('create_society', ?, ?, 'SUPERADMIN')`,
+      [societyId, normalizedEmail]
+    ).catch(() => {});
+
+    logger.info({ societyId, userId, email: normalizedEmail }, "superadmin: society+admin created in MySQL");
+
+    return res.status(201).json({
+      ok: true, societyId, userId, codice,
+      demoExpires: demoExpires.toISOString(),
+    });
+  } catch (e: any) {
+    if (conn) await conn.rollback().catch(() => {});
+    logger.error({ err: e }, "superadmin/create-society error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 // GET /api/v2/superadmin/societies — lista completa da MySQL, protetta da X-SA-Secret
 router.get("/superadmin/societies", async (req, res) => {
