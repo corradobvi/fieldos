@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { SCHEMA_SQL, SEED_SQL, MIGRATIONS_SQL, PULCINI_SEED_SQL, ESORDIENTI_SEED_SQL, GIOVANISSIMI_SEED_SQL, ALLIEVI_SEED_SQL } from "./schema";
+import { SCHEMA_SQL, SEED_SQL, MIGRATIONS_SQL, PULCINI_SEED_SQL, ESORDIENTI_SEED_SQL, GIOVANISSIMI_SEED_SQL, ALLIEVI_SEED_SQL, JUNIORES_SEED_SQL } from "./schema";
 import authRouter          from "./auth";
 import selfRegisterRouter  from "./self-register";
 import societyRouter       from "./society";
@@ -127,6 +127,24 @@ async function ensureSchema() {
     }
   } catch (e: any) {
     logger.warn({ err: e?.message }, "v2: allievi seed skipped (table not ready yet)");
+  }
+
+  // Juniores official seed — run only when count < 70 (idempotent via NOT EXISTS guards)
+  try {
+    const [junioresCheck] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='juniores'"
+    ) as [any[], any];
+    if ((junioresCheck[0].n ?? 0) < 70) {
+      const junioresStatements = JUNIORES_SEED_SQL.split(";").map((s: string) => s.trim()).filter(Boolean);
+      for (const sql of junioresStatements) {
+        await pool.execute(sql).catch((e: any) => {
+          logger.warn({ err: e?.message?.slice(0, 100) }, "juniores seed warning");
+        });
+      }
+      logger.info("v2: juniores official sessions seeded");
+    }
+  } catch (e: any) {
+    logger.warn({ err: e?.message }, "v2: juniores seed skipped (table not ready yet)");
   }
 
   // Seed only if no societies exist yet

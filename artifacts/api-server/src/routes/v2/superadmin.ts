@@ -454,4 +454,19 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
+// TEMPORARY — verify juniores seed
+router.get("/superadmin/verify-juniores", saAuth, async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='juniores' GROUP BY categoria ORDER BY categoria"
+    ) as [any[], any];
+    const [total] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='juniores'"
+    ) as [any[], any];
+    return res.json({ total: (total as any[])[0].n, by_category: rows });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
+
 export default router;
