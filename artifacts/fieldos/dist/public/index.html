@@ -3706,6 +3706,8 @@ let _gcTorneoTipo = 1;
 let _gcTorneoGironiQUI = [];
 let _gcTorneoGironiFUI = [];
 let _gcTorneoGironiUI = [];
+let _gcTorneiEspansi = new Set();
+let _gcShowArchiviati = false;
 const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
 const GC_SPAREGGIO_OPTIONS = [
   {k:'scontro_diretto',label:'Scontro diretto'},
@@ -16646,28 +16648,64 @@ function renderGcCampionato() {
 }
 
 // ─── GC: Tornei ───
+function gcToggleTorneo(id) {
+  if (_gcTorneiEspansi.has(id)) _gcTorneiEspansi.delete(id); else _gcTorneiEspansi.add(id);
+  const body = document.getElementById('tc-body-'+id);
+  if (body) body.style.display = _gcTorneiEspansi.has(id) ? '' : 'none';
+  const icon = document.getElementById('tc-icon-'+id);
+  if (icon) icon.textContent = _gcTorneiEspansi.has(id) ? '▾' : '▸';
+}
+function gcToggleArchiviati(el) {
+  _gcShowArchiviati = el.checked;
+  renderGcTornei();
+}
+function gcArchiviaTorneo(id, val) {
+  const t = tornei.find(x=>x.id===id); if (!t) return;
+  t.archiviato = val;
+  window.__fieldosSaveState();
+  renderGestComp();
+  toast(val ? '📦 Torneo archiviato' : '↩ Torneo ripristinato');
+}
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
-  const list = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
-  if (!list.length) {
+  const all = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const attivi = all.filter(t=>!t.archiviato);
+  const archiviati = all.filter(t=>t.archiviato);
+  if (attivi.length === 1) _gcTorneiEspansi.add(attivi[0].id);
+  const renderT = t => { const tipo=t.tipo||1; if(tipo===2)return _gcRenderTorneoTipo2(t); if(tipo===3)return _gcRenderTorneoTipo3(t); return _gcRenderTorneoTipo1(t); };
+  if (!attivi.length && !archiviati.length) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "+ Nuovo torneo" per iniziare.':'Nessun torneo disponibile.'}</div></div>`;
     return;
   }
-  c.innerHTML = list.map(t => {
-    const tipo = t.tipo || 1;
-    if (tipo === 2) return _gcRenderTorneoTipo2(t);
-    if (tipo === 3) return _gcRenderTorneoTipo3(t);
-    return _gcRenderTorneoTipo1(t);
-  }).join('');
+  const toggleHtml = archiviati.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_gcShowArchiviati?' checked':''} onchange="gcToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra archiviati (${archiviati.length})</label></div>` : '';
+  const attiviHtml = attivi.length ? attivi.map(renderT).join('') : `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo attivo per ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "+ Nuovo torneo" per iniziare.':''}</div></div>`;
+  let archiviatiHtml = '';
+  if (_gcShowArchiviati && archiviati.length) {
+    archiviatiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Archiviati</div>` + archiviati.map(t=>`<div style="opacity:.5;">${renderT(t)}</div>`).join('');
+  }
+  c.innerHTML = toggleHtml + attiviHtml + archiviatiHtml;
 }
 
 function _gcTorneoHd(t) {
   const dr = t.dataInizio?(t.dataFine&&t.dataFine!==t.dataInizio?`${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}`:fmtMatchDate(t.dataInizio)):'';
   const tipoLabel = t.tipo===2?'Doppio girone':t.tipo===3?'Gironi + Scontri diretti':'Girone unico';
-  const convCount = (t.convocati || []).length;
-  const convLabel = convCount ? `${convCount} convoc.` : 'Nessun convocato';
-  const editBtns = canEditPt(t.leva)?`<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}')">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}')" title="Elimina">🗑</button>`:'';
-  return `<div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap;">${editBtns}</div></div>`;
+  const today = new Date().toISOString().slice(0,10);
+  const concluso = t.dataFine && t.dataFine < today;
+  const conclusoBadge = concluso ? `<span style="background:#e5e7eb;color:#6b7280;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;line-height:1;">Concluso</span>` : '';
+  const archBtn = canEditPt(t.leva) ? (t.archiviato
+    ? `<button class="btn btn-sm" style="background:#f1f5f9;color:var(--text2);border:1px solid var(--border);font-size:.72rem;" onclick="gcArchiviaTorneo('${t.id}',false);event.stopPropagation();" title="Ripristina">↩ Ripristina</button>`
+    : `<button class="btn btn-sm" style="background:#f1f5f9;color:var(--text2);border:1px solid var(--border);font-size:.72rem;" onclick="gcArchiviaTorneo('${t.id}',true);event.stopPropagation();" title="Archivia">📦</button>`) : '';
+  const editBtns = canEditPt(t.leva)?`<button class="btn btn-g btn-sm" onclick="openGcTorneoEdit('${t.id}');event.stopPropagation();">✏️</button><button class="btn btn-r btn-sm" onclick="deleteTorneo('${t.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
+  const espanso = _gcTorneiEspansi.has(t.id);
+  const icon = `<span id="tc-icon-${t.id}" style="font-size:.85rem;color:var(--text3);min-width:12px;">${espanso?'▾':'▸'}</span>`;
+  return `<div class="torneo-hd" onclick="gcToggleTorneo('${t.id}')" style="cursor:pointer;user-select:none;">
+    <span style="font-size:1.4rem;">🏆</span>
+    <div style="flex:1;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${escapeHtml(t.nome)}${conclusoBadge}</div>
+      <div style="font-size:.7rem;opacity:.75;">${dr}${t.luogo?' · '+escapeHtml(t.luogo):''}${t.tipo?' · '+tipoLabel:''}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">${archBtn}${editBtns}${icon}</div>
+  </div>`;
 }
 
 function _gcFaseStanding(t, f) {
@@ -16708,7 +16746,8 @@ function _gcRenderTorneoTipo1(t) {
     return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${tipo_label})</span></div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`;
   }).join('');
   const addFaseBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:8px;" onclick="openPtFase('${t.id}')">+ Fase/Girone</button>`:'';
-  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone. Aggiungi una fase per iniziare.</div>'}${addFaseBtn}${_gcTorneoScorers(t)}</div></div>`;
+  const espanso = _gcTorneiEspansi.has(t.id);
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso?'':'display:none;'}">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone. Aggiungi una fase per iniziare.</div>'}${addFaseBtn}${_gcTorneoScorers(t)}</div></div>`;
 }
 
 function _gcRenderTorneoTipo2(t) {
@@ -16721,7 +16760,8 @@ function _gcRenderTorneoTipo2(t) {
   const qHtml = qList.length ? qList.map(f=>`<div class="fase-sep" style="background:var(--cl);color:var(--cp);">📋 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone di qualifica configurato.</div>';
   const assegnaBtn = canEdit&&fF.length===0&&qList.some(f=>(f.partite||[]).some(m=>m.played)) ? `<button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openGcAssegnaFinali('${t.id}')">🏆 Assegna squadre ai gironi finali</button>` : '';
   const fHtml = fF.length ? fF.map(f=>`<div class="fase-sep" style="background:#fef3c7;color:#92400e;">🏅 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Fasi finali non ancora iniziate.${canEdit?' Aggiungi tramite "Gestisci torneo" o assegna automaticamente.':''}</div>${assegnaBtn}`;
-  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body"><div class="fase-sep" style="color:var(--cp);">🔵 Fase a Gironi (Qualificazione)</div>${qHtml}<div class="fase-sep" style="color:#92400e;margin-top:4px;">🏆 Fasi Finali</div>${fHtml}${_gcTorneoScorers(t)}</div></div>`;
+  const espanso2 = _gcTorneiEspansi.has(t.id);
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso2?'':'display:none;'}"><div class="fase-sep" style="color:var(--cp);">🔵 Fase a Gironi (Qualificazione)</div>${qHtml}<div class="fase-sep" style="color:#92400e;margin-top:4px;">🏆 Fasi Finali</div>${fHtml}${_gcTorneoScorers(t)}</div></div>`;
 }
 
 function _gcRenderTorneoTipo3(t) {
@@ -16750,7 +16790,8 @@ function _gcRenderTorneoTipo3(t) {
     bHtml = `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Tabellone non configurato.</div>`;
     if (canEdit) bHtml += `<button class="btn btn-g btn-sm" style="margin-top:4px;" onclick="openGcBracketEdit('${t.id}','')">+ Crea tabellone</button>`;
   }
-  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div class="torneo-body"><div class="fase-sep" style="color:var(--cp);">📋 Fase a Gironi</div>${gHtml}<div class="fase-sep" style="color:#0369a1;margin-top:4px;">🏆 Tabellone eliminazione diretta</div>${bHtml}${_gcTorneoScorers(t)}</div></div>`;
+  const espanso3 = _gcTorneiEspansi.has(t.id);
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso3?'':'display:none;'}"><div class="fase-sep" style="color:var(--cp);">📋 Fase a Gironi</div>${gHtml}<div class="fase-sep" style="color:#0369a1;margin-top:4px;">🏆 Tabellone eliminazione diretta</div>${bHtml}${_gcTorneoScorers(t)}</div></div>`;
 }
 
 // ─── GC: Amichevoli ───
@@ -23091,6 +23132,8 @@ async function doRejoinSocieta() {
         if (allSqLen > 0) (t.fasi||[]).forEach(f => { if (Array.isArray(f.squadre) && f.squadre.length === allSqLen) f.squadre = []; });
         t._migrated_gironi_v1 = true;
       });
+      // Migrazione idempotente: aggiunge archiviato:false ai tornei esistenti
+      if (Array.isArray(tornei)) tornei.forEach(t => { if (t.archiviato === undefined) t.archiviato = false; });
       if (typeof s.nextTorneoId === 'number') nextTorneoId = s.nextTorneoId;
       if (typeof s.nextFaseId === 'number') nextFaseId = s.nextFaseId;
       if (typeof s.nextTornMatchId === 'number') nextTornMatchId = s.nextTornMatchId;
