@@ -85422,15 +85422,15 @@ router24.get("/superadmin/fix3-v1-cleanup", async (req, res) => {
       "SELECT state_json FROM society_state WHERE `key` = 'fieldos_state_v1'"
     );
     const [s38] = await pool.execute(
-      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_soc_38'"
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_state_soc_38'"
     );
     const v1State = v1.length ? JSON.parse(v1[0].state_json) : null;
-    const s38Users = s38.length ? JSON.parse(s38[0].users_db ?? "[]") : [];
+    const s38State = s38.length ? JSON.parse(s38[0].state_json) : null;
     return res.json({
       v1_nomeSocieta: v1State?.nomeSocieta ?? null,
       v1_usersDb: v1State?.USERS_DB ?? [],
       v1_full_state_json: v1[0]?.state_json ?? null,
-      soc38_usersDb: s38Users
+      soc38_usersDb: s38State?.USERS_DB ?? []
     });
   } catch (e) {
     return res.status(500).json({ error: "server_error", detail: e?.message });
@@ -85440,30 +85440,22 @@ router24.post("/superadmin/fix3-v1-cleanup", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   try {
     const [before] = await pool.execute(
-      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_v1'"
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_state_v1'"
     );
-    const beforeUsers = before.length ? JSON.parse(before[0].users_db ?? "[]") : [];
+    const beforeState = before.length ? JSON.parse(before[0].state_json) : null;
+    const beforeUsers = beforeState?.USERS_DB ?? [];
     await pool.execute(
       "UPDATE society_state SET state_json = JSON_SET(state_json, '$.USERS_DB', JSON_ARRAY()) WHERE `key` = 'fieldos_state_v1'"
     );
     const [after] = await pool.execute(
-      "SELECT JSON_EXTRACT(state_json, '$.USERS_DB') AS users_db FROM society_state WHERE `key` = 'fieldos_state_v1'"
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_state_v1'"
     );
-    const afterUsers = after.length ? JSON.parse(after[0].users_db ?? "[]") : [];
+    const afterState = after.length ? JSON.parse(after[0].state_json) : null;
+    const afterUsers = afterState?.USERS_DB ?? [];
     logger.info({ removedCount: beforeUsers.length }, "fix3: USERS_DB di fieldos_state_v1 svuotato");
     return res.json({ removed: beforeUsers, afterCount: afterUsers.length, ok: true });
   } catch (e) {
     return res.status(500).json({ error: "server_error", detail: e?.message });
-  }
-});
-router24.get("/superadmin/verify-allievi", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [countRow] = await pool.execute("SELECT COUNT(*) AS totale_allievi FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='allievi'");
-    const [catRows] = await pool.execute("SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='allievi' GROUP BY categoria ORDER BY categoria");
-    return res.json({ totale_allievi: countRow[0].totale_allievi, per_categoria: catRows });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message });
   }
 });
 var superadmin_default = router24;
