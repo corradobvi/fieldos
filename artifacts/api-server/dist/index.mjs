@@ -77416,7 +77416,7 @@ var db = drizzle(pool, { schema: schema_exports, mode: "default" });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v20-minor-flow" });
+  res.json({ ...data, v: "2026-05-21-v18-juniores" });
 });
 router.get("/healthz/db", async (_req, res) => {
   const raw = process.env["DATABASE_URL"] ?? "";

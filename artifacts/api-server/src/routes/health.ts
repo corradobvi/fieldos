@@ -6,7 +6,7 @@ const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json({ ...data, v: "2026-05-18-v20-minor-flow" });
+  res.json({ ...data, v: "2026-05-21-v18-juniores" });
 });
 
 // Diagnostica temporanea: mostra host DB (senza password) e testa connessione
