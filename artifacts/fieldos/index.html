@@ -4085,7 +4085,6 @@ function hasPerm(key) {
 }
 function canPostBacheca(leva)      { return isAdminLike() || hasPerm('gestione_comunicazioni_bacheca') || isAdminMisterForLeva(leva); }
 function canEditAllenamenti(leva)  { return isAdminLike() || hasPerm('gestione_allenamenti')           || isAdminMisterForLeva(leva); }
-function canEnterResult(leva)      { return isAdminLike() || hasPerm('gestione_risultati')             || isAdminMisterForLeva(leva); }
 
 // Inizializza adminAsMister per le leve che non hanno ancora un valore.
 // Chiamata al boot (admin) e quando si aggiunge una nuova leva.
@@ -13536,6 +13535,11 @@ function _renderAllLista(cont) {
 async function _loadAllLista() {
   const el = document.getElementById('allListItems');
   if (!el) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) {
+    el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.</div>`;
+    return;
+  }
   el.innerHTML = [0,1,2].map(() => `
     <div style="margin-bottom:10px;border-radius:12px;border:1px solid var(--border);padding:14px 16px;">
       <div class="skel" style="height:13px;width:38%;margin-bottom:8px;"></div>
@@ -13654,6 +13658,8 @@ function _openAllMenu(btn, id) {
 
 async function _deleteAllenamento(id) {
   if (!confirm('Eliminare questo allenamento? L\'operazione non è reversibile.')) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, {
       method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token }
@@ -13717,6 +13723,11 @@ function _libFiltroQ(v) {
 async function _loadSessioni() {
   const el = document.getElementById('libContent');
   if (!el) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) {
+    el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.</div>`;
+    return;
+  }
   el.innerHTML = `<div class="slib-grid">${[0,1,2,3,4,5].map(()=>`
     <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div class="skel" style="height:14px;width:55%;margin-bottom:8px;"></div>
@@ -13822,6 +13833,8 @@ function _openSessioneMenu(btn, id) {
 }
 
 async function _toggleSessionePubblica(id, pubblica) {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
       method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
@@ -13834,6 +13847,8 @@ async function _toggleSessionePubblica(id, pubblica) {
 
 async function _deleteSessione(id) {
   if (!confirm('Eliminare questa sessione?')) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
       method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token}
@@ -13965,6 +13980,9 @@ async function saveSessione() {
   if (!categoria)                                errs.push('Seleziona una categoria.');
   if (!eta_leva)                                 errs.push("Seleziona l'età/leva.");
   if (errs.length) { if (errEl) errEl.textContent = errs.join(' '); return; }
+
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
 
   const btn = fi('nsSaveBtn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvataggio…'; }
@@ -15064,6 +15082,7 @@ function canEditPt(leva) {
   if (!me) return false;
   if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
+  if (isAdminMisterForLeva(leva)) return true;
   return false;
 }
 // Chi può inserire/modificare risultati (include preparatore portieri)
@@ -15072,6 +15091,7 @@ function canEnterResult(leva) {
   if (!me) return false;
   if (isAdminLike() || me.role === 'dirigente') return true;
   if (me.role === 'allenatore' || me.role === 'preparatore_portieri') return !me.leva || me.leva === 'Tutte' || me.leva === leva;
+  if (isAdminMisterForLeva(leva)) return true;
   return false;
 }
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
