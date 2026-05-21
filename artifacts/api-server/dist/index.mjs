@@ -84574,20 +84574,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/superadmin/verify-giovanissimi", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [countRow] = await pool.execute(
-      "SELECT COUNT(*) AS totale_giovanissimi FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='giovanissimi'"
-    );
-    const [catRows] = await pool.execute(
-      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='giovanissimi' GROUP BY categoria ORDER BY categoria"
-    );
-    return res.json({ totale_giovanissimi: countRow[0].totale_giovanissimi, per_categoria: catRows });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts

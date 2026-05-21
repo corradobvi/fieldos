@@ -454,20 +454,4 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
-// TEMPORARY — verify giovanissimi seed (remove after confirmation)
-router.get("/superadmin/verify-giovanissimi", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [countRow] = await pool.execute(
-      "SELECT COUNT(*) AS totale_giovanissimi FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='giovanissimi'"
-    ) as [any[], any];
-    const [catRows] = await pool.execute(
-      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='giovanissimi' GROUP BY categoria ORDER BY categoria"
-    ) as [any[], any];
-    return res.json({ totale_giovanissimi: countRow[0].totale_giovanissimi, per_categoria: catRows });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
-
 export default router;
