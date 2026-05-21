@@ -98,14 +98,14 @@ router.get("/ai/allowlist", requireAuth, async (req, res) => {
   }
   try {
     const [rows] = (await pool.execute(
-      `SELECT u.id, u.nome, u.cognome, u.email,
+      `SELECT u.id, u.nome, u.cognome, u.email, u.ruolo, u.leva AS leva_nome,
               COALESCE(al.abilitato, 0) AS abilitato,
               al.abilitato_da,
               al.updated_at
        FROM users u
        LEFT JOIN ai_societa_allowlist al ON al.mister_id = u.id AND al.societa_id = ?
        WHERE u.society_id = ?
-         AND u.role IN ('allenatore','mister_admin','admin','preparatore_portieri','dirigente')
+         AND u.ruolo IN ('allenatore','mister_admin','admin','preparatore_portieri','dirigente')
        ORDER BY u.cognome, u.nome`,
       [user.societyId, user.societyId]
     )) as [any[], any];
