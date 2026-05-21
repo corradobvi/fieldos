@@ -79178,7 +79178,7 @@ var router10 = (0, import_express10.Router)();
 var DEMO_DAYS = {
   mister: 14,
   mister_pro: 14,
-  societa: 10
+  societa: 14
 };
 var VALID_PIANI = /* @__PURE__ */ new Set(["mister", "mister_pro", "societa"]);
 var WA_REGEX = /^\+\d{1,4}\d{6,14}$/;

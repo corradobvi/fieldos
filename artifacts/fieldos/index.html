@@ -18083,7 +18083,7 @@ function _prefillRegisterFromUrl() {
       const el = document.getElementById('rPhone');
       if (el) el.value = decodeURIComponent(phone);
     }
-    if (piano === 'mister' || piano === 'societa') {
+    if (piano === 'mister' || piano === 'mister_pro' || piano === 'societa') {
       selectPiano(piano);
     }
     // always update badge to reflect current piano
@@ -18095,7 +18095,9 @@ function _updatePianoBadge(piano) {
   const badge = document.getElementById('rfPianoBadge');
   if (!badge) return;
   if (piano === 'societa') {
-    badge.textContent = '🏟️ Piano Società — 10 giorni gratis';
+    badge.textContent = '🏟️ Piano Società — 14 giorni gratis';
+  } else if (piano === 'mister_pro') {
+    badge.textContent = '🏅 Piano Mister Pro — 14 giorni gratis';
   } else {
     badge.textContent = '⚽ Piano Mister — 14 giorni gratis';
   }

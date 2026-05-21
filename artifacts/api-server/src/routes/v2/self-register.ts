@@ -10,7 +10,7 @@ const router = Router();
 const DEMO_DAYS: Record<string, number> = {
   mister:     14,
   mister_pro: 14,
-  societa:    10,
+  societa:    14,
 };
 
 const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
