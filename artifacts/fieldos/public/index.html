@@ -3958,7 +3958,7 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
-      {id:'allenamenti',ic:'🏃',lb:'Allenamenti',wip:true},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Partite'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
@@ -3994,6 +3994,7 @@ const ROLE_CFG = {
       {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
       {id:'chat',ic:'💬',lb:'Chat'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -4010,6 +4011,7 @@ const ROLE_CFG = {
       {id:'comunicazioni',ic:'📣',lb:'Comunicazioni'},
       {id:'chat',ic:'💬',lb:'Chat'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Squadra'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
       {id:'documenti',ic:'📄',lb:'Documenti'},
@@ -4055,7 +4057,7 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
-      {id:'allenamenti',ic:'🏃',lb:'Allenamenti',wip:true},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
@@ -12038,7 +12040,7 @@ function buildMobDashboard(role, c) {
     ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
     : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
 
-  const _WIP_IDS = new Set(['fotovideo','pagamenti','allenamenti']);
+  const _WIP_IDS = new Set(['fotovideo','pagamenti']);
   const quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
     <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
       <div class="mob-qi-ic">${qi.ic}</div>
@@ -13387,11 +13389,60 @@ function renderDocumenti() {
   c.innerHTML = warnHtml + cards;
 }
 
+// ── ALLENAMENTI v2 — state & constants ────────────────────────────────────
+let _allSt = {
+  tab: 'lista',
+  lista: { periodo: '30g', stato: 'tutti', items: null },
+  lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
+  _nsTags: [],
+};
+const _ALL_CAT_IT = {
+  tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
+  finalizzazione:'Finalizzazione', atletica_fisico:'Atletica/Fisico', portieri:'Portieri',
+};
+const _ALL_CAT_BG = {
+  tecnica_individuale:'#dbeafe', tattica:'#fce7f3', possesso_palla:'#d1fae5',
+  finalizzazione:'#fee2e2', atletica_fisico:'#fff7ed', portieri:'#ede9fe',
+};
+const _ALL_LEVA_IT = {
+  pulcini:'Pulcini', esordienti:'Esordienti', giovanissimi:'Giovanissimi', allievi:'Allievi', juniores:'Juniores',
+};
+const _ALL_GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const _ALL_MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+function _allFmtData(ymd) {
+  if (!ymd) return '—';
+  const [y,m,d] = ymd.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return `${_ALL_GG[dt.getDay()]} ${d} ${_ALL_MESI[m-1]}`;
+}
+
+function _allPeriodRange(periodo) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fmt = d => d.toISOString().slice(0,10);
+  if (periodo === '30g') {
+    const a = new Date(today); a.setDate(a.getDate() + 30);
+    return { da: fmt(today), a: fmt(a) };
+  }
+  if (periodo === 'mese_corrente') {
+    return { da: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), a: fmt(new Date(today.getFullYear(), today.getMonth()+1, 0)) };
+  }
+  if (periodo === 'mese_scorso') {
+    return { da: fmt(new Date(today.getFullYear(), today.getMonth()-1, 1)), a: fmt(new Date(today.getFullYear(), today.getMonth(), 0)) };
+  }
+  return {};
+}
+
 function renderAllenamenti() {
-  const c = document.getElementById('allenamentiContent');
-  if (!c) return;
+  const c   = document.getElementById('allenamentiContent');
+  const act = document.getElementById('allenamentiActions');
+  if (!c || !me) return;
+
+  const isGenitore = me.role === 'genitore' || me.role === 'nonno';
   const soc = saSocieties.find(x => x.id === currentSocietaId);
-  if (isSectionLocked('allenamenti', soc)) {
+
+  if (!isGenitore && isSectionLocked('allenamenti', soc)) {
+    if (act) act.innerHTML = '';
     c.innerHTML = `<div class="card" style="text-align:center;padding:48px 24px;">
       <div style="font-size:2.5rem;margin-bottom:10px;">🔒</div>
       <div style="font-size:1.05rem;font-weight:700;margin-bottom:6px;">Sezione Allenamenti</div>
@@ -13400,32 +13451,541 @@ function renderAllenamenti() {
     </div>`;
     return;
   }
-  // Allenamenti programmati (eventi di tipo 'allenamento' della leva corrente)
-  const oggi = new Date();
-  const soglia = new Date(oggi); soglia.setDate(oggi.getDate() - 30);
-  const futureAll = events.filter(ev => (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') && (!ev.leve || ev.leve.length === 0 || ev.leve.includes(currentLeva)));
-  if (!futureAll.length) {
-    c.innerHTML = `<div class="card" style="text-align:center;padding:36px;color:var(--text2);">
-      <div style="font-size:1.5rem;margin-bottom:8px;">🏃</div>
-      Nessun allenamento programmato per <strong>${escapeHtml(currentLeva)}</strong>.<br>
-      <span style="font-size:.82rem;">Aggiungili dal Calendario.</span>
+
+  if (isGenitore) _allSt.tab = 'lista';
+
+  c.innerHTML = `
+    ${!isGenitore ? `<div class="all-tabs">
+      <button class="all-tab ${_allSt.tab==='lista'?'on':''}" onclick="switchAllTab('lista')">Allenamenti</button>
+      <button class="all-tab ${_allSt.tab==='libreria'?'on':''}" onclick="switchAllTab('libreria')">Libreria Sessioni</button>
+    </div>` : ''}
+    <div id="allTabContent"></div>`;
+
+  _renderAllTabContent();
+}
+
+function switchAllTab(tab) {
+  _allSt.tab = tab;
+  document.querySelectorAll('.all-tab').forEach((t,i) => t.classList.toggle('on', i===(tab==='lista'?0:1)));
+  _renderAllTabContent();
+}
+
+function _renderAllTabContent() {
+  const cont = document.getElementById('allTabContent');
+  if (!cont) return;
+  _allSt.tab === 'lista' ? _renderAllLista(cont) : _renderLibreria(cont);
+}
+
+// ── LISTA ALLENAMENTI ──────────────────────────────────────────────────────
+
+function _renderAllLista(cont) {
+  const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno');
+  const act = document.getElementById('allenamentiActions');
+  const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
+
+  if (act) act.innerHTML = canEdit
+    ? `<button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>` : '';
+
+  let hdr = '';
+  if (isGenitore) {
+    const figlio = (me.figli && me.figli[0]) ? me.figli[0] : 'il tuo figlio';
+    hdr = `<div style="margin-bottom:14px;">
+      <div style="font-size:1.1rem;font-weight:800;">Allenamenti di ${escapeHtml(figlio)}</div>
+      <div style="font-size:.82rem;color:var(--text2);margin-top:3px;">Condivisi dalla società — visibili 24h dopo la creazione</div>
+    </div>`;
+  } else {
+    const multiLeva = leve.length > 1;
+    const levaSel = multiLeva
+      ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allChangeLeva(this.value)">
+           ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===currentLeva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
+         </select>`
+      : `<span style="font-size:.9rem;font-weight:700;color:var(--cp);">${escapeHtml(currentLeva)}</span>`;
+    hdr = `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="flex:1;">
+        <div style="font-size:1.1rem;font-weight:800;">Allenamenti</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Pianifica e gestisci le sedute della tua leva</div>
+      </div>
+      ${levaSel}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangePeriodo(this.value)">
+        <option value="30g" ${_allSt.lista.periodo==='30g'?'selected':''}>Prossimi 30 giorni</option>
+        <option value="mese_corrente" ${_allSt.lista.periodo==='mese_corrente'?'selected':''}>Mese corrente</option>
+        <option value="mese_scorso" ${_allSt.lista.periodo==='mese_scorso'?'selected':''}>Mese scorso</option>
+        <option value="tutti" ${_allSt.lista.periodo==='tutti'?'selected':''}>Tutti</option>
+      </select>
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangeStato(this.value)">
+        <option value="tutti" ${_allSt.lista.stato==='tutti'?'selected':''}>Tutti</option>
+        <option value="futuri" ${_allSt.lista.stato==='futuri'?'selected':''}>Futuri</option>
+        <option value="passati" ${_allSt.lista.stato==='passati'?'selected':''}>Passati</option>
+      </select>
+    </div>`;
+  }
+
+  cont.innerHTML = hdr + `<div id="allListItems"></div>`;
+  _loadAllLista();
+}
+
+async function _loadAllLista() {
+  const el = document.getElementById('allListItems');
+  if (!el) return;
+  el.innerHTML = [0,1,2].map(() => `
+    <div style="margin-bottom:10px;border-radius:12px;border:1px solid var(--border);padding:14px 16px;">
+      <div class="skel" style="height:13px;width:38%;margin-bottom:8px;"></div>
+      <div class="skel" style="height:19px;width:68%;margin-bottom:7px;"></div>
+      <div class="skel" style="height:12px;width:50%;"></div>
+    </div>`).join('');
+
+  const range = _allPeriodRange(_allSt.lista.periodo);
+  const p = new URLSearchParams();
+  if (range.da) p.set('da', range.da);
+  if (range.a)  p.set('a',  range.a);
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/allenamenti?${p}`, {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    _allSt.lista.items = data.items || [];
+    _renderAllListItems(el);
+  } catch(e) {
+    el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">
+      ❌ Non sono riuscito a caricare gli allenamenti.
+      <a style="cursor:pointer;text-decoration:underline;margin-left:6px;" onclick="_loadAllLista()">Riprova</a>
+    </div>`;
+  }
+}
+
+function _renderAllListItems(el) {
+  const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno');
+  const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
+  const oggi = new Date().toISOString().slice(0,10);
+  let items = _allSt.lista.items || [];
+
+  if (!isGenitore) {
+    if (_allSt.lista.stato === 'futuri')  items = items.filter(x => x.data >= oggi);
+    if (_allSt.lista.stato === 'passati') items = items.filter(x => x.data < oggi);
+  }
+
+  if (!items.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text2);">
+      <div style="font-size:3rem;margin-bottom:12px;opacity:.3;">⚽</div>
+      <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">${isGenitore ? 'Ancora nessun allenamento condiviso' : 'Nessun allenamento in questo periodo'}</div>
+      <div style="font-size:.83rem;color:var(--text3);max-width:280px;margin:0 auto;">
+        ${isGenitore ? 'Il mister può scegliere di condividere gli allenamenti dopo 24 ore. Appariranno qui appena disponibili.' : 'Inizia creando il primo allenamento per la tua leva.'}
+      </div>
+      ${(!isGenitore && canEdit) ? `<button class="btn btn-p" style="margin-top:16px;" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>` : ''}
     </div>`;
     return;
   }
-  futureAll.sort((a,b) => (a.data||'').localeCompare(b.data||''));
-  const rows = futureAll.slice(0, 30).map(ev => {
-    const d = ev.data ? fmtDateFull(ev.data) : '—';
-    const ora = ev.ora ? `· ${ev.ora}` : '';
-    const luogo = ev.luogo ? `<span style="font-size:.74rem;color:var(--text3);">📍 ${escapeHtml(ev.luogo)}</span>` : '';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-      <div style="width:36px;height:36px;border-radius:50%;background:var(--cl);display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;">🏃</div>
-      <div style="flex:1;">
-        <div style="font-weight:600;font-size:.88rem;">${escapeHtml(ev.titolo||'Allenamento')}</div>
-        <div style="font-size:.77rem;color:var(--text2);">${d} ${ora} ${luogo}</div>
+
+  el.innerHTML = items.map(a => {
+    const isFuture = a.data >= oggi;
+    const dataCol  = isFuture ? 'color:var(--cp);' : 'color:var(--text3);';
+    const metaParts = [`🕐 ${a.durata_totale_minuti} min`, `${a.num_sessioni} sessioni`];
+    if (!isGenitore && a.creato_da_nome) metaParts.push(`creato da ${escapeHtml(a.creato_da_nome)}`);
+    const badgeVis = !isGenitore
+      ? (a.visibilita_genitori
+          ? `<span style="background:#d1fae5;color:#065f46;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;">Visibile alle famiglie</span>`
+          : `<span style="background:var(--bg);color:var(--text3);font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;border:1px solid var(--border);">Solo staff</span>`)
+      : '';
+    const menuBtn = canEdit
+      ? `<button style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--text3);padding:2px 4px;border-radius:5px;line-height:1;" onclick="event.stopPropagation();_openAllMenu(this,'${a.id}')" title="Opzioni">···</button>`
+      : '';
+    return `<div class="all-card" onclick="_openAllenamentiDetail('${a.id}')">
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:.78rem;font-weight:700;${dataCol}margin-bottom:4px;">${_allFmtData(a.data)}</div>
+          <div style="font-size:.97rem;font-weight:800;margin-bottom:2px;">${escapeHtml(a.titolo)}</div>
+          ${a.obiettivo ? `<div style="font-size:.8rem;color:var(--text2);margin-bottom:4px;">${escapeHtml(a.obiettivo)}</div>` : ''}
+          <div style="font-size:.75rem;color:var(--text3);">${metaParts.join(' · ')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
+          ${badgeVis}
+          ${menuBtn}
+        </div>
       </div>
     </div>`;
   }).join('');
-  c.innerHTML = `<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti — ${escapeHtml(currentLeva)}</div></div>${rows}</div>`;
+}
+
+function _allChangePeriodo(v) { _allSt.lista.periodo = v; _loadAllLista(); }
+function _allChangeStato(v)   { _allSt.lista.stato   = v; _renderAllListItems(document.getElementById('allListItems')); }
+function _allChangeLeva(v)    { currentLeva = v; _loadAllLista(); }
+
+function _openNuovoAllenamento() {
+  toast('⚙️ Creazione allenamento: disponibile nella Parte 2!');
+}
+
+function _openAllenamentiDetail(id) {
+  toast('📋 Dettaglio allenamento: disponibile nella Parte 2!');
+}
+
+function _openAllMenu(btn, id) {
+  const old = document.getElementById('_allMenuPop'); if (old) { old.remove(); return; }
+  const pop = document.createElement('div');
+  pop.id = '_allMenuPop';
+  pop.style.cssText = 'position:fixed;z-index:9000;background:var(--white);border:1px solid var(--border2);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:6px 0;min-width:160px;font-size:.88rem;';
+  const rect = btn.getBoundingClientRect();
+  pop.style.top  = (rect.bottom + 4) + 'px';
+  pop.style.right = (window.innerWidth - rect.right) + 'px';
+  const row = (ic, txt, fn, red) => {
+    const d = document.createElement('div');
+    d.style.cssText = `padding:8px 16px;cursor:pointer;${red?'color:#c0392b;':''}`;
+    d.textContent = ic + ' ' + txt;
+    d.onmouseenter = () => d.style.background = 'var(--bg)';
+    d.onmouseleave = () => d.style.background = '';
+    d.onclick = () => { pop.remove(); fn(); };
+    return d;
+  };
+  pop.appendChild(row('✏️', 'Modifica', () => toast('✏️ Modifica: disponibile nella Parte 2!')));
+  pop.appendChild(row('🗑️', 'Elimina',  () => _deleteAllenamento(id), true));
+  document.body.appendChild(pop);
+  setTimeout(() => document.addEventListener('click', function _rm(){ pop.remove(); document.removeEventListener('click',_rm); }, {once:true}), 10);
+}
+
+async function _deleteAllenamento(id) {
+  if (!confirm('Eliminare questo allenamento? L\'operazione non è reversibile.')) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, {
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (resp.ok) { toast('🗑 Allenamento eliminato'); _loadAllLista(); }
+    else { const d = await resp.json().catch(()=>({})); toast('❌ ' + (d.error || 'Errore')); }
+  } catch { toast('❌ Errore di rete'); }
+}
+
+// ── LIBRERIA SESSIONI ──────────────────────────────────────────────────────
+
+function _renderLibreria(cont) {
+  const act = document.getElementById('allenamentiActions');
+  if (act) act.innerHTML = `<button class="btn btn-p btn-sm" onclick="_initNuovaSessioneModal(null)">+ Nuova sessione</button>`;
+
+  cont.innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:1.1rem;font-weight:800;">Libreria Sessioni</div>
+      <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Le tue esercitazioni, quelle della community e quelle ufficiali MyVivaio</div>
+    </div>
+    <div class="all-sub-tabs" id="allSubTabs">
+      <div class="all-sub-tab ${_allSt.lib.ambito==='personale'?'on':''}" onclick="_switchLibTab('personale')">Mie sessioni</div>
+      <div class="all-sub-tab ${_allSt.lib.ambito==='community'?'on':''}" onclick="_switchLibTab('community')">Community</div>
+      <div class="all-sub-tab ${_allSt.lib.ambito==='ufficiali'?'on':''}" onclick="_switchLibTab('ufficiali')">⭐ Ufficiali MyVivaio</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;max-width:190px;" onchange="_libFiltroCat(this.value)">
+        <option value="">Tutte le categorie</option>
+        ${Object.entries(_ALL_CAT_IT).map(([v,l])=>`<option value="${v}" ${_allSt.lib.categoria===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;max-width:150px;" onchange="_libFiltroLeva(this.value)">
+        <option value="">Tutte le età</option>
+        ${Object.entries(_ALL_LEVA_IT).map(([v,l])=>`<option value="${v}" ${_allSt.lib.etaLeva===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <div style="position:relative;flex:1;min-width:140px;">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;">🔍</span>
+        <input class="fi" type="search" placeholder="Cerca titolo o parola chiave..." style="padding-left:32px;font-size:.83rem;" value="${escapeHtml(_allSt.lib.q)}" oninput="_libFiltroQ(this.value)">
+      </div>
+    </div>
+    <div id="libContent"></div>`;
+
+  _loadSessioni();
+}
+
+function _switchLibTab(ambito) {
+  _allSt.lib.ambito = ambito;
+  document.querySelectorAll('#allSubTabs .all-sub-tab').forEach((t,i) => {
+    t.classList.toggle('on', ['personale','community','ufficiali'][i] === ambito);
+  });
+  _loadSessioni();
+}
+
+function _libFiltroCat(v) { _allSt.lib.categoria = v; _loadSessioni(); }
+function _libFiltroLeva(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
+function _libFiltroQ(v) {
+  _allSt.lib.q = v;
+  clearTimeout(_allSt.lib._deb);
+  _allSt.lib._deb = setTimeout(_loadSessioni, 300);
+}
+
+async function _loadSessioni() {
+  const el = document.getElementById('libContent');
+  if (!el) return;
+  el.innerHTML = `<div class="slib-grid">${[0,1,2,3,4,5].map(()=>`
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div class="skel" style="height:14px;width:55%;margin-bottom:8px;"></div>
+      <div class="skel" style="height:18px;width:88%;margin-bottom:6px;"></div>
+      <div class="skel" style="height:12px;width:70%;margin-bottom:5px;"></div>
+      <div class="skel" style="height:12px;width:45%;"></div>
+    </div>`).join('')}</div>`;
+
+  const p = new URLSearchParams({ ambito: _allSt.lib.ambito });
+  if (_allSt.lib.categoria) p.set('categoria', _allSt.lib.categoria);
+  if (_allSt.lib.etaLeva)   p.set('eta_leva',  _allSt.lib.etaLeva);
+  if (_allSt.lib.q)         p.set('q',          _allSt.lib.q);
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria?${p}`, {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    _allSt.lib.items = data.items || [];
+    _renderSessioniGrid(el);
+  } catch(e) {
+    el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">
+      ❌ Errore caricamento sessioni.
+      <a style="cursor:pointer;text-decoration:underline;margin-left:6px;" onclick="_loadSessioni()">Riprova</a>
+    </div>`;
+  }
+}
+
+function _renderSessioniGrid(el) {
+  const items = _allSt.lib.items || [];
+  const ambito = _allSt.lib.ambito;
+  if (!items.length) {
+    const msgs = {
+      personale: 'Non hai ancora salvato sessioni. Creane una nuova o sfoglia la community per ispirarti.',
+      community: 'Nessuna sessione community trovata con questi filtri. Prova a rimuovere qualche filtro.',
+      ufficiali: 'Stiamo preparando le sessioni ufficiali. Saranno disponibili al lancio.',
+    };
+    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2);">
+      <div style="font-size:2.5rem;margin-bottom:12px;opacity:.3;">📚</div>
+      <div style="font-size:.92rem;max-width:300px;margin:0 auto;">${msgs[ambito]||'Nessuna sessione trovata.'}</div>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="slib-grid">${items.map(s => _renderSessioneCard(s, ambito)).join('')}</div>`;
+}
+
+function _renderSessioneCard(s, ambito) {
+  const cat    = _ALL_CAT_IT[s.categoria]  || s.categoria;
+  const catBg  = _ALL_CAT_BG[s.categoria]  || '#f3f4f6';
+  const leva   = _ALL_LEVA_IT[s.eta_leva] || s.eta_leva;
+  const tags   = Array.isArray(s.tag) ? s.tag : (s.tag ? JSON.parse(s.tag) : []);
+  const tagH   = tags.slice(0,3).map(t=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 6px;font-size:.68rem;color:var(--text2);">${escapeHtml(t)}</span>`).join(' ')
+    + (tags.length>3?` <span style="font-size:.68rem;color:var(--text3);">+${tags.length-3}</span>`:'');
+  const autorH = ambito==='community' ? `<div style="font-size:.73rem;color:var(--text3);margin-top:2px;">di ${escapeHtml(s.autore_nome||'—')}</div>` : '';
+  const usataH = ambito!=='personale' && s.usata_count>5 ? `<div style="font-size:.72rem;color:var(--cp);font-weight:700;margin-top:2px;">Usata da ${s.usata_count} mister</div>` : '';
+  const offH   = s.ufficiale_myvivaio ? `<span style="background:#fef9c3;color:#854d0e;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid #fde68a;">⭐ Ufficiale</span>` : '';
+  const aiH    = s.origine_ai && ambito==='personale' ? `<span style="background:#ede9fe;color:#6d28d9;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">✨ AI</span>` : '';
+  const menuH  = ambito==='personale'
+    ? `<button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);padding:0 2px;line-height:1;" onclick="event.stopPropagation();_openSessioneMenu(this,'${s.id}')" title="Opzioni">···</button>` : '';
+  return `<div class="slib-card" onclick="_openSessionePreview('${s.id}','${ambito}')">
+    <div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+      <span style="background:${catBg};font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">${cat}</span>
+      <span style="background:var(--bg);border:1px solid var(--border);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">${leva}</span>
+      ${offH}${aiH}
+      <div style="flex:1;"></div>${menuH}
+    </div>
+    <div style="font-size:.95rem;font-weight:800;line-height:1.3;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(s.titolo)}</div>
+    ${autorH}
+    <div style="font-size:.78rem;color:var(--text2);line-height:1.45;flex:1;margin:6px 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(s.descrizione)}</div>
+    ${usataH}
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:auto;padding-top:6px;">
+      <span style="font-size:.73rem;color:var(--text3);">🕐 ${s.durata_minuti} min</span>
+      ${tagH}
+    </div>
+  </div>`;
+}
+
+function _openSessioneMenu(btn, id) {
+  const old = document.getElementById('_libMenuPop'); if (old) { old.remove(); return; }
+  const s = (_allSt.lib.items||[]).find(x=>x.id===id);
+  const isPublic = s && s.visibilita === 'pubblica';
+  const pop = document.createElement('div');
+  pop.id = '_libMenuPop';
+  pop.style.cssText = 'position:fixed;z-index:9000;background:var(--white);border:1px solid var(--border2);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.14);padding:6px 0;min-width:185px;font-size:.88rem;';
+  const rect = btn.getBoundingClientRect();
+  pop.style.top  = (rect.bottom + 4) + 'px';
+  pop.style.right = (window.innerWidth - rect.right) + 'px';
+  const row = (txt, fn, red) => {
+    const d = document.createElement('div');
+    d.style.cssText = `padding:8px 16px;cursor:pointer;${red?'color:#c0392b;':''}`;
+    d.innerHTML = txt;
+    d.onmouseenter = () => d.style.background = 'var(--bg)';
+    d.onmouseleave = () => d.style.background = '';
+    d.onclick = () => { pop.remove(); fn(); };
+    return d;
+  };
+  pop.appendChild(row('✏️ Modifica', () => _initNuovaSessioneModal(id)));
+  pop.appendChild(row((isPublic?'🔒 Rendi privata':'🌍 Rendi pubblica'), () => _toggleSessionePubblica(id, !isPublic)));
+  pop.appendChild(row('🗑️ Elimina', () => _deleteSessione(id), true));
+  document.body.appendChild(pop);
+  setTimeout(() => document.addEventListener('click', function _rm(){ pop.remove(); document.removeEventListener('click',_rm); }, {once:true}), 10);
+}
+
+async function _toggleSessionePubblica(id, pubblica) {
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
+      body: JSON.stringify({ visibilita: pubblica?'pubblica':'privata' })
+    });
+    if (resp.ok) { toast(pubblica?'🌍 Sessione resa pubblica':'🔒 Sessione resa privata'); _loadSessioni(); }
+    else toast('❌ Errore aggiornamento visibilità');
+  } catch { toast('❌ Errore di rete'); }
+}
+
+async function _deleteSessione(id) {
+  if (!confirm('Eliminare questa sessione?')) return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
+      method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token}
+    });
+    if (resp.status === 409) {
+      const d = await resp.json().catch(()=>({}));
+      alert(`Questa sessione è usata in ${d.count||'alcuni'} allenamenti e non può essere eliminata. Modificala se necessario.`);
+    } else if (resp.ok) {
+      toast('🗑 Sessione eliminata'); _loadSessioni();
+    } else toast('❌ Errore eliminazione');
+  } catch { toast('❌ Errore di rete'); }
+}
+
+// ── ANTEPRIMA SESSIONE ────────────────────────────────────────────────────
+
+function _openSessionePreview(id, ambito) {
+  const s = (_allSt.lib.items||[]).find(x=>x.id===id);
+  if (!s) return;
+  const tags  = Array.isArray(s.tag) ? s.tag : (s.tag ? JSON.parse(s.tag) : []);
+  const cat   = _ALL_CAT_IT[s.categoria]||s.categoria;
+  const leva  = _ALL_LEVA_IT[s.eta_leva]||s.eta_leva;
+  const catBg = _ALL_CAT_BG[s.categoria]||'#f3f4f6';
+  const tagH  = tags.map(t=>`<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:2px 8px;font-size:.72rem;">${escapeHtml(t)}</span>`).join(' ');
+  const autorH = (ambito==='community'||ambito==='ufficiali') && s.autore_nome
+    ? `<div style="font-size:.78rem;color:var(--text3);margin-top:5px;">Autore: <strong>${escapeHtml(s.autore_nome)}</strong></div>` : '';
+  const usataH = s.usata_count>0 && ambito!=='personale'
+    ? `<div style="font-size:.78rem;color:var(--text2);margin-top:4px;">Usata ${s.usata_count} volt${s.usata_count===1?'a':'e'}</div>` : '';
+  const visH  = ambito==='personale'
+    ? `<span style="background:${s.visibilita==='pubblica'?'#d1fae5;color:#065f46':'var(--bg);color:var(--text3);border:1px solid var(--border)'};font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">${s.visibilita==='pubblica'?'🌍 Pubblica':'🔒 Privata'}</span>` : '';
+  const aiH   = s.origine_ai && ambito==='personale'
+    ? `<span style="background:#ede9fe;color:#6d28d9;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">✨ Generata con AI</span>` : '';
+
+  document.getElementById('sessionePrevTitle').textContent = s.titolo;
+  document.getElementById('sessionePrevBody').innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+      <span style="background:${catBg};font-size:.76rem;font-weight:700;padding:3px 10px;border-radius:10px;">${cat}</span>
+      <span style="background:var(--bg);border:1px solid var(--border);font-size:.76rem;font-weight:700;padding:3px 10px;border-radius:10px;">${leva}</span>
+      <span style="font-size:.76rem;color:var(--text3);">🕐 ${s.durata_minuti} min</span>
+      ${visH}${aiH}
+    </div>
+    ${autorH}${usataH}
+    ${tags.length ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin:10px 0;">${tagH}</div>` : ''}
+    <div style="font-size:.9rem;color:var(--text);line-height:1.65;margin-top:10px;white-space:pre-wrap;">${escapeHtml(s.descrizione)}</div>`;
+
+  const editH = ambito==='personale'
+    ? `<button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev');_initNuovaSessioneModal('${s.id}')">✏️ Modifica</button>
+       <button class="btn btn-r btn-sm" onclick="_deleteSessione('${s.id}')" style="margin-left:4px;">🗑️</button>` : '';
+  document.getElementById('sessionePrevFooterEdit').innerHTML = editH;
+  openM('mSessionePrev');
+}
+
+// ── MODAL NUOVA / MODIFICA SESSIONE ───────────────────────────────────────
+
+let _editingSessioneId = null;
+
+function _initNuovaSessioneModal(editId) {
+  _editingSessioneId = editId;
+  const s = editId ? (_allSt.lib.items||[]).find(x=>x.id===editId) : null;
+  document.getElementById('mNuovaSessioneTitle').textContent = editId ? 'Modifica sessione' : 'Nuova sessione';
+  const fi = id => document.getElementById(id);
+  if (fi('nsTitolo'))      fi('nsTitolo').value      = s?.titolo      || '';
+  if (fi('nsDescrizione')) fi('nsDescrizione').value  = s?.descrizione || '';
+  if (fi('nsDurata'))      fi('nsDurata').value       = s?.durata_minuti || 20;
+  if (fi('nsCategoria'))   fi('nsCategoria').value    = s?.categoria   || '';
+  if (fi('nsEta'))         fi('nsEta').value          = s?.eta_leva    || '';
+  if (fi('nsVis')) {
+    fi('nsVis').checked = s?.visibilita === 'pubblica';
+    _nsVisChange(fi('nsVis'));
+  }
+  _allSt._nsTags = s?.tag ? (Array.isArray(s.tag)?[...s.tag]:JSON.parse(s.tag)) : [];
+  _renderNsTags();
+  if (fi('nsErr')) fi('nsErr').textContent = '';
+  _nsCounterUpdate();
+  openM('mNuovaSessione');
+}
+
+function _nsCounterUpdate() {
+  const v = document.getElementById('nsTitolo')?.value || '';
+  const el = document.getElementById('nsTitoloCount');
+  if (el) el.textContent = v.length + '/200';
+}
+
+function _nsVisChange(cb) {
+  const lbl = document.getElementById('nsVisLabel');
+  if (lbl) lbl.textContent = cb.checked ? '🌍 Pubblica — altri mister potranno usarla' : '🔒 Privata — solo tu la vedi';
+}
+
+function _renderNsTags() {
+  const el = document.getElementById('nsTagChips');
+  if (!el) return;
+  const tags = _allSt._nsTags || [];
+  el.innerHTML = tags.map((t,i) =>
+    `<span style="background:var(--cl);color:var(--cp);font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:10px;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(t)}<span style="cursor:pointer;" onclick="_removeNsTag(${i})" title="Rimuovi">✕</span></span>`
+  ).join(' ');
+}
+
+function _removeNsTag(i) { (_allSt._nsTags||[]).splice(i,1); _renderNsTags(); }
+
+function _nsTagInput(e) {
+  if (e.key !== 'Enter' && e.key !== ',') return;
+  e.preventDefault();
+  const inp = document.getElementById('nsTagInput');
+  const v = (inp.value||'').replace(',','').trim().slice(0,30);
+  if (v && (_allSt._nsTags||[]).length < 10 && !_allSt._nsTags.includes(v)) {
+    if (!_allSt._nsTags) _allSt._nsTags = [];
+    _allSt._nsTags.push(v);
+    _renderNsTags();
+  }
+  inp.value = '';
+}
+
+async function saveSessione() {
+  const fi    = id => document.getElementById(id);
+  const errEl = fi('nsErr');
+  if (errEl) errEl.textContent = '';
+
+  const titolo      = (fi('nsTitolo')?.value||'').trim();
+  const descrizione = (fi('nsDescrizione')?.value||'').trim();
+  const durata      = parseInt(fi('nsDurata')?.value||'0');
+  const categoria   = fi('nsCategoria')?.value||'';
+  const eta_leva    = fi('nsEta')?.value||'';
+  const visibilita  = fi('nsVis')?.checked ? 'pubblica' : 'privata';
+  const tag         = _allSt._nsTags || [];
+
+  const errs = [];
+  if (titolo.length < 3 || titolo.length > 200) errs.push('Titolo: 3-200 caratteri.');
+  if (descrizione.length < 10)                  errs.push('Descrizione: minimo 10 caratteri.');
+  if (isNaN(durata)||durata<5||durata>180)       errs.push('Durata: 5-180 minuti.');
+  if (!categoria)                                errs.push('Seleziona una categoria.');
+  if (!eta_leva)                                 errs.push("Seleziona l'età/leva.");
+  if (errs.length) { if (errEl) errEl.textContent = errs.join(' '); return; }
+
+  const btn = fi('nsSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Salvataggio…'; }
+
+  try {
+    const body = { titolo, descrizione, durata_minuti:durata, categoria, eta_leva, visibilita, tag };
+    const url  = _editingSessioneId
+      ? `${API_BASE}/api/v2/allenamenti/sessioni-libreria/${_editingSessioneId}`
+      : `${API_BASE}/api/v2/allenamenti/sessioni-libreria`;
+    const resp = await fetch(url, {
+      method: _editingSessioneId ? 'PATCH' : 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+_v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(()=>({}));
+      throw new Error(d.message || d.error || 'Errore server');
+    }
+    closeM('mNuovaSessione');
+    toast(_editingSessioneId ? '✅ Sessione aggiornata' : '✅ Sessione salvata');
+    _allSt.tab = 'libreria';
+    _allSt.lib.ambito = 'personale';
+    renderAllenamenti();
+  } catch(e) {
+    if (errEl) errEl.textContent = '❌ ' + e.message;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Salva sessione'; }
+  }
 }
 
 function openDocModal(playerId) {
@@ -22155,6 +22715,23 @@ async function doRejoinSocieta() {
 .sa-modal input:focus,.sa-modal select:focus,.sa-modal textarea:focus { border-color:#3b82f6; }
 .sa-modal textarea { resize:vertical;min-height:68px; }
 .sa-modal-footer { display:flex;gap:10px;margin-top:20px; }
+/* ── Allenamenti v2 ─────────────────────────────────────────────────────── */
+.all-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:16px;}
+.all-tab{padding:10px 18px;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.92rem;font-weight:700;color:var(--text2);transition:color .15s,border-color .15s;}
+.all-tab.on{color:var(--cp);border-bottom-color:var(--cp);}
+.all-tab:hover:not(.on){color:var(--text);background:var(--bg);border-radius:6px 6px 0 0;}
+.all-sub-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.all-sub-tab{padding:6px 14px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;font-size:.82rem;font-weight:700;background:var(--white);color:var(--text2);transition:all .15s;user-select:none;}
+.all-sub-tab.on{background:var(--cp);color:white;border-color:var(--cp);}
+.all-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,border-color .15s;}
+.all-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.09);border-color:var(--border2);}
+.slib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.slib-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:box-shadow .15s,border-color .15s;display:flex;flex-direction:column;}
+.slib-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.09);border-color:var(--border2);}
+.skel{background:linear-gradient(90deg,var(--bg) 25%,var(--border) 50%,var(--bg) 75%);background-size:200% 100%;animation:skelAnim 1.4s infinite;border-radius:7px;}
+@keyframes skelAnim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(max-width:900px){.slib-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.all-tab{padding:8px 10px;font-size:.8rem;}.slib-grid{grid-template-columns:1fr;}}
 </style>
 
 <div id="saPanel" style="display:none;">
@@ -23046,6 +23623,98 @@ document.addEventListener('DOMContentLoaded', () => {
     <button onclick="document.getElementById('suspendedOverlay').style.display='none';logout();" style="background:none;border:none;color:#475569;font-size:.83rem;cursor:pointer;padding:10px 20px;width:100%;transition:.15s;" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#475569'">
       Esci dall'account
     </button>
+  </div>
+</div>
+
+<!-- ── Modal: Nuova / Modifica Sessione ─────────────────────────────────── -->
+<div class="ov" id="mNuovaSessione">
+  <div class="modal" style="max-width:600px;">
+    <div class="mh">
+      <div class="mt" id="mNuovaSessioneTitle">Nuova sessione</div>
+      <button class="mx" onclick="closeM('mNuovaSessione')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-height:65vh;overflow-y:auto;padding-right:2px;">
+      <div class="fg">
+        <label class="fl">Titolo <span style="color:var(--red);">*</span></label>
+        <input class="fi" id="nsTitolo" type="text" maxlength="200" placeholder="es. Esercizio di controllo di palla" oninput="_nsCounterUpdate()">
+        <div style="font-size:.7rem;color:var(--text3);text-align:right;margin-top:2px;" id="nsTitoloCount">0/200</div>
+      </div>
+      <div class="fg">
+        <label class="fl">Descrizione <span style="color:var(--red);">*</span></label>
+        <textarea class="fi" id="nsDescrizione" rows="4" placeholder="Spiega setup, svolgimento, obiettivi, eventuali varianti..."></textarea>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:2px;">Minimo 10 caratteri.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg" style="margin:0;">
+          <label class="fl">Durata <span style="color:var(--red);">*</span></label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input class="fi" id="nsDurata" type="number" min="5" max="180" value="20" style="max-width:80px;">
+            <span style="font-size:.83rem;color:var(--text3);">minuti</span>
+          </div>
+        </div>
+        <div class="fg" style="margin:0;">
+          <label class="fl">Categoria <span style="color:var(--red);">*</span></label>
+          <select class="fi" id="nsCategoria">
+            <option value="">Scegli...</option>
+            <option value="tecnica_individuale">Tecnica individuale</option>
+            <option value="tattica">Tattica</option>
+            <option value="possesso_palla">Possesso palla</option>
+            <option value="finalizzazione">Finalizzazione</option>
+            <option value="atletica_fisico">Atletica/Fisico</option>
+            <option value="portieri">Portieri</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">Età/Leva <span style="color:var(--red);">*</span></label>
+        <select class="fi" id="nsEta">
+          <option value="">Scegli...</option>
+          <option value="pulcini">Pulcini</option>
+          <option value="esordienti">Esordienti</option>
+          <option value="giovanissimi">Giovanissimi</option>
+          <option value="allievi">Allievi</option>
+          <option value="juniores">Juniores</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Tag</label>
+        <input class="fi" id="nsTagInput" type="text" placeholder="Scrivi un tag e premi Invio o virgola..." onkeydown="_nsTagInput(event)">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;" id="nsTagChips"></div>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:4px;">Max 10 tag, 30 caratteri ciascuno.</div>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:12px 14px;">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="nsVis" style="width:18px;height:18px;cursor:pointer;margin-top:2px;flex-shrink:0;" onchange="_nsVisChange(this)">
+          <div>
+            <div style="font-size:.88rem;font-weight:700;" id="nsVisLabel">🔒 Privata — solo tu la vedi</div>
+            <div style="font-size:.73rem;color:var(--text3);margin-top:2px;">Se la rendi pubblica, altri mister potranno usarla. Apparirà con il tuo nome.</div>
+          </div>
+        </label>
+      </div>
+      <div style="color:#c0392b;font-size:.82rem;min-height:18px;" id="nsErr"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <button class="btn btn-g" onclick="closeM('mNuovaSessione')">Annulla</button>
+      <button class="btn btn-p" id="nsSaveBtn" onclick="saveSessione()">Salva sessione</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Anteprima Sessione ────────────────────────────────────────── -->
+<div class="ov" id="mSessionePrev">
+  <div class="modal" style="max-width:680px;">
+    <div class="mh">
+      <div class="mt" id="sessionePrevTitle" style="font-size:1rem;line-height:1.3;max-width:85%;"></div>
+      <button class="mx" onclick="closeM('mSessionePrev')">✕</button>
+    </div>
+    <div id="sessionePrevBody" style="max-height:55vh;overflow-y:auto;padding-right:4px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+      <div id="sessionePrevFooterEdit" style="display:flex;align-items:center;gap:6px;"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-g btn-sm" onclick="toast('⚙️ Funzione disponibile nella Parte 2')">+ Aggiungi ad allenamento</button>
+        <button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev')">Chiudi</button>
+      </div>
+    </div>
   </div>
 </div>
 

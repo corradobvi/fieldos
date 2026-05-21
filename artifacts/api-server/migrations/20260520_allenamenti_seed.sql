@@ -1,0 +1,24 @@
+-- ═══════════════════════════════════════════════════════════════════════════
+-- SEED: Sessioni ufficiali MyVivaio — Allenamenti
+-- File:    20260520_allenamenti_seed.sql
+-- Dipende: 20260520_allenamenti_schema.sql (deve essere già applicato)
+-- ───────────────────────────────────────────────────────────────────────────
+-- Questo file verrà popolato con le sessioni ufficiali MyVivaio prima del
+-- lancio (settembre 2026). Attualmente vuoto — placeholder pronto.
+--
+-- Struttura di ogni riga (esempio da usare per il popolamento):
+--
+--   INSERT INTO sessioni_libreria
+--     (id, mister_id, societa_id, titolo, descrizione, durata_minuti,
+--      categoria, eta_leva, tag, visibilita, ufficiale_myvivaio, origine_ai)
+--   VALUES
+--     (UUID(), <mister_id_myvivaio>, NULL, 'Titolo sessione',
+--      'Descrizione esercizio...', 20,
+--      'tecnica_individuale', 'giovanissimi',
+--      '["controllo","primo-tocco"]', 'pubblica', TRUE, FALSE);
+--
+-- NOTA: mister_id per le sessioni ufficiali sarà l'ID dell'utente di sistema
+--       MyVivaio (da definire prima del lancio).
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- (vuoto — da popolare prima del lancio settembre 2026)

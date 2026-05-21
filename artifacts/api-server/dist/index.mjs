@@ -78584,6 +78584,133 @@ CREATE TABLE IF NOT EXISTS user_notification_preferences (
   notify_chat TINYINT(1) NOT NULL DEFAULT 1,
   notify_reminders TINYINT(1) NOT NULL DEFAULT 1,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS sessioni_libreria (
+  id                 VARCHAR(36)  NOT NULL,
+  mister_id          INT          NOT NULL,
+  societa_id         INT          NULL,
+  titolo             VARCHAR(200) NOT NULL,
+  descrizione        TEXT         NOT NULL,
+  durata_minuti      SMALLINT     NOT NULL,
+  categoria          ENUM('tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL,
+  eta_leva           ENUM('pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL,
+  tag                JSON         DEFAULT NULL,
+  visibilita         ENUM('privata','pubblica') NOT NULL DEFAULT 'privata',
+  ufficiale_myvivaio BOOLEAN      NOT NULL DEFAULT FALSE,
+  origine_ai         BOOLEAN      NOT NULL DEFAULT FALSE,
+  usata_count        INT          NOT NULL DEFAULT 0,
+  created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_sl_mister_id     (mister_id),
+  INDEX idx_sl_societa_id    (societa_id),
+  INDEX idx_sl_visibilita    (visibilita),
+  INDEX idx_sl_categoria_eta (categoria, eta_leva),
+  INDEX idx_sl_ufficiale     (ufficiale_myvivaio),
+  FOREIGN KEY fk_sl_mister   (mister_id)  REFERENCES users(id)     ON DELETE CASCADE,
+  FOREIGN KEY fk_sl_societa  (societa_id) REFERENCES societies(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS allenamenti (
+  id                   VARCHAR(36)  NOT NULL,
+  leva_id              INT          NOT NULL,
+  societa_id           INT          NOT NULL,
+  creato_da            INT          NOT NULL,
+  titolo               VARCHAR(200) NOT NULL,
+  obiettivo            VARCHAR(300) NULL,
+  data                 DATE         NOT NULL,
+  durata_totale_minuti SMALLINT     NOT NULL DEFAULT 0,
+  visibilita_genitori  BOOLEAN      NOT NULL DEFAULT FALSE,
+  note_testo           TEXT         NULL,
+  created_at           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_all_leva_data (leva_id, data),
+  INDEX idx_all_societa   (societa_id),
+  INDEX idx_all_data      (data),
+  FOREIGN KEY fk_all_leva    (leva_id)    REFERENCES leve(id)      ON DELETE RESTRICT,
+  FOREIGN KEY fk_all_societa (societa_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_all_creato  (creato_da)  REFERENCES users(id)     ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS allenamento_sessioni (
+  id                     VARCHAR(36)  NOT NULL,
+  allenamento_id         VARCHAR(36)  NOT NULL,
+  sessione_libreria_id   VARCHAR(36)  NULL,
+  ordine                 SMALLINT     NOT NULL,
+  titolo_snapshot        VARCHAR(200) NOT NULL,
+  descrizione_snapshot   TEXT         NOT NULL,
+  durata_minuti_snapshot SMALLINT     NOT NULL,
+  categoria_snapshot     VARCHAR(50)  NOT NULL,
+  tag_snapshot           JSON         NULL,
+  created_at             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_as_allenamento_ordine (allenamento_id, ordine),
+  INDEX idx_as_sessione_libreria  (sessione_libreria_id),
+  FOREIGN KEY fk_as_allenamento (allenamento_id)       REFERENCES allenamenti(id)       ON DELETE CASCADE,
+  FOREIGN KEY fk_as_libreria    (sessione_libreria_id) REFERENCES sessioni_libreria(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS allenamento_note_vocali (
+  id             VARCHAR(36)  NOT NULL,
+  allenamento_id VARCHAR(36)  NOT NULL,
+  creato_da      INT          NOT NULL,
+  url_audio      VARCHAR(500) NOT NULL,
+  durata_secondi SMALLINT     NOT NULL,
+  momento        ENUM('durante','dopo') NOT NULL,
+  created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_anv_allenamento (allenamento_id),
+  FOREIGN KEY fk_anv_allenamento (allenamento_id) REFERENCES allenamenti(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_anv_creato      (creato_da)      REFERENCES users(id)       ON DELETE RESTRICT
+);
+CREATE TABLE IF NOT EXISTS ai_budget_utilizzo (
+  id               VARCHAR(36) NOT NULL,
+  societa_id       INT         NULL,
+  mister_id        INT         NULL,
+  mese_riferimento CHAR(7)     NOT NULL,
+  token_consumati  INT         NOT NULL DEFAULT 0,
+  token_budget     INT         NOT NULL,
+  created_at       DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_ai_budget (societa_id, mister_id, mese_riferimento),
+  INDEX idx_abu_societa_mese (societa_id, mese_riferimento),
+  INDEX idx_abu_mister_mese  (mister_id,  mese_riferimento),
+  FOREIGN KEY fk_abu_societa (societa_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_abu_mister  (mister_id)  REFERENCES users(id)     ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS ai_richieste_log (
+  id           VARCHAR(36) NOT NULL,
+  mister_id    INT         NOT NULL,
+  societa_id   INT         NULL,
+  tipo         ENUM('sessione_singola','allenamento_completo','spunto_rapido') NOT NULL,
+  prompt_input TEXT        NOT NULL,
+  token_input  INT         NOT NULL,
+  token_output INT         NOT NULL,
+  token_totale INT         NOT NULL,
+  modello      VARCHAR(50) NOT NULL DEFAULT 'claude-sonnet-4-5-20250929',
+  successo     BOOLEAN     NOT NULL DEFAULT TRUE,
+  errore       TEXT        NULL,
+  created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_arl_mister_data  (mister_id,  created_at),
+  INDEX idx_arl_societa_data (societa_id, created_at),
+  INDEX idx_arl_tipo         (tipo),
+  FOREIGN KEY fk_arl_mister  (mister_id)  REFERENCES users(id)     ON DELETE CASCADE,
+  FOREIGN KEY fk_arl_societa (societa_id) REFERENCES societies(id) ON DELETE SET NULL
+);
+CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
+  id           VARCHAR(36) NOT NULL,
+  societa_id   INT         NOT NULL,
+  mister_id    INT         NOT NULL,
+  abilitato    BOOLEAN     NOT NULL DEFAULT TRUE,
+  abilitato_da INT         NOT NULL,
+  created_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_asal (societa_id, mister_id),
+  INDEX idx_asal_societa_abilitato (societa_id, abilitato),
+  FOREIGN KEY fk_asal_societa      (societa_id)   REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_asal_mister       (mister_id)    REFERENCES users(id)     ON DELETE CASCADE,
+  FOREIGN KEY fk_asal_abilitato_da (abilitato_da) REFERENCES users(id)     ON DELETE RESTRICT
 )
 `;
 var SEED_SQL = `
@@ -83816,6 +83943,28 @@ router29.get("/schema-info", async (_req, res) => {
     });
   } catch (e) {
     return res.status(500).json({ error: e?.message });
+  }
+});
+router29.get("/health/allenamenti-tables", async (_req, res) => {
+  try {
+    const tables = [
+      "sessioni_libreria",
+      "allenamenti",
+      "allenamento_sessioni",
+      "allenamento_note_vocali",
+      "ai_budget_utilizzo",
+      "ai_richieste_log",
+      "ai_societa_allowlist"
+    ];
+    const results = {};
+    for (const t of tables) {
+      const [rows] = await pool.execute(`SHOW TABLES LIKE '${t}'`);
+      results[t] = rows.length > 0;
+    }
+    const allOk = Object.values(results).every(Boolean);
+    return res.json({ ok: allOk, tables: results });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e?.message });
   }
 });
 router29.get("/health/ai-key", (_req, res) => {
