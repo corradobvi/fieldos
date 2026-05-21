@@ -458,7 +458,7 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 // GET  → preview (v1 USERS_DB + soc_38 USERS_DB, senza modifiche)
 // POST → esegue UPDATE (USERS_DB → [])
 // Rimuovere questo route dopo l'esecuzione.
-router.get("/fix3-v1-cleanup", async (req, res) => {
+router.get("/superadmin/fix3-v1-cleanup", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   try {
     const [v1] = (await pool.execute(
@@ -480,7 +480,7 @@ router.get("/fix3-v1-cleanup", async (req, res) => {
   }
 });
 
-router.post("/fix3-v1-cleanup", async (req, res) => {
+router.post("/superadmin/fix3-v1-cleanup", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   try {
     const [before] = (await pool.execute(
