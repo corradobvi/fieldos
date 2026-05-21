@@ -86,8 +86,16 @@ router.post("/login", async (req, res) => {
     }
 
     // 2. Cerca nelle società elencate nel SA state
+    // id=0 (fieldos_state_v1 / Polis ASD legacy) viene cercato per ULTIMO:
+    // se un utente esiste sia in v1 che in un blob soc_* reale, il blob reale vince
+    // e restituisce il piano MySQL corretto. Chi vive solo in v1 viene comunque trovato.
+    const sortedSocieties = [...societies].sort((a, b) => {
+      if (a.id === 0 && b.id !== 0) return 1;
+      if (a.id !== 0 && b.id === 0) return -1;
+      return 0;
+    });
     const checkedKeys = new Set<string>();
-    for (const soc of societies) {
+    for (const soc of sortedSocieties) {
       const blobStato = soc.stato ?? "attivo";
       const stateKey: string =
         soc.id === 0 ? "fieldos_state_v1" : `fieldos_state_soc_${soc.id}`;
