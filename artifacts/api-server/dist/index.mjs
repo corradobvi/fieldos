@@ -83954,26 +83954,6 @@ router29.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router29.get("/health/owner-backfill", async (_req, res) => {
-  try {
-    const [rows] = await pool.execute(`
-      SELECT s.id, s.nome, s.piano,
-             COUNT(u.id) AS admin_count,
-             SUM(CASE WHEN u.is_account_owner = 1 THEN 1 ELSE 0 END) AS owner_count,
-             GROUP_CONCAT(CONCAT(u.email,'(owner=',u.is_account_owner,')')
-                          ORDER BY u.created_at SEPARATOR ' | ') AS admins
-      FROM societies s
-      JOIN users u ON u.society_id = s.id
-      WHERE u.ruolo = 'admin'
-      GROUP BY s.id, s.nome, s.piano
-      HAVING SUM(CASE WHEN u.is_account_owner = 1 THEN 1 ELSE 0 END) != 1
-      ORDER BY s.id
-    `);
-    return res.json({ anomalies: rows.length, rows });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
 router29.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
