@@ -3708,6 +3708,7 @@ let _gcTorneoGironiFUI = [];
 let _gcTorneoGironiUI = [];
 let _gcTorneiEspansi = new Set();
 let _gcShowArchiviati = false;
+let _ptMostraArchiviati = false;
 const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
 const GC_SPAREGGIO_OPTIONS = [
   {k:'scontro_diretto',label:'Scontro diretto'},
@@ -16457,21 +16458,41 @@ function renderPtCampionato() {
 }
 
 // ─── TORNEI ───
+function ptToggleArchiviati(el) {
+  _ptMostraArchiviati = el.checked;
+  renderPtTornei();
+}
 function renderPtTornei() {
   const c = document.getElementById('ptContent');
   if (!c) return;
-  const allList = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const today = new Date().toISOString().slice(0,10);
+  const allSorted = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
   // For family users, filter out tornei in 'none' phase
-  const list = isFamily() ? allList.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allList;
-  if (list.length === 0) {
+  const visible = isFamily() ? allSorted.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allSorted;
+  const attivi = visible.filter(t => !t.archiviato);
+  const archiviati = visible.filter(t => t.archiviato);
+  if (!attivi.length && !archiviati.length) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessun torneo disponibile. Crea un torneo dalla sezione Gestione Competizioni.</div></div>`;
     return;
   }
-  c.innerHTML = list.map(t => {
-    // For family users in fase1: show minimal torneo card
+  // Auto-expand if single active torneo
+  if (attivi.length === 1) _gcTorneiEspansi.add('pt-'+attivi[0].id);
+
+  const renderCard = t => {
+    const espKey = 'pt-'+t.id;
+    const espanso = _gcTorneiEspansi.has(espKey);
+    const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
+    const concluso = t.dataFine && t.dataFine < today;
+    const conclusoBadge = concluso ? `<span style="background:#e5e7eb;color:#6b7280;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;line-height:1;">Concluso</span>` : '';
+    const icon = `<span id="tc-icon-${espKey}" style="font-size:.85rem;color:var(--text3);min-width:12px;">${espanso?'▾':'▸'}</span>`;
+    const hd = `<div class="torneo-hd" onclick="gcToggleTorneo('${espKey}')" style="cursor:pointer;user-select:none;">
+      <span style="font-size:1.4rem;">🏆</span>
+      <div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:.3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${escapeHtml(t.nome)}${conclusoBadge}</div><div style="font-size:.7rem;opacity:.75;">${dateRange}${t.luogo?' · '+escapeHtml(t.luogo):''}</div></div>
+      <div style="display:flex;gap:6px;align-items:center;">${icon}</div>
+    </div>`;
+    // For family users in fase1: minimal body
     if (isFamily() && getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) === 'fase1') {
-      const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
-      return `<div class="torneo-card"><div class="torneo-hd"><span style="font-size:1.4rem;">🏆</span><div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:.3px;">${escapeHtml(t.nome)}</div><div style="font-size:.7rem;opacity:.75;">${dateRange}</div></div></div><div class="torneo-body"><div style="color:var(--text3);font-size:.8rem;">⏳ Dettagli disponibili a breve</div></div></div>`;
+      return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}"><div style="color:var(--text3);font-size:.8rem;">⏳ Dettagli disponibili a breve</div></div></div>`;
     }
     const polis = polisName(t.leva);
     const fasiHtml = (t.fasi||[]).map(f => {
@@ -16482,11 +16503,9 @@ function renderPtTornei() {
           const dr = sq.dr >= 0 ? '+'+sq.dr : String(sq.dr);
           return `<tr${isPolis?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${isPolis?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;
         }).join('') + '</tbody></table></div>';
-
-      // Partiziona Polis vs altri scontri
-      const sorted = (f.partite||[]).sort((a,b) => (a.data||'').localeCompare(b.data||''));
-      const polisMatches = sorted.filter(m => m.casa === polis || m.ospite === polis);
-      const altriMatches = sorted.filter(m => m.casa !== polis && m.ospite !== polis);
+      const fSorted = [...(f.partite||[])].sort((a,b) => (a.data||'').localeCompare(b.data||''));
+      const polisMatches = fSorted.filter(m => m.casa === polis || m.ospite === polis);
+      const altriMatches = fSorted.filter(m => m.casa !== polis && m.ospite !== polis);
       const polisHtml = polisMatches.map(m => {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
@@ -16494,30 +16513,23 @@ function renderPtTornei() {
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
       const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
-      const addBtn = '';
-      return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>
-        ${stHtml}${polisHtml}${altriHtml}${addBtn}`;
+      return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
     }).join('');
-
     const scorers = computeTopScorers((t.fasi||[]).flatMap(f => f.partite||[]), t.leva);
     const scorersHtml = scorers.length === 0 ? '' : '<div class="fase-sep">⚽ Marcatori torneo</div>' + scorers.slice(0,8).map((s,i) => {
       const p = players.find(x => x.id === s.playerId);
-      return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p ? p.nome+' '+p.cogn : '#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
+      return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p?p.nome+' '+p.cogn:'#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
     }).join('');
+    return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;">Nessuna fase disponibile.</div>'}${scorersHtml}</div></div>`;
+  };
 
-    const _tc = (t.convocati||[]).length;
-    const editBtn = '';
-    const dateRange = t.dataInizio ? (t.dataFine && t.dataFine !== t.dataInizio ? `${fmtMatchDate(t.dataInizio)} → ${fmtMatchDate(t.dataFine)}` : fmtMatchDate(t.dataInizio)) : '';
-    return `<div class="torneo-card">
-      <div class="torneo-hd">
-        <span style="font-size:1.4rem;">🏆</span>
-        <div style="flex:1;"><div style="font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:900;letter-spacing:.3px;">${escapeHtml(t.nome)}</div>
-          <div style="font-size:.7rem;opacity:.75;">${dateRange}${t.luogo ? ' · ' + escapeHtml(t.luogo) : ''}</div></div>
-        <div style="display:flex;gap:6px;">${editBtn}</div>
-      </div>
-      <div class="torneo-body">${fasiHtml || '<div style="color:var(--text3);font-size:.8rem;">Nessuna fase. Aggiungi gironi o fasi finali.</div>'}${scorersHtml}</div>
-    </div>`;
-  }).join('');
+  const toggleHtml = archiviati.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_ptMostraArchiviati?' checked':''} onchange="ptToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra archiviati (${archiviati.length})</label></div>` : '';
+  const attiviHtml = attivi.length ? attivi.map(renderCard).join('') : `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo attivo per ${escapeHtml(currentLeva)}</div></div>`;
+  let archiviatiHtml = '';
+  if (_ptMostraArchiviati && archiviati.length) {
+    archiviatiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Archiviati</div>` + archiviati.map(t=>`<div style="opacity:.5;">${renderCard(t)}</div>`).join('');
+  }
+  c.innerHTML = toggleHtml + attiviHtml + archiviatiHtml;
 }
 
 // ═══════════════════════════════════
