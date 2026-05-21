@@ -83954,6 +83954,26 @@ router29.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
+router29.get("/health/sa-diag", async (_req, res) => {
+  try {
+    const [societies] = await pool.execute(`
+      SELECT id, nome, citta, piano, stato, billing_mode, created_at
+      FROM societies ORDER BY id DESC LIMIT 5
+    `);
+    const [users] = await pool.execute(`
+      SELECT id, society_id, email, ruolo, stato, is_account_owner, temp_password, created_at
+      FROM users WHERE email LIKE '%prova%' OR email LIKE '%rossi%' OR email LIKE '%m.rossi%'
+      ORDER BY created_at DESC
+    `);
+    const [blobs] = await pool.execute(`
+      SELECT \`key\`, LENGTH(state_json) AS size FROM society_state
+      WHERE \`key\` LIKE 'fieldos_state_soc_%' ORDER BY \`key\`
+    `);
+    return res.json({ societies, users, blobs });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
 router29.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
