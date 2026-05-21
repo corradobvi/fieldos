@@ -3939,6 +3939,7 @@ const ROLE_CFG = {
       {id:'convocazioni',ic:'📋',lb:'Convocazioni'},
       {id:'presenze',ic:'✅',lb:'Presenze'},
       {id:'statistiche',ic:'📊',lb:'Statistiche'},
+      {id:'allenamenti',ic:'🏃',lb:'Allenamenti'},
       {s:'Club'},{id:'partite',ic:'⚽',lb:'Partite & Tornei'},
       {id:'calendario',ic:'📅',lb:'Calendario'},
       {id:'fotovideo',ic:'📸',lb:'Foto & Video',wip:true},
@@ -4833,6 +4834,8 @@ function buildSidebar(role) {
       d.textContent = item.s;
       nav.appendChild(d);
     } else {
+      // Allenamenti per admin: visibile solo se adminAsMister è attivo sulla leva corrente
+      if (item.id === 'allenamenti' && role === 'admin' && !isAdminMisterForLeva(currentLeva)) return;
       let locked = false;
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       // Quote: nascondi completamente dalla nav se piano non include la feature
@@ -5202,8 +5205,8 @@ function switchLeva(l) {
   renderStats();
   renderPartite();
   renderGestComp();
-  // Admin-mister: aggiorna bottom nav in base alla leva selezionata
-  if (me && me.role === 'admin') buildMobNav(me.role);
+  // Admin-mister: aggiorna bottom nav e sidebar (allenamenti appare/sparisce per leva)
+  if (me && me.role === 'admin') buildSidebar(me.role);
 }
 
 function openAddLeva() {
@@ -8091,7 +8094,7 @@ function renderAdminAsMisterSettings() {
 function saveAdminAsMisterLeva(lv, val) {
   adminAsMister[lv] = !!val;
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  if (me) buildMobNav(me.role);
+  if (me) buildSidebar(me.role);
   toast(val ? `✅ ${lv}: sei anche il mister di questa leva` : `⬜ ${lv}: rimosso ruolo mister`);
 }
 

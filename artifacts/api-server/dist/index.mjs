@@ -82718,7 +82718,7 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
     return res.json({ items: rows });
   } catch (e) {
     logger.error({ err: e }, "GET allenamenti error");
-    return res.status(500).json({ error: "server_error" });
+    return res.status(500).json({ error: "server_error", _d: e?.message, _c: e?.errno, _sql: e?.sql?.slice(0, 200) });
   }
 });
 router27.get("/allenamenti/:id", requireAuth, async (req, res) => {

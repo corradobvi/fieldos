@@ -361,7 +361,7 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
     return res.json({ items: rows });
   } catch (e: any) {
     logger.error({ err: e }, "GET allenamenti error");
-    return res.status(500).json({ error: "server_error" });
+    return res.status(500).json({ error: "server_error", _d: e?.message, _c: e?.errno, _sql: e?.sql?.slice(0,200) });
   }
 });
 
