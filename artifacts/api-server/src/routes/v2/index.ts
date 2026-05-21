@@ -102,34 +102,6 @@ router.get("/schema-info", async (_req, res) => {
 });
 
 
-// GET /api/v2/health/sa-diag — TEMP: diagnostica bug SA creazione società
-router.get("/health/sa-diag", async (_req, res) => {
-  try {
-    // 1a. Ultime 5 società per id
-    const [societies] = await pool.execute(`
-      SELECT id, nome, citta, piano, stato, billing_mode, created_at
-      FROM societies ORDER BY id DESC LIMIT 5
-    `) as [any[], any];
-
-    // 1b. Utenti con email prova/rossi
-    const [users] = await pool.execute(`
-      SELECT id, society_id, email, ruolo, stato, is_account_owner, temp_password, created_at
-      FROM users WHERE email LIKE '%prova%' OR email LIKE '%rossi%' OR email LIKE '%m.rossi%'
-      ORDER BY created_at DESC
-    `) as [any[], any];
-
-    // 1d. Tutte le chiavi blob
-    const [blobs] = await pool.execute(`
-      SELECT \`key\`, LENGTH(state_json) AS size FROM society_state
-      WHERE \`key\` LIKE 'fieldos_state_soc_%' ORDER BY \`key\`
-    `) as [any[], any];
-
-    return res.json({ societies, users, blobs });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
-
 // GET /api/v2/health/ai-key — diagnostic: verifica presenza ANTHROPIC_API_KEY senza esporla
 router.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
