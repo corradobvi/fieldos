@@ -58,6 +58,21 @@ async function ensureSchema() {
     }
   }
 
+  // ENUM guard: aggiunge 'primi_calci' a eta_leva se non già presente
+  try {
+    const [enumRows] = await pool.execute(
+      "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='sessioni_libreria' AND COLUMN_NAME='eta_leva' AND TABLE_SCHEMA=DATABASE()"
+    ) as [any[], any];
+    if (enumRows.length && !String(enumRows[0].COLUMN_TYPE).includes("primi_calci")) {
+      await pool.execute(
+        "ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL"
+      );
+      logger.info("v2: eta_leva ENUM esteso con primi_calci");
+    }
+  } catch (e: any) {
+    logger.warn({ err: e?.message }, "v2: ENUM guard primi_calci fallito");
+  }
+
   // Pulcini official seed — run only when count < 70 (idempotent via NOT EXISTS guards)
   try {
     const [pulciniCheck] = await pool.execute(

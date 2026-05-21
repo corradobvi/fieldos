@@ -78585,6 +78585,7 @@ ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
+ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
   notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,
@@ -78601,7 +78602,7 @@ CREATE TABLE IF NOT EXISTS sessioni_libreria (
   descrizione        TEXT         NOT NULL,
   durata_minuti      SMALLINT     NOT NULL,
   categoria          ENUM('tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL,
-  eta_leva           ENUM('pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL,
+  eta_leva           ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL,
   tag                JSON         DEFAULT NULL,
   visibilita         ENUM('privata','pubblica') NOT NULL DEFAULT 'privata',
   ufficiale_myvivaio BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -86440,6 +86441,7 @@ var CATEGORIE_VALIDE = /* @__PURE__ */ new Set([
   "portieri"
 ]);
 var ETA_LEVA_VALIDE = /* @__PURE__ */ new Set([
+  "primi_calci",
   "pulcini",
   "esordienti",
   "giovanissimi",
@@ -87542,6 +87544,7 @@ var CATEGORIE_IT = {
   portieri: "Portieri"
 };
 var LEVE_IT = {
+  primi_calci: "Primi Calci (U6/U7)",
   pulcini: "Pulcini",
   esordienti: "Esordienti",
   giovanissimi: "Giovanissimi",
@@ -87721,7 +87724,7 @@ router28.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const { categoria, eta_leva, durata_minuti, obiettivi, salva_in_libreria } = req.body;
   const CATEGORIE_VALIDE2 = ["riscaldamento", "tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
-  const LEVE_VALIDE = ["pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
+  const LEVE_VALIDE = ["primi_calci", "pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
   if (!categoria || !CATEGORIE_VALIDE2.includes(categoria)) {
     return res.status(400).json({ error: "categoria non valida", valide: CATEGORIE_VALIDE2 });
   }
@@ -87846,7 +87849,7 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
     leva_id,
     data_allenamento
   } = req.body;
-  const LEVE_VALIDE = ["pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
+  const LEVE_VALIDE = ["primi_calci", "pulcini", "esordienti", "giovanissimi", "allievi", "juniores"];
   const CATEGORIE_VALIDE2 = ["riscaldamento", "tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
   if (!eta_leva || !LEVE_VALIDE.includes(eta_leva)) {
     return res.status(400).json({ error: "eta_leva non valida", valide: LEVE_VALIDE });
@@ -88040,6 +88043,19 @@ async function ensureSchema() {
     } catch (e) {
       logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
     }
+  }
+  try {
+    const [enumRows] = await pool.execute(
+      "SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='sessioni_libreria' AND COLUMN_NAME='eta_leva' AND TABLE_SCHEMA=DATABASE()"
+    );
+    if (enumRows.length && !String(enumRows[0].COLUMN_TYPE).includes("primi_calci")) {
+      await pool.execute(
+        "ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL"
+      );
+      logger.info("v2: eta_leva ENUM esteso con primi_calci");
+    }
+  } catch (e) {
+    logger.warn({ err: e?.message }, "v2: ENUM guard primi_calci fallito");
   }
   try {
     const [pulciniCheck] = await pool.execute(

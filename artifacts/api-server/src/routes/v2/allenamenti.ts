@@ -17,7 +17,7 @@ const CATEGORIE_VALIDE = new Set([
   "finalizzazione", "atletica_fisico", "portieri",
 ]);
 const ETA_LEVA_VALIDE = new Set([
-  "pulcini", "esordienti", "giovanissimi", "allievi", "juniores",
+  "primi_calci", "pulcini", "esordienti", "giovanissimi", "allievi", "juniores",
 ]);
 const RUOLI_GENITORE = new Set(["genitore", "giocatore", "nonno"]);
 

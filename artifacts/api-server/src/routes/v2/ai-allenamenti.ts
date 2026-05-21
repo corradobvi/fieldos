@@ -26,6 +26,7 @@ const CATEGORIE_IT: Record<string, string> = {
 };
 
 const LEVE_IT: Record<string, string> = {
+  primi_calci:  "Primi Calci (U6/U7)",
   pulcini:      "Pulcini",
   esordienti:   "Esordienti",
   giovanissimi: "Giovanissimi",
@@ -232,7 +233,7 @@ router.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   const { categoria, eta_leva, durata_minuti, obiettivi, salva_in_libreria } = req.body;
 
   const CATEGORIE_VALIDE = ["riscaldamento","tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
-  const LEVE_VALIDE      = ["pulcini","esordienti","giovanissimi","allievi","juniores"];
+  const LEVE_VALIDE      = ["primi_calci","pulcini","esordienti","giovanissimi","allievi","juniores"];
 
   if (!categoria || !CATEGORIE_VALIDE.includes(categoria)) {
     return res.status(400).json({ error: "categoria non valida", valide: CATEGORIE_VALIDE });
@@ -353,7 +354,7 @@ router.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
     salva_allenamento, leva_id, data_allenamento,
   } = req.body;
 
-  const LEVE_VALIDE = ["pulcini","esordienti","giovanissimi","allievi","juniores"];
+  const LEVE_VALIDE = ["primi_calci","pulcini","esordienti","giovanissimi","allievi","juniores"];
   const CATEGORIE_VALIDE = ["riscaldamento","tecnica_individuale","tattica","possesso_palla","finalizzazione","atletica_fisico","portieri"];
 
   if (!eta_leva || !LEVE_VALIDE.includes(eta_leva)) {

@@ -249,6 +249,7 @@ ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
+ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
   notify_convocazioni TINYINT(1) NOT NULL DEFAULT 1,
@@ -265,7 +266,7 @@ CREATE TABLE IF NOT EXISTS sessioni_libreria (
   descrizione        TEXT         NOT NULL,
   durata_minuti      SMALLINT     NOT NULL,
   categoria          ENUM('tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL,
-  eta_leva           ENUM('pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL,
+  eta_leva           ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL,
   tag                JSON         DEFAULT NULL,
   visibilita         ENUM('privata','pubblica') NOT NULL DEFAULT 'privata',
   ufficiale_myvivaio BOOLEAN      NOT NULL DEFAULT FALSE,
