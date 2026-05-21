@@ -1125,6 +1125,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .tb-bell-btn:active{background:var(--cl);}
 .tb-bell-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--white);display:none;}
 .tb-bell-btn.on{display:flex;}
+/* Giocatori sub-tab nav (mister mobile) */
+.gioc-subnav{display:none;gap:0;margin:-12px -16px 14px;border-bottom:2px solid var(--border);background:var(--white);overflow:hidden;}
+.gioc-subnav .gsnb{flex:1;border:none;background:none;padding:11px 4px 10px;font-size:.78rem;font-weight:700;color:var(--text3);cursor:pointer;letter-spacing:.2px;transition:color .12s;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.gioc-subnav .gsnb.on{color:var(--cp);border-bottom-color:var(--cp);}
+.gioc-subnav .gsnb:active{background:var(--bg2);}
+/* Giocatori landing cards */
+.gioc-lcard{display:flex;align-items:center;gap:14px;padding:16px;background:var(--white);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s;text-align:left;width:100%;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.gioc-lcard:active{border-color:var(--cp);box-shadow:0 2px 12px rgba(var(--cp-rgb),.12);}
+.gioc-lcard-ic{font-size:2rem;flex-shrink:0;width:44px;text-align:center;}
+.gioc-lcard-body{flex:1;}
+.gioc-lcard-title{font-size:.95rem;font-weight:700;color:var(--text1);margin-bottom:2px;}
+.gioc-lcard-sub{font-size:.79rem;color:var(--text3);}
 /* Mister home cards */
 .mi-hero{border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;}
 .mi-hero-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;opacity:.82;margin-bottom:6px;font-weight:700;}
@@ -1157,6 +1169,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .sc-pi{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:11px;border:2px solid var(--border);cursor:pointer;background:transparent;transition:border-color .13s,background .13s;-webkit-tap-highlight-color:transparent;user-select:none;}
 .sc-pi.sel{border-color:var(--cp);background:var(--cl);}
 .sc-pi:active{background:var(--border);}
+.sc-pi-locked{opacity:.55;cursor:default;}
 /* ═══════════════════════════════════════════
    MOBILE LAYOUT (≤640px)
    ═══════════════════════════════════════════ */
@@ -2554,6 +2567,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
       <!-- ROSA -->
       <div class="page" id="pg-rosa">
+        <nav class="gioc-subnav" id="gsnRosa">
+          <button class="gsnb" data-gt="presenze" onclick="goTo('presenze')">✅ Presenze</button>
+          <button class="gsnb" data-gt="convocazioni" onclick="goTo('convocazioni')">📋 Convocazioni</button>
+          <button class="gsnb on" data-gt="rosa">👥 Rosa</button>
+        </nav>
         <div class="sec-h"><div class="sec-t">👥 Rosa Giocatori</div><div id="rosaActions"></div></div>
         <div id="rosaTabs"></div>
         <div id="rosaLimitBar"></div>
@@ -2562,18 +2580,34 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
       <!-- CONVOCAZIONI -->
       <div class="page" id="pg-convocazioni">
+        <nav class="gioc-subnav" id="gsnConv">
+          <button class="gsnb" data-gt="presenze" onclick="goTo('presenze')">✅ Presenze</button>
+          <button class="gsnb on" data-gt="convocazioni">📋 Convocazioni</button>
+          <button class="gsnb" data-gt="rosa" onclick="goTo('rosa')">👥 Rosa</button>
+        </nav>
         <div class="sec-h"><div class="sec-t">📋 Convocazioni</div><div id="convActions"></div></div>
         <div id="convContent"></div>
       </div>
 
       <!-- PRESENZE -->
       <div class="page" id="pg-presenze">
+        <nav class="gioc-subnav" id="gsnPres">
+          <button class="gsnb on" data-gt="presenze">✅ Presenze</button>
+          <button class="gsnb" data-gt="convocazioni" onclick="goTo('convocazioni')">📋 Convocazioni</button>
+          <button class="gsnb" data-gt="rosa" onclick="goTo('rosa')">👥 Rosa</button>
+        </nav>
         <div class="sec-h">
           <div class="sec-t">✅ Registro Presenze</div>
           <div id="presActions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"></div>
         </div>
         <div id="presenzeTabs"></div>
         <div id="presContent"></div>
+      </div>
+
+      <!-- GIOCATORI (landing mobile mister) -->
+      <div class="page" id="pg-giocatori">
+        <div class="sec-h"><div class="sec-t">⚽ Giocatori</div></div>
+        <div id="giocatoriContent"></div>
       </div>
 
       <!-- STATISTICHE -->
@@ -4826,9 +4860,9 @@ function buildMobNav(role) {
     // Mister (o admin che è anche mister per la leva corrente): 4 tab operativi
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
-      {id:'chat',         ic:'💬', lb:'Chat',        badge:'mn-chat'},
-      {id:'presenze',     ic:'✅', lb:'Presenze'},
-      {id:'convocazioni', ic:'📋', lb:'Convocaz.'},
+      {id:'chat',         ic:'💬', lb:'Chat',     badge:'mn-chat'},
+      {id:'allenamenti',  ic:'🏃', lb:'Allenam.'},
+      {id:'giocatori',    ic:'⚽', lb:'Giocatori'},
     ];
   } else {
     items = MOB_NAV_ITEMS;
@@ -4844,8 +4878,11 @@ function buildMobNav(role) {
   });
 }
 function updateMobNav(pgId) {
+  const _giocPages = new Set(['giocatori','presenze','convocazioni','rosa']);
   document.querySelectorAll('#mobNav .mob-ni').forEach(n => {
-    n.classList.toggle('on', n.dataset.pg === pgId);
+    const match = n.dataset.pg === pgId ||
+      (n.dataset.pg === 'giocatori' && _giocPages.has(pgId));
+    n.classList.toggle('on', match);
   });
 }
 function refreshMobBadges() {
@@ -4950,6 +4987,13 @@ function goTo(pgId) {
     if (pgId === 'statistiche')  renderStats();
   }
   if (pgId === 'convocazioni') renderConvocazioni();
+  if (pgId === 'giocatori') renderGiocatori();
+  // Gioc-subnav: show for mister on presenze/convocazioni/rosa
+  const _gsnPages = ['presenze','convocazioni','rosa'];
+  const _isMisterRole = me && (me.role === 'allenatore' || me.role === 'mister_admin' ||
+    (me.role === 'admin' && isAdminMisterForLeva(currentLeva)));
+  const _showGsn = _isMisterRole && _gsnPages.includes(pgId);
+  document.querySelectorAll('.gioc-subnav').forEach(el => { el.style.display = _showGsn ? 'flex' : 'none'; });
   if (pgId === 'comunicazioni') renderComunicazioni();
   if (pgId === 'impostazioni') {
     if (!me) return;
@@ -5067,6 +5111,43 @@ function goTo(pgId) {
   if (pgId === 'documenti') renderDocumenti();
   if (pgId === 'allenamenti') renderAllenamenti();
   if (pgId === 'profilo') renderProfilo();
+}
+
+function renderGiocatori() {
+  const el = document.getElementById('giocatoriContent');
+  if (!el || !me) return;
+  const lv = currentLeva || '';
+  const pCount = players.filter(p => (!lv || p.leva === lv) && !p.archiviato).length;
+  const pLabel = pCount === 1 ? '1 giocatore' : pCount + ' giocatori';
+  const levaLabel = lv ? ' · Leva ' + lv : '';
+  el.innerHTML = `
+    <div style="font-size:.88rem;color:var(--text2);margin-bottom:20px;">Cosa vuoi fare?</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="gioc-lcard" onclick="goTo('presenze')">
+        <span class="gioc-lcard-ic">✅</span>
+        <div class="gioc-lcard-body">
+          <div class="gioc-lcard-title">Segna presenze</div>
+          <div class="gioc-lcard-sub">Allenamento o partita di oggi</div>
+        </div>
+        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+      </button>
+      <button class="gioc-lcard" onclick="goTo('convocazioni')">
+        <span class="gioc-lcard-ic">📋</span>
+        <div class="gioc-lcard-body">
+          <div class="gioc-lcard-title">Gestisci convocazioni</div>
+          <div class="gioc-lcard-sub">Convoca per prossimi eventi</div>
+        </div>
+        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+      </button>
+      <button class="gioc-lcard" onclick="goTo('rosa')">
+        <span class="gioc-lcard-ic">👥</span>
+        <div class="gioc-lcard-body">
+          <div class="gioc-lcard-title">Gestisci rosa</div>
+          <div class="gioc-lcard-sub">${pLabel}${levaLabel}</div>
+        </div>
+        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+      </button>
+    </div>`;
 }
 
 function renderProfilo() {
@@ -11838,14 +11919,17 @@ function renderPanoramica() {
 
 // ─── Mister home: shared config ──────────────────────────────────────────────
 var _MISTER_SC_ALL = {
-  presenze:     {ic:'✅',lb:'Presenze',    action:"goTo('presenze')"},
-  rosa:         {ic:'👥',lb:'Rosa',        action:"goTo('rosa')"},
-  convocazioni: {ic:'📋',lb:'Convocazioni',action:"goTo('convocazioni')"},
-  calendario:   {ic:'📅',lb:'Calendario', action:"goTo('calendario')"},
-  partite:      {ic:'⚽',lb:'Partite',     action:"goTo('partite')"},
-  statistiche:  {ic:'📊',lb:'Statistiche',action:"goTo('statistiche')"},
-  comunicazioni:{ic:'📣',lb:'Avvisi',      action:"goTo('comunicazioni')"},
-  gestcomp:     {ic:'🗂️',lb:'Competizioni',action:"goTo('gestcomp')"},
+  presenze:          {ic:'✅',lb:'Presenze',         action:"goTo('presenze')"},
+  rosa:              {ic:'👥',lb:'Rosa',             action:"goTo('rosa')"},
+  convocazioni:      {ic:'📋',lb:'Convocazioni',     action:"goTo('convocazioni')"},
+  calendario:        {ic:'📅',lb:'Calendario',       action:"goTo('calendario')"},
+  partite:           {ic:'⚽',lb:'Partite',           action:"goTo('partite')"},
+  statistiche:       {ic:'📊',lb:'Statistiche',      action:"goTo('statistiche')"},
+  comunicazioni:     {ic:'📣',lb:'Avvisi',           action:"goTo('comunicazioni')"},
+  gestcomp:          {ic:'🗂️',lb:'Competizioni',     action:"goTo('gestcomp')"},
+  allenamenti:       {ic:'🏃',lb:'Allenamenti',      action:"goTo('allenamenti')",pianoMin:'mister_pro'},
+  nuovo_allenamento: {ic:'➕',lb:'Nuovo allenamento', action:"goTo('allenamenti');setTimeout(()=>openNuovoAllenamento&&openNuovoAllenamento(),200)",pianoMin:'mister_pro'},
+  libreria_esercizi: {ic:'📚',lb:'Libreria esercizi',action:"goTo('allenamenti');setTimeout(()=>switchAllTab&&switchAllTab('libreria'),200)",pianoMin:'mister_pro'},
 };
 var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
 
@@ -11989,6 +12073,13 @@ function buildMobDashboardAllenatore(c) {
 
 // ─── Shortcut Picker ─────────────────────────────────────────────────────────
 
+function _scPickPlanLocked(cfg) {
+  if (!cfg.pianoMin) return false;
+  var _soc = saSocieties.find(function(x){return x.id===currentSocietaId;});
+  var _eff = getEffectivePlan(_soc);
+  return (typeof isSectionLocked === 'function') && isSectionLocked('allenamenti', _soc) && cfg.pianoMin === 'mister_pro';
+}
+
 function openMisterShortcutPicker() {
   if (document.getElementById('scPickerOv')) return;
   var current=_misterGetShortcuts().filter(Boolean);
@@ -11996,10 +12087,13 @@ function openMisterShortcutPicker() {
   var allIds=Object.keys(_MISTER_SC_ALL);
   var itemsHtml=allIds.map(function(id){
     var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
-    return '<div class="sc-pi'+(sel?' sel':'')+'" id="scpi_'+id+'" onclick="toggleScPick(\''+id+'\')">'
+    var locked=_scPickPlanLocked(cfg);
+    var proTag=cfg.pianoMin?'<span style="font-size:.64rem;font-weight:800;background:var(--ca);color:var(--ca-text);border-radius:4px;padding:1px 5px;flex-shrink:0;">PRO</span>':'';
+    return '<div class="sc-pi'+(sel?' sel':'')+(locked?' sc-pi-locked':'')+'" id="scpi_'+id+'" onclick="'+(locked?'':('toggleScPick(\''+id+'\')'))+(locked?'toast(\'🔒 Disponibile con Mister Pro\')':'')+'">'
       +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
       +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
-      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;"></span>')
+      +proTag
+      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;margin-left:4px;"></span>')
       +'</div>';
   }).join('');
   var el=document.createElement('div');
@@ -12630,11 +12724,13 @@ function buildDashboard(role) {
     const ntD=panoNextTrainingsForLeva(lv,3);
     const ntDHtml=ntD.length?ntD.map(ds=>{const d=parseYmd(ds);const iT=ds===todayStr;const lbl=iT?'Oggi':d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'});return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);"><span>🏃</span><div style="flex:1;font-size:.84rem;font-weight:${iT?'700':'400'};">${lbl}</div>${iT?`<button class="btn btn-p btn-sm" onclick="goTo('presenze')">Registro</button>`:''}</div>`;}).join(''):'<div style="font-size:.82rem;color:var(--text2);font-style:italic;padding:4px;">Nessun allenamento programmato.</div>';
 
-    // Plan card
+    // Piano e card allenamenti
     const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
     const _planD=_socD?getEffectivePlan(_socD):'mister';
     const isProD=_planD==='mister_pro'||_planD==='societa';
-    const allenCardD=`<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🏃</div><div style="font-size:.88rem;font-weight:700;">In arrivo a settembre 2026</div>${isProD?`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Incluso nel tuo piano ${_planD==='societa'?'Società':'Mister Pro'}</div>`:`<div style="font-size:.76rem;color:var(--text2);margin-top:4px;">Disponibile con Mister Pro e Società</div>`}</div></div>`;
+    // Per pro: link reale ad allenamenti; per base: placeholder upgrade
+    const allenCardD=isProD ? '' :
+      `<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🔒</div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" onclick="openUpgradePopup('allenamenti')">🚀 Scopri Mister Pro →</button></div></div>`;
 
     c.innerHTML = dHeroHtml
       +`<div class="g2">`
