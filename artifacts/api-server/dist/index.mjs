@@ -78718,7 +78718,8 @@ CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
 ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
 UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0;
 ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL;
-ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL
+ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL;
+ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -82463,7 +82464,7 @@ async function compattaOrdini(conn, allenamentoId) {
 }
 async function snapshotDaLibreria(conn, sessioneLibreriaId, userId) {
   const [rows] = await conn.execute(
-    `SELECT titolo, descrizione, durata_minuti, categoria, tag, visibilita, ufficiale_myvivaio, mister_id
+    `SELECT titolo, descrizione, durata_minuti, categoria, tag, visibilita, ufficiale_myvivaio, mister_id, note
      FROM sessioni_libreria WHERE id = ?`,
     [sessioneLibreriaId]
   );
@@ -82944,7 +82945,7 @@ router27.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermissi
 router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { id } = req.params;
-  const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine } = req.body;
+  const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine, note_snapshot } = req.body;
   const conn = await pool.getConnection();
   try {
     const [check] = await conn.execute(
@@ -82970,7 +82971,7 @@ router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modif
         conn.release();
         return res.status(400).json({ error: "campi_sessione_obbligatori" });
       }
-      snap = { titolo, descrizione, durata_minuti: parseInt(durata_minuti), categoria, tag: tag ?? [] };
+      snap = { titolo, descrizione, durata_minuti: parseInt(durata_minuti), categoria, tag: tag ?? [], note: null };
     }
     let newOrdine;
     if (ordine !== void 0) {
@@ -82988,11 +82989,12 @@ router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modif
     }
     const sessioneId = randomUUID();
     const tagSnap = Array.isArray(snap.tag) ? snap.tag : [];
+    const noteSnap = typeof note_snapshot === "string" && note_snapshot.trim() ? note_snapshot.trim() : snap.note ?? null;
     await conn.execute(
       `INSERT INTO allenamento_sessioni
          (id, allenamento_id, sessione_libreria_id, ordine, titolo_snapshot, descrizione_snapshot,
-          durata_minuti_snapshot, categoria_snapshot, tag_snapshot)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          durata_minuti_snapshot, categoria_snapshot, tag_snapshot, note_snapshot)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         sessioneId,
         id,
@@ -83002,7 +83004,8 @@ router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modif
         snap.descrizione,
         snap.durata_minuti,
         snap.categoria,
-        tagSnap.length ? JSON.stringify(tagSnap) : null
+        tagSnap.length ? JSON.stringify(tagSnap) : null,
+        noteSnap
       ]
     );
     if (sessione_libreria_id) {
@@ -83041,7 +83044,7 @@ router27.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePerm
       conn.release();
       return res.status(404).json({ error: "not_found" });
     }
-    const { titolo_snapshot, descrizione_snapshot, durata_minuti_snapshot, categoria_snapshot, tag_snapshot, ordine } = req.body;
+    const { titolo_snapshot, descrizione_snapshot, durata_minuti_snapshot, categoria_snapshot, tag_snapshot, note_snapshot, ordine } = req.body;
     const updates = [];
     const params = [];
     if (titolo_snapshot !== void 0) {
@@ -83063,6 +83066,10 @@ router27.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePerm
     if (tag_snapshot !== void 0) {
       updates.push("tag_snapshot = ?");
       params.push(JSON.stringify(tag_snapshot));
+    }
+    if (note_snapshot !== void 0) {
+      updates.push("note_snapshot = ?");
+      params.push(typeof note_snapshot === "string" && note_snapshot.trim() ? note_snapshot.trim() : null);
     }
     await conn.beginTransaction();
     if (ordine !== void 0) {

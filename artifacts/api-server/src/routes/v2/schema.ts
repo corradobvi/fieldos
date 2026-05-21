@@ -387,7 +387,8 @@ CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
 ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
 UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0;
 ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL;
-ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL
+ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL;
+ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL
 `;
 
 export const SEED_SQL = `
