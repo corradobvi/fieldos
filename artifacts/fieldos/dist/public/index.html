@@ -2640,9 +2640,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="page" id="pg-impostazioni">
         <div class="sec-h"><div class="sec-t">⚙️ Impostazioni Società</div></div>
         <div class="g2">
-          <div class="card"><div class="ch"><div class="ct">🏟 Dati società</div></div>
+          <div class="card" id="datiSocCard">
+            <div class="ch"><div class="ct">🏟 Dati società</div></div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+              <div id="impLogoPrev" style="width:56px;height:56px;border-radius:12px;background:var(--bg);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0;">🏟</div>
+              <div id="impLogoActions" style="display:none;">
+                <div style="font-size:.75rem;color:var(--text2);margin-bottom:6px;">Logo squadra (JPG/PNG, max 1MB)</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <label class="btn btn-g btn-sm" style="cursor:pointer;margin:0;">📷 Carica logo<input type="file" id="impLogoFile" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="_handleLogoUpload(this)"></label>
+                  <button class="btn btn-g btn-sm" id="impLogoRemoveBtn" style="display:none;" onclick="_removeLogo()">✕ Rimuovi</button>
+                </div>
+              </div>
+            </div>
             <div class="fg"><label class="fl">Nome società</label><input class="fi" id="impSocNome" readonly></div>
             <div class="fg"><label class="fl">Città</label><input class="fi" id="impSocCitta" readonly></div>
+            <div id="impDatiSocActions" style="display:none;margin-top:4px;">
+              <div id="impDatiSocErr" style="color:#c0392b;font-size:.82rem;min-height:14px;margin-bottom:6px;"></div>
+              <button class="btn btn-p btn-sm" style="width:100%;" onclick="saveDatiSocieta()">💾 Salva dati società</button>
+            </div>
           </div>
           <div class="card" id="colorCard">
             <div class="ch"><div class="ct">🎨 Personalizzazione colori</div></div>
@@ -4540,10 +4555,8 @@ async function doLogin() {
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
-      // FIX 3: salva metadati freschi da MySQL (piano/billingMode sorgente di verità)
-      if (data.societyPiano || data.societyBillingMode) {
-        currentSocietyMeta = { piano: data.societyPiano || null, billingMode: data.societyBillingMode || null };
-      }
+      // FIX 3: salva metadati freschi da MySQL (piano/billingMode/logoUrl sorgente di verità)
+      currentSocietyMeta = { piano: data.societyPiano || null, billingMode: data.societyBillingMode || null, logoUrl: data.logoUrl || null };
       if (typeof window.__fieldosSetSocietaKey === 'function') {
         if (data.stateJson) {
           // ORDINE CRITICO: scrivi in localStorage PRIMA di chiamare __fieldosSetSocietaKey,
@@ -4724,6 +4737,7 @@ function bootApp(user) {
     document.getElementById('app').classList.add('on');
     const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
     applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
+    _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
     // Mister/Allenatore: home operativa diretta, non la panoramica società
     goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
@@ -4997,6 +5011,17 @@ function goTo(pgId) {
     if (_iColore)  _iColore.value  = _hexRe.test(_cpVal) ? _cpVal : '#047857';
     if (_iAccento) _iAccento.value = _hexRe.test(_caVal) ? _caVal : '#FFD93D';
     renderColorPreview();
+    // Dati società: admin può modificare nome, città e logo
+    const _isAdmForDati = isAdminLike();
+    const _impNEl = document.getElementById('impSocNome');
+    const _impCEl = document.getElementById('impSocCitta');
+    const _impDatiActEl = document.getElementById('impDatiSocActions');
+    const _impLogoActEl = document.getElementById('impLogoActions');
+    if (_impNEl) _impNEl.readOnly = !_isAdmForDati;
+    if (_impCEl) _impCEl.readOnly = !_isAdmForDati;
+    if (_impDatiActEl) _impDatiActEl.style.display = _isAdmForDati ? '' : 'none';
+    if (_impLogoActEl) _impLogoActEl.style.display = _isAdmForDati ? '' : 'none';
+    if (_isAdmForDati) _impLoadLogoPreview();
     const _colorCardEl = document.getElementById('colorCard');
     if (_colorCardEl) _colorCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
     const _iTipoColor = document.getElementById('newTipoColor');
@@ -18418,10 +18443,129 @@ function saveImpostazioni() {
   const aHex = document.getElementById('impAccento')?.value || coloriAccento;
   const _utSoc = saSocieties.find(x => x.id === currentSocietaId);
   applyBranding(_utSoc ? _utSoc.nome : nomeSocieta, pHex, aHex);
+  _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
   const _siSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (_siSoc) { _siSoc.colori = pHex; _siSoc.coloriAccento = aHex; saSaveState(); }
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('✅ Colori salvati!');
+}
+
+// ── Dati società: logo + nome + città ──────────────────────────────────────
+let _impLogoDataUrl = null;
+let _impLogoRemoved = false;
+
+function _applySocLogo(logoUrl) {
+  const crest = document.getElementById('tbCrest');
+  if (!crest) return;
+  if (logoUrl) {
+    crest.style.overflow = 'hidden';
+    crest.style.padding  = '0';
+    crest.innerHTML = '<img src="' + logoUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;" onerror="this.parentElement.innerHTML=\'?\';">';
+  } else {
+    crest.innerHTML = '';
+    const nomeTb = (document.getElementById('tbClub') || {}).textContent || nomeSocieta || '';
+    const sigla = nomeTb.replace(/^A\.?S\.?D\.?\s*/i,'').trim().split(/\s+/).slice(0,2).map(function(w){return w[0]?w[0].toUpperCase():'';}).join('');
+    crest.textContent = sigla || nomeTb.slice(0,2).toUpperCase() || '?';
+  }
+}
+
+function _impUpdateLogoPreview(url) {
+  const prev = document.getElementById('impLogoPrev');
+  const removeBtn = document.getElementById('impLogoRemoveBtn');
+  if (!prev) return;
+  if (url) {
+    prev.innerHTML = '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.innerHTML=\'🏟\';">';
+    if (removeBtn) removeBtn.style.display = '';
+  } else {
+    prev.innerHTML = '🏟';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+function _impLoadLogoPreview() {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  fetch(API_BASE + '/api/v2/society', { headers: { 'Authorization': 'Bearer ' + _v2Token } })
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (!d) return;
+      const nEl = document.getElementById('impSocNome');
+      const cEl = document.getElementById('impSocCitta');
+      if (nEl && !nEl.readOnly) nEl.value = d.nome || '';
+      else if (nEl) nEl.value = d.nome || '';
+      if (cEl && !cEl.readOnly) cEl.value = d.citta || '';
+      else if (cEl) cEl.value = d.citta || '';
+      _impLogoDataUrl = null;
+      _impLogoRemoved = false;
+      _impUpdateLogoPreview(d.logo_url || null);
+    })
+    .catch(function() {});
+}
+
+function _handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 1024 * 1024) { toast('⚠️ Immagine troppo grande. Max 1MB.'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const MAX = 300;
+      if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      _impLogoDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      _impLogoRemoved = false;
+      _impUpdateLogoPreview(_impLogoDataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function _removeLogo() {
+  _impLogoDataUrl = null;
+  _impLogoRemoved = true;
+  _impUpdateLogoPreview(null);
+  const fi = document.getElementById('impLogoFile');
+  if (fi) fi.value = '';
+}
+
+async function saveDatiSocieta() {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
+  const nome  = (document.getElementById('impSocNome')  ? document.getElementById('impSocNome').value  : '').trim();
+  const citta = (document.getElementById('impSocCitta') ? document.getElementById('impSocCitta').value : '').trim();
+  const errEl = document.getElementById('impDatiSocErr');
+  if (errEl) errEl.textContent = '';
+  if (nome.length < 2) { if (errEl) errEl.textContent = '⚠️ Nome troppo corto (minimo 2 caratteri).'; return; }
+  const body = { nome: nome, citta: citta || null };
+  if (_impLogoDataUrl) body.logoUrl = _impLogoDataUrl;
+  else if (_impLogoRemoved) body.logoUrl = '';
+  try {
+    const r = await fetch(API_BASE + '/api/v2/society', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(function(){return {};});
+      if (errEl) errEl.textContent = '❌ ' + (d.error || 'Errore server');
+      return;
+    }
+    const d = await r.json();
+    nomeSocieta = d.nome || nome;
+    if (currentSocietyMeta) currentSocietyMeta.logoUrl = d.logo_url || null;
+    const _soc = saSocieties.find(function(x){return x.id===currentSocietaId;});
+    if (_soc) { _soc.nome = nomeSocieta; if (citta) _soc.citta = citta; }
+    applyBranding(nomeSocieta, coloriPrimari, coloriAccento);
+    _applySocLogo(d.logo_url || null);
+    _impLogoDataUrl = null;
+    _impLogoRemoved = false;
+    toast('✅ Dati società salvati');
+  } catch(e) { if (errEl) errEl.textContent = '❌ ' + e.message; }
 }
 
 // Wire up "Aggiungi utente" button in impostazioni
