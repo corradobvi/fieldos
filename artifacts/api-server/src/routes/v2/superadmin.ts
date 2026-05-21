@@ -455,7 +455,8 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 });
 
 // TEMPORARY — verify juniores seed
-router.get("/superadmin/verify-juniores", saAuth, async (_req, res) => {
+router.get("/superadmin/verify-juniores", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   try {
     const [rows] = await pool.execute(
       "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='juniores' GROUP BY categoria ORDER BY categoria"
