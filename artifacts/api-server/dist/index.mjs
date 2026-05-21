@@ -83735,20 +83735,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/superadmin/verify-esordienti", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [countRow] = await pool.execute(
-      "SELECT COUNT(*) AS totale_esordienti FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='esordienti'"
-    );
-    const [catRows] = await pool.execute(
-      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='esordienti' GROUP BY categoria ORDER BY categoria"
-    );
-    return res.json({ totale_esordienti: countRow[0].totale_esordienti, per_categoria: catRows });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
@@ -84035,7 +84021,8 @@ router27.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => 
     conditions.push("sl.mister_id = ?");
     params.push(userId);
   } else if (ambito === "community") {
-    conditions.push("sl.visibilita = 'pubblica' AND sl.ufficiale_myvivaio = FALSE");
+    conditions.push("sl.visibilita = 'pubblica' AND sl.ufficiale_myvivaio = FALSE AND sl.mister_id != ?");
+    params.push(userId);
   } else if (ambito === "ufficiali") {
     conditions.push("sl.ufficiale_myvivaio = TRUE");
   } else {
@@ -84791,7 +84778,7 @@ var import_express28 = __toESM(require_express2(), 1);
 // src/lib/ai-claude.ts
 var API_URL = "https://api.anthropic.com/v1/messages";
 var API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
-var AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-5-20250929";
+var AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
 async function chiamataClaude({
   systemPrompt,
   userPrompt,
