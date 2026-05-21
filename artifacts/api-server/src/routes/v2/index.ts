@@ -101,22 +101,26 @@ router.get("/schema-info", async (_req, res) => {
   }
 });
 
-// GET /api/v2/health/allenamenti-tables — verifica creazione tabelle allenamenti (temp diagnostic)
-router.get("/health/allenamenti-tables", async (_req, res) => {
+
+// GET /api/v2/health/owner-backfill — TEMP diagnostic: verifica backfill is_account_owner
+router.get("/health/owner-backfill", async (_req, res) => {
   try {
-    const tables = [
-      "sessioni_libreria", "allenamenti", "allenamento_sessioni",
-      "allenamento_note_vocali", "ai_budget_utilizzo", "ai_richieste_log", "ai_societa_allowlist",
-    ];
-    const results: Record<string, boolean> = {};
-    for (const t of tables) {
-      const [rows] = await pool.execute(`SHOW TABLES LIKE '${t}'`) as [any[], any];
-      results[t] = rows.length > 0;
-    }
-    const allOk = Object.values(results).every(Boolean);
-    return res.json({ ok: allOk, tables: results });
+    const [rows] = await pool.execute(`
+      SELECT s.id, s.nome, s.piano,
+             COUNT(u.id) AS admin_count,
+             SUM(CASE WHEN u.is_account_owner = 1 THEN 1 ELSE 0 END) AS owner_count,
+             GROUP_CONCAT(CONCAT(u.email,'(owner=',u.is_account_owner,')')
+                          ORDER BY u.created_at SEPARATOR ' | ') AS admins
+      FROM societies s
+      JOIN users u ON u.society_id = s.id
+      WHERE u.ruolo = 'admin'
+      GROUP BY s.id, s.nome, s.piano
+      HAVING SUM(CASE WHEN u.is_account_owner = 1 THEN 1 ELSE 0 END) != 1
+      ORDER BY s.id
+    `) as [any[], any];
+    return res.json({ anomalies: rows.length, rows });
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: e?.message });
+    return res.status(500).json({ error: e?.message });
   }
 });
 
