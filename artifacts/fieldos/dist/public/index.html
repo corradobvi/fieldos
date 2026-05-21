@@ -14129,7 +14129,7 @@ function userLeve(){
   if (l === 'Tutte' || l === 'tutte') return leve.slice();
   return l ? [l] : [];
 }
-function canEditCalendar(){ return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri'); }
+function canEditCalendar(){ return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || isAdminMisterForLeva(currentLeva)); }
 function canEditEvent(ev){
   if (!me) return false;
   if (isAdminLike()) return true;
