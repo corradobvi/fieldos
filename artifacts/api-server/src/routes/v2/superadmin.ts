@@ -454,4 +454,24 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
+// GET /api/v2/superadmin/verify-pulcini — TEMPORANEO: verifica seed sessioni Pulcini
+// DA RIMUOVERE dopo verifica avvenuta
+router.get("/superadmin/verify-pulcini", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [countRow] = await pool.execute(
+      "SELECT COUNT(*) AS totale_pulcini FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='pulcini'"
+    ) as [any[], any];
+    const [catRows] = await pool.execute(
+      "SELECT categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='pulcini' GROUP BY categoria ORDER BY categoria"
+    ) as [any[], any];
+    return res.json({
+      totale_pulcini: countRow[0].totale_pulcini,
+      per_categoria: catRows,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
+
 export default router;

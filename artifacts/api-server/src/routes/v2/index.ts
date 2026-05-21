@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { SCHEMA_SQL, SEED_SQL, MIGRATIONS_SQL } from "./schema";
+import { SCHEMA_SQL, SEED_SQL, MIGRATIONS_SQL, PULCINI_SEED_SQL } from "./schema";
 import authRouter          from "./auth";
 import selfRegisterRouter  from "./self-register";
 import societyRouter       from "./society";
@@ -55,6 +55,24 @@ async function ensureSchema() {
     } catch (e: any) {
       logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
     }
+  }
+
+  // Pulcini official seed — run only when count < 70 (idempotent via NOT EXISTS guards)
+  try {
+    const [pulciniCheck] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE AND eta_leva='pulcini'"
+    ) as [any[], any];
+    if ((pulciniCheck[0].n ?? 0) < 70) {
+      const pulciniStatements = PULCINI_SEED_SQL.split(";").map((s: string) => s.trim()).filter(Boolean);
+      for (const sql of pulciniStatements) {
+        await pool.execute(sql).catch((e: any) => {
+          logger.warn({ err: e?.message?.slice(0, 100) }, "pulcini seed warning");
+        });
+      }
+      logger.info("v2: pulcini official sessions seeded");
+    }
+  } catch (e: any) {
+    logger.warn({ err: e?.message }, "v2: pulcini seed skipped (table not ready yet)");
   }
 
   // Seed only if no societies exist yet
