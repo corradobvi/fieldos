@@ -16636,7 +16636,7 @@ function openRisultato(tipo, ref) {
     leva  = match && match.leva;
   } else if (tipo === 'campionato') {
     const camp = campionato[currentLeva];
-    match = camp && camp.partite.find(m => m.id === ref);
+    match = camp && (camp.partite||[]).find(m => m.id === ref);
     leva  = currentLeva;
   } else if (tipo === 'torneo') {
     const parts = String(ref).split('__');
