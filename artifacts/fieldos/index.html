@@ -17677,8 +17677,9 @@ function savePtFase() {
   const extra = sqRaw.split('\n').map(s=>s.trim()).filter(Boolean);
   const squadre = [polisName(t.leva), ...extra.filter(s => s !== polisName(t.leva))];
   t.fasi.push({id:'f'+nextFaseId++, nome, tipo, squadre, partite:[]});
+  window.__fieldosSaveState();
   closeM('mPtFase');
-  renderPartite();
+  renderGestComp(); renderPartite(); renderCal();
   toast(`✅ Fase "${nome}" aggiunta!`);
 }
 function openPtFaseMatch(torneoId, faseId) {
@@ -17705,8 +17706,9 @@ function savePtFaseMatch() {
   const f = t && t.fasi.find(x => x.id === fid);
   if (!f) return;
   f.partite.push({id:'tm'+nextTornMatchId++, data, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+  window.__fieldosSaveState();
   closeM('mPtFaseMatch');
-  renderPartite();
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Partita aggiunta!');
 }
 
