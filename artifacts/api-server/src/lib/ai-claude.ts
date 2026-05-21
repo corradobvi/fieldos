@@ -3,6 +3,7 @@ import { logger } from "./logger";
 const API_URL  = "https://api.anthropic.com/v1/messages";
 const API_KEY  = process.env.ANTHROPIC_API_KEY ?? "";
 export const AI_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
+// v2 — force Railway redeploy to inject ANTHROPIC_API_KEY
 
 export interface ChiamataClaudeResult {
   testo: string;
