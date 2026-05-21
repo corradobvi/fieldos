@@ -62,15 +62,18 @@ router.post("/login", async (req, res) => {
       return { state, stateKey, societyId, user, stateJson: stateRows[0].state_json as string };
     }
 
-    // Helper: query MySQL per stato/piano/billing_mode di una società
+    // Helper: query MySQL per stato/piano/billing_mode/branding di una società
     async function _mysqlSocietyCheck(societyId: number): Promise<{
       ok: boolean; error?: string; message?: string;
       piano?: string | null; billingMode?: string | null;
+      colorePrimario?: string | null; coloreAccento?: string | null;
+      logoUrl?: string | null; nomeSocieta?: string | null;
+      citta?: string | null; codiceSocieta?: string | null;
     }> {
       if (societyId <= 0) return { ok: true };
       try {
         const [rows] = (await pool.execute(
-          "SELECT stato, piano, billing_mode FROM societies WHERE id = ? LIMIT 1",
+          "SELECT stato, piano, billing_mode, colore_primario, colore_accento, logo_url, nome, citta, codice FROM societies WHERE id = ? LIMIT 1",
           [societyId]
         )) as [any[], any];
         if (!rows.length) return { ok: true }; // blob-only society, allow
@@ -79,7 +82,17 @@ router.post("/login", async (req, res) => {
         if (msStato === 'sospesa')  return { ok: false, error: "society_suspended",  message: "La società è sospesa. Contatta il supporto." };
         if (msStato === 'archiviata') return { ok: false, error: "society_archived", message: "La società è archiviata. Contatta il supporto." };
         if (msStato !== 'attiva')   return { ok: false, error: "society_suspended",  message: "La società non è attiva. Contatta il supporto." };
-        return { ok: true, piano: ms.piano ?? null, billingMode: ms.billing_mode ?? null };
+        return {
+          ok: true,
+          piano: ms.piano ?? null,
+          billingMode: ms.billing_mode ?? null,
+          colorePrimario: ms.colore_primario ?? null,
+          coloreAccento:  ms.colore_accento  ?? null,
+          logoUrl:        ms.logo_url        ?? null,
+          nomeSocieta:    ms.nome            ?? null,
+          citta:          ms.citta           ?? null,
+          codiceSocieta:  ms.codice          ?? null,
+        };
       } catch {
         return { ok: true }; // DB error: allow login, don't lock users out
       }
@@ -134,6 +147,12 @@ router.post("/login", async (req, res) => {
         user: { ...found.user, is_account_owner: _pc.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck.piano ?? null, societyBillingMode: msCheck.billingMode ?? null,
+        societyColorePrimario: msCheck.colorePrimario ?? null,
+        societyColoreAccento:  msCheck.coloreAccento  ?? null,
+        societyLogoUrl:        msCheck.logoUrl        ?? null,
+        societyNomeSocieta:    msCheck.nomeSocieta     ?? null,
+        societyCitta:          msCheck.citta           ?? null,
+        societyCodice:         msCheck.codiceSocieta   ?? null,
         privacyPending: _pc.privacyPending, v2Token: _pc.v2Token,
       });
     }
@@ -166,6 +185,12 @@ router.post("/login", async (req, res) => {
         user: { ...found.user, is_account_owner: _pc2.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck2.piano ?? null, societyBillingMode: msCheck2.billingMode ?? null,
+        societyColorePrimario: msCheck2.colorePrimario ?? null,
+        societyColoreAccento:  msCheck2.coloreAccento  ?? null,
+        societyLogoUrl:        msCheck2.logoUrl        ?? null,
+        societyNomeSocieta:    msCheck2.nomeSocieta     ?? null,
+        societyCitta:          msCheck2.citta           ?? null,
+        societyCodice:         msCheck2.codiceSocieta   ?? null,
         privacyPending: _pc2.privacyPending, v2Token: _pc2.v2Token,
       });
     }

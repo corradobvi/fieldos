@@ -2658,6 +2658,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               <div id="impDatiSocErr" style="color:#c0392b;font-size:.82rem;min-height:14px;margin-bottom:6px;"></div>
               <button class="btn btn-p btn-sm" style="width:100%;" onclick="saveDatiSocieta()">💾 Salva dati società</button>
             </div>
+            <div id="impOwnerNotice" style="display:none;font-size:.76rem;color:var(--text3);padding:8px 10px;background:var(--bg2,#f8fafc);border-radius:8px;border:1px solid var(--border);margin-top:8px;">🔒 Solo l'admin titolare può modificare i dati della società</div>
           </div>
           <div class="card" id="colorCard">
             <div class="ch"><div class="ct">🎨 Personalizzazione colori</div></div>
@@ -2677,10 +2678,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
               </div>
             </div>
             <div id="colorPreview" style="margin-bottom:14px;"></div>
-            <div style="display:flex;gap:8px;">
+            <div id="colorSaveRow" style="display:flex;gap:8px;">
               <button class="btn btn-p btn-sm" style="flex:1;" onclick="saveImpostazioni()">💾 Salva colori</button>
               <button class="btn btn-g btn-sm" onclick="resetColori()">↩️ Default</button>
             </div>
+            <div id="impColorOwnerNotice" style="display:none;font-size:.76rem;color:var(--text3);padding:8px 10px;background:var(--bg2,#f8fafc);border-radius:8px;border:1px solid var(--border);margin-top:8px;">🔒 Solo l'admin titolare può modificare i colori della società</div>
           </div>
           <div class="card" id="codiceCard" style="grid-column:span 2;">
             <div class="ch"><div class="ct">🔑 Iscrizione genitori</div></div>
@@ -4558,8 +4560,17 @@ async function doLogin() {
     if (resp.ok) {
       const data = await resp.json();
       currentSocietaId = data.societyId;
-      // FIX 3: salva metadati freschi da MySQL (piano/billingMode/logoUrl sorgente di verità)
-      currentSocietyMeta = { piano: data.societyPiano || null, billingMode: data.societyBillingMode || null, logoUrl: data.logoUrl || null };
+      // Metadati freschi da MySQL — source of truth per branding e piano
+      currentSocietyMeta = {
+        piano:          data.societyPiano            || null,
+        billingMode:    data.societyBillingMode      || null,
+        logoUrl:        data.societyLogoUrl          || null,
+        colorePrimario: data.societyColorePrimario   || null,
+        coloreAccento:  data.societyColoreAccento    || null,
+        nomeSocieta:    data.societyNomeSocieta      || null,
+        citta:          data.societyCitta            || null,
+        codiceSocieta:  data.societyCodice           || null,
+      };
       if (typeof window.__fieldosSetSocietaKey === 'function') {
         if (data.stateJson) {
           // ORDINE CRITICO: scrivi in localStorage PRIMA di chiamare __fieldosSetSocietaKey,
@@ -4740,8 +4751,11 @@ function bootApp(user) {
   setTimeout(() => {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').classList.add('on');
-    const _bSoc = saSocieties.find(x => x.id === currentSocietaId);
-    applyBranding(_bSoc ? _bSoc.nome : nomeSocieta, _bSoc ? _bSoc.colori : coloriPrimari, _bSoc ? (_bSoc.coloriAccento || coloriAccento) : coloriAccento);
+    // Branding da MySQL (currentSocietyMeta) — source of truth; blob solo come fallback
+    const _metaNome = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || nomeSocieta || '';
+    const _metaCP   = (currentSocietyMeta && currentSocietyMeta.colorePrimario) || coloriPrimari || '#1A7A4A';
+    const _metaCA   = (currentSocietyMeta && currentSocietyMeta.coloreAccento)  || coloriAccento  || '#FFD93D';
+    applyBranding(_metaNome, _metaCP, _metaCA);
     _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
     // Mister/Allenatore: home operativa diretta, non la panoramica società
     goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
@@ -5003,32 +5017,42 @@ function goTo(pgId) {
     const _campiCardEl2 = document.getElementById('campiCard');
     if (_campiCardEl2) _campiCardEl2.style.display = _isStaff ? '' : 'none';
     if (typeof renderQuoteSettings === 'function') renderQuoteSettings();
-    const _iSoc = saSocieties.find(x => x.id === currentSocietaId);
+    // Popola form da currentSocietyMeta (MySQL, source of truth)
     const _iNome = document.getElementById('impSocNome');
     const _iCitta = document.getElementById('impSocCitta');
     const _iColore = document.getElementById('impSocColore');
     const _iAccento = document.getElementById('impAccento');
-    if (_iNome)    _iNome.value    = _iSoc ? _iSoc.nome  : nomeSocieta;
-    if (_iCitta)   _iCitta.value   = _iSoc ? _iSoc.citta : '';
+    if (_iNome)    _iNome.value    = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || nomeSocieta || '';
+    if (_iCitta)   _iCitta.value   = (currentSocietyMeta && currentSocietyMeta.citta) || '';
     const _hexRe = /^#[0-9a-fA-F]{6}$/;
-    const _cpVal = (_iSoc?.colori || coloriPrimari || '#047857');
-    const _caVal = (_iSoc?.coloriAccento || coloriAccento || '#FFD93D');
+    const _cpVal = (currentSocietyMeta && currentSocietyMeta.colorePrimario) || coloriPrimari || '#047857';
+    const _caVal = (currentSocietyMeta && currentSocietyMeta.coloreAccento)  || coloriAccento  || '#FFD93D';
     if (_iColore)  _iColore.value  = _hexRe.test(_cpVal) ? _cpVal : '#047857';
     if (_iAccento) _iAccento.value = _hexRe.test(_caVal) ? _caVal : '#FFD93D';
     renderColorPreview();
-    // Dati società: admin può modificare nome, città e logo
-    const _isAdmForDati = isAdminLike();
+    // Gating: solo account owner può modificare branding; admin secondari vedono readonly
+    const _isOwner   = isAccountOwner();
+    const _isAdmLike = isAdminLike();
     const _impNEl = document.getElementById('impSocNome');
     const _impCEl = document.getElementById('impSocCitta');
     const _impDatiActEl = document.getElementById('impDatiSocActions');
     const _impLogoActEl = document.getElementById('impLogoActions');
-    if (_impNEl) _impNEl.readOnly = !_isAdmForDati;
-    if (_impCEl) _impCEl.readOnly = !_isAdmForDati;
-    if (_impDatiActEl) _impDatiActEl.style.display = _isAdmForDati ? '' : 'none';
-    if (_impLogoActEl) _impLogoActEl.style.display = _isAdmForDati ? '' : 'none';
-    if (_isAdmForDati) _impLoadLogoPreview();
+    const _impOwnerNoticeEl = document.getElementById('impOwnerNotice');
+    const _impColorOwnerNoticeEl = document.getElementById('impColorOwnerNotice');
+    const _colorSaveRowEl = document.getElementById('colorSaveRow');
+    if (_impNEl) _impNEl.readOnly = !_isOwner;
+    if (_impCEl) _impCEl.readOnly = !_isOwner;
+    if (_impDatiActEl) _impDatiActEl.style.display = _isOwner ? '' : 'none';
+    if (_impLogoActEl) _impLogoActEl.style.display = _isOwner ? '' : 'none';
+    if (_impOwnerNoticeEl) _impOwnerNoticeEl.style.display = (!_isOwner && _isAdmLike) ? '' : 'none';
+    if (_isAdmLike) _impLoadLogoPreview();
     const _colorCardEl = document.getElementById('colorCard');
-    if (_colorCardEl) _colorCardEl.style.display = (isAdminLike() || me.role === 'allenatore') ? '' : 'none';
+    if (_colorCardEl) _colorCardEl.style.display = (_isAdmLike || me.role === 'allenatore') ? '' : 'none';
+    // Colori: solo account owner può salvare
+    if (_iColore)  _iColore.disabled = !_isOwner && _isAdmLike;
+    if (_iAccento) _iAccento.disabled = !_isOwner && _isAdmLike;
+    if (_colorSaveRowEl) _colorSaveRowEl.style.display = (_isOwner || me.role === 'allenatore') ? '' : 'none';
+    if (_impColorOwnerNoticeEl) _impColorOwnerNoticeEl.style.display = (!_isOwner && _isAdmLike) ? '' : 'none';
     const _iTipoColor = document.getElementById('newTipoColor');
     if (_iTipoColor && !_iTipoColor.value) _iTipoColor.value = coloriPrimari;
   }
@@ -18519,8 +18543,8 @@ function closeSb() {
 function updateThemeLive() {
   const pHex = document.getElementById('impSocColore')?.value || coloriPrimari;
   const aHex = document.getElementById('impAccento')?.value || coloriAccento;
-  const _utSoc = saSocieties.find(x => x.id === currentSocietaId);
-  applyBranding(_utSoc ? _utSoc.nome : nomeSocieta, pHex, aHex);
+  const _utNome = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || nomeSocieta;
+  applyBranding(_utNome, pHex, aHex);
   renderColorPreview();
 }
 function renderColorPreview() {
@@ -18556,16 +18580,33 @@ function resetColori() {
   toast('↩️ Colori ripristinati ai valori default');
 }
 
-function saveImpostazioni() {
+async function saveImpostazioni() {
+  if (!isAccountOwner()) { toast('⛔ Solo l\'admin titolare può modificare i colori'); return; }
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
   const pHex = document.getElementById('impSocColore')?.value || coloriPrimari;
   const aHex = document.getElementById('impAccento')?.value || coloriAccento;
-  const _utSoc = saSocieties.find(x => x.id === currentSocietaId);
-  applyBranding(_utSoc ? _utSoc.nome : nomeSocieta, pHex, aHex);
+  const _nomeMeta = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || nomeSocieta;
+  applyBranding(_nomeMeta, pHex, aHex);
   _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
-  const _siSoc = saSocieties.find(x => x.id === currentSocietaId);
-  if (_siSoc) { _siSoc.colori = pHex; _siSoc.coloriAccento = aHex; saSaveState(); }
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast('✅ Colori salvati!');
+  try {
+    const r = await fetch(API_BASE + '/api/v2/society', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ colorePrimario: pHex, coloreAccento: aHex })
+    });
+    if (r.ok) {
+      if (currentSocietyMeta) { currentSocietyMeta.colorePrimario = pHex; currentSocietyMeta.coloreAccento = aHex; }
+      // Aggiorna blob come cache
+      const _siSoc = saSocieties.find(x => x.id === currentSocietaId);
+      if (_siSoc) { _siSoc.colori = pHex; _siSoc.coloriAccento = aHex; saSaveState(); }
+      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+      toast('✅ Colori salvati!');
+    } else {
+      const d = await r.json().catch(function(){return {};});
+      toast('❌ ' + (d.message || d.error || 'Errore salvataggio colori'));
+    }
+  } catch(e) { toast('❌ ' + e.message); }
 }
 
 // ── Dati società: logo + nome + città ──────────────────────────────────────
@@ -18675,10 +18716,16 @@ async function saveDatiSocieta() {
     }
     const d = await r.json();
     nomeSocieta = d.nome || nome;
-    if (currentSocietyMeta) currentSocietyMeta.logoUrl = d.logo_url || null;
+    if (currentSocietyMeta) {
+      currentSocietyMeta.logoUrl    = d.logo_url || null;
+      currentSocietyMeta.nomeSocieta = d.nome || nome;
+      currentSocietyMeta.citta       = d.citta || citta || null;
+    }
     const _soc = saSocieties.find(function(x){return x.id===currentSocietaId;});
     if (_soc) { _soc.nome = nomeSocieta; if (citta) _soc.citta = citta; }
-    applyBranding(nomeSocieta, coloriPrimari, coloriAccento);
+    const _nCP = (currentSocietyMeta && currentSocietyMeta.colorePrimario) || coloriPrimari;
+    const _nCA = (currentSocietyMeta && currentSocietyMeta.coloreAccento)  || coloriAccento;
+    applyBranding(nomeSocieta, _nCP, _nCA);
     _applySocLogo(d.logo_url || null);
     _impLogoDataUrl = null;
     _impLogoRemoved = false;

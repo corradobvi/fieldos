@@ -24,8 +24,22 @@ router.get("/society", requireAuth, async (req, res) => {
 
 // PUT /api/v2/society
 router.put("/society", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId } = req.jwtUser!;
   const { nome, citta, colorePrimario, coloreAccento, logoUrl, codice } = req.body as Record<string, string>;
+
+  // Solo l'account owner può modificare i dati della società
+  try {
+    const [ownerRows] = (await pool.execute(
+      "SELECT is_account_owner FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    )) as [any[], any];
+    if (!ownerRows.length || !ownerRows[0].is_account_owner) {
+      return res.status(403).json({ error: "forbidden", message: "Solo l'admin titolare può modificare i dati della società" });
+    }
+  } catch (e: any) {
+    logger.error({ err: e }, "PUT society owner-check error");
+    return res.status(500).json({ error: "server_error" });
+  }
 
   try {
     // If codice is being changed, check uniqueness
