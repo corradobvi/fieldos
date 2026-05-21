@@ -121,12 +121,13 @@ router.get("/superadmin/societies", async (req, res) => {
          s.stato,
          s.created_at,
          u.email,
+         u.is_account_owner,
          COUNT(DISTINCT u2.id) AS utenti
        FROM societies s
        LEFT JOIN users u  ON u.society_id  = s.id AND u.ruolo = 'admin' AND u.stato = 'attivo'
        LEFT JOIN users u2 ON u2.society_id = s.id AND u2.stato = 'attivo'
        WHERE s.id NOT IN (${EXCLUDED_IDS.join(",")})
-       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.billing_mode, s.stripe_customer_id, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email
+       GROUP BY s.id, s.nome, s.citta, s.colore_primario, s.piano, s.billing_mode, s.stripe_customer_id, s.subscription_status, s.demo_scadenza, s.stato, s.created_at, u.email, u.is_account_owner
        ORDER BY s.created_at DESC`
     )) as [any[], any];
 
