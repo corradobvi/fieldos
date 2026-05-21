@@ -2778,6 +2778,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             </div>
             <div id="adminAsMisterBox"></div>
           </div>
+          <div class="card" style="grid-column:span 2;" id="aiAllowlistCard">
+            <div class="ch"><div class="ct">✨ Accesso AI — Allenamenti</div></div>
+            <div style="font-size:.78rem;color:var(--text2);line-height:1.45;margin-bottom:12px;">
+              Scegli quali mister e collaboratori possono usare la generazione AI nella sezione Allenamenti. Il budget di 280.000 token mensili è condiviso tra tutta la società.
+            </div>
+            <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
+          </div>
         </div>
       </div>
 
@@ -13404,6 +13411,9 @@ let _allSt = {
   lista: { periodo: '30g', stato: 'tutti', items: null },
   lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
   _nsTags: [],
+  _costruttore: { id: null, sessioni: [], _editIdx: null },
+  _aiBudget: null,
+  _aiAbilitato: false,
 };
 const _ALL_CAT_IT = {
   riscaldamento:'Riscaldamento', tecnica_individuale:'Tecnica individuale', tattica:'Tattica', possesso_palla:'Possesso palla',
@@ -13482,6 +13492,7 @@ function switchAllTab(tab) {
 function _renderAllTabContent() {
   const cont = document.getElementById('allTabContent');
   if (!cont) return;
+  _loadAiBudget();
   _allSt.tab === 'lista' ? _renderAllLista(cont) : _renderLibreria(cont);
 }
 
@@ -13493,7 +13504,12 @@ function _renderAllLista(cont) {
   const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
 
   if (act) act.innerHTML = canEdit
-    ? `<button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>` : '';
+    ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+         <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
+         <button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>
+         <button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>
+         ${isAdminLike()&&pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister')==='societa'?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
+       </div>` : '';
 
   let hdr = '';
   if (isGenitore) {
@@ -13531,7 +13547,7 @@ function _renderAllLista(cont) {
     </div>`;
   }
 
-  cont.innerHTML = hdr + `<div id="allListItems"></div>`;
+  cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allListItems"></div>`;
   _loadAllLista();
 }
 
@@ -13628,12 +13644,983 @@ function _allChangePeriodo(v) { _allSt.lista.periodo = v; _loadAllLista(); }
 function _allChangeStato(v)   { _allSt.lista.stato   = v; _renderAllListItems(document.getElementById('allListItems')); }
 function _allChangeLeva(v)    { currentLeva = v; _loadAllLista(); }
 
-function _openNuovoAllenamento() {
-  toast('⚙️ Creazione allenamento: disponibile nella Parte 2!');
+// ══════════════════════════════════════════════════════════════════════════
+// AI BUDGET — carica e mostra
+// ══════════════════════════════════════════════════════════════════════════
+
+async function _loadAiBudget() {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+  if (isGenitore) return;
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/ai/budget`, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!r.ok) return;
+    const d = await r.json();
+    _allSt._aiBudget = d;
+    _allSt._aiAbilitato = !!(d.abilitato);
+    _renderAiBudgetBar();
+    if (d.token_budget > 0) {
+      const pct = Math.round((d.token_consumati / d.token_budget) * 100);
+      const mese = (d.mese_riferimento || new Date().toISOString().slice(0,7)).replace('-','');
+      if (pct >= 100) {
+        const flag = 'mv_ai_alert_100_' + mese;
+        if (!sessionStorage.getItem(flag)) { sessionStorage.setItem(flag,'1'); toast('❌ Budget AI esaurito per questo mese. Rinnovo il ' + _aiBudgetRinnovo(d)); }
+      } else if (pct >= 80) {
+        const flag = 'mv_ai_alert_80_' + mese;
+        if (!sessionStorage.getItem(flag)) { sessionStorage.setItem(flag,'1'); toast('⚠️ Ti rimane il ' + (100-pct) + '% del budget AI mensile. Si rinnova il ' + _aiBudgetRinnovo(d)); }
+      }
+    }
+  } catch(_) {}
 }
 
-function _openAllenamentiDetail(id) {
-  toast('📋 Dettaglio allenamento: disponibile nella Parte 2!');
+function _aiBudgetRinnovo(d) {
+  if (!d || !d.mese_riferimento) return '1° del mese prossimo';
+  const [y, m] = d.mese_riferimento.split('-').map(Number);
+  const next = new Date(y, m, 1);
+  return next.getDate() + '/' + (next.getMonth()+1) + '/' + next.getFullYear();
+}
+
+function _renderAiBudgetBar() {
+  const el = document.getElementById('_aiBudgetBarCont');
+  if (!el) return;
+  const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+  if (isGenitore) { el.innerHTML = ''; return; }
+
+  if (piano === 'mister') {
+    el.innerHTML = '<div class="ai-budget-bar" style="margin-bottom:10px;"><span style="font-size:.85rem;">✨ AI disponibile con <strong>Mister Pro</strong></span> <button class="btn btn-p btn-sm" onclick="openAccountScreen(\'piano\')" style="font-size:.72rem;padding:4px 10px;">Scopri →</button></div>';
+    return;
+  }
+
+  const d = _allSt._aiBudget;
+  if (!d) { el.innerHTML = ''; return; }
+
+  if (!d.abilitato) {
+    el.innerHTML = '<div class="ai-budget-bar" style="margin-bottom:10px;"><span>✨ AI non abilitata per il tuo account. Chiedi al presidente di abilitarti.</span></div>';
+    return;
+  }
+
+  const used = d.token_consumati || 0;
+  const budget = d.token_budget || 1;
+  const rem = Math.max(0, budget - used);
+  const pct = Math.min(100, Math.round((used / budget) * 100));
+  const color = pct < 70 ? '#1A7A4A' : pct < 90 ? '#FFD93D' : '#e74c3c';
+  const rinnovo = _aiBudgetRinnovo(d);
+  el.innerHTML = '<div class="ai-budget-bar" style="margin-bottom:10px;" title="Il budget AI si rinnova il 1° di ogni mese. Prossimo rinnovo: ' + rinnovo + '">'
+    + '<span>✨ AI: ' + rem.toLocaleString() + ' / ' + budget.toLocaleString() + ' token rimasti</span>'
+    + '<div class="ai-budget-track"><div class="ai-budget-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>'
+    + '<span style="font-size:.75rem;color:var(--text3);">' + pct + '%</span>'
+    + '</div>';
+}
+
+function _canUseAI() {
+  const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  if (piano === 'mister') return false;
+  return _allSt._aiAbilitato;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// COSTRUTTORE ALLENAMENTO (fullscreen modal)
+// ══════════════════════════════════════════════════════════════════════════
+
+function _openNuovoAllenamento() { _openCostruisciAllenamento(null); }
+
+function _openCostruisciAllenamento(allenamentoId) {
+  _allSt._costruttore = { id: allenamentoId, sessioni: [], _editIdx: null };
+  const isNew = !allenamentoId;
+  const el = document.getElementById('_allFsModal');
+  if (!el) return;
+
+  document.getElementById('_allFsTitolo').value = '';
+  document.getElementById('_allFsObiettivo').value = '';
+  document.getElementById('_allFsData').value = new Date().toISOString().slice(0,10);
+  document.getElementById('_allFsVisG').checked = false;
+  document.getElementById('_allFsNoteTesto').value = '';
+  document.getElementById('_allFsTitle').textContent = isNew ? 'Nuovo allenamento' : 'Modifica allenamento';
+  document.getElementById('_allFsErr').textContent = '';
+
+  const levaEl = document.getElementById('_allFsLeva');
+  if (leve.length === 1) {
+    levaEl.innerHTML = '<option value="' + escapeHtml(leve[0]) + '">' + escapeHtml(leve[0]) + '</option>';
+  } else {
+    levaEl.innerHTML = leve.map(function(l) { return '<option value="' + escapeHtml(l) + '"' + (l === currentLeva ? ' selected' : '') + '>' + escapeHtml(l) + '</option>'; }).join('');
+  }
+
+  if (allenamentoId) {
+    _loadAllenamientoPerModifica(allenamentoId);
+  } else {
+    _renderCostruisciSessioni();
+  }
+
+  el.classList.add('on');
+  document.body.style.overflow = 'hidden';
+}
+
+function _closeCostruisciAllenamento() {
+  const el = document.getElementById('_allFsModal');
+  if (el) el.classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+async function _loadAllenamientoPerModifica(id) {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!r.ok) { toast('❌ Errore caricamento allenamento'); return; }
+    const d = await r.json();
+    document.getElementById('_allFsTitolo').value = d.titolo || '';
+    document.getElementById('_allFsObiettivo').value = d.obiettivo || '';
+    document.getElementById('_allFsData').value = d.data || '';
+    document.getElementById('_allFsVisG').checked = !!(d.visibilita_genitori);
+    document.getElementById('_allFsNoteTesto').value = d.note_testo || '';
+    const levaEl = document.getElementById('_allFsLeva');
+    if (levaEl && d.leva_nome) { for (let o of levaEl.options) { if (o.value === d.leva_nome) { o.selected = true; break; } } }
+    _allSt._costruttore.sessioni = (d.sessioni || []).map(function(s) {
+      return {
+        _localId: Math.random().toString(36).slice(2),
+        id: s.id,
+        sessione_libreria_id: s.sessione_libreria_id || null,
+        titolo: s.titolo_snapshot,
+        descrizione: s.descrizione_snapshot,
+        durata_minuti: s.durata_minuti_snapshot,
+        categoria: s.categoria_snapshot,
+        eta_leva: s.eta_leva_snapshot || '',
+        tag: Array.isArray(s.tag_snapshot) ? s.tag_snapshot : (s.tag_snapshot ? JSON.parse(s.tag_snapshot) : []),
+        note_snapshot: s.note_snapshot || '',
+      };
+    });
+    _renderCostruisciSessioni();
+  } catch(e) { toast('❌ Errore: ' + e.message); }
+}
+
+function _renderCostruisciSessioni() {
+  const cont = document.getElementById('_allFsSessioniList');
+  if (!cont) return;
+  const sessioni = _allSt._costruttore.sessioni;
+  const durTot = sessioni.reduce(function(s,x) { return s + (parseInt(x.durata_minuti)||0); }, 0);
+  document.getElementById('_allFsSessMeta').textContent = '🕐 Durata totale: ' + durTot + ' min · ' + sessioni.length + ' sessioni';
+
+  if (!sessioni.length) {
+    cont.innerHTML = '<div style="text-align:center;background:var(--bg);border-radius:12px;padding:40px 20px;color:var(--text2);"><div style="font-size:2rem;margin-bottom:10px;">📋</div><div style="font-weight:700;margin-bottom:6px;">Nessuna sessione aggiunta</div><div style="font-size:.84rem;">Inizia aggiungendo la prima esercitazione.</div></div>';
+    return;
+  }
+
+  cont.innerHTML = sessioni.map(function(s, i) {
+    const cat = _ALL_CAT_IT[s.categoria] || s.categoria;
+    const catBg = (_ALL_CAT_BG||{})[s.categoria] || '#f3f4f6';
+    const leva = _ALL_LEVA_IT[s.eta_leva] || s.eta_leva || '—';
+    const tags = (s.tag||[]).slice(0,3).map(function(t) { return '<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 6px;font-size:.68rem;">' + escapeHtml(t) + '</span>'; }).join(' ');
+    const isEditing = _allSt._costruttore._editIdx === i;
+    if (isEditing) {
+      const catOpts = Object.entries(_ALL_CAT_IT).map(function(e) { return '<option value="' + e[0] + '"' + (s.categoria===e[0]?' selected':'') + '>' + e[1] + '</option>'; }).join('');
+      const levaOpts = Object.entries(_ALL_LEVA_IT).map(function(e) { return '<option value="' + e[0] + '"' + (s.eta_leva===e[0]?' selected':'') + '>' + e[1] + '</option>'; }).join('');
+      return '<div class="all-sess-row editing" id="_sessRow' + i + '">'
+        + '<div style="width:28px;height:28px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;">' + (i+1) + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+        + '<div class="fg" style="margin:0;grid-column:1/-1;"><label class="fl">Titolo *</label><input class="fi" id="_sedit_titolo" value="' + escapeHtml(s.titolo||'') + '" maxlength="200"></div>'
+        + '<div class="fg" style="margin:0;"><label class="fl">Durata (min) *</label><input class="fi" id="_sedit_durata" type="number" min="5" max="180" value="' + (s.durata_minuti||20) + '"></div>'
+        + '<div class="fg" style="margin:0;"><label class="fl">Categoria *</label><select class="fi" id="_sedit_cat">' + catOpts + '</select></div>'
+        + '<div class="fg" style="margin:0;"><label class="fl">Età/Leva *</label><select class="fi" id="_sedit_leva">' + levaOpts + '</select></div>'
+        + '<div class="fg" style="margin:0;grid-column:1/-1;"><label class="fl">Descrizione *</label><textarea class="fi" id="_sedit_desc" rows="3">' + escapeHtml(s.descrizione||'') + '</textarea></div>'
+        + '<div class="fg" style="margin:0;grid-column:1/-1;"><label class="fl">Note sessione</label><textarea class="fi" id="_sedit_note" rows="2" placeholder="Varianti, materiali...">' + escapeHtml(s.note_snapshot||'') + '</textarea></div>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;">'
+        + '<button class="btn btn-p btn-sm" onclick="_sessEditSave(' + i + ')">Salva modifica</button>'
+        + '<button class="btn btn-g btn-sm" onclick="_sessEditCancel()">Annulla</button>'
+        + '</div></div></div>';
+    }
+    return '<div class="all-sess-row" id="_sessRow' + i + '">'
+      + '<div style="width:28px;height:28px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem;flex-shrink:0;">' + (i+1) + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-weight:800;font-size:.95rem;margin-bottom:3px;">' + escapeHtml(s.titolo||'—') + '</div>'
+      + '<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">'
+      + '<span style="background:' + catBg + ';font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">' + cat + '</span>'
+      + '<span style="background:var(--bg);border:1px solid var(--border);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">' + leva + '</span>'
+      + '<span style="font-size:.73rem;color:var(--text3);">🕐 ' + s.durata_minuti + ' min</span>'
+      + tags + '</div></div>'
+      + '<div style="display:flex;gap:5px;align-items:center;flex-shrink:0;">'
+      + '<button class="btn btn-g btn-sm" onclick="_sessEditStart(' + i + ')" title="Modifica">✏️</button>'
+      + '<button class="btn btn-g btn-sm" onclick="_sessMoveUp(' + i + ')" title="Su"' + (i===0?' disabled':'') + '>▲</button>'
+      + '<button class="btn btn-g btn-sm" onclick="_sessMoveDown(' + i + ')" title="Giù"' + (i===sessioni.length-1?' disabled':'') + '>▼</button>'
+      + '<button class="btn btn-sm" style="background:#fee2e2;color:#c0392b;border:none;" onclick="_sessRemove(' + i + ')" title="Rimuovi">✕</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function _sessEditStart(i) { _allSt._costruttore._editIdx = i; _renderCostruisciSessioni(); }
+function _sessEditCancel() { _allSt._costruttore._editIdx = null; _renderCostruisciSessioni(); }
+function _sessEditSave(i) {
+  const titolo = (document.getElementById('_sedit_titolo') ? document.getElementById('_sedit_titolo').value : '').trim();
+  const desc   = (document.getElementById('_sedit_desc') ? document.getElementById('_sedit_desc').value : '').trim();
+  const durata = parseInt(document.getElementById('_sedit_durata') ? document.getElementById('_sedit_durata').value : '0');
+  const cat    = document.getElementById('_sedit_cat') ? document.getElementById('_sedit_cat').value : '';
+  const leva   = document.getElementById('_sedit_leva') ? document.getElementById('_sedit_leva').value : '';
+  const note   = (document.getElementById('_sedit_note') ? document.getElementById('_sedit_note').value : '').trim();
+  if (!titolo || !desc || isNaN(durata) || durata<5 || !cat || !leva) { toast('⚠️ Compila tutti i campi obbligatori'); return; }
+  const s = _allSt._costruttore.sessioni[i];
+  s.titolo = titolo; s.descrizione = desc; s.durata_minuti = durata; s.categoria = cat; s.eta_leva = leva; s.note_snapshot = note;
+  _allSt._costruttore._editIdx = null;
+  _renderCostruisciSessioni();
+}
+function _sessMoveUp(i) {
+  const arr = _allSt._costruttore.sessioni;
+  if (i < 1) return;
+  const tmp = arr[i-1]; arr[i-1] = arr[i]; arr[i] = tmp;
+  _renderCostruisciSessioni();
+}
+function _sessMoveDown(i) {
+  const arr = _allSt._costruttore.sessioni;
+  if (i >= arr.length-1) return;
+  const tmp = arr[i]; arr[i] = arr[i+1]; arr[i+1] = tmp;
+  _renderCostruisciSessioni();
+}
+function _sessRemove(i) {
+  _allSt._costruttore.sessioni.splice(i, 1);
+  if (_allSt._costruttore._editIdx === i) _allSt._costruttore._editIdx = null;
+  _renderCostruisciSessioni();
+}
+
+function _aggiungiSessioneAllenamento(s) {
+  _allSt._costruttore.sessioni.push({
+    _localId: Math.random().toString(36).slice(2),
+    id: null,
+    sessione_libreria_id: s.sessione_libreria_id || s.id || null,
+    titolo: s.titolo || s.titolo_snapshot || '',
+    descrizione: s.descrizione || s.descrizione_snapshot || '',
+    durata_minuti: s.durata_minuti || s.durata_minuti_snapshot || 20,
+    categoria: s.categoria || s.categoria_snapshot || '',
+    eta_leva: s.eta_leva || s.eta_leva_snapshot || '',
+    tag: Array.isArray(s.tag) ? s.tag.slice() : [],
+    note_snapshot: s.note || s.note_snapshot || '',
+  });
+  _renderCostruisciSessioni();
+}
+
+async function _salvaAllenamento() {
+  const titolo    = (document.getElementById('_allFsTitolo') ? document.getElementById('_allFsTitolo').value : '').trim();
+  const obiettivo = (document.getElementById('_allFsObiettivo') ? document.getElementById('_allFsObiettivo').value : '').trim();
+  const data      = document.getElementById('_allFsData') ? document.getElementById('_allFsData').value : '';
+  const levaEl    = document.getElementById('_allFsLeva');
+  const leva_nome = levaEl ? levaEl.value : '';
+  const visG      = !!(document.getElementById('_allFsVisG') && document.getElementById('_allFsVisG').checked);
+  const noteTesto = (document.getElementById('_allFsNoteTesto') ? document.getElementById('_allFsNoteTesto').value : '').trim();
+  const errEl     = document.getElementById('_allFsErr');
+  if (errEl) errEl.textContent = '';
+
+  if (titolo.length < 3 || titolo.length > 200) { if (errEl) errEl.textContent = '⚠️ Titolo: 3-200 caratteri.'; return; }
+  if (!data) { if (errEl) errEl.textContent = '⚠️ Seleziona una data.'; return; }
+  if (!leva_nome) { if (errEl) errEl.textContent = '⚠️ Seleziona la leva.'; return; }
+
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
+
+  const saveBtn = document.getElementById('_allFsSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Salvataggio…'; }
+
+  const body = {
+    titolo: titolo, obiettivo: obiettivo || null, data: data, leva_nome: leva_nome, visibilita_genitori: visG,
+    note_testo: noteTesto || null,
+    sessioni: _allSt._costruttore.sessioni.map(function(s) {
+      return {
+        sessione_libreria_id: s.sessione_libreria_id || null,
+        titolo: s.titolo, descrizione: s.descrizione,
+        durata_minuti: s.durata_minuti, categoria: s.categoria,
+        eta_leva: s.eta_leva, tag: s.tag || [],
+        note_snapshot: s.note_snapshot || null,
+      };
+    }),
+  };
+
+  const id = _allSt._costruttore.id;
+  const url  = id ? `${API_BASE}/api/v2/allenamenti/${id}` : `${API_BASE}/api/v2/allenamenti`;
+  const method = id ? 'PATCH' : 'POST';
+
+  try {
+    const resp = await fetch(url, {
+      method: method, headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+_v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) {
+      const d = await resp.json().catch(function(){return {};});
+      if (errEl) errEl.textContent = '❌ ' + (d.message || d.error || 'Errore server');
+      return;
+    }
+    _closeCostruisciAllenamento();
+    toast('✅ Allenamento salvato');
+    _loadAllLista();
+  } catch(e) {
+    if (errEl) errEl.textContent = '❌ ' + e.message;
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Salva'; }
+  }
+}
+
+// ── Sub-modal: Aggiungi sessione (pick mode) ────────────────────────────
+
+function _openPickSessione() {
+  document.getElementById('_pickView').innerHTML = _renderPickHome();
+  const m = document.getElementById('_allPickModal');
+  if (m) m.classList.add('on');
+}
+function _closePickSessione() {
+  const m = document.getElementById('_allPickModal');
+  if (m) m.classList.remove('on');
+}
+
+function _renderPickHome() {
+  const aiDisabled = !_canUseAI();
+  return '<div style="padding:4px 0;">'
+    + '<div class="all-pick-card" onclick="_pickFromLibreria(\'personale\')"><div class="pick-ic">📚</div><div><div style="font-weight:800;">Dalla mia libreria</div><div style="font-size:.8rem;color:var(--text2);">Scegli una delle tue sessioni salvate</div></div></div>'
+    + '<div class="all-pick-card" onclick="_pickFromLibreria(\'community\')"><div class="pick-ic">🌍</div><div><div style="font-weight:800;">Dalla community</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni condivise da altri mister</div></div></div>'
+    + '<div class="all-pick-card" onclick="_pickScrivi()"><div class="pick-ic">✏️</div><div><div style="font-weight:800;">Scrivi a mano</div><div style="font-size:.8rem;color:var(--text2);">Crea una sessione personalizzata</div></div></div>'
+    + '<div class="all-pick-card" onclick="_pickAI()"' + (aiDisabled ? ' style="opacity:.5;cursor:not-allowed;" title="Funzionalità disponibile con AI abilitata"' : '') + '><div class="pick-ic">✨</div><div><div style="font-weight:800;">Genera con AI</div><div style="font-size:.8rem;color:var(--text2);">L\'AI propone una sessione personalizzata</div></div></div>'
+    + '</div>';
+}
+
+async function _pickFromLibreria(ambito) {
+  const pv = document.getElementById('_pickView');
+  pv.innerHTML = '<div style="padding:10px 0;text-align:center;color:var(--text2);">Caricamento…</div>';
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { pv.innerHTML = '<div style="color:#c0392b;">Non autenticato.</div>'; return; }
+  try {
+    const p = new URLSearchParams({ ambito: ambito, limit: '50' });
+    const r = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria?${p}`, { headers: { 'Authorization':'Bearer '+_v2Token } });
+    const d = await r.json();
+    const items = d.items || [];
+    let html = '<button class="btn btn-g btn-sm" onclick="document.getElementById(\'_pickView\').innerHTML=_renderPickHome()" style="margin-bottom:12px;">← Indietro</button>'
+      + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':'Sessioni community') + '</div>';
+    if (items.length) {
+      html += items.map(function(s) {
+        const cat = _ALL_CAT_IT[s.categoria]||s.categoria;
+        const catBg = (_ALL_CAT_BG||{})[s.categoria]||'#f3f4f6';
+        return '<div class="all-pick-card" onclick=\'_pickSelectSessione(' + JSON.stringify(JSON.stringify(s)) + ')\'>'
+          + '<div style="flex:1;">'
+          + '<div style="display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap;">'
+          + '<span style="background:' + catBg + ';font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">' + cat + '</span>'
+          + '<span style="font-size:.73rem;color:var(--text3);">🕐 ' + s.durata_minuti + ' min</span>'
+          + '</div>'
+          + '<div style="font-weight:800;font-size:.9rem;">' + escapeHtml(s.titolo) + '</div>'
+          + '<div style="font-size:.78rem;color:var(--text2);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escapeHtml(s.descrizione) + '</div>'
+          + '</div></div>';
+      }).join('');
+    } else {
+      html += '<div style="color:var(--text2);text-align:center;padding:30px;">Nessuna sessione trovata.</div>';
+    }
+    pv.innerHTML = html;
+  } catch(e) { pv.innerHTML = '<div style="color:#c0392b;">Errore: ' + e.message + '</div>'; }
+}
+
+function _pickSelectSessione(jsonStr) {
+  try {
+    const s = JSON.parse(jsonStr);
+    _aggiungiSessioneAllenamento(Object.assign({}, s, { sessione_libreria_id: s.id }));
+    _closePickSessione();
+    toast('✅ Sessione aggiunta');
+  } catch(e) { toast('❌ Errore aggiunta sessione'); }
+}
+
+function _pickScrivi() {
+  _closePickSessione();
+  _allSt._nsAddToAll = true;
+  _initNuovaSessioneModal(null);
+}
+
+function _pickAI() {
+  if (!_canUseAI()) { toast('✨ AI non abilitata per il tuo account'); return; }
+  _closePickSessione();
+  _openAiSessioneSingola(true);
+}
+
+// Patch saveSessione to detect _nsAddToAll mode
+const _origSaveSessione = window.saveSessione;
+async function saveSessione() {
+  if (!_allSt._nsAddToAll) { return _origSaveSessione ? _origSaveSessione() : undefined; }
+  const fi = function(id) { return document.getElementById(id); };
+  const titolo      = (fi('nsTitolo') ? fi('nsTitolo').value : '').trim();
+  const descrizione = (fi('nsDescrizione') ? fi('nsDescrizione').value : '').trim();
+  const durata      = parseInt(fi('nsDurata') ? fi('nsDurata').value : '0');
+  const categoria   = fi('nsCategoria') ? fi('nsCategoria').value : '';
+  const eta_leva    = fi('nsEta') ? fi('nsEta').value : '';
+  const note        = (fi('nsNote') ? fi('nsNote').value : '').trim() || null;
+  const tag         = _allSt._nsTags || [];
+  const errEl       = fi('nsErr');
+  const errs = [];
+  if (titolo.length<3||titolo.length>200) errs.push('Titolo: 3-200 caratteri.');
+  if (descrizione.length<10) errs.push('Descrizione: minimo 10 caratteri.');
+  if (isNaN(durata)||durata<5||durata>180) errs.push('Durata: 5-180 minuti.');
+  if (!categoria) errs.push('Seleziona una categoria.');
+  if (!eta_leva) errs.push("Seleziona l'età/leva.");
+  if (errs.length) { if (errEl) errEl.textContent = errs.join(' '); return; }
+  _aggiungiSessioneAllenamento({ titolo: titolo, descrizione: descrizione, durata_minuti: durata, categoria: categoria, eta_leva: eta_leva, tag: tag, note_snapshot: note, sessione_libreria_id: null });
+  _allSt._nsAddToAll = false;
+  closeM('mNuovaSessione');
+  toast('✅ Sessione aggiunta all\'allenamento');
+  _openCostruisciAllenamento(_allSt._costruttore.id);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// DETTAGLIO ALLENAMENTO
+// ══════════════════════════════════════════════════════════════════════════
+
+async function _openAllenamentiDetail(id) {
+  const isGenitore = me && (me.role==='genitore'||me.role==='nonno'||me.role==='giocatore');
+  const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
+
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
+
+  const ov   = document.getElementById('_allDetOv');
+  const body = document.getElementById('_allDetBody');
+  const hdr  = document.getElementById('_allDetHdr');
+  if (!ov) return;
+  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text2);">Caricamento…</div>';
+  hdr.innerHTML  = '<div class="mt">Allenamento</div><button class="mx" onclick="_closeAllenamentiDetail()">✕</button>';
+  ov.classList.add('on');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, { headers: { 'Authorization':'Bearer '+_v2Token } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    _renderAllenamentiDetail(d, isGenitore, canEdit);
+  } catch(e) {
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:#c0392b;">❌ Errore caricamento: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function _closeAllenamentiDetail() {
+  const ov = document.getElementById('_allDetOv');
+  if (ov) ov.classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+function _renderAllenamentiDetail(d, isGenitore, canEdit) {
+  const hdr  = document.getElementById('_allDetHdr');
+  const body = document.getElementById('_allDetBody');
+  const foot = document.getElementById('_allDetFoot');
+
+  const GG   = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  let dataFmt = d.data || '';
+  if (d.data) {
+    const parts = d.data.split('-').map(Number);
+    const y = parts[0]; const m = parts[1]; const day = parts[2];
+    const dt = new Date(y, m-1, day);
+    dataFmt = GG[dt.getDay()] + ' ' + day + ' ' + MESI[m-1] + ' ' + y;
+  }
+  const visH = d.visibilita_genitori
+    ? '<span style="background:#d1fae5;color:#065f46;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">👨‍👩‍👧 Visibile alle famiglie</span>'
+    : '<span style="background:var(--bg);border:1px solid var(--border);color:var(--text3);font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:10px;">🔒 Solo staff</span>';
+
+  hdr.innerHTML = '<div style="flex:1;min-width:0;">'
+    + '<div class="mt" style="font-size:1rem;line-height:1.3;max-width:85%;">' + escapeHtml(d.titolo) + '</div>'
+    + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px;">'
+    + '<span style="font-size:.78rem;color:var(--text3);">' + dataFmt + '</span>'
+    + visH
+    + '</div></div>'
+    + '<div style="display:flex;gap:6px;align-items:center;">'
+    + (canEdit ? '<button class="btn btn-g btn-sm" onclick="_closeAllenamentiDetail();_openCostruisciAllenamento(\'' + d.id + '\')">✏️ Modifica</button>' : '')
+    + '<button class="mx" onclick="_closeAllenamentiDetail()">✕</button>'
+    + '</div>';
+
+  const sessioni    = d.sessioni || [];
+  const noteVocali  = d.note_vocali || [];
+  const durTot      = d.durata_totale_minuti || sessioni.reduce(function(s,x){return s+(x.durata_minuti_snapshot||0);}, 0);
+
+  let html = '<div style="padding:20px 24px;">';
+
+  html += '<div style="margin-bottom:20px;">';
+  if (d.obiettivo) html += '<div style="font-size:.92rem;color:var(--text2);margin-bottom:8px;"><strong>Obiettivo:</strong> ' + escapeHtml(d.obiettivo) + '</div>';
+  html += '<div style="font-size:.84rem;color:var(--text3);margin-bottom:4px;">🕐 ' + durTot + ' minuti totali · ' + sessioni.length + ' sessioni</div>';
+  if (d.creato_da_nome) html += '<div style="font-size:.84rem;color:var(--text3);">Creato da ' + escapeHtml(d.creato_da_nome) + '</div>';
+  if (!isGenitore && d.note_testo) html += '<div style="margin-top:10px;background:var(--bg);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;padding:10px 14px;font-size:.86rem;">' + escapeHtml(d.note_testo) + '</div>';
+  html += '</div>';
+
+  if (!isGenitore && sessioni.length) {
+    html += '<div style="margin-bottom:20px;"><div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Sessioni</div>';
+    sessioni.forEach(function(s, i) {
+      const cat   = _ALL_CAT_IT[s.categoria_snapshot]||s.categoria_snapshot;
+      const catBg = (_ALL_CAT_BG||{})[s.categoria_snapshot]||'#f3f4f6';
+      html += '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:6px;overflow:hidden;">'
+        + '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;" onclick="_detToggleSess(' + i + ')">'
+        + '<div style="width:26px;height:26px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.8rem;flex-shrink:0;">' + (i+1) + '</div>'
+        + '<div style="flex:1;"><div style="font-weight:700;">' + escapeHtml(s.titolo_snapshot) + '</div>'
+        + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;">'
+        + '<span style="background:' + catBg + ';font-size:.67rem;font-weight:700;padding:1px 6px;border-radius:8px;">' + cat + '</span>'
+        + '<span style="font-size:.72rem;color:var(--text3);">🕐 ' + s.durata_minuti_snapshot + ' min</span>'
+        + '</div></div><span style="color:var(--text3);font-size:.9rem;">▾</span></div>'
+        + '<div id="_detSessBody_' + i + '" style="display:none;padding:0 14px 12px;font-size:.86rem;color:var(--text2);line-height:1.6;white-space:pre-wrap;border-top:1px solid var(--border);">'
+        + escapeHtml(s.descrizione_snapshot) + (s.note_snapshot ? '\n\n📝 Note: ' + escapeHtml(s.note_snapshot) : '')
+        + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  if (!isGenitore) {
+    html += '<div id="_allDetNoteVocali"><div style="font-weight:800;font-size:1rem;margin-bottom:10px;">Note vocali</div>';
+    if (noteVocali.length) {
+      noteVocali.forEach(function(nv) {
+        const ic   = nv.momento==='durante' ? '🎙' : '✅';
+        const data = nv.created_at ? new Date(nv.created_at).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+        html += '<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">'
+          + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+          + '<span>' + ic + '</span>'
+          + '<span style="font-size:.78rem;color:var(--text3);">' + (nv.momento==='durante'?'Durante':'Dopo') + ' · Registrata da ' + escapeHtml(nv.creato_da_nome||'—') + ' · ' + data + ' · ' + nv.durata_secondi + 's</span>'
+          + ((canEdit || (me && nv.creato_da===me.id)) ? '<button class="btn btn-sm" style="background:#fee2e2;color:#c0392b;border:none;margin-left:auto;" onclick="_deleteNotaVocale(\'' + nv.id + '\',\'' + d.id + '\')">✕</button>' : '')
+          + '</div>'
+          + '<audio controls src="' + API_BASE + '/api/v2/allenamenti/note-vocali/' + nv.id + '/audio" style="width:100%;height:36px;"></audio>'
+          + '</div>';
+      });
+    } else {
+      html += '<div style="font-size:.84rem;color:var(--text3);margin-bottom:10px;">Nessuna nota vocale registrata.</div>';
+    }
+    if (canEdit) {
+      html += '<div id="_nvRecorder_' + d.id + '"></div>';
+      html += '<button class="btn btn-g btn-sm" onclick="_openNotaVocaleRecorder(\'' + d.id + '\')" style="margin-top:4px;">🎙 Aggiungi nota vocale</button>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  body.innerHTML = html;
+
+  foot.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid var(--border);">'
+    + (canEdit ? '<button class="btn btn-sm" style="color:#c0392b;background:none;border:none;font-size:.85rem;cursor:pointer;" onclick="_deleteAllenamientoDet(\'' + d.id + '\')">🗑️ Elimina allenamento</button>' : '<div></div>')
+    + '<button class="btn btn-g" onclick="_closeAllenamentiDetail()">Chiudi</button>'
+    + '</div>';
+}
+
+function _detToggleSess(i) {
+  const el = document.getElementById('_detSessBody_' + i);
+  if (el) el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+async function _deleteAllenamientoDet(id) {
+  if (!confirm('Sei sicuro? Questa azione è irreversibile.')) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
+  const r = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token} });
+  if (r.ok) { _closeAllenamentiDetail(); toast('🗑 Allenamento eliminato'); _loadAllLista(); }
+  else toast('❌ Errore eliminazione');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODALI AI
+// ══════════════════════════════════════════════════════════════════════════
+
+function _openAiSpuntoRapido() {
+  if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
+  const el = document.getElementById('_aiSpuntoModal');
+  if (!el) return;
+  document.getElementById('_aiSpuntoDomanda').value = '';
+  document.getElementById('_aiSpuntoResult').innerHTML = '';
+  document.getElementById('_aiSpuntoErr').textContent = '';
+  el.classList.add('on');
+}
+function _closeAiSpunto() { const e = document.getElementById('_aiSpuntoModal'); if (e) e.classList.remove('on'); }
+
+async function _callAiSpunto() {
+  const domanda = (document.getElementById('_aiSpuntoDomanda') ? document.getElementById('_aiSpuntoDomanda').value : '').trim();
+  const errEl   = document.getElementById('_aiSpuntoErr');
+  if (domanda.length < 10) { if(errEl) errEl.textContent='⚠️ Minimo 10 caratteri.'; return; }
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
+  const btn = document.getElementById('_aiSpuntoBtn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Chiedo all\'AI…'; }
+  if(errEl) errEl.textContent='';
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/ai/spunto-rapido`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
+      body: JSON.stringify({ domanda: domanda })
+    });
+    if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiSpunto(); return; }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    const d = await r.json();
+    _allSt._aiBudget = d.budget || _allSt._aiBudget;
+    _renderAiBudgetBar();
+    const risultato = d.risposta || d.testo || d.result || JSON.stringify(d);
+    document.getElementById('_aiSpuntoResult').innerHTML = '<div class="ai-result-box">' + escapeHtml(risultato) + '</div>'
+      + '<div style="display:flex;gap:8px;margin-top:10px;">'
+      + '<button class="btn btn-g btn-sm" onclick="navigator.clipboard.writeText(' + JSON.stringify(risultato) + ');toast(\'📋 Copiato!\')">📋 Copia</button>'
+      + '<button class="btn btn-g btn-sm" onclick="document.getElementById(\'_aiSpuntoDomanda\').value=\'\';document.getElementById(\'_aiSpuntoResult\').innerHTML=\'\';">✨ Nuova domanda</button>'
+      + '</div>';
+  } catch(e) {
+    if(errEl) errEl.textContent='❌ '+e.message;
+  } finally {
+    if(btn) { btn.disabled=false; btn.textContent='✨ Chiedi all\'AI'; }
+  }
+}
+
+// Modal AI sessione singola
+let _aiSessFromAll = false;
+
+function _openAiSessioneSingola(fromAll) {
+  _aiSessFromAll = !!fromAll;
+  if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
+  const el = document.getElementById('_aiSessModal');
+  if (!el) return;
+  document.getElementById('_aiSessResult').innerHTML = '';
+  document.getElementById('_aiSessErr').textContent = '';
+  el.classList.add('on');
+}
+function _closeAiSess() { const e = document.getElementById('_aiSessModal'); if (e) e.classList.remove('on'); }
+
+async function _callAiSessione() {
+  const eta_leva      = document.getElementById('_aiSessLeva') ? document.getElementById('_aiSessLeva').value : '';
+  const categoria     = document.getElementById('_aiSessCat') ? document.getElementById('_aiSessCat').value : '';
+  const obiettivi     = (document.getElementById('_aiSessObj') ? document.getElementById('_aiSessObj').value : '').trim();
+  const durata        = parseInt(document.getElementById('_aiSessDur') ? document.getElementById('_aiSessDur').value : '20');
+  const materiali     = (document.getElementById('_aiSessMat') ? document.getElementById('_aiSessMat').value : '').trim();
+  const num_giocatori = parseInt(document.getElementById('_aiSessNum') ? document.getElementById('_aiSessNum').value : '0') || null;
+  const note_extra    = (document.getElementById('_aiSessNote') ? document.getElementById('_aiSessNote').value : '').trim();
+  const errEl         = document.getElementById('_aiSessErr');
+  if(errEl) errEl.textContent='';
+
+  if (!eta_leva||!categoria||obiettivi.length<5||isNaN(durata)||durata<5) {
+    if(errEl) errEl.textContent='⚠️ Compila tutti i campi obbligatori.'; return;
+  }
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
+
+  const btn = document.getElementById('_aiSessBtn');
+  if(btn) { btn.disabled=true; btn.textContent='⏳ Generazione…'; }
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/ai/sessione-singola`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
+      body: JSON.stringify({ eta_leva: eta_leva, categoria: categoria, obiettivi: obiettivi, durata_minuti: durata, materiali: materiali||null, num_giocatori: num_giocatori, note_extra: note_extra||null })
+    });
+    if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiSess(); return; }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    const d = await r.json();
+    _allSt._aiBudget = d.budget || _allSt._aiBudget;
+    _renderAiBudgetBar();
+    const s = d.sessione_proposta || d.sessione || d;
+    _renderAiSessResult(s, eta_leva);
+  } catch(e) {
+    if(errEl) errEl.textContent='❌ '+e.message;
+  } finally {
+    if(btn) { btn.disabled=false; btn.textContent='✨ Genera sessione'; }
+  }
+}
+
+function _renderAiSessResult(s, eta_leva) {
+  const tags  = Array.isArray(s.tag) ? s.tag : [];
+  const cat   = _ALL_CAT_IT[s.categoria] || s.categoria;
+  const catBg = (_ALL_CAT_BG||{})[s.categoria] || '#f3f4f6';
+  let html = '<div class="ai-result-box">'
+    + '<div style="font-weight:800;font-size:1rem;margin-bottom:6px;">' + escapeHtml(s.titolo||'—') + '</div>'
+    + '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">'
+    + '<span style="background:' + catBg + ';font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;">' + cat + '</span>'
+    + '<span style="font-size:.73rem;color:var(--text3);">🕐 ' + (s.durata_minuti||'—') + ' min</span>'
+    + tags.map(function(t){return '<span style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1px 6px;font-size:.68rem;">' + escapeHtml(t) + '</span>';}).join(' ')
+    + '</div>'
+    + '<div style="font-size:.88rem;line-height:1.65;white-space:pre-wrap;">' + escapeHtml(s.descrizione||'') + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+    + '<button class="btn btn-g btn-sm" onclick="if(confirm(\'Rigenera? Consumerà altro budget AI.\'))_callAiSessione()">🔄 Rigenera</button>'
+    + '<button class="btn btn-g btn-sm" onclick="_aiSessInLibreria(' + JSON.stringify(JSON.stringify(s)) + ',' + JSON.stringify(eta_leva) + ')">Modifica e salva in libreria</button>'
+    + (_aiSessFromAll ? '<button class="btn btn-p btn-sm" onclick="_aiSessAddToAll(' + JSON.stringify(JSON.stringify(s)) + ',' + JSON.stringify(eta_leva) + ')">Aggiungi all\'allenamento</button>' : '')
+    + '</div>';
+  document.getElementById('_aiSessResult').innerHTML = html;
+}
+
+function _aiSessInLibreria(jsonStr, eta_leva) {
+  try {
+    const s = JSON.parse(jsonStr);
+    _allSt._nsAddToAll = false;
+    _closeAiSess();
+    _initNuovaSessioneModal(null);
+    setTimeout(function() {
+      if(document.getElementById('nsTitolo')) document.getElementById('nsTitolo').value = s.titolo||'';
+      if(document.getElementById('nsDescrizione')) document.getElementById('nsDescrizione').value = s.descrizione||'';
+      if(document.getElementById('nsDurata')) document.getElementById('nsDurata').value = s.durata_minuti||20;
+      if(document.getElementById('nsCategoria')) document.getElementById('nsCategoria').value = s.categoria||'';
+      if(document.getElementById('nsEta')) document.getElementById('nsEta').value = eta_leva||'';
+      _allSt._nsTags = Array.isArray(s.tag) ? s.tag.slice() : [];
+      _renderNsTags();
+    }, 100);
+  } catch(e) { toast('❌ Errore'); }
+}
+
+function _aiSessAddToAll(jsonStr, eta_leva) {
+  try {
+    const s = JSON.parse(jsonStr);
+    _aggiungiSessioneAllenamento(Object.assign({}, s, { eta_leva: eta_leva||s.eta_leva||'', sessione_libreria_id: null }));
+    _closeAiSess();
+    toast('✅ Sessione AI aggiunta all\'allenamento');
+  } catch(e) { toast('❌ Errore'); }
+}
+
+// Modal AI allenamento completo
+function _openAiAllenaCompleto() {
+  if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
+  const el = document.getElementById('_aiAllModal');
+  if (!el) return;
+  document.getElementById('_aiAllResult').innerHTML = '';
+  document.getElementById('_aiAllErr').textContent  = '';
+  el.classList.add('on');
+}
+function _closeAiAll() { const e = document.getElementById('_aiAllModal'); if (e) e.classList.remove('on'); }
+
+async function _callAiAllenamento() {
+  const eta_leva      = document.getElementById('_aiAllLeva') ? document.getElementById('_aiAllLeva').value : '';
+  const obiettivo     = (document.getElementById('_aiAllObj') ? document.getElementById('_aiAllObj').value : '').trim();
+  const durata_totale = parseInt(document.getElementById('_aiAllDur') ? document.getElementById('_aiAllDur').value : '75');
+  const num_sessioni  = parseInt(document.getElementById('_aiAllNumS') ? document.getElementById('_aiAllNumS').value : '4');
+  const materiali     = (document.getElementById('_aiAllMat') ? document.getElementById('_aiAllMat').value : '').trim();
+  const num_giocatori = parseInt(document.getElementById('_aiAllNum') ? document.getElementById('_aiAllNum').value : '0') || null;
+  const errEl         = document.getElementById('_aiAllErr');
+  if(errEl) errEl.textContent='';
+  if (!eta_leva||obiettivo.length<5||isNaN(durata_totale)||durata_totale<30) {
+    if(errEl) errEl.textContent='⚠️ Compila tutti i campi obbligatori.'; return;
+  }
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
+  const btn = document.getElementById('_aiAllBtn');
+  if(btn) { btn.disabled=true; btn.textContent='⏳ Generazione (15-30 sec)…'; }
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/ai/allenamento-completo`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
+      body: JSON.stringify({ eta_leva: eta_leva, obiettivo: obiettivo, durata_totale_minuti: durata_totale, num_sessioni: num_sessioni, materiali: materiali||null, num_giocatori: num_giocatori, categorie_preferite: [] })
+    });
+    if (r.status===402) { toast('❌ Budget AI esaurito'); _closeAiAll(); return; }
+    if (!r.ok) { const d=await r.json().catch(function(){return {};}); throw new Error(d.message||d.error||'Errore AI'); }
+    const d = await r.json();
+    _allSt._aiBudget = d.budget || _allSt._aiBudget;
+    _renderAiBudgetBar();
+    const all = d.allenamento || d;
+    _renderAiAllResult(all, eta_leva);
+  } catch(e) {
+    if(errEl) errEl.textContent='❌ '+e.message;
+  } finally {
+    if(btn) { btn.disabled=false; btn.textContent='✨ Genera allenamento'; }
+  }
+}
+
+function _renderAiAllResult(all, eta_leva) {
+  const sessioni = all.sessioni || [];
+  let html = '<div class="ai-result-box">'
+    + '<div style="font-weight:800;font-size:1rem;margin-bottom:4px;">' + escapeHtml(all.titolo_allenamento||all.titolo||'—') + '</div>'
+    + (all.obiettivo ? '<div style="font-size:.84rem;color:var(--text2);margin-bottom:10px;">' + escapeHtml(all.obiettivo) + '</div>' : '')
+    + sessioni.map(function(s, i) {
+        const cat   = _ALL_CAT_IT[s.categoria]||s.categoria;
+        const catBg = (_ALL_CAT_BG||{})[s.categoria]||'#f3f4f6';
+        return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--border);">'
+          + '<div style="width:22px;height:22px;border-radius:50%;background:var(--cp);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;">' + (i+1) + '</div>'
+          + '<div><div style="font-weight:700;font-size:.88rem;">' + escapeHtml(s.titolo) + '</div>'
+          + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;">'
+          + '<span style="background:' + catBg + ';font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:8px;">' + cat + '</span>'
+          + '<span style="font-size:.7rem;color:var(--text3);">🕐 ' + s.durata_minuti + ' min</span>'
+          + '</div></div></div>';
+      }).join('')
+    + '</div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">'
+    + '<button class="btn btn-g btn-sm" onclick="if(confirm(\'Rigenera? Consumerà altro budget AI.\'))_callAiAllenamento()">🔄 Rigenera</button>'
+    + '<button class="btn btn-p btn-sm" onclick="_aiAllInEditor(' + JSON.stringify(JSON.stringify(all)) + ',' + JSON.stringify(eta_leva) + ')">Apri in editor allenamento</button>'
+    + '</div>';
+  document.getElementById('_aiAllResult').innerHTML = html;
+}
+
+function _aiAllInEditor(jsonStr, eta_leva) {
+  try {
+    const all = JSON.parse(jsonStr);
+    _closeAiAll();
+    _openCostruisciAllenamento(null);
+    setTimeout(function() {
+      if(document.getElementById('_allFsTitolo')) document.getElementById('_allFsTitolo').value = all.titolo_allenamento||all.titolo||'';
+      if(document.getElementById('_allFsObiettivo')) document.getElementById('_allFsObiettivo').value = all.obiettivo||'';
+      _allSt._costruttore.sessioni = (all.sessioni||[]).map(function(s) {
+        return { _localId: Math.random().toString(36).slice(2), id:null, sessione_libreria_id:null, titolo:s.titolo, descrizione:s.descrizione, durata_minuti:s.durata_minuti, categoria:s.categoria, eta_leva:eta_leva, tag:Array.isArray(s.tag)?s.tag.slice():[], note_snapshot:null };
+      });
+      _renderCostruisciSessioni();
+    }, 200);
+  } catch(e) { toast('❌ Errore'); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AI ALLOWLIST
+// ══════════════════════════════════════════════════════════════════════════
+
+async function _openAiAllowlist() {
+  const piano = pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister');
+  if (!isAdminLike()||piano!=='societa') { toast('⚠️ Funzione riservata agli admin di società'); return; }
+  const ov = document.getElementById('_aiAllowlistModal');
+  if (!ov) return;
+  document.getElementById('_aiAllowlistBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">Caricamento…</div>';
+  ov.classList.add('on');
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  try {
+    const ra = await fetch(`${API_BASE}/api/v2/ai/allowlist`, { headers:{'Authorization':'Bearer '+_v2Token} });
+    const rb = await fetch(`${API_BASE}/api/v2/ai/budget`, { headers:{'Authorization':'Bearer '+_v2Token} });
+    const allowlist = ra.ok ? await ra.json() : { mister: [] };
+    const budget    = rb.ok ? await rb.json() : null;
+    _renderAiAllowlist(allowlist, budget);
+  } catch(e) { document.getElementById('_aiAllowlistBody').innerHTML='<div style="color:#c0392b;padding:20px;">Errore: ' + e.message + '</div>'; }
+}
+function _closeAiAllowlist() { const e = document.getElementById('_aiAllowlistModal'); if (e) e.classList.remove('on'); }
+
+function _renderAiAllowlist(data, budget) {
+  const mister = data.mister || [];
+  const used   = budget ? (budget.token_consumati||0) : 0;
+  const bgt    = budget ? (budget.token_budget||280000) : 280000;
+  const pct    = Math.min(100, Math.round((used/bgt)*100));
+  const color  = pct<70 ? '#1A7A4A' : pct<90 ? '#FFD93D' : '#e74c3c';
+  let html = '<div style="padding:20px;">'
+    + '<div style="margin-bottom:16px;">'
+    + '<div style="font-size:.82rem;color:var(--text2);margin-bottom:6px;">Budget pool società</div>'
+    + '<div class="ai-budget-bar">'
+    + '<span>✨ ' + (bgt-used).toLocaleString() + ' / ' + bgt.toLocaleString() + ' token rimasti</span>'
+    + '<div class="ai-budget-track"><div class="ai-budget-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>'
+    + '<span style="font-size:.75rem;color:var(--text3);">' + pct + '%</span>'
+    + '</div></div>'
+    + '<div style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">Scegli quali mister possono usare l\'AI. Il budget di 280.000 token mensili è condiviso.</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:.88rem;">'
+    + '<thead><tr style="border-bottom:2px solid var(--border);">'
+    + '<th style="text-align:left;padding:6px 8px;">Nome</th>'
+    + '<th style="text-align:left;padding:6px 8px;">Ruolo</th>'
+    + '<th style="text-align:left;padding:6px 8px;">Leva</th>'
+    + '<th style="text-align:center;padding:6px 8px;">AI</th>'
+    + '</tr></thead><tbody>'
+    + (mister.length ? mister.map(function(m) {
+        return '<tr style="border-bottom:1px solid var(--border);">'
+          + '<td style="padding:8px;">' + escapeHtml(m.nome+' '+m.cognome) + '</td>'
+          + '<td style="padding:8px;color:var(--text2);">' + escapeHtml(m.ruolo||'—') + '</td>'
+          + '<td style="padding:8px;color:var(--text2);">' + escapeHtml(m.leva_nome||'—') + '</td>'
+          + '<td style="padding:8px;text-align:center;">'
+          + '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;">'
+          + '<input type="checkbox"' + (m.abilitato?' checked':'') + ' onchange="_toggleAiAbilitato(\'' + m.id + '\',this.checked,' + JSON.stringify(m.nome+' '+m.cognome) + ')">'
+          + '</label></td></tr>';
+      }).join('') : '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text3);">Nessun mister trovato.</td></tr>')
+    + '</tbody></table></div>';
+  document.getElementById('_aiAllowlistBody').innerHTML = html;
+}
+
+async function _toggleAiAbilitato(misterId, abilitato, nome) {
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/ai/allowlist`, {
+      method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
+      body: JSON.stringify({ mister_id: misterId, abilitato: abilitato })
+    });
+    if (r.ok) toast(abilitato ? '✅ AI abilitata per ' + nome : '🔒 AI disabilitata per ' + nome);
+    else { const d=await r.json().catch(function(){return {};}); toast('❌ '+(d.message||'Errore')); }
+  } catch(e) { toast('❌ Errore: '+e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// NOTE VOCALI REGISTRATORE
+// ══════════════════════════════════════════════════════════════════════════
+
+let _nvMediaRecorder = null;
+let _nvAudioChunks   = [];
+let _nvRecTimerInt   = null;
+let _nvRecSeconds    = 0;
+const NV_MAX_SEC     = 300;
+
+function _openNotaVocaleRecorder(allenamentoId) {
+  const cont = document.getElementById('_nvRecorder_' + allenamentoId);
+  if (!cont) return;
+  cont.innerHTML = '<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;background:var(--bg);">'
+    + '<div style="font-weight:700;margin-bottom:10px;">🎙 Registra nota vocale</div>'
+    + '<div style="display:flex;gap:12px;margin-bottom:12px;">'
+    + '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.88rem;"><input type="radio" name="nv_momento_' + allenamentoId + '" value="durante" checked> 🎙 Durante</label>'
+    + '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.88rem;"><input type="radio" name="nv_momento_' + allenamentoId + '" value="dopo"> ✅ Dopo</label>'
+    + '</div>'
+    + '<div id="_nvRecBtn_' + allenamentoId + '"><button class="btn btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="_nvStartRec(\'' + allenamentoId + '\')">🎙 Registra</button></div>'
+    + '<div id="_nvTimer_' + allenamentoId + '" style="font-size:.84rem;color:var(--text3);margin-top:6px;"></div>'
+    + '<div id="_nvPreview_' + allenamentoId + '"></div>'
+    + '<div id="_nvRecErr_' + allenamentoId + '" style="color:#c0392b;font-size:.82rem;margin-top:6px;"></div>'
+    + '</div>';
+}
+
+async function _nvStartRec(allenamentoId) {
+  const errEl = document.getElementById('_nvRecErr_' + allenamentoId);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _nvAudioChunks = [];
+    _nvMediaRecorder = new MediaRecorder(stream);
+    _nvMediaRecorder.ondataavailable = function(e) { if (e.data.size>0) _nvAudioChunks.push(e.data); };
+    _nvMediaRecorder.onstop = function() { stream.getTracks().forEach(function(t){t.stop();}); _nvShowPreview(allenamentoId); };
+    _nvMediaRecorder.start();
+    _nvRecSeconds = 0;
+    const btnCont = document.getElementById('_nvRecBtn_' + allenamentoId);
+    if (btnCont) btnCont.innerHTML = '<button class="btn btn-sm" style="background:#ef4444;color:#fff;border:none;" onclick="_nvStopRec(\'' + allenamentoId + '\')">⏹ Stop</button>';
+    const timerEl = document.getElementById('_nvTimer_' + allenamentoId);
+    _nvRecTimerInt = setInterval(function() {
+      _nvRecSeconds++;
+      const m = String(Math.floor(_nvRecSeconds/60)).padStart(2,'0');
+      const s = String(_nvRecSeconds%60).padStart(2,'0');
+      if(timerEl) timerEl.textContent = m + ':' + s;
+      if (_nvRecSeconds>=NV_MAX_SEC) _nvStopRec(allenamentoId);
+    }, 1000);
+  } catch(e) {
+    if(errEl) errEl.textContent = 'Per registrare note vocali devi autorizzare il microfono nelle impostazioni del browser.';
+  }
+}
+
+function _nvStopRec(allenamentoId) {
+  clearInterval(_nvRecTimerInt);
+  if (_nvMediaRecorder && _nvMediaRecorder.state!=='inactive') _nvMediaRecorder.stop();
+  const btnCont = document.getElementById('_nvRecBtn_' + allenamentoId);
+  if (btnCont) btnCont.innerHTML = '';
+}
+
+function _nvShowPreview(allenamentoId) {
+  const blob = new Blob(_nvAudioChunks, { type: (_nvAudioChunks[0] && _nvAudioChunks[0].type) || 'audio/webm' });
+  if (blob.size > 5*1024*1024) {
+    const errEl = document.getElementById('_nvRecErr_' + allenamentoId);
+    if(errEl) errEl.textContent = '⚠️ File troppo grande (max 5MB).';
+    return;
+  }
+  const url  = URL.createObjectURL(blob);
+  const prev = document.getElementById('_nvPreview_' + allenamentoId);
+  if (!prev) return;
+  prev.innerHTML = '<div style="margin-top:10px;">'
+    + '<audio controls src="' + url + '" style="width:100%;height:36px;"></audio>'
+    + '<div style="display:flex;gap:8px;margin-top:8px;">'
+    + '<button class="btn btn-g btn-sm" onclick="URL.revokeObjectURL(\'' + url + '\');document.getElementById(\'_nvPreview_' + allenamentoId + '\').innerHTML=\'\';document.getElementById(\'_nvRecBtn_' + allenamentoId + '\').innerHTML=\'<button class=\\\"btn btn-sm\\\" style=\\\"background:#ef4444;color:#fff;border:none;\\\" onclick=\\\"_nvStartRec(\\\\\\\"' + allenamentoId + '\\\\\\\")\\\">🎙 Registra</button>\';">❌ Scarta</button>'
+    + '<button class="btn btn-p btn-sm" onclick="_nvSalva(\'' + allenamentoId + '\')">💾 Salva nota</button>'
+    + '</div></div>';
+  prev._blob = blob;
+}
+
+async function _nvSalva(allenamentoId) {
+  const prev = document.getElementById('_nvPreview_' + allenamentoId);
+  const blob = prev ? prev._blob : null;
+  if (!blob) { toast('⚠️ Nessuna registrazione'); return; }
+  const momentoEl = document.querySelector('input[name="nv_momento_' + allenamentoId + '"]:checked');
+  const momento   = momentoEl ? momentoEl.value : 'durante';
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { toast('⛔ Non autenticato'); return; }
+  const fd  = new FormData();
+  const ext = ((blob.type||'audio/webm').split('/')[1])||'webm';
+  fd.append('audio', blob, 'nota.' + ext);
+  fd.append('momento', momento);
+  fd.append('durata_secondi', String(_nvRecSeconds));
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/allenamenti/${allenamentoId}/note-vocali`, {
+      method:'POST', headers:{'Authorization':'Bearer '+_v2Token}, body: fd
+    });
+    if (r.ok) {
+      toast('✅ Nota vocale salvata');
+      _openAllenamentiDetail(allenamentoId);
+    } else { const d=await r.json().catch(function(){return {};}); toast('❌ '+(d.message||d.error||'Errore')); }
+  } catch(e) { toast('❌ Errore: '+e.message); }
+}
+
+async function _deleteNotaVocale(nvId, allenamentoId) {
+  if (!confirm('Eliminare questa nota vocale?')) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  const r = await fetch(`${API_BASE}/api/v2/allenamenti/note-vocali/${nvId}`, { method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token} });
+  if (r.ok) { toast('🗑 Nota eliminata'); _openAllenamentiDetail(allenamentoId); }
+  else toast('❌ Errore eliminazione');
 }
 
 function _openAllMenu(btn, id) {
@@ -13653,7 +14640,7 @@ function _openAllMenu(btn, id) {
     d.onclick = () => { pop.remove(); fn(); };
     return d;
   };
-  pop.appendChild(row('✏️', 'Modifica', () => toast('✏️ Modifica: disponibile nella Parte 2!')));
+  pop.appendChild(row('✏️', 'Modifica', () => _openCostruisciAllenamento(id)));
   pop.appendChild(row('🗑️', 'Elimina',  () => _deleteAllenamento(id), true));
   document.body.appendChild(pop);
   setTimeout(() => document.addEventListener('click', function _rm(){ pop.remove(); document.removeEventListener('click',_rm); }, {once:true}), 10);
@@ -13677,6 +14664,11 @@ async function _deleteAllenamento(id) {
 function _renderLibreria(cont) {
   const act = document.getElementById('allenamentiActions');
   if (act) act.innerHTML = `<button class="btn btn-p btn-sm" onclick="_initNuovaSessioneModal(null)">+ Nuova sessione</button>`;
+  const contParent = document.getElementById('allTabContent');
+  if (contParent && !document.getElementById('_aiBudgetBarCont')) {
+    const bbc = document.createElement('div'); bbc.id='_aiBudgetBarCont'; bbc.style.marginBottom='10px';
+    contParent.insertBefore(bbc, contParent.firstChild);
+  }
 
   cont.innerHTML = `
     <div style="margin-bottom:14px;">
@@ -22800,6 +23792,30 @@ async function doRejoinSocieta() {
 @keyframes skelAnim{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @media(max-width:900px){.slib-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:600px){.all-tab{padding:8px 10px;font-size:.8rem;}.slib-grid{grid-template-columns:1fr;}}
+/* costruttore allenamento fullscreen */
+.all-fs-ov{position:fixed;inset:0;background:#fff;z-index:8000;display:none;flex-direction:column;overflow:hidden;}
+.all-fs-ov.on{display:flex;}
+.all-fs-hdr{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:2px solid var(--border);background:#fff;position:sticky;top:0;z-index:10;}
+.all-fs-body{flex:1;overflow-y:auto;padding:20px;max-width:1100px;width:100%;margin:0 auto;}
+.all-sess-row{display:flex;align-items:flex-start;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.all-sess-row.editing{border-color:var(--cp);background:var(--cl);}
+.all-sub-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:8500;display:none;align-items:center;justify-content:center;}
+.all-sub-modal.on{display:flex;}
+.all-sub-modal .modal{max-width:720px;}
+.all-pick-card{border:1px solid var(--border2);border-radius:12px;padding:18px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:box-shadow .15s,border-color .15s;}
+.all-pick-card:hover{border-color:var(--cp);box-shadow:0 4px 18px rgba(26,122,74,.1);}
+.all-pick-card .pick-ic{font-size:1.8rem;flex-shrink:0;}
+.all-det-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:8000;display:none;align-items:center;justify-content:center;}
+.all-det-ov.on{display:flex;}
+.all-det-modal{background:var(--white);border-radius:15px;padding:0;width:94vw;max-width:900px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(13,26,58,.18);}
+.ai-budget-bar{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:10px;font-size:.79rem;flex-wrap:wrap;}
+.ai-budget-track{flex:1;min-width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.ai-budget-fill{height:100%;border-radius:3px;transition:width .4s;}
+.ai-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:none;align-items:center;justify-content:center;}
+.ai-modal-ov.on{display:flex;}
+.ai-modal-ov .modal{max-width:760px;}
+.ai-result-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:14px;white-space:pre-wrap;font-size:.88rem;line-height:1.65;}
+@media(max-width:640px){.all-fs-body{padding:12px;}.all-sess-row{flex-direction:column;}}
 </style>
 
 <div id="saPanel" style="display:none;">
@@ -23788,6 +24804,214 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="btn btn-g btn-sm" onclick="toast('⚙️ Funzione disponibile nella Parte 2')">+ Aggiungi ad allenamento</button>
         <button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev')">Chiudi</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ALLENAMENTI — COSTRUTTORE FULLSCREEN
+══════════════════════════════════════════════════════════════════════ -->
+<div class="all-fs-ov" id="_allFsModal">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;gap:12px;">
+    <span id="_allFsTitle" style="font-size:1.1rem;font-weight:800;"></span>
+    <button class="btn btn-g btn-sm" onclick="_closeCostruisciAllenamento()">✕ Chiudi</button>
+  </div>
+  <div class="all-fs-body" style="flex:1;overflow-y:auto;padding:20px;">
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;max-width:1100px;margin:0 auto;">
+      <div>
+        <div style="font-weight:700;margin-bottom:12px;font-size:.92rem;color:var(--text2);">DATI ALLENAMENTO</div>
+        <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="_allFsTitolo" maxlength="200" placeholder="Es. Allenamento tecnica martedì"></div>
+        <div class="fg"><label class="fl">Obiettivo</label><input class="fi" id="_allFsObiettivo" maxlength="300" placeholder="Es. Migliorare la pressione alta"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Data *</label><input class="fi" id="_allFsData" type="date"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Leva *</label><select class="fi" id="_allFsLeva"></select></div>
+        </div>
+        <div class="fg" style="margin-top:10px;"><label class="fl">Note seduta</label><textarea class="fi" id="_allFsNoteTesto" rows="3" placeholder="Istruzioni per lo staff, condizioni meteo..."></textarea></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;margin-top:2px;">
+          <input type="checkbox" id="_allFsVisG" style="width:18px;height:18px;accent-color:var(--cp);cursor:pointer;">
+          <label for="_allFsVisG" style="font-size:.88rem;cursor:pointer;">Visibile ai genitori (dopo 24h)</label>
+        </div>
+        <div id="_allFsErr" style="color:#c0392b;font-size:.83rem;min-height:18px;margin-top:4px;"></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="font-weight:700;font-size:.92rem;color:var(--text2);">SESSIONI</div>
+          <span id="_allFsSessMeta" style="font-size:.8rem;color:var(--text3);"></span>
+        </div>
+        <div id="_allFsSessioniList" style="margin-bottom:14px;"></div>
+        <button class="btn btn-g btn-sm" style="width:100%;" onclick="_openPickSessione()">+ Aggiungi sessione</button>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:flex-end;gap:10px;background:#fff;flex-shrink:0;">
+    <button class="btn btn-g btn-sm" onclick="_closeCostruisciAllenamento()">Annulla</button>
+    <button class="btn btn-p btn-sm" id="_allFsSaveBtn" onclick="_salvaAllenamento()">Salva</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ALLENAMENTI — DETTAGLIO
+══════════════════════════════════════════════════════════════════════ -->
+<div class="all-det-ov" id="_allDetOv">
+  <div class="modal" style="width:720px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+    <div id="_allDetHdr" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;"></div>
+    <div id="_allDetBody" style="flex:1;overflow-y:auto;padding:18px;"></div>
+    <div id="_allDetFoot" style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     ALLENAMENTI — PICK SESSIONE (sub-modal)
+══════════════════════════════════════════════════════════════════════ -->
+<div class="all-sub-modal" id="_allPickModal">
+  <div class="modal" style="width:580px;max-width:94vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-weight:800;font-size:1rem;">Aggiungi sessione</div>
+      <button class="mx" onclick="_closePickSessione()">✕</button>
+    </div>
+    <div id="_pickView"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     AI — SPUNTO RAPIDO
+══════════════════════════════════════════════════════════════════════ -->
+<div class="ai-modal-ov" id="_aiSpuntoModal">
+  <div class="modal" style="width:560px;max-width:94vw;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-weight:800;font-size:1rem;">✨ Spunto rapido AI</div>
+      <button class="mx" onclick="_closeAiSpunto()">✕</button>
+    </div>
+    <div style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">Fai una domanda libera all'AI: esercitazioni su un tema specifico, varianti, idee per una situazione concreta.</div>
+    <div class="fg"><label class="fl">La tua domanda *</label><textarea class="fi" id="_aiSpuntoDomanda" rows="4" placeholder="Es. Dammi 3 esercizi sul pressing alto per under 14, senza portiere..."></textarea></div>
+    <div id="_aiSpuntoErr" style="color:#c0392b;font-size:.82rem;min-height:16px;margin-bottom:6px;"></div>
+    <button class="btn btn-p btn-sm" id="_aiSpuntoBtn" onclick="_callAiSpunto()" style="width:100%;">✨ Chiedi all'AI</button>
+    <div id="_aiSpuntoResult" style="margin-top:4px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     AI — SESSIONE SINGOLA
+══════════════════════════════════════════════════════════════════════ -->
+<div class="ai-modal-ov" id="_aiSessModal">
+  <div class="modal" style="width:680px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-weight:800;font-size:1rem;">✨ Genera sessione con AI</div>
+      <button class="mx" onclick="_closeAiSess()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">Età / Leva *</label>
+        <select class="fi" id="_aiSessLeva">
+          <option value="">Seleziona…</option>
+          <option value="pulcini">Pulcini</option>
+          <option value="esordienti">Esordienti</option>
+          <option value="giovanissimi">Giovanissimi</option>
+          <option value="allievi">Allievi</option>
+          <option value="juniores">Juniores</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">Categoria *</label>
+        <select class="fi" id="_aiSessCat">
+          <option value="">Seleziona…</option>
+          <option value="riscaldamento">Riscaldamento</option>
+          <option value="tecnica_individuale">Tecnica individuale</option>
+          <option value="tattica">Tattica</option>
+          <option value="possesso_palla">Possesso palla</option>
+          <option value="finalizzazione">Finalizzazione</option>
+          <option value="atletica_fisico">Atletica / Fisico</option>
+          <option value="portieri">Portieri</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:1/-1;">
+        <label class="fl">Obiettivo *</label>
+        <input class="fi" id="_aiSessObj" placeholder="Es. Migliorare il dribbling in spazio ristretto" maxlength="300">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">Durata (min) *</label>
+        <input class="fi" id="_aiSessDur" type="number" min="5" max="180" value="20">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">N° giocatori</label>
+        <input class="fi" id="_aiSessNum" type="number" min="4" max="30" placeholder="Es. 16">
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:1/-1;">
+        <label class="fl">Materiali disponibili</label>
+        <input class="fi" id="_aiSessMat" placeholder="Es. coni, ostacoli, 2 porte piccole">
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:1/-1;">
+        <label class="fl">Note extra</label>
+        <textarea class="fi" id="_aiSessNote" rows="2" placeholder="Vincoli particolari, livello tecnico, situazioni..."></textarea>
+      </div>
+    </div>
+    <div id="_aiSessErr" style="color:#c0392b;font-size:.82rem;min-height:16px;margin-top:8px;"></div>
+    <button class="btn btn-p btn-sm" id="_aiSessBtn" onclick="_callAiSessione()" style="width:100%;margin-top:10px;">✨ Genera sessione</button>
+    <div id="_aiSessResult"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     AI — ALLENAMENTO COMPLETO
+══════════════════════════════════════════════════════════════════════ -->
+<div class="ai-modal-ov" id="_aiAllModal">
+  <div class="modal" style="width:680px;max-width:94vw;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-weight:800;font-size:1rem;">✨ Genera allenamento completo con AI</div>
+      <button class="mx" onclick="_closeAiAll()">✕</button>
+    </div>
+    <div style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">L'AI genera un piano di allenamento completo con più sessioni, in base ai tuoi parametri.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">Età / Leva *</label>
+        <select class="fi" id="_aiAllLeva">
+          <option value="">Seleziona…</option>
+          <option value="pulcini">Pulcini</option>
+          <option value="esordienti">Esordienti</option>
+          <option value="giovanissimi">Giovanissimi</option>
+          <option value="allievi">Allievi</option>
+          <option value="juniores">Juniores</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">N° sessioni</label>
+        <input class="fi" id="_aiAllNumS" type="number" min="2" max="8" value="4">
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:1/-1;">
+        <label class="fl">Obiettivo *</label>
+        <input class="fi" id="_aiAllObj" placeholder="Es. Sviluppare il pressing collettivo su tutta la metà campo" maxlength="300">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">Durata totale (min) *</label>
+        <input class="fi" id="_aiAllDur" type="number" min="30" max="180" value="75">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label class="fl">N° giocatori</label>
+        <input class="fi" id="_aiAllNum" type="number" min="4" max="30" placeholder="Es. 18">
+      </div>
+      <div class="fg" style="margin-bottom:0;grid-column:1/-1;">
+        <label class="fl">Materiali disponibili</label>
+        <input class="fi" id="_aiAllMat" placeholder="Es. palloni, coni, 2 porte grandi, 4 porte piccole">
+      </div>
+    </div>
+    <div id="_aiAllErr" style="color:#c0392b;font-size:.82rem;min-height:16px;margin-top:8px;"></div>
+    <button class="btn btn-p btn-sm" id="_aiAllBtn" onclick="_callAiAllenamento()" style="width:100%;margin-top:10px;">✨ Genera allenamento</button>
+    <div id="_aiAllResult"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     AI — ALLOWLIST GESTIONE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="ai-modal-ov" id="_aiAllowlistModal">
+  <div class="modal" style="width:680px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-weight:800;font-size:1rem;">⚙️ Gestione accesso AI — Mister</div>
+      <button class="mx" onclick="_closeAiAllowlist()">✕</button>
+    </div>
+    <div id="_aiAllowlistBody" style="flex:1;overflow-y:auto;"></div>
+    <div style="padding:10px 18px;border-top:1px solid var(--border);text-align:right;flex-shrink:0;">
+      <button class="btn btn-g btn-sm" onclick="_closeAiAllowlist()">Chiudi</button>
     </div>
   </div>
 </div>
