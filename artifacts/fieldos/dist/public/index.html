@@ -4646,6 +4646,7 @@ function logout() {
   // Resetta al contesto generico FieldOS (prima applica il tema login, poi ripristina lo stato)
   applyBranding('MyVivaio', '#047857', '#FFD93D');
   currentSocietaId = 0;
+  if (typeof window.__fieldosClearState === 'function') window.__fieldosClearState();
   if (typeof window.__fieldosSetSocietaKey === 'function') {
     window.__fieldosSetSocietaKey(societyStorageKey(0));
   }
@@ -22935,6 +22936,7 @@ async function doRejoinSocieta() {
   // ─────────────────────────────────────────────────────────
 
   function saveState() {
+    if (!me) return;
     try {
       const data = JSON.stringify(snapshot());
       if (data !== lastSnap) {
@@ -23226,6 +23228,37 @@ async function doRejoinSocieta() {
       localStorage.removeItem(KEY);
       location.reload();
     }
+  };
+
+  window.__fieldosClearState = function() {
+    USERS_DB.length = 0;
+    players.length = 0;
+    nextUserId = 1; nextPlayerId = 1;
+    leve = []; currentLeva = '';
+    events = []; eventTypes = [];
+    nextEventId = 1; nextEventTypeId = 1;
+    convocazioni = []; nextConvocazioneId = 1;
+    disponibilita = []; nextDisponibilitaId = 1;
+    notifiche = []; nextNotificaId = 1;
+    inviti = []; codiceSocieta = '';
+    pendingUsers = []; nextPendingUserId = 1;
+    ricercaPubblica = false; accettaRichieste = false;
+    chatMessaggi = []; nextChatMsgId = 1;
+    chatLastSeen = {}; torneoChats = {}; adHocChats = []; nextAdHocChatId = 1;
+    amichevoli = []; nextAmichevoleId = 1;
+    campionato = {}; nextCampId = 1;
+    tornei = []; nextTorneoId = 1; nextFaseId = 1; nextTornMatchId = 1;
+    comunicazioni = []; nextComunicazioneId = 1; nextCommentoId = 1;
+    mediaItems = []; nextMediaId = 1;
+    playerPhotos = {}; squadFotos = {};
+    nomeSocieta = ''; coloriPrimari = '#047857'; coloriAccento = '#FFD93D';
+    quotes = []; nextQuoteId = 1; quoteSettings = {};
+    documenti = []; nextDocId = 1;
+    campi = []; nextCampoId = 1;
+    indisponibilita = []; nextIndispId = 1;
+    levaConvSettings = {}; levaStatsSettings = {};
+    adminAsMister = {};
+    lastSnap = '';
   };
 
   // ── Backup / ripristino dati ────────────────────────────────────────────
