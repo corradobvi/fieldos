@@ -121,11 +121,12 @@ router.post("/login", async (req, res) => {
 
       logger.info({ email: normalizedEmail, societyId: soc.id, stateKey }, "login ok (SA-guided)");
       const _pc = await _mysqlPrivacyCheck(normalizedEmail, soc.id as number, found.user.role ?? 'admin');
-      // FIX 2: includi piano e billingMode da MySQL nella risposta
       return res.json({
-        societyId: soc.id as number, stateKey, user: found.user, stateJson: found.stateJson,
+        societyId: soc.id as number, stateKey,
+        user: { ...found.user, is_account_owner: _pc.isAccountOwner },
+        stateJson: found.stateJson,
         societyPiano: msCheck.piano ?? null, societyBillingMode: msCheck.billingMode ?? null,
-        ..._pc
+        privacyPending: _pc.privacyPending, v2Token: _pc.v2Token,
       });
     }
 
@@ -152,11 +153,12 @@ router.post("/login", async (req, res) => {
       }
       logger.info({ email: normalizedEmail, societyId, stateKey }, "login ok (orphan-key fallback)");
       const _pc2 = await _mysqlPrivacyCheck(normalizedEmail, societyId, found.user.role ?? 'admin');
-      // FIX 2: includi piano e billingMode da MySQL
       return res.json({
-        societyId, stateKey, user: found.user, stateJson: found.stateJson,
+        societyId, stateKey,
+        user: { ...found.user, is_account_owner: _pc2.isAccountOwner },
+        stateJson: found.stateJson,
         societyPiano: msCheck2.piano ?? null, societyBillingMode: msCheck2.billingMode ?? null,
-        ..._pc2
+        privacyPending: _pc2.privacyPending, v2Token: _pc2.v2Token,
       });
     }
 
@@ -173,21 +175,22 @@ async function _mysqlPrivacyCheck(
   email: string,
   societyId: number,
   role: string
-): Promise<{ privacyPending: boolean; v2Token: string | null }> {
+): Promise<{ privacyPending: boolean; v2Token: string | null; isAccountOwner: boolean }> {
   try {
     const [rows] = (await pool.execute(
-      `SELECT id, privacy_accepted_at FROM users
+      `SELECT id, privacy_accepted_at, is_account_owner FROM users
        WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo'
        LIMIT 1`,
       [email.toLowerCase(), societyId]
     )) as [any[], any];
-    if (!rows.length) return { privacyPending: false, v2Token: null };
+    if (!rows.length) return { privacyPending: false, v2Token: null, isAccountOwner: false };
     const mysqlUser = rows[0];
     const privacyPending = mysqlUser.privacy_accepted_at === null;
     const v2Token = signJWT({ userId: mysqlUser.id, societyId, role, email });
-    return { privacyPending, v2Token };
+    const isAccountOwner = mysqlUser.is_account_owner === 1;
+    return { privacyPending, v2Token, isAccountOwner };
   } catch {
-    return { privacyPending: false, v2Token: null };
+    return { privacyPending: false, v2Token: null, isAccountOwner: false };
   }
 }
 

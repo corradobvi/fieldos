@@ -77,9 +77,10 @@ router.post("/auth/self-register", async (req, res) => {
     const [userRes] = (await conn.execute(
       `INSERT INTO users
          (society_id, nome, cognome, email, password_hash, ruolo, stato, phone,
-          whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at)
+          whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at,
+          is_account_owner)
        VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?,
-               ?, NOW(), ?, ?)`,
+               ?, NOW(), ?, ?, 1)`,
       [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim(),
        waNum, mktConsent, mktConsent ? new Date() : null]
     )) as [any, any];
@@ -121,12 +122,13 @@ router.post("/auth/self-register", async (req, res) => {
     return res.status(201).json({
       token,
       user: {
-        id:       userId,
+        id:             userId,
         societyId,
-        nome:     nome.trim(),
-        cognome:  cognome.trim(),
-        email:    normalizedEmail,
-        ruolo:    "admin",
+        nome:           nome.trim(),
+        cognome:        cognome.trim(),
+        email:          normalizedEmail,
+        ruolo:          "admin",
+        isAccountOwner: true,
       },
       society: {
         id:          societyId,

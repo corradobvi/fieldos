@@ -77728,11 +77728,12 @@ router3.post("/login", async (req, res) => {
       return res.json({
         societyId: soc.id,
         stateKey,
-        user: found.user,
+        user: { ...found.user, is_account_owner: _pc.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck.piano ?? null,
         societyBillingMode: msCheck.billingMode ?? null,
-        ..._pc
+        privacyPending: _pc.privacyPending,
+        v2Token: _pc.v2Token
       });
     }
     const [allKeys] = await pool.execute(
@@ -77757,11 +77758,12 @@ router3.post("/login", async (req, res) => {
       return res.json({
         societyId,
         stateKey,
-        user: found.user,
+        user: { ...found.user, is_account_owner: _pc2.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck2.piano ?? null,
         societyBillingMode: msCheck2.billingMode ?? null,
-        ..._pc2
+        privacyPending: _pc2.privacyPending,
+        v2Token: _pc2.v2Token
       });
     }
     return res.status(401).json({ error: "invalid_credentials" });
@@ -77773,18 +77775,19 @@ router3.post("/login", async (req, res) => {
 async function _mysqlPrivacyCheck(email, societyId, role) {
   try {
     const [rows] = await pool.execute(
-      `SELECT id, privacy_accepted_at FROM users
+      `SELECT id, privacy_accepted_at, is_account_owner FROM users
        WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo'
        LIMIT 1`,
       [email.toLowerCase(), societyId]
     );
-    if (!rows.length) return { privacyPending: false, v2Token: null };
+    if (!rows.length) return { privacyPending: false, v2Token: null, isAccountOwner: false };
     const mysqlUser = rows[0];
     const privacyPending = mysqlUser.privacy_accepted_at === null;
     const v2Token = signJWT({ userId: mysqlUser.id, societyId, role, email });
-    return { privacyPending, v2Token };
+    const isAccountOwner = mysqlUser.is_account_owner === 1;
+    return { privacyPending, v2Token, isAccountOwner };
   } catch {
-    return { privacyPending: false, v2Token: null };
+    return { privacyPending: false, v2Token: null, isAccountOwner: false };
   }
 }
 var login_default = router3;
@@ -78711,7 +78714,9 @@ CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
   FOREIGN KEY fk_asal_societa      (societa_id)   REFERENCES societies(id) ON DELETE CASCADE,
   FOREIGN KEY fk_asal_mister       (mister_id)    REFERENCES users(id)     ON DELETE CASCADE,
   FOREIGN KEY fk_asal_abilitato_da (abilitato_da) REFERENCES users(id)     ON DELETE RESTRICT
-)
+);
+ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
+UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -78732,7 +78737,7 @@ router9.post("/auth/login", async (req, res) => {
     const [rows] = await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
               u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
-              u.privacy_accepted_at, u.permissions,
+              u.privacy_accepted_at, u.permissions, u.is_account_owner,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -78765,6 +78770,7 @@ router9.post("/auth/login", async (req, res) => {
         ruolo: user.ruolo,
         leva: user.leva,
         tempPassword: user.temp_password === 1,
+        isAccountOwner: user.is_account_owner === 1,
         figli: user.figli ? JSON.parse(user.figli) : [],
         permissions: user.permissions ? typeof user.permissions === "string" ? JSON.parse(user.permissions) : user.permissions : null
       },
@@ -79235,9 +79241,10 @@ router10.post("/auth/self-register", async (req, res) => {
     const [userRes] = await conn.execute(
       `INSERT INTO users
          (society_id, nome, cognome, email, password_hash, ruolo, stato, phone,
-          whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at)
+          whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at,
+          is_account_owner)
        VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?,
-               ?, NOW(), ?, ?)`,
+               ?, NOW(), ?, ?, 1)`,
       [
         societyId,
         nome.trim(),
@@ -79283,7 +79290,8 @@ router10.post("/auth/self-register", async (req, res) => {
         nome: nome.trim(),
         cognome: cognome.trim(),
         email: normalizedEmail,
-        ruolo: "admin"
+        ruolo: "admin",
+        isAccountOwner: true
       },
       society: {
         id: societyId,
@@ -80024,7 +80032,7 @@ router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, created_at
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, is_account_owner, created_at
        FROM users WHERE society_id = ? ORDER BY cognome, nome`,
       [societyId]
     );
@@ -80032,6 +80040,7 @@ router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
       ...u,
       figli: u.figli ? JSON.parse(u.figli) : [],
       tempPassword: u.temp_password === 1,
+      isAccountOwner: u.is_account_owner === 1,
       permissions: u.permissions ? typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions : null
     })));
   } catch (e) {

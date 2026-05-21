@@ -21,7 +21,7 @@ router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
   try {
     const [rows] = (await pool.execute(
-      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, created_at
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, is_account_owner, created_at
        FROM users WHERE society_id = ? ORDER BY cognome, nome`,
       [societyId]
     )) as [any[], any];
@@ -30,6 +30,7 @@ router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
       ...u,
       figli: u.figli ? JSON.parse(u.figli) : [],
       tempPassword: u.temp_password === 1,
+      isAccountOwner: u.is_account_owner === 1,
       permissions: u.permissions
         ? (typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions)
         : null,

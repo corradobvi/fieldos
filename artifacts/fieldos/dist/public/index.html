@@ -4070,6 +4070,7 @@ const ROLE_CFG = {
 
 // ─── Helper: true se l'utente corrente ha permessi admin (admin o mister_admin) ───
 function isAdminLike() { return !!(me && (me.role === 'admin' || me.role === 'mister_admin')); }
+function isAccountOwner() { return !!(me && me.role === 'admin' && me.is_account_owner === true); }
 function isAdminMisterForLeva(leva) {
   return !!(me && me.role === 'admin' && leva && adminAsMister[leva] === true);
 }
@@ -19461,7 +19462,8 @@ async function doSelfRegister() {
     const adminUser = {
       id: 1, nome, cogn, email, pass,
       role: 'admin', leva: 'Tutte', stato: 'attivo',
-      figlio: null, figli: [], anno: null, societaId: societyId
+      figlio: null, figli: [], anno: null, societaId: societyId,
+      is_account_owner: true
     };
 
     const initialState = {

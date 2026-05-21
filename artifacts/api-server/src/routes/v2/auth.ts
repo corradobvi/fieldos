@@ -16,7 +16,7 @@ router.post("/auth/login", async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT u.id, u.society_id, u.nome, u.cognome, u.email, u.password_hash,
               u.ruolo, u.leva, u.stato, u.temp_password, u.figli,
-              u.privacy_accepted_at, u.permissions,
+              u.privacy_accepted_at, u.permissions, u.is_account_owner,
               s.nome AS society_nome, s.citta, s.colore_primario, s.colore_accento,
               s.codice, s.piano, s.stato AS society_stato, s.logo_url
        FROM users u
@@ -54,6 +54,7 @@ router.post("/auth/login", async (req, res) => {
         ruolo: user.ruolo,
         leva: user.leva,
         tempPassword: user.temp_password === 1,
+        isAccountOwner: user.is_account_owner === 1,
         figli: user.figli ? JSON.parse(user.figli) : [],
         permissions: user.permissions
           ? (typeof user.permissions === "string" ? JSON.parse(user.permissions) : user.permissions)
