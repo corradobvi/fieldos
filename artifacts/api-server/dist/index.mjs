@@ -78717,7 +78717,8 @@ CREATE TABLE IF NOT EXISTS ai_societa_allowlist (
 );
 ALTER TABLE users ADD COLUMN is_account_owner TINYINT(1) NOT NULL DEFAULT 0;
 UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin' GROUP BY society_id) fa ON u.id = fa.first_id SET u.is_account_owner = 1 WHERE u.is_account_owner = 0;
-ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL
+ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL;
+ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -82539,7 +82540,7 @@ router27.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => 
 });
 router27.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
-  const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita = "privata" } = req.body;
+  const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita = "privata", note } = req.body;
   if (!titolo || typeof titolo !== "string" || titolo.length < 3 || titolo.length > 200)
     return res.status(400).json({ error: "titolo_non_valido", message: "Titolo: 3-200 caratteri" });
   if (!descrizione || typeof descrizione !== "string" || descrizione.length < 10)
@@ -82563,8 +82564,8 @@ router27.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("
   try {
     await pool.execute(
       `INSERT INTO sessioni_libreria
-         (id, mister_id, societa_id, titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita, ufficiale_myvivaio, origine_ai)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, FALSE)`,
+         (id, mister_id, societa_id, titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita, note, ufficiale_myvivaio, origine_ai)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE, FALSE)`,
       [
         id,
         userId,
@@ -82575,7 +82576,8 @@ router27.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("
         categoria,
         eta_leva,
         tagValidato.length ? JSON.stringify(tagValidato) : null,
-        visibilita
+        visibilita,
+        typeof note === "string" && note.trim() ? note.trim() : null
       ]
     );
     const [rows] = await pool.execute("SELECT * FROM sessioni_libreria WHERE id = ?", [id]);
@@ -82595,7 +82597,7 @@ router27.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermiss
     );
     if (!existing.length) return res.status(404).json({ error: "not_found" });
     if (existing[0].mister_id !== userId) return res.status(403).json({ error: "forbidden", message: "Solo l'autore pu\xF2 modificare la sessione" });
-    const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita } = req.body;
+    const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita, note } = req.body;
     const updates = [];
     const params = [];
     if (titolo !== void 0) {
@@ -82636,6 +82638,10 @@ router27.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermiss
       if (!["privata", "pubblica"].includes(visibilita)) return res.status(400).json({ error: "visibilita_non_valida" });
       updates.push("visibilita = ?");
       params.push(visibilita);
+    }
+    if (note !== void 0) {
+      updates.push("note = ?");
+      params.push(typeof note === "string" && note.trim() ? note.trim() : null);
     }
     if (!updates.length) return res.status(400).json({ error: "nessun_campo_da_aggiornare" });
     params.push(id);
