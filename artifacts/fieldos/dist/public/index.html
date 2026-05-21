@@ -9207,7 +9207,7 @@ function renderStats() {
 
   // Squadra stats
   const qs = document.getElementById('squadraStats');
-  const totGol = list.reduce((s,p) => s + p.partite.reduce((a,x) => a+x.gol,0), 0);
+  const totGol = list.reduce((s,p) => s + (p.partite||[]).reduce((a,x) => a+x.gol,0), 0);
   qs.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:9px;">
       <div style="background:var(--bg);border-radius:8px;padding:11px;display:flex;justify-content:space-between;align-items:center;">
@@ -15114,7 +15114,7 @@ function playerMatchStats(playerId, leva) {
   amichevoli.filter(m => m.leva === leva && m.played).forEach(m =>
     add(a, (m.stats||[]).find(s => s.playerId === playerId)));
   const camp = campionato[leva];
-  if (camp) camp.partite.filter(m => m.played).forEach(m =>
+  if (camp) (camp.partite||[]).filter(m => m.played).forEach(m =>
     add(c, (m.stats||[]).find(s => s.playerId === playerId)));
   tornei.filter(tr => tr.leva === leva).forEach(tr =>
     (tr.fasi||[]).forEach(f =>
