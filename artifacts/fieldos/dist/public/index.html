@@ -13555,7 +13555,7 @@ function _renderAllLista(cont) {
          <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
          <button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>
          <button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>
-         ${isAdminLike()&&pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister')==='societa'?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
+         ${isAdminLike()&&['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
        </div>` : '';
 
   let hdr = '';
@@ -14500,7 +14500,7 @@ function _aiAllInEditor(jsonStr, eta_leva) {
 
 async function _openAiAllowlist() {
   const piano = pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister');
-  if (!isAdminLike()||piano!=='societa') { toast('⚠️ Funzione riservata agli admin di società'); return; }
+  if (!isAdminLike()||(piano!=='societa'&&piano!=='mister_pro')) { toast('⚠️ Funzione riservata agli admin di società e Mister Pro'); return; }
   const ov = document.getElementById('_aiAllowlistModal');
   if (!ov) return;
   document.getElementById('_aiAllowlistBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">Caricamento…</div>';
@@ -14512,26 +14512,37 @@ async function _openAiAllowlist() {
     const rb = await fetch(`${API_BASE}/api/v2/ai/budget`, { headers:{'Authorization':'Bearer '+_v2Token} });
     const allowlist = ra.ok ? await ra.json() : { mister: [] };
     const budget    = rb.ok ? await rb.json() : null;
-    _renderAiAllowlist(allowlist, budget);
+    _renderAiAllowlist(allowlist, budget, piano);
   } catch(e) { document.getElementById('_aiAllowlistBody').innerHTML='<div style="color:#c0392b;padding:20px;">Errore: ' + e.message + '</div>'; }
 }
 function _closeAiAllowlist() { const e = document.getElementById('_aiAllowlistModal'); if (e) e.classList.remove('on'); }
 
-function _renderAiAllowlist(data, budget) {
+function _renderAiAllowlist(data, budget, piano) {
   const mister = data.mister || [];
-  const used   = budget ? (budget.token_consumati||0) : 0;
-  const bgt    = budget ? (budget.token_budget||280000) : 280000;
-  const pct    = Math.min(100, Math.round((used/bgt)*100));
-  const color  = pct<70 ? '#1A7A4A' : pct<90 ? '#FFD93D' : '#e74c3c';
+  let budgetHtml = '';
+  if (piano === 'societa') {
+    const used  = budget ? (budget.token_consumati||0) : 0;
+    const bgt   = budget ? (budget.token_budget||280000) : 280000;
+    const pct   = Math.min(100, Math.round((used/bgt)*100));
+    const color = pct<70 ? '#1A7A4A' : pct<90 ? '#FFD93D' : '#e74c3c';
+    budgetHtml = '<div style="margin-bottom:16px;">'
+      + '<div style="font-size:.82rem;color:var(--text2);margin-bottom:6px;">Budget pool società</div>'
+      + '<div class="ai-budget-bar">'
+      + '<span>✨ ' + (bgt-used).toLocaleString() + ' / ' + bgt.toLocaleString() + ' token rimasti</span>'
+      + '<div class="ai-budget-track"><div class="ai-budget-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>'
+      + '<span style="font-size:.75rem;color:var(--text3);">' + pct + '%</span>'
+      + '</div></div>';
+  } else {
+    budgetHtml = '<div style="margin-bottom:16px;padding:10px 12px;background:var(--bg2);border-radius:8px;font-size:.82rem;color:var(--text2);">'
+      + '✨ Piano Mister Pro — ogni utente ha un budget individuale di <strong>35.000 token / mese</strong>.'
+      + '</div>';
+  }
+  const subtitle = piano === 'societa'
+    ? 'Scegli quali mister possono usare l\'AI. Il budget di 280.000 token mensili è condiviso.'
+    : 'Collaboratori della tua società. Ogni utente gestisce il proprio budget AI individuale.';
   let html = '<div style="padding:20px;">'
-    + '<div style="margin-bottom:16px;">'
-    + '<div style="font-size:.82rem;color:var(--text2);margin-bottom:6px;">Budget pool società</div>'
-    + '<div class="ai-budget-bar">'
-    + '<span>✨ ' + (bgt-used).toLocaleString() + ' / ' + bgt.toLocaleString() + ' token rimasti</span>'
-    + '<div class="ai-budget-track"><div class="ai-budget-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>'
-    + '<span style="font-size:.75rem;color:var(--text3);">' + pct + '%</span>'
-    + '</div></div>'
-    + '<div style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">Scegli quali mister possono usare l\'AI. Il budget di 280.000 token mensili è condiviso.</div>'
+    + budgetHtml
+    + '<div style="font-size:.84rem;color:var(--text2);margin-bottom:14px;">' + subtitle + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-size:.88rem;">'
     + '<thead><tr style="border-bottom:2px solid var(--border);">'
     + '<th style="text-align:left;padding:6px 8px;">Nome</th>'
