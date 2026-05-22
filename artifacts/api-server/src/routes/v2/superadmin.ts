@@ -463,20 +463,6 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 
 // [REMOVED] purge-test-blobs — FASE 4 2026-05-22: tutti i blob di test già assenti dal DB; SA blob ridotto a 8 entries
 
-// TEMPORARY read-only: diagnostic-dump — post-migration verification, remove after use
-router.get("/superadmin/diagnostic-dump", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [societies] = (await pool.execute(
-      "SELECT id, nome, piano, billing_mode, stato, colore_primario, colore_accento, codice FROM societies ORDER BY id"
-    )) as [any[], any];
-    const [users] = (await pool.execute(
-      "SELECT id, society_id, email, nome, cognome, ruolo, is_account_owner, stato FROM users ORDER BY society_id, id"
-    )) as [any[], any];
-    return res.json({ societies, users });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
+// [REMOVED] diagnostic-dump — usato per verifica post-migrazione 2026-05-23
 
 export default router;
