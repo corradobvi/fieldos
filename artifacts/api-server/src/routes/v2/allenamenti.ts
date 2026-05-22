@@ -329,7 +329,14 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
     if (leva_id)  { conditions.push("a.leva_id = ?");  params.push(parseInt(leva_id)); }
     if (da)       { conditions.push("a.data >= ?");   params.push(da); }
     if (a)        { conditions.push("a.data <= ?");   params.push(a); }
-    if (event_id) { conditions.push("a.event_id = ?"); params.push(parseInt(event_id)); }
+    if (event_id !== undefined) {
+      if (event_id === 'null') {
+        conditions.push("a.event_id IS NULL");
+      } else {
+        conditions.push("a.event_id = ?");
+        params.push(parseInt(event_id));
+      }
+    }
 
     if (isGenitore) {
       conditions.push("a.visibilita_genitori = TRUE");
@@ -434,11 +441,11 @@ router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allen
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } =
     req.body as Record<string, any>;
 
-  if (!leva_id || !titolo || !data)
-    return res.status(400).json({ error: "campi_obbligatori_mancanti", message: "leva_id, titolo, data richiesti" });
+  if (!leva_id || !titolo)
+    return res.status(400).json({ error: "campi_obbligatori_mancanti", message: "leva_id, titolo richiesti" });
   if (typeof titolo !== "string" || titolo.length < 3 || titolo.length > 200)
     return res.status(400).json({ error: "titolo_non_valido" });
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data))
+  if (data && !/^\d{4}-\d{2}-\d{2}$/.test(data))
     return res.status(400).json({ error: "data_non_valida", message: "Formato YYYY-MM-DD" });
   if (!Array.isArray(sessioni))
     return res.status(400).json({ error: "sessioni_non_valide" });
@@ -464,7 +471,7 @@ router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allen
     await conn.execute(
       `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti, event_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
+      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data ?? null, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
     );
 
     const sessioniCreate: any[] = [];

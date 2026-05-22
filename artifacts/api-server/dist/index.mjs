@@ -87609,51 +87609,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/superadmin/cleanup-orphaned-blobs", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  const BLOB_ALLOWLIST = /* @__PURE__ */ new Set([
-    "fieldos_state_soc_1",
-    "fieldos_state_soc_201",
-    "fieldos_state_soc_2"
-  ]);
-  const SA_IDS_TO_REMOVE = /* @__PURE__ */ new Set([1, 2, 201]);
-  const blobResults = [];
-  const saResult = {};
-  try {
-    for (const key of BLOB_ALLOWLIST) {
-      const [r] = await pool.execute(
-        "DELETE FROM `society_state` WHERE `key` = ?",
-        [key]
-      );
-      blobResults.push({ key, affectedRows: r.affectedRows });
-    }
-    const [saRows] = await pool.execute(
-      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1' LIMIT 1"
-    );
-    if (!saRows.length) {
-      return res.status(404).json({ error: "sa_blob_not_found", blobResults });
-    }
-    const saState = JSON.parse(saRows[0].state_json);
-    const before = (saState.saSocieties || []).length;
-    saState.saSocieties = (saState.saSocieties || []).filter(
-      (s) => !SA_IDS_TO_REMOVE.has(s.id)
-    );
-    const after = saState.saSocieties.length;
-    await pool.execute(
-      "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
-      [JSON.stringify(saState)]
-    );
-    saResult.entriesBefore = before;
-    saResult.entriesAfter = after;
-    saResult.removed = before - after;
-    saResult.remaining = saState.saSocieties.map((s) => ({ id: s.id, nome: s.nome }));
-    logger.info({ blobResults, saResult }, "cleanup-orphaned-blobs: done");
-    return res.json({ ok: true, blobResults, saResult });
-  } catch (e) {
-    logger.error({ err: e }, "cleanup-orphaned-blobs error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
-  }
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
@@ -88147,9 +88102,13 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
       conditions.push("a.data <= ?");
       params.push(a);
     }
-    if (event_id) {
-      conditions.push("a.event_id = ?");
-      params.push(parseInt(event_id));
+    if (event_id !== void 0) {
+      if (event_id === "null") {
+        conditions.push("a.event_id IS NULL");
+      } else {
+        conditions.push("a.event_id = ?");
+        params.push(parseInt(event_id));
+      }
     }
     if (isGenitore) {
       conditions.push("a.visibilita_genitori = TRUE");
@@ -88232,11 +88191,11 @@ router27.get("/allenamenti/:id", requireAuth, async (req, res) => {
 router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } = req.body;
-  if (!leva_id || !titolo || !data)
-    return res.status(400).json({ error: "campi_obbligatori_mancanti", message: "leva_id, titolo, data richiesti" });
+  if (!leva_id || !titolo)
+    return res.status(400).json({ error: "campi_obbligatori_mancanti", message: "leva_id, titolo richiesti" });
   if (typeof titolo !== "string" || titolo.length < 3 || titolo.length > 200)
     return res.status(400).json({ error: "titolo_non_valido" });
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data))
+  if (data && !/^\d{4}-\d{2}-\d{2}$/.test(data))
     return res.status(400).json({ error: "data_non_valida", message: "Formato YYYY-MM-DD" });
   if (!Array.isArray(sessioni))
     return res.status(400).json({ error: "sessioni_non_valide" });
@@ -88259,7 +88218,7 @@ router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_all
     await conn.execute(
       `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti, event_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
+      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data ?? null, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
     );
     const sessioniCreate = [];
     for (let i = 0; i < sessioni.length; i++) {
@@ -89738,6 +89697,12 @@ async function ensureSchema2() {
     logger.info("DB: added is_demo column");
   } catch (e) {
     if (e?.errno !== 1060) logger.warn({ errno: e?.errno }, "DB: is_demo migration skipped");
+  }
+  try {
+    await pool.query("ALTER TABLE allenamenti MODIFY COLUMN data DATE NULL DEFAULT NULL");
+    logger.info("DB: allenamenti.data made nullable");
+  } catch (e) {
+    logger.warn({ errno: e?.errno }, "DB: allenamenti.data nullable migration skipped");
   }
   logger.info("DB schema ready");
 }

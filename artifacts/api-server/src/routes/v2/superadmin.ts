@@ -459,65 +459,6 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 
 // [REMOVED] migrate-users-to-existing — usato per FASE 2bis (dir.test, mister.due, mister.testsocieta) 2026-05-22
 
-// TEMPORARY: cleanup-orphaned-blobs — FASE 3 2026-05-22 — remove after use
-router.post("/superadmin/cleanup-orphaned-blobs", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-
-  // Allowlist: solo i blob orfani noti post-migrazione
-  const BLOB_ALLOWLIST = new Set([
-    "fieldos_state_soc_1",
-    "fieldos_state_soc_201",
-    "fieldos_state_soc_2",
-  ]);
-
-  // SA blob: entry id da rimuovere (vecchie entries pre-migrazione)
-  const SA_IDS_TO_REMOVE = new Set([1, 2, 201]);
-
-  const blobResults: any[] = [];
-  const saResult: any = {};
-
-  try {
-    // Step 1: DELETE blob orfani da society_state
-    for (const key of BLOB_ALLOWLIST) {
-      const [r] = (await pool.execute(
-        "DELETE FROM `society_state` WHERE `key` = ?", [key]
-      )) as [any, any];
-      blobResults.push({ key, affectedRows: r.affectedRows });
-    }
-
-    // Step 2: Aggiorna SA blob — rimuovi entries con id in SA_IDS_TO_REMOVE
-    const [saRows] = (await pool.execute(
-      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1' LIMIT 1"
-    )) as [any[], any];
-
-    if (!saRows.length) {
-      return res.status(404).json({ error: "sa_blob_not_found", blobResults });
-    }
-
-    const saState = JSON.parse(saRows[0].state_json as string);
-    const before = (saState.saSocieties || []).length;
-    saState.saSocieties = (saState.saSocieties || []).filter(
-      (s: any) => !SA_IDS_TO_REMOVE.has(s.id)
-    );
-    const after = saState.saSocieties.length;
-
-    await pool.execute(
-      "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
-      [JSON.stringify(saState)]
-    );
-
-    saResult.entriesBefore = before;
-    saResult.entriesAfter = after;
-    saResult.removed = before - after;
-    saResult.remaining = saState.saSocieties.map((s: any) => ({ id: s.id, nome: s.nome }));
-
-    logger.info({ blobResults, saResult }, "cleanup-orphaned-blobs: done");
-    return res.json({ ok: true, blobResults, saResult });
-
-  } catch (e: any) {
-    logger.error({ err: e }, "cleanup-orphaned-blobs error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
-  }
-});
+// [REMOVED] cleanup-orphaned-blobs — FASE 3 2026-05-22: soc_1/soc_201/soc_2 già assenti, SA blob pulito
 
 export default router;

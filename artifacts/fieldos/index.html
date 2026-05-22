@@ -13843,6 +13843,7 @@ function _renderAllLista(cont) {
   } else {
     cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalFilters"></div><div id="allCalStats"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
     _allCalLoadEvents();
+    _allCalLoadBozze();
   }
 }
 
@@ -13978,17 +13979,29 @@ async function _allCalLoadEvents() {
   const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
 
   try {
-    const [evResp, allResp] = await Promise.all([
-      fetch(API_BASE + '/api/v2/events?' + evParams, { headers: hdrs }),
-      fetch(API_BASE + '/api/v2/allenamenti', { headers: hdrs })
-    ]);
+    const evResp = await fetch(API_BASE + '/api/v2/events?' + evParams, { headers: hdrs });
     _allSt.cal.events = evResp.ok ? (await evResp.json()) : [];
-    const allData = allResp.ok ? (await allResp.json()) : { items: [] };
-    _allSt.cal.bozze = (allData.items || []).filter(function(x) { return !x.event_id; });
     _allCalRender();
   } catch(e) {
     if (gridEl) gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">❌ Errore caricamento. <a style="cursor:pointer;text-decoration:underline;" onclick="_allCalLoadEvents()">Riprova</a></div>';
   }
+}
+
+async function _allCalLoadBozze() {
+  const bozzeEl = document.getElementById('allCalBozze');
+  if (!bozzeEl) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) return;
+  const leva = _allSt.cal.leva || currentLeva;
+  const levaId = _calLeveMap[leva] || '';
+  const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+  const params = new URLSearchParams({ event_id: 'null' });
+  if (levaId) params.set('leva_id', levaId);
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti?' + params, { headers: hdrs });
+    _allSt.cal.bozze = resp.ok ? ((await resp.json()).items || []) : [];
+  } catch(e) { _allSt.cal.bozze = []; }
+  _allCalRenderBozze(bozzeEl);
 }
 
 function _allCalRender() {
@@ -14325,6 +14338,7 @@ async function _agganciaSlot(eventId, dateLabel) {
     _closeAgganciaModal();
     toast('✅ Agganciato al ' + dateLabel);
     _allCalLoadEvents();
+    _allCalLoadBozze();
   } catch(e) { toast('❌ Errore durante l\'aggancio. Riprova.'); }
 }
 
@@ -14340,14 +14354,14 @@ async function _duplicaBozza(allenId) {
         ? { sessione_libreria_id: s.sessione_libreria_id }
         : { titolo: s.titolo_snapshot, descrizione: s.descrizione_snapshot, durata_minuti: s.durata_minuti_snapshot, categoria: s.categoria_snapshot, tag: s.tag_snapshot||[] };
     });
-    const body = { leva_id: b.leva_id, titolo: 'Copia di '+b.titolo, obiettivo: b.obiettivo||null, data: b.data ? b.data.slice(0,10) : new Date().toISOString().slice(0,10), visibilita_genitori: !!b.visibilita_genitori, note_testo: b.note_testo||null, sessioni, event_id: null };
+    const body = { leva_id: b.leva_id, titolo: 'Copia di '+b.titolo, obiettivo: b.obiettivo||null, ...(b.data ? { data: b.data.slice(0,10) } : {}), visibilita_genitori: !!b.visibilita_genitori, note_testo: b.note_testo||null, sessioni, event_id: null };
     const cr = await fetch(API_BASE + '/api/v2/allenamenti', {
       method: 'POST', headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     if (!cr.ok) { const er = await cr.json().catch(()=>({})); toast('❌ Errore: '+(er.message||er.error||cr.status)); return; }
     toast('📋 Allenamento duplicato!');
-    _allCalLoadEvents();
+    _allCalLoadBozze();
   } catch(e) { toast('❌ Errore durante la duplicazione.'); }
 }
 
@@ -14362,7 +14376,7 @@ async function _eliminaBozza(allenId) {
     });
     if (!resp.ok && resp.status !== 404) { toast('❌ Errore eliminazione (HTTP '+resp.status+')'); return; }
     toast('🗑️ Allenamento eliminato');
-    _allCalLoadEvents();
+    _allCalLoadBozze();
   } catch(e) { toast('❌ Errore durante l\'eliminazione.'); }
 }
 
@@ -14379,6 +14393,7 @@ function _allCalChangeLeva(v) {
   currentLeva = v;
   _allSt.cal.leva = v;
   _allCalLoadEvents();
+  _allCalLoadBozze();
 }
 
 function _allCalChangeView(mode) {
@@ -14605,11 +14620,18 @@ function _openCostruisciAllenamento(allenamentoId, eventId) {
 
   document.getElementById('_allFsTitolo').value = '';
   document.getElementById('_allFsObiettivo').value = '';
-  document.getElementById('_allFsData').value = new Date().toISOString().slice(0,10);
+  document.getElementById('_allFsData').value = '';
   document.getElementById('_allFsVisG').checked = false;
   document.getElementById('_allFsNoteTesto').value = '';
   document.getElementById('_allFsTitle').textContent = isNew ? 'Nuovo allenamento' : 'Modifica allenamento';
   document.getElementById('_allFsErr').textContent = '';
+  // Hide data field for new creates; show for edit
+  const _dataGrp = document.getElementById('_allFsDataGroup');
+  const _dataGrid = document.getElementById('_allFsDataGrid');
+  const _infoEl = document.getElementById('_allFsEventInfo');
+  if (_dataGrp) _dataGrp.style.display = isNew ? 'none' : '';
+  if (_dataGrid) _dataGrid.style.gridTemplateColumns = isNew ? '1fr' : '1fr 1fr';
+  if (_infoEl) { _infoEl.innerHTML = ''; _infoEl.style.display = 'none'; }
 
   const levaEl = document.getElementById('_allFsLeva');
   if (leve.length === 1) {
@@ -14626,13 +14648,21 @@ function _openCostruisciAllenamento(allenamentoId, eventId) {
       const ev = (_allSt.cal.events || []).find(function(e) { return e.event_id === eventId; });
       if (ev) {
         const dateStr = (ev.data || '').slice(0,10);
-        if (dateStr) document.getElementById('_allFsData').value = dateStr;
         // Imposta titolo automatico
         if (dateStr) {
           const _dp = dateStr.split('-').map(Number);
           const _dt = new Date(_dp[0], _dp[1]-1, _dp[2]);
           const _GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
           document.getElementById('_allFsTitolo').value = 'Allenamento ' + _GG[_dt.getDay()] + ' ' + _dp[2] + '/' + _dp[1];
+          // Mostra pill info evento
+          if (_infoEl) {
+            const startT = (ev.ora_inizio||'').slice(0,5);
+            const endT   = (ev.ora_fine||'').slice(0,5);
+            const levaNome = ev.leve && ev.leve[0] ? ev.leve[0].nome : '';
+            const dtLabel = _GG[_dt.getDay()] + ' ' + _dp[2] + '/' + _dp[1] + '/' + _dp[0];
+            _infoEl.innerHTML = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;font-size:.83rem;color:#1d4ed8;margin-bottom:10px;">📅 <strong>' + dtLabel + (startT ? ' · ' + startT + (endT ? '–' + endT : '') : '') + '</strong>' + (levaNome ? ' &nbsp;<span style="color:#64748b;">' + escapeHtml(levaNome) + '</span>' : '') + '</div>';
+            _infoEl.style.display = '';
+          }
         }
         // Imposta leva
         const levaNome = ev.leve && ev.leve[0] ? ev.leve[0].nome : currentLeva;
@@ -14801,7 +14831,6 @@ async function _salvaAllenamento() {
   if (errEl) errEl.textContent = '';
 
   if (titolo.length < 3 || titolo.length > 200) { if (errEl) errEl.textContent = '⚠️ Titolo: 3-200 caratteri.'; return; }
-  if (!data) { if (errEl) errEl.textContent = '⚠️ Seleziona una data.'; return; }
   if (!leva_nome) { if (errEl) errEl.textContent = '⚠️ Seleziona la leva.'; return; }
   if (!leva_id)   { if (errEl) errEl.textContent = '⚠️ Leva non valida. Ricarica la pagina.'; return; }
 
@@ -14812,8 +14841,8 @@ async function _salvaAllenamento() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Salvataggio…'; }
 
   const body = {
-    titolo: titolo, obiettivo: obiettivo || null, data: data, leva_id: leva_id, visibilita_genitori: visG,
-    note_testo: noteTesto || null,
+    titolo: titolo, obiettivo: obiettivo || null, leva_id: leva_id, visibilita_genitori: visG,
+    note_testo: noteTesto || null, ...(data ? { data } : {}),
     sessioni: _allSt._costruttore.sessioni.map(function(s) {
       return {
         sessione_libreria_id: s.sessione_libreria_id || null,
@@ -14843,7 +14872,7 @@ async function _salvaAllenamento() {
     }
     _closeCostruisciAllenamento();
     toast('✅ Allenamento salvato');
-    if (_wasFromEvent) { _allCalLoadEvents(); } else { _loadAllLista(); }
+    if (_wasFromEvent) { _allCalLoadEvents(); } else { _allCalLoadBozze(); }
   } catch(e) {
     if (errEl) errEl.textContent = '❌ ' + e.message;
   } finally {
@@ -26228,10 +26257,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="all-fs-grid">
       <div>
         <div style="font-weight:700;margin-bottom:12px;font-size:.92rem;color:var(--text2);">DATI ALLENAMENTO</div>
+        <div id="_allFsEventInfo" style="display:none;"></div>
         <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="_allFsTitolo" maxlength="200" placeholder="Es. Allenamento tecnica martedì"></div>
         <div class="fg"><label class="fl">Obiettivo</label><input class="fi" id="_allFsObiettivo" maxlength="300" placeholder="Es. Migliorare la pressione alta"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="fg" style="margin-bottom:0;"><label class="fl">Data *</label><input class="fi" id="_allFsData" type="date"></div>
+        <div id="_allFsDataGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fg" id="_allFsDataGroup" style="margin-bottom:0;"><label class="fl">Data</label><input class="fi" id="_allFsData" type="date"></div>
           <div class="fg" style="margin-bottom:0;"><label class="fl">Leva *</label><select class="fi" id="_allFsLeva"></select></div>
         </div>
         <div class="fg" style="margin-top:10px;"><label class="fl">Note seduta</label><textarea class="fi" id="_allFsNoteTesto" rows="3" placeholder="Istruzioni per lo staff, condizioni meteo..."></textarea></div>

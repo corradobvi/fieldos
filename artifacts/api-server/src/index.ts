@@ -47,6 +47,13 @@ async function ensureSchema() {
     if (e?.errno !== 1060) logger.warn({ errno: e?.errno }, "DB: is_demo migration skipped");
     // errno 1060 = Duplicate column name — column already exists, ignore
   }
+  // Make allenamenti.data nullable to support bozze (allenamenti without a scheduled date)
+  try {
+    await pool.query("ALTER TABLE allenamenti MODIFY COLUMN data DATE NULL DEFAULT NULL");
+    logger.info("DB: allenamenti.data made nullable");
+  } catch (e: any) {
+    logger.warn({ errno: e?.errno }, "DB: allenamenti.data nullable migration skipped");
+  }
   logger.info("DB schema ready");
 }
 
