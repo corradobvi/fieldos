@@ -339,12 +339,13 @@ CREATE TABLE IF NOT EXISTS ai_budget_utilizzo (
   societa_id       INT         NULL,
   mister_id        INT         NULL,
   mese_riferimento CHAR(7)     NOT NULL,
+  budget_key       VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL,
   token_consumati  INT         NOT NULL DEFAULT 0,
   token_budget     INT         NOT NULL,
   created_at       DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at       DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
-  UNIQUE KEY uq_ai_budget (societa_id, mister_id, mese_riferimento),
+  UNIQUE KEY uq_ai_budget_key (budget_key),
   INDEX idx_abu_societa_mese (societa_id, mese_riferimento),
   INDEX idx_abu_mister_mese  (mister_id,  mese_riferimento),
   FOREIGN KEY fk_abu_societa (societa_id) REFERENCES societies(id) ON DELETE CASCADE,
@@ -390,7 +391,10 @@ UPDATE users u JOIN (SELECT MIN(id) AS first_id FROM users WHERE ruolo = 'admin'
 ALTER TABLE sessioni_libreria MODIFY COLUMN categoria ENUM('riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri') NOT NULL;
 ALTER TABLE sessioni_libreria ADD COLUMN note TEXT NULL;
 ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL;
-ALTER TABLE societies MODIFY COLUMN logo_url MEDIUMTEXT
+ALTER TABLE societies MODIFY COLUMN logo_url MEDIUMTEXT;
+ALTER TABLE ai_budget_utilizzo ADD COLUMN budget_key VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL;
+ALTER TABLE ai_budget_utilizzo DROP INDEX uq_ai_budget;
+ALTER TABLE ai_budget_utilizzo ADD UNIQUE KEY uq_ai_budget_key (budget_key)
 `;
 
 export const SEED_SQL = `

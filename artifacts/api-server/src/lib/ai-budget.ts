@@ -32,7 +32,7 @@ async function getPiano(societaId: number): Promise<string> {
   return normPiano(rows[0]?.piano ?? "mister");
 }
 
-// SELECT-first UPSERT: evita il bug MySQL dei NULL in UNIQUE KEY
+// INSERT IGNORE + SELECT per budget_key: atomico, immune a race condition e al bug NULL in UNIQUE KEY
 async function getOrCreateBudgetRow(opts: {
   misterId: number | null;
   societaId: number | null;
@@ -40,34 +40,24 @@ async function getOrCreateBudgetRow(opts: {
   budget: number;
 }): Promise<{ id: string; tokenConsumati: number; tokenBudget: number }> {
   const { misterId, societaId, mese, budget } = opts;
-  let rows: any[];
+  const budgetKey = `${misterId ?? 0}_${societaId ?? 0}_${mese}`;
 
-  if (misterId !== null) {
-    [rows] = (await pool.execute(
-      "SELECT id, token_consumati, token_budget FROM ai_budget_utilizzo WHERE mister_id = ? AND societa_id IS NULL AND mese_riferimento = ?",
-      [misterId, mese]
-    )) as [any[], any];
-  } else {
-    [rows] = (await pool.execute(
-      "SELECT id, token_consumati, token_budget FROM ai_budget_utilizzo WHERE societa_id = ? AND mister_id IS NULL AND mese_riferimento = ?",
-      [societaId, mese]
-    )) as [any[], any];
-  }
-
-  if (rows.length) {
-    return {
-      id: rows[0].id as string,
-      tokenConsumati: rows[0].token_consumati as number,
-      tokenBudget: rows[0].token_budget as number,
-    };
-  }
-
-  const newId = randomUUID();
+  // INSERT IGNORE: se esiste già una riga con la stessa budget_key non fa nulla (atomico)
   await pool.execute(
-    "INSERT INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget) VALUES (?, ?, ?, ?, 0, ?)",
-    [newId, misterId, societaId, mese, budget]
+    "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget) VALUES (?, ?, ?, ?, 0, ?)",
+    [randomUUID(), misterId, societaId, mese, budget]
   );
-  return { id: newId, tokenConsumati: 0, tokenBudget: budget };
+
+  const [rows] = (await pool.execute(
+    "SELECT id, token_consumati, token_budget FROM ai_budget_utilizzo WHERE budget_key = ? LIMIT 1",
+    [budgetKey]
+  )) as [any[], any];
+
+  return {
+    id: rows[0].id as string,
+    tokenConsumati: rows[0].token_consumati as number,
+    tokenBudget: rows[0].token_budget as number,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
