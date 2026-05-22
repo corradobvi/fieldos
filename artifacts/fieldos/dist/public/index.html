@@ -5027,10 +5027,11 @@ function goTo(pgId) {
       _btnAddUser.style.cursor = _misterOnly ? 'not-allowed' : '';
       _btnAddUser.style.opacity = _misterOnly ? '0.45' : '';
     }
-    // BUG 6: card "Accesso AI — Allenamenti" nascosta su piano Mister
+    // Card "Accesso AI — Allenamenti": nascosta se feature flag off O piano mister base
     const _aiCardEl = document.getElementById('aiAllowlistCard');
     if (_aiCardEl) {
-      const _aiShow = _pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietaId === DEMO_STELLA_ID;
+      const _aiShow = ALL_AI_ENABLED &&
+        (_pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietaId === DEMO_STELLA_ID);
       _aiCardEl.style.display = _aiShow ? '' : 'none';
     }
     const _codiceCardEl = document.getElementById('codiceCard');
@@ -13576,6 +13577,16 @@ function renderDocumenti() {
 }
 
 // ── ALLENAMENTI v2 — state & constants ────────────────────────────────────
+
+// FEATURE FLAG: AI Allenamenti. Quando metti a true, riaccende:
+//   - Barra budget AI nella sezione Allenamenti
+//   - Pulsanti "Spunto rapido AI", "Genera sessione AI", "Genera allenamento AI"
+//   - Card "Accesso AI" nelle impostazioni società
+//   - Card "Genera con AI" nel selettore "+ Aggiungi sessione" della costruzione allenamento
+// Backend endpoints /api/v2/ai/* restano sempre attivi indipendentemente da questo flag
+// (sono protetti da middleware budget e allowlist).
+const ALL_AI_ENABLED = false;
+
 let _allSt = {
   tab: 'lista',
   lista: { periodo: '30g', stato: 'tutti', items: null },
@@ -13662,7 +13673,7 @@ function switchAllTab(tab) {
 function _renderAllTabContent() {
   const cont = document.getElementById('allTabContent');
   if (!cont) return;
-  _loadAiBudget();
+  if (ALL_AI_ENABLED) _loadAiBudget();
   _allSt.tab === 'lista' ? _renderAllLista(cont) : _renderLibreria(cont);
 }
 
@@ -13676,9 +13687,9 @@ function _renderAllLista(cont) {
   if (act) act.innerHTML = canEdit
     ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
          <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
-         <button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>
-         <button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>
-         ${isAdminLike()&&['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
+         ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>` : ''}
+         ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>` : ''}
+         ${ALL_AI_ENABLED&&isAdminLike()&&['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
        </div>` : '';
 
   let hdr = '';
@@ -13855,6 +13866,7 @@ function _aiBudgetRinnovo(d) {
 function _renderAiBudgetBar() {
   const el = document.getElementById('_aiBudgetBarCont');
   if (!el) return;
+  if (!ALL_AI_ENABLED) { el.innerHTML = ''; return; }
   const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
   const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
   if (isGenitore) { el.innerHTML = ''; return; }
@@ -14142,12 +14154,11 @@ function _closePickSessione() {
 }
 
 function _renderPickHome() {
-  const aiDisabled = !_canUseAI();
   return '<div style="padding:4px 0;">'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'personale\')"><div class="pick-ic">📚</div><div><div style="font-weight:800;">Dalla mia libreria</div><div style="font-size:.8rem;color:var(--text2);">Scegli una delle tue sessioni salvate</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'community\')"><div class="pick-ic">🌍</div><div><div style="font-weight:800;">Dalla community</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni condivise da altri mister</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickScrivi()"><div class="pick-ic">✏️</div><div><div style="font-weight:800;">Scrivi a mano</div><div style="font-size:.8rem;color:var(--text2);">Crea una sessione personalizzata</div></div></div>'
-    + '<div class="all-pick-card" onclick="_pickAI()"' + (aiDisabled ? ' style="opacity:.5;cursor:not-allowed;" title="Funzionalità disponibile con AI abilitata"' : '') + '><div class="pick-ic">✨</div><div><div style="font-weight:800;">Genera con AI</div><div style="font-size:.8rem;color:var(--text2);">L\'AI propone una sessione personalizzata</div></div></div>'
+    + (ALL_AI_ENABLED ? '<div class="all-pick-card" onclick="_pickAI()"><div class="pick-ic">✨</div><div><div style="font-weight:800;">Genera con AI</div><div style="font-size:.8rem;color:var(--text2);">L\'AI propone una sessione personalizzata</div></div></div>' : '')
     + '</div>';
 }
 
