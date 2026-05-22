@@ -14262,6 +14262,7 @@ async function _salvaAllenamento() {
   const data      = document.getElementById('_allFsData') ? document.getElementById('_allFsData').value : '';
   const levaEl    = document.getElementById('_allFsLeva');
   const leva_nome = levaEl ? levaEl.value : '';
+  const leva_id   = leva_nome ? (_calLeveMap[leva_nome] || null) : null;
   const visG      = !!(document.getElementById('_allFsVisG') && document.getElementById('_allFsVisG').checked);
   const noteTesto = (document.getElementById('_allFsNoteTesto') ? document.getElementById('_allFsNoteTesto').value : '').trim();
   const errEl     = document.getElementById('_allFsErr');
@@ -14270,6 +14271,7 @@ async function _salvaAllenamento() {
   if (titolo.length < 3 || titolo.length > 200) { if (errEl) errEl.textContent = '⚠️ Titolo: 3-200 caratteri.'; return; }
   if (!data) { if (errEl) errEl.textContent = '⚠️ Seleziona una data.'; return; }
   if (!leva_nome) { if (errEl) errEl.textContent = '⚠️ Seleziona la leva.'; return; }
+  if (!leva_id)   { if (errEl) errEl.textContent = '⚠️ Leva non valida. Ricarica la pagina.'; return; }
 
   if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
@@ -14278,7 +14280,7 @@ async function _salvaAllenamento() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Salvataggio…'; }
 
   const body = {
-    titolo: titolo, obiettivo: obiettivo || null, data: data, leva_nome: leva_nome, visibilita_genitori: visG,
+    titolo: titolo, obiettivo: obiettivo || null, data: data, leva_id: leva_id, visibilita_genitori: visG,
     note_testo: noteTesto || null,
     sessioni: _allSt._costruttore.sessioni.map(function(s) {
       return {
