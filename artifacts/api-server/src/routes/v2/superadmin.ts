@@ -455,28 +455,4 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
-// GET /api/v2/superadmin/sessioni-check — TEMPORANEO
-router.get("/superadmin/sessioni-check", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const [byLeva] = await pool.execute(
-      `SELECT eta_leva, COUNT(*) AS totale FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE
-       GROUP BY eta_leva
-       ORDER BY FIELD(eta_leva,'primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores')`
-    ) as [any[], any];
-    const [byLevaCat] = await pool.execute(
-      `SELECT eta_leva, categoria, COUNT(*) AS n FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE
-       GROUP BY eta_leva, categoria
-       ORDER BY FIELD(eta_leva,'primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores'),
-                FIELD(categoria,'riscaldamento','tecnica_individuale','tattica','possesso_palla','finalizzazione','atletica_fisico','portieri')`
-    ) as [any[], any];
-    const [totale] = await pool.execute(
-      `SELECT COUNT(*) AS totale_ufficiali FROM sessioni_libreria WHERE ufficiale_myvivaio=TRUE`
-    ) as [any[], any];
-    return res.json({ byLeva, byLevaCat, totale: totale[0] });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
-
 export default router;
