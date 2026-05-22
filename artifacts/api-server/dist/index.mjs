@@ -87609,6 +87609,20 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router24.get("/superadmin/diagnostic-dump", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  try {
+    const [societies] = await pool.execute(
+      "SELECT id, nome, piano, billing_mode, stato, colore_primario, colore_accento, codice FROM societies ORDER BY id"
+    );
+    const [users] = await pool.execute(
+      "SELECT id, society_id, email, nome, cognome, ruolo, is_account_owner, stato FROM users ORDER BY society_id, id"
+    );
+    return res.json({ societies, users });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
