@@ -14869,28 +14869,39 @@ function _renderLibreria(cont) {
   }
 
   cont.innerHTML = `
-    <div style="margin-bottom:14px;">
+    <div style="margin-bottom:10px;">
       <div style="font-size:1.1rem;font-weight:800;">Libreria Sessioni</div>
       <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Le tue esercitazioni, quelle della community e quelle ufficiali MyVivaio</div>
     </div>
-    <div class="all-sub-tabs" id="allSubTabs">
-      <div class="all-sub-tab ${_allSt.lib.ambito==='personale'?'on':''}" onclick="_switchLibTab('personale')">Mie sessioni</div>
-      <div class="all-sub-tab ${_allSt.lib.ambito==='community'?'on':''}" onclick="_switchLibTab('community')">Community</div>
-      <div class="all-sub-tab ${_allSt.lib.ambito==='ufficiali'?'on':''}" onclick="_switchLibTab('ufficiali')">⭐ Ufficiali MyVivaio</div>
+    <div class="lib-row1">
+      <div class="all-sub-tabs" id="allSubTabs">
+        <div class="all-sub-tab ${_allSt.lib.ambito==='personale'?'on':''}" onclick="_switchLibTab('personale')">Mie sessioni</div>
+        <div class="all-sub-tab ${_allSt.lib.ambito==='community'?'on':''}" onclick="_switchLibTab('community')">Community</div>
+        <div class="all-sub-tab ${_allSt.lib.ambito==='ufficiali'?'on':''}" onclick="_switchLibTab('ufficiali')">⭐ Ufficiali MyVivaio</div>
+        <div class="all-sub-tab ${_allSt.lib.ambito==='tutte'?'on':''}" onclick="_switchLibTab('tutte')">Tutte</div>
+      </div>
+      <div class="lib-search-wrap">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1;">🔍</span>
+        <input class="fi" type="search" placeholder="Cerca titolo o parola chiave..." style="padding-left:32px;font-size:.83rem;" value="${escapeHtml(_allSt.lib.q)}" oninput="_libFiltroQ(this.value)">
+      </div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;max-width:190px;" onchange="_libFiltroCat(this.value)">
-        <option value="">Tutte le categorie</option>
-        ${Object.entries(_ALL_CAT_IT).map(([v,l])=>`<option value="${v}" ${_allSt.lib.categoria===v?'selected':''}>${l}</option>`).join('')}
-      </select>
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;max-width:150px;" onchange="_libFiltroLeva(this.value)">
+    <div class="lib-filter-tabs" id="libEtaTabs">
+      <div class="lib-filter-tab ${!_allSt.lib.etaLeva?'on':''}" onclick="_libFiltroEtaTab('')">Tutte</div>
+      ${Object.entries(_ALL_LEVA_IT).map(([v,l])=>`<div class="lib-filter-tab ${_allSt.lib.etaLeva===v?'on':''}" onclick="_libFiltroEtaTab('${v}')">${l}</div>`).join('')}
+    </div>
+    <div class="lib-filter-tabs" id="libCatTabs">
+      <div class="lib-filter-tab ${!_allSt.lib.categoria?'on':''}" onclick="_libFiltroCatTab('')">Tutte</div>
+      ${Object.entries(_ALL_CAT_IT).map(([v,l])=>`<div class="lib-filter-tab ${_allSt.lib.categoria===v?'on':''}" onclick="_libFiltroCatTab('${v}')">${l}</div>`).join('')}
+    </div>
+    <div class="lib-mob-drops">
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_libFiltroEtaTab(this.value)">
         <option value="">Tutte le età</option>
         ${Object.entries(_ALL_LEVA_IT).map(([v,l])=>`<option value="${v}" ${_allSt.lib.etaLeva===v?'selected':''}>${l}</option>`).join('')}
       </select>
-      <div style="position:relative;flex:1;min-width:140px;">
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;">🔍</span>
-        <input class="fi" type="search" placeholder="Cerca titolo o parola chiave..." style="padding-left:32px;font-size:.83rem;" value="${escapeHtml(_allSt.lib.q)}" oninput="_libFiltroQ(this.value)">
-      </div>
+      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_libFiltroCatTab(this.value)">
+        <option value="">Tutte le categorie</option>
+        ${Object.entries(_ALL_CAT_IT).map(([v,l])=>`<option value="${v}" ${_allSt.lib.categoria===v?'selected':''}>${l}</option>`).join('')}
+      </select>
     </div>
     <div id="libContent"></div>`;
 
@@ -14900,13 +14911,15 @@ function _renderLibreria(cont) {
 function _switchLibTab(ambito) {
   _allSt.lib.ambito = ambito;
   document.querySelectorAll('#allSubTabs .all-sub-tab').forEach((t,i) => {
-    t.classList.toggle('on', ['personale','community','ufficiali'][i] === ambito);
+    t.classList.toggle('on', ['personale','community','ufficiali','tutte'][i] === ambito);
   });
   _loadSessioni();
 }
 
 function _libFiltroCat(v) { _allSt.lib.categoria = v; _loadSessioni(); }
 function _libFiltroLeva(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
+function _libFiltroEtaTab(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
+function _libFiltroCatTab(v) { _allSt.lib.categoria = v; _loadSessioni(); }
 function _libFiltroQ(v) {
   _allSt.lib.q = v;
   clearTimeout(_allSt.lib._deb);
@@ -14958,6 +14971,7 @@ function _renderSessioniGrid(el) {
       personale: 'Non hai ancora salvato sessioni. Creane una nuova o sfoglia la community per ispirarti.',
       community: 'Nessuna sessione community trovata con questi filtri. Prova a rimuovere qualche filtro.',
       ufficiali: 'Stiamo preparando le sessioni ufficiali. Saranno disponibili al lancio.',
+      tutte: 'Nessuna sessione trovata con questi filtri. Prova a rimuovere qualche filtro.',
     };
     el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2);">
       <div style="font-size:2.5rem;margin-bottom:12px;opacity:.3;">📚</div>
@@ -24271,6 +24285,23 @@ async function doRejoinSocieta() {
 .all-sub-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
 .all-sub-tab{padding:6px 14px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;font-size:.82rem;font-weight:700;background:var(--white);color:var(--text2);transition:all .15s;user-select:none;}
 .all-sub-tab.on{background:var(--cp);color:white;border-color:var(--cp);}
+.lib-row1{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+.lib-row1 .all-sub-tabs{margin-bottom:0;flex-shrink:0;}
+.lib-search-wrap{flex:1;min-width:180px;position:relative;}
+.lib-search-wrap input{width:100%;}
+.lib-filter-tabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:8px;padding-bottom:2px;}
+.lib-filter-tabs::-webkit-scrollbar{display:none;}
+.lib-filter-tab{padding:5px 12px;border:1px solid var(--border2);border-radius:20px;cursor:pointer;font-size:.78rem;font-weight:700;background:var(--white);color:var(--text2);white-space:nowrap;transition:all .15s;user-select:none;flex-shrink:0;}
+.lib-filter-tab.on{background:var(--cp);color:white;border-color:var(--cp);}
+.lib-mob-drops{display:none;}
+@media(max-width:767px){
+  .lib-row1{flex-direction:column;align-items:stretch;gap:8px;}
+  .lib-row1 .all-sub-tabs{margin-bottom:0;}
+  .lib-search-wrap{min-width:0;}
+  .lib-filter-tabs{display:none;}
+  .lib-mob-drops{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  .lib-mob-drops select{flex:1;min-width:130px;}
+}
 .all-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,border-color .15s;}
 .all-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.09);border-color:var(--border2);}
 .slib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
