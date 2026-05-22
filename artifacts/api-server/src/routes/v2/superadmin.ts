@@ -455,37 +455,4 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
-// ── TEMP DIAGNOSTIC — rimuovere dopo verifica ─────────────────────────────────
-router.get("/superadmin/calendar-migration-check", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(403).json({ error: "forbidden" });
-  try {
-    const describe = async (table: string) => {
-      const [rows] = (await pool.execute(`DESCRIBE \`${table}\``)) as [any[], any];
-      return rows.map((r: any) => ({ field: r.Field, type: r.Type, null: r.Null, key: r.Key, extra: r.Extra }));
-    };
-    const countTable = async (table: string) => {
-      try {
-        const [rows] = (await pool.execute(`SELECT COUNT(*) AS n FROM \`${table}\``)) as [any[], any];
-        return rows[0].n;
-      } catch { return "ERROR (tabella assente?)"; }
-    };
-    const [events, event_leve, allenamenti] = await Promise.all([
-      describe("events"),
-      describe("event_leve"),
-      describe("allenamenti"),
-    ]);
-    const event_leve_count = await countTable("event_leve");
-    return res.json({
-      events_columns: events,
-      events_has_recur_group_id: events.some((c: any) => c.field === "recur_group_id"),
-      event_leve_columns: event_leve,
-      allenamenti_has_event_id: allenamenti.some((c: any) => c.field === "event_id"),
-      event_leve_count,
-    });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
-// ── FINE TEMP DIAGNOSTIC ──────────────────────────────────────────────────────
-
 export default router;

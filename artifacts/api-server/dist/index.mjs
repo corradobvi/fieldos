@@ -87595,38 +87595,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/superadmin/calendar-migration-check", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(403).json({ error: "forbidden" });
-  try {
-    const describe = async (table) => {
-      const [rows] = await pool.execute(`DESCRIBE \`${table}\``);
-      return rows.map((r) => ({ field: r.Field, type: r.Type, null: r.Null, key: r.Key, extra: r.Extra }));
-    };
-    const countTable = async (table) => {
-      try {
-        const [rows] = await pool.execute(`SELECT COUNT(*) AS n FROM \`${table}\``);
-        return rows[0].n;
-      } catch {
-        return "ERROR (tabella assente?)";
-      }
-    };
-    const [events, event_leve, allenamenti] = await Promise.all([
-      describe("events"),
-      describe("event_leve"),
-      describe("allenamenti")
-    ]);
-    const event_leve_count = await countTable("event_leve");
-    return res.json({
-      events_columns: events,
-      events_has_recur_group_id: events.some((c) => c.field === "recur_group_id"),
-      event_leve_columns: event_leve,
-      allenamenti_has_event_id: allenamenti.some((c) => c.field === "event_id"),
-      event_leve_count
-    });
-  } catch (e) {
-    return res.status(500).json({ error: e?.message });
-  }
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
