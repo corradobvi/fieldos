@@ -465,19 +465,6 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 
 // [REMOVED] diagnostic-dump — usato per verifica post-migrazione 2026-05-23
 
-// GET /api/v2/superadmin/phone-diag — PARTE A: phone column metadata + Roberto's row
-router.get("/superadmin/phone-diag", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  const [userRow] = (await pool.execute(
-    "SELECT id, email, phone, whatsapp_number, created_at FROM users WHERE id = 20 LIMIT 1"
-  )) as [any[], any];
-  const [phoneCol] = (await pool.execute(
-    "SHOW COLUMNS FROM users LIKE 'phone'"
-  )) as [any[], any];
-  const [waCol] = (await pool.execute(
-    "SHOW COLUMNS FROM users LIKE 'whatsapp_number'"
-  )) as [any[], any];
-  return res.json({ userRow: userRow[0] ?? null, phoneCol: phoneCol[0] ?? null, waCol: waCol[0] ?? null });
-});
+// [REMOVED] phone-diag — PARTE A diagnostica colonna phone 2026-05-22
 
 export default router;
