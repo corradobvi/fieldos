@@ -87609,6 +87609,51 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router24.post("/superadmin/cleanup-orphaned-blobs", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const BLOB_ALLOWLIST = /* @__PURE__ */ new Set([
+    "fieldos_state_soc_1",
+    "fieldos_state_soc_201",
+    "fieldos_state_soc_2"
+  ]);
+  const SA_IDS_TO_REMOVE = /* @__PURE__ */ new Set([1, 2, 201]);
+  const blobResults = [];
+  const saResult = {};
+  try {
+    for (const key of BLOB_ALLOWLIST) {
+      const [r] = await pool.execute(
+        "DELETE FROM `society_state` WHERE `key` = ?",
+        [key]
+      );
+      blobResults.push({ key, affectedRows: r.affectedRows });
+    }
+    const [saRows] = await pool.execute(
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1' LIMIT 1"
+    );
+    if (!saRows.length) {
+      return res.status(404).json({ error: "sa_blob_not_found", blobResults });
+    }
+    const saState = JSON.parse(saRows[0].state_json);
+    const before = (saState.saSocieties || []).length;
+    saState.saSocieties = (saState.saSocieties || []).filter(
+      (s) => !SA_IDS_TO_REMOVE.has(s.id)
+    );
+    const after = saState.saSocieties.length;
+    await pool.execute(
+      "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
+      [JSON.stringify(saState)]
+    );
+    saResult.entriesBefore = before;
+    saResult.entriesAfter = after;
+    saResult.removed = before - after;
+    saResult.remaining = saState.saSocieties.map((s) => ({ id: s.id, nome: s.nome }));
+    logger.info({ blobResults, saResult }, "cleanup-orphaned-blobs: done");
+    return res.json({ ok: true, blobResults, saResult });
+  } catch (e) {
+    logger.error({ err: e }, "cleanup-orphaned-blobs error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
