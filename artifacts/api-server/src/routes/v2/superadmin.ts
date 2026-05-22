@@ -455,9 +455,156 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   }
 });
 
-// [REMOVED] migrate-society endpoint — used for Baiardo migration 2026-05-22, removed after use.
+// TEMPORARY: migrate-society endpoint — FASE 2 Ronco Scrivia 2026-05-22 — remove after use
+router.post("/superadmin/migrate-society", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
 
-// PLACEHOLDER — non cancellare questa riga: mantiene la posizione nel file per diff leggibili.
-// router.post("/superadmin/migrate-society" ...)
+  const { sourceBlob, newSocietyData, userMappings } = req.body as {
+    sourceBlob: string;
+    newSocietyData: {
+      nome: string; citta?: string; piano: string; billingMode?: string;
+      colorePrimario?: string; coloreAccento?: string; logoUrl?: string;
+      codice?: string; demo_scadenza?: string | null;
+    };
+    userMappings: Array<{
+      email: string; nome: string; cognome: string; ruolo: string;
+      leva?: string; phone?: string; isAccountOwner?: boolean;
+    }>;
+  };
+
+  if (!sourceBlob || !newSocietyData?.nome || !Array.isArray(userMappings) || !userMappings.length) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+
+  const checks: Record<string, any> = {};
+  let conn: PoolConnection | null = null;
+
+  try {
+    const emails = userMappings.map(u => u.email.toLowerCase());
+    const phV1 = emails.map(() => "?").join(",");
+    const [dupRows] = (await pool.execute(
+      `SELECT id, email, society_id FROM users WHERE LOWER(email) IN (${phV1})`,
+      emails
+    )) as [any[], any];
+    checks.v1_duplicate_emails = { ok: dupRows.length === 0, found: dupRows };
+    if (dupRows.length > 0) {
+      return res.status(409).json({ error: "duplicate_emails", checks,
+        detail: `Email già in MySQL: ${dupRows.map((r: any) => r.email).join(", ")}` });
+    }
+
+    const [blobRows] = (await pool.execute(
+      "SELECT state_json FROM society_state WHERE `key` = ? LIMIT 1", [sourceBlob]
+    )) as [any[], any];
+    if (!blobRows.length) return res.status(404).json({ error: "source_blob_not_found", sourceBlob, checks });
+    let sourceState: any;
+    try { sourceState = JSON.parse(blobRows[0].state_json as string); } catch {
+      return res.status(500).json({ error: "source_blob_parse_error", checks });
+    }
+    const blobUsers: any[] = sourceState.USERS_DB || [];
+
+    const usersReady: Array<{ mapping: typeof userMappings[0]; plainPass: string }> = [];
+    for (const mapping of userMappings) {
+      const bu = blobUsers.find(
+        (u: any) => typeof u.email === "string" && u.email.toLowerCase() === mapping.email.toLowerCase()
+      );
+      if (!bu || !bu.pass) return res.status(400).json({ error: "user_not_in_blob", email: mapping.email, checks });
+      usersReady.push({ mapping, plainPass: bu.pass });
+    }
+
+    conn = await (pool as any).getConnection();
+    await conn.beginTransaction();
+
+    try {
+      const sd = newSocietyData;
+      const [socRes] = (await conn.execute(
+        `INSERT INTO societies (nome, citta, piano, colore_primario, colore_accento, logo_url, codice, stato, billing_mode, demo_scadenza)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'attiva', ?, ?)`,
+        [sd.nome, sd.citta ?? "", sd.piano,
+         sd.colorePrimario ?? "#1A7A4A", sd.coloreAccento ?? "#FFD93D",
+         sd.logoUrl ?? null, sd.codice ?? null,
+         sd.billingMode ?? "stripe", sd.demo_scadenza ?? null]
+      )) as [any, any];
+      const newSocietyId: number = socRes.insertId;
+
+      const insertedUsers: any[] = [];
+      for (const { mapping, plainPass } of usersReady) {
+        const pwHash = hashPassword(plainPass);
+        const [uRes] = (await conn.execute(
+          `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, phone, stato, temp_password)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'attivo', FALSE)`,
+          [newSocietyId, mapping.nome, mapping.cognome, mapping.email.toLowerCase(),
+           pwHash, mapping.ruolo, mapping.leva ?? null, mapping.phone ?? null]
+        )) as [any, any];
+        const newUserId: number = uRes.insertId;
+        if (mapping.isAccountOwner) {
+          await conn.execute("UPDATE users SET is_account_owner = 1 WHERE id = ?", [newUserId]);
+        }
+        insertedUsers.push({ id: newUserId, email: mapping.email, ruolo: mapping.ruolo, isAccountOwner: mapping.isAccountOwner ?? false });
+      }
+
+      const newBlobKey = `fieldos_state_soc_${newSocietyId}`;
+      const newState = { ...sourceState };
+      newState.nomeSocieta = sd.nome;
+      newState.coloriPrimari = sd.colorePrimario ?? sourceState.coloriPrimari;
+      newState.coloriAccento = sd.coloreAccento ?? sourceState.coloriAccento;
+      newState.codiceSocieta = sd.codice ?? "";
+      await conn.execute(
+        `INSERT INTO society_state (\`key\`, state_json, is_demo) VALUES (?, ?, 0)
+         ON DUPLICATE KEY UPDATE state_json = VALUES(state_json)`,
+        [newBlobKey, JSON.stringify(newState)]
+      );
+
+      const [saRows] = (await conn.execute(
+        "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1' LIMIT 1"
+      )) as [any[], any];
+      if (saRows.length) {
+        const saState = JSON.parse(saRows[0].state_json as string);
+        const adminMapping = userMappings.find(u => u.ruolo === "admin");
+        saState.saSocieties = [...(saState.saSocieties || []), {
+          id: newSocietyId, nome: sd.nome, citta: sd.citta ?? "",
+          colori: sd.colorePrimario ?? "#1A7A4A",
+          leva: adminMapping?.leva ?? "Tutte", piano: sd.piano,
+          stato: "attivo", email: adminMapping?.email ?? "",
+          note: "", utenti: userMappings.length,
+          giocatori: (sourceState.players || []).length,
+          createdAt: Date.now(), lastActivity: null,
+          scadenzaDemo: null, billingMode: sd.billingMode ?? "stripe",
+          stripeCustomerId: null, fromMySQL: true,
+        }];
+        await conn.execute(
+          "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
+          [JSON.stringify(saState)]
+        );
+      }
+
+      await conn.commit();
+      logger.info({ newSocietyId, nome: sd.nome, usersCount: insertedUsers.length }, "migrate-society: COMMIT OK");
+
+      const [verSoc] = (await pool.execute(
+        "SELECT id, nome, citta, piano, billing_mode, colore_primario, colore_accento, stato FROM societies WHERE id = ?",
+        [newSocietyId]
+      )) as [any[], any];
+      const [verUsers] = (await pool.execute(
+        "SELECT id, email, ruolo, is_account_owner, society_id, nome, cognome FROM users WHERE society_id = ?",
+        [newSocietyId]
+      )) as [any[], any];
+
+      return res.json({ ok: true, checks, new_society_id: newSocietyId, new_blob_key: newBlobKey,
+        users_created: insertedUsers, sa_blob_updated: true,
+        verification: { society: verSoc[0] ?? null, users: verUsers } });
+
+    } catch (txErr: any) {
+      await conn.rollback();
+      logger.error({ err: txErr }, "migrate-society: ROLLBACK");
+      return res.status(500).json({ error: "transaction_failed", detail: txErr?.sqlMessage ?? txErr?.message, checks });
+    }
+
+  } catch (e: any) {
+    logger.error({ err: e }, "migrate-society: outer error");
+    return res.status(500).json({ error: "server_error", detail: e?.message, checks });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 
 export default router;
