@@ -87131,62 +87131,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/superadmin/ai-budget-diagnose", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  try {
-    const mese = (/* @__PURE__ */ new Date()).toISOString().slice(0, 7);
-    const [budgetRows] = await pool.execute(
-      `SELECT
-         abu.id, abu.societa_id, abu.mister_id,
-         abu.mese_riferimento, abu.token_consumati, abu.token_budget,
-         s.nome  AS society_nome, s.piano AS society_piano,
-         u.email AS mister_email, u.society_id AS user_society_id
-       FROM ai_budget_utilizzo abu
-       LEFT JOIN societies s ON s.id = abu.societa_id
-       LEFT JOIN users     u ON u.id  = abu.mister_id
-       ORDER BY abu.mese_riferimento DESC, abu.created_at DESC`
-    );
-    const [duplicateRows] = await pool.execute(
-      `SELECT mister_id, societa_id, mese_riferimento,
-              COUNT(*)             AS cnt,
-              SUM(token_consumati) AS totale_token_consumati
-       FROM ai_budget_utilizzo
-       GROUP BY mister_id, societa_id, mese_riferimento
-       HAVING cnt > 1`
-    );
-    const [logRows] = await pool.execute(
-      `SELECT
-         arl.id, arl.mister_id, arl.societa_id, arl.tipo,
-         arl.token_totale, arl.successo, arl.created_at,
-         u.email AS mister_email, u.society_id AS user_society_id,
-         s.nome  AS log_society_nome
-       FROM ai_richieste_log arl
-       LEFT JOIN users     u ON u.id  = arl.mister_id
-       LEFT JOIN societies s ON s.id  = arl.societa_id
-       ORDER BY arl.created_at DESC
-       LIMIT 30`
-    );
-    const [multiSocietyUsers] = await pool.execute(
-      `SELECT u.id AS user_id, u.email, u.society_id, s.nome AS society_nome, s.piano
-       FROM users u
-       JOIN societies s ON s.id = u.society_id
-       WHERE u.id IN (
-         SELECT DISTINCT mister_id FROM ai_budget_utilizzo WHERE mister_id IS NOT NULL
-       )
-       ORDER BY u.id`
-    );
-    return res.json({
-      mese_corrente: mese,
-      budget_rows: budgetRows,
-      duplicate_rows: duplicateRows,
-      recent_log: logRows,
-      multi_society_users: multiSocietyUsers
-    });
-  } catch (e) {
-    logger.error({ err: e }, "ai-budget-diagnose error");
-    return res.status(500).json({ error: e?.message });
-  }
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
