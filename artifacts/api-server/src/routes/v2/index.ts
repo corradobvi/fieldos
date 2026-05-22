@@ -23,6 +23,7 @@ import accountRouter            from "./account";
 import notifPrefsRouter        from "./notification-preferences";
 import allenamentiRouter       from "./allenamenti";
 import aiAllenamentiRouter     from "./ai-allenamenti";
+import diagRouter              from "./diag";
 
 const router = Router();
 
@@ -259,5 +260,6 @@ router.use(accountRouter);
 router.use(notifPrefsRouter);
 router.use(allenamentiRouter);
 router.use(aiAllenamentiRouter);
+router.use(diagRouter);
 
 export default router;
