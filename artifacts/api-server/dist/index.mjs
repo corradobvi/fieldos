@@ -88275,13 +88275,14 @@ router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_all
 router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
+  logger.info({ body: req.body, id }, "PATCH allenamenti body");
   try {
     const [existing] = await pool.execute(
       "SELECT id FROM allenamenti WHERE id = ? AND societa_id = ?",
       [id, societyId]
     );
     if (!existing.length) return res.status(404).json({ error: "not_found" });
-    const { titolo, obiettivo, data, visibilita_genitori, note_testo } = req.body;
+    const { titolo, obiettivo, data, visibilita_genitori, note_testo, event_id } = req.body;
     const updates = [];
     const params = [];
     if (titolo !== void 0) {
@@ -88304,10 +88305,31 @@ router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_pian
       updates.push("note_testo = ?");
       params.push(note_testo ?? null);
     }
+    if (event_id !== void 0) {
+      if (event_id === null) {
+        updates.push("event_id = ?");
+        params.push(null);
+      } else {
+        const eid = parseInt(event_id);
+        if (isNaN(eid) || eid <= 0) return res.status(400).json({ error: "event_id_non_valido" });
+        const [evRows] = await pool.execute(
+          "SELECT id FROM events WHERE id = ? AND society_id = ? LIMIT 1",
+          [eid, societyId]
+        );
+        if (!evRows.length) return res.status(400).json({ error: "event_id_non_valido" });
+        const [taken] = await pool.execute(
+          "SELECT id FROM allenamenti WHERE event_id = ? AND id != ? LIMIT 1",
+          [eid, id]
+        );
+        if (taken.length) return res.status(409).json({ error: "slot_gia_occupato" });
+        updates.push("event_id = ?");
+        params.push(eid);
+      }
+    }
     if (!updates.length) return res.status(400).json({ error: "nessun_campo_da_aggiornare" });
     params.push(id);
     await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ?`, params);
-    return res.json({ ok: true });
+    return res.json({ ok: true, id, event_id: event_id !== void 0 ? event_id === null ? null : parseInt(event_id) : void 0 });
   } catch (e) {
     logger.error({ err: e }, "PATCH allenamenti error");
     return res.status(500).json({ error: "server_error" });

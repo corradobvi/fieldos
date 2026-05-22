@@ -526,13 +526,15 @@ router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
 
+  logger.info({ body: req.body, id }, "PATCH allenamenti body");
+
   try {
     const [existing] = (await pool.execute(
       "SELECT id FROM allenamenti WHERE id = ? AND societa_id = ?", [id, societyId]
     )) as [any[], any];
     if (!existing.length) return res.status(404).json({ error: "not_found" });
 
-    const { titolo, obiettivo, data, visibilita_genitori, note_testo } = req.body as Record<string, any>;
+    const { titolo, obiettivo, data, visibilita_genitori, note_testo, event_id } = req.body as Record<string, any>;
     const updates: string[] = [];
     const params: any[]     = [];
 
@@ -542,11 +544,37 @@ router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_
     if (visibilita_genitori !== undefined){ updates.push("visibilita_genitori = ?"); params.push(visibilita_genitori ? 1 : 0); }
     if (note_testo !== undefined)         { updates.push("note_testo = ?");          params.push(note_testo ?? null); }
 
+    if (event_id !== undefined) {
+      if (event_id === null) {
+        // Sgancia
+        updates.push("event_id = ?");
+        params.push(null);
+      } else {
+        const eid = parseInt(event_id);
+        if (isNaN(eid) || eid <= 0) return res.status(400).json({ error: "event_id_non_valido" });
+
+        // Verifica che l'evento esista e appartenga alla stessa società
+        const [evRows] = (await pool.execute(
+          "SELECT id FROM events WHERE id = ? AND society_id = ? LIMIT 1", [eid, societyId]
+        )) as [any[], any];
+        if (!evRows.length) return res.status(400).json({ error: "event_id_non_valido" });
+
+        // Verifica che lo slot non sia già occupato da un altro allenamento
+        const [taken] = (await pool.execute(
+          "SELECT id FROM allenamenti WHERE event_id = ? AND id != ? LIMIT 1", [eid, id]
+        )) as [any[], any];
+        if (taken.length) return res.status(409).json({ error: "slot_gia_occupato" });
+
+        updates.push("event_id = ?");
+        params.push(eid);
+      }
+    }
+
     if (!updates.length) return res.status(400).json({ error: "nessun_campo_da_aggiornare" });
 
     params.push(id);
     await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ?`, params);
-    return res.json({ ok: true });
+    return res.json({ ok: true, id, event_id: event_id !== undefined ? (event_id === null ? null : parseInt(event_id)) : undefined });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH allenamenti error");
     return res.status(500).json({ error: "server_error" });
