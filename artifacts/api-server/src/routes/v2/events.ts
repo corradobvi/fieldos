@@ -97,15 +97,20 @@ async function fetchLeveForEvents(
 
 async function fetchAllenamentiForEvents(
   ids: number[]
-): Promise<Record<number, string>> {
+): Promise<Record<number, any>> {
   if (!ids.length) return {};
   const ph = ids.map(() => "?").join(",");
   const [rows] = (await pool.execute(
-    `SELECT event_id, id AS allenamento_id FROM allenamenti WHERE event_id IN (${ph})`,
+    `SELECT a.event_id, a.id AS allenamento_id,
+            a.titolo AS allenamento_titolo, a.obiettivo AS allenamento_obiettivo,
+            a.durata_totale_minuti AS allenamento_durata_totale_minuti,
+            a.visibilita_genitori AS allenamento_visibilita_genitori,
+            (SELECT COUNT(*) FROM allenamento_sessioni s WHERE s.allenamento_id = a.id) AS allenamento_num_sessioni
+     FROM allenamenti a WHERE a.event_id IN (${ph})`,
     ids
   )) as [any[], any];
-  const map: Record<number, string> = {};
-  for (const r of rows) map[r.event_id] = r.allenamento_id;
+  const map: Record<number, any> = {};
+  for (const r of rows) map[r.event_id] = r;
   return map;
 }
 
@@ -188,8 +193,17 @@ router.get("/events", requireAuth, async (req, res) => {
     const occurrences: any[] = [];
 
     for (const ev of rows) {
-      const leve          = leveMap[ev.id] || [];
-      const allenamento_id = allMap[ev.id]  || null;
+      const leve    = leveMap[ev.id] || [];
+      const allInfo = allMap[ev.id]  || null;
+      const allenamento_id = allInfo?.allenamento_id ?? null;
+      const allenamentoFields = {
+        allenamento_id,
+        allenamento_titolo:               allInfo?.allenamento_titolo               ?? null,
+        allenamento_obiettivo:            allInfo?.allenamento_obiettivo             ?? null,
+        allenamento_durata_totale_minuti: allInfo?.allenamento_durata_totale_minuti  ?? null,
+        allenamento_num_sessioni:         allInfo?.allenamento_num_sessioni          ?? 0,
+        allenamento_visibilita_genitori:  allInfo ? !!allInfo.allenamento_visibilita_genitori : false,
+      };
 
       if (ev.ricorrente && doExpand && !month) {
         // Master record ricorrente: espandi in occorrenze
@@ -206,7 +220,7 @@ router.get("/events", requireAuth, async (req, res) => {
             ora_inizio: ev.ora_inizio, ora_fine: ev.ora_fine,
             luogo: ev.luogo, note: ev.note,
             is_recurring_occurrence: true,
-            allenamento_id,
+            ...allenamentoFields,
           });
         }
       } else {
@@ -218,7 +232,7 @@ router.get("/events", requireAuth, async (req, res) => {
           ora_inizio: ev.ora_inizio, ora_fine: ev.ora_fine,
           luogo: ev.luogo, note: ev.note,
           is_recurring_occurrence: false,
-          allenamento_id,
+          ...allenamentoFields,
         });
       }
     }

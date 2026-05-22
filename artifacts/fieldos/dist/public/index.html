@@ -1577,6 +1577,24 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .all-cal-list-card{border-radius:10px;border:1.5px solid var(--border);background:var(--white);padding:10px 14px;cursor:pointer;transition:box-shadow .1s;}
 .all-cal-list-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
 @media(max-width:600px){.all-cal-week-grid{display:none;}.all-cal-week-agenda{display:block;}}
+.all-cal-cell.ac-past,.all-cal-week-col.ac-past{background:#f4f4f4;}
+.all-cal-cell.ac-past .all-cal-dn,.all-cal-week-col.ac-past .all-cal-week-head{opacity:.52;}
+.all-cal-cell.ac-past .all-cal-slot,.all-cal-week-col.ac-past .all-cal-slot{opacity:.78;}
+.all-cal-cell.ac-weekend,.all-cal-week-col.ac-weekend{background:#fafaf6;}
+.all-cal-cell.ac-today{background:#f0fdf4 !important;}
+.all-cal-week-col.ac-today{background:#f0fdf4 !important;}
+.all-cal-cell.ac-today .all-cal-dn{color:#1a7a4a;font-weight:800;}
+.all-cal-slot-time{font-size:.62rem;font-weight:600;letter-spacing:.01em;margin-bottom:1px;}
+.all-cal-slot-title{font-size:.64rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:1px;}
+.all-cal-slot-obj{font-size:.58rem;color:#047857;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-style:italic;}
+.all-cal-slot-meta{font-size:.57rem;color:#065f46;display:flex;gap:3px;align-items:center;flex-wrap:wrap;line-height:1.4;}
+.all-cal-slot-empty-lbl{font-size:.59rem;}
+.all-cal-slot.ac-filled{padding:4px 6px;}
+.all-cal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.all-cal-stat{border-radius:10px;border:.5px solid var(--border);background:var(--bg);padding:12px 14px;}
+.all-cal-stat-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:4px;letter-spacing:.04em;}
+.all-cal-stat-val{font-size:1.3rem;font-weight:500;color:var(--text1);}
+@media(max-width:500px){.all-cal-stats{grid-template-columns:1fr;}}
 
 /* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
@@ -13793,7 +13811,7 @@ function _renderAllLista(cont) {
     cont.innerHTML = hdr + `<div id="allListItems"></div>`;
     _loadAllLista();
   } else {
-    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
+    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalStats"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
     _allCalLoadEvents();
   }
 }
@@ -13943,14 +13961,63 @@ async function _allCalLoadEvents() {
 }
 
 function _allCalRender() {
-  const gridEl = document.getElementById('allCalGrid');
+  const gridEl  = document.getElementById('allCalGrid');
   const bozzeEl = document.getElementById('allCalBozze');
+  const statsEl = document.getElementById('allCalStats');
   if (!gridEl) return;
   const vm = _allSt.cal.viewMode || 'week';
+  if (statsEl) _allCalRenderStats(statsEl, _allSt.cal.events || []);
   if (vm === 'week') _allCalRenderWeek(gridEl);
   else if (vm === 'list') _allCalRenderList(gridEl);
   else _allCalRenderMonth(gridEl);
   if (bozzeEl) _allCalRenderBozze(bozzeEl);
+}
+
+function _allSlotHtml(ev, mode) {
+  const isFilled = !!ev.allenamento_id;
+  const startT = (ev.ora_inizio || '').slice(0,5);
+  const endT   = (ev.ora_fine   || '').slice(0,5);
+  const ts = startT ? startT + (endT ? '–' + endT : '') : '';
+  const onclick = '_allCalClickSlot(' + ev.event_id + ',' + (ev.allenamento_id || 'null') + ')';
+  if (!isFilled) {
+    return '<div class="all-cal-slot ac-empty" onclick="' + onclick + '">'
+      + (ts ? '<div class="all-cal-slot-time">' + ts + '</div>' : '')
+      + '<div class="all-cal-slot-empty-lbl">➕ Crea</div>'
+      + '</div>';
+  }
+  const titolo  = ev.allenamento_titolo   ? escapeHtml(ev.allenamento_titolo)   : '✅ Creato';
+  const durata  = ev.allenamento_durata_totale_minuti || 0;
+  const nSess   = ev.allenamento_num_sessioni || 0;
+  const visG    = ev.allenamento_visibilita_genitori;
+  const obiett  = ev.allenamento_obiettivo || '';
+  let h = '<div class="all-cal-slot ac-filled" onclick="' + onclick + '">';
+  if (ts) h += '<div class="all-cal-slot-time">' + ts + '</div>';
+  h += '<div class="all-cal-slot-title">' + titolo + '</div>';
+  if (mode === 'full') {
+    if (obiett) h += '<div class="all-cal-slot-obj">' + escapeHtml(obiett) + '</div>';
+    const parts = [];
+    if (durata) parts.push('🕐 ' + durata + ' min');
+    if (nSess)  parts.push(nSess + ' sess.');
+    parts.push(visG ? '👨‍👩‍👧' : '🔒');
+    h += '<div class="all-cal-slot-meta">' + parts.join(' · ') + '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function _allCalRenderStats(el, events) {
+  const total  = (events || []).length;
+  const creati = (events || []).filter(function(ev) { return !!ev.allenamento_id; }).length;
+  const durataTot = (events || []).reduce(function(sum, ev) {
+    return sum + (ev.allenamento_id ? (ev.allenamento_durata_totale_minuti || 0) : 0);
+  }, 0);
+  const ore = Math.floor(durataTot / 60); const min = durataTot % 60;
+  const durStr = ore > 0 ? ore + 'h' + (min > 0 ? ' ' + min + 'min' : '') : (min > 0 ? min + ' min' : '0 min');
+  el.innerHTML = '<div class="all-cal-stats">'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Programmati</div><div class="all-cal-stat-val">' + total + '</div></div>'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Creati</div><div class="all-cal-stat-val">' + creati + '</div></div>'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Durata totale</div><div class="all-cal-stat-val">' + durStr + '</div></div>'
+    + '</div>';
 }
 
 function _allCalRenderMonth(gridEl) {
@@ -13978,22 +14045,18 @@ function _allCalRenderMonth(gridEl) {
 
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = anno + '-' + pad2(mese+1) + '-' + pad2(day);
-    const isToday = ds === todayStr;
+    const isToday   = ds === todayStr;
+    const isPast    = !isToday && ds < todayStr;
+    const dow       = new Date(ds + 'T00:00:00').getDay();
+    const isWeekend = dow === 0 || dow === 6;
     const dayEvs = byDate[ds] || [];
-    html += '<div class="all-cal-cell' + (isToday ? ' ac-today' : '') + '">';
+    let cls = 'all-cal-cell';
+    if (isToday)   cls += ' ac-today';
+    if (isPast)    cls += ' ac-past';
+    if (isWeekend) cls += ' ac-weekend';
+    html += '<div class="' + cls + '">';
     html += '<div class="all-cal-dn">' + day + '</div>';
-    dayEvs.forEach(function(ev) {
-      const startT = (ev.ora_inizio || '').slice(0,5);
-      const endT   = (ev.ora_fine   || '').slice(0,5);
-      const timeStr = startT ? startT + (endT ? '–' + endT : '') : '';
-      const isFilled = !!ev.allenamento_id;
-      const slotClass = isFilled ? 'ac-filled' : 'ac-empty';
-      const lbl = isFilled ? '✅ Creato' : '➕ Crea';
-      html += '<div class="all-cal-slot ' + slotClass + '" onclick="_allCalClickSlot(' + ev.event_id + ',' + (ev.allenamento_id || 'null') + ')">';
-      if (timeStr) html += '<div style="font-weight:700;">' + escapeHtml(timeStr) + '</div>';
-      html += '<div>' + lbl + '</div>';
-      html += '</div>';
-    });
+    dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'compact'); });
     html += '</div>';
   }
 
@@ -14085,32 +14148,35 @@ function _allCalRenderWeek(gridEl) {
   Object.keys(byDate).forEach(function(d) {
     byDate[d].sort(function(a,b) { return (a.ora_inizio||'').localeCompare(b.ora_inizio||''); });
   });
-  function _wSlot(ev) {
-    const st=(ev.ora_inizio||'').slice(0,5); const et=(ev.ora_fine||'').slice(0,5);
-    const ts=st?st+(et?'–'+et:''):''; const filled=!!ev.allenamento_id;
-    return '<div class="all-cal-slot '+(filled?'ac-filled':'ac-empty')+'" onclick="_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')">'
-      +(ts?'<div style="font-weight:700;">'+escapeHtml(ts)+'</div>':'')
-      +'<div>'+(filled?'✅ Creato':'➕ Crea')+'</div></div>';
+  function _wDayCls(ds, base) {
+    const isToday = ds === todayStr;
+    const isPast  = !isToday && ds < todayStr;
+    const dow = new Date(ds+'T00:00:00').getDay();
+    const isWE = dow===0||dow===6;
+    let c = base;
+    if (isToday) c += ' ac-today';
+    if (isPast)  c += ' ac-past';
+    if (isWE)    c += ' ac-weekend';
+    return c;
   }
   let html = '<div class="all-cal-week-grid">';
   days.forEach(function(ds, i) {
     const isToday = ds === todayStr;
     const dayEvs = byDate[ds] || [];
     const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
-    html += '<div class="all-cal-week-col'+(isToday?' ac-today':'')+'">';
+    html += '<div class="' + _wDayCls(ds,'all-cal-week-col') + '">';
     html += '<div class="all-cal-week-head'+(isToday?' ac-today':'')+'">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
-    dayEvs.forEach(function(ev) { html += _wSlot(ev); });
+    dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'full'); });
     html += '</div>';
   });
   html += '</div>';
   html += '<div class="all-cal-week-agenda">';
   days.forEach(function(ds, i) {
-    const isToday = ds === todayStr;
     const dayEvs = byDate[ds] || [];
     const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
-    html += '<div class="all-cal-week-agenda-day'+(isToday?' ac-today':'')+'">';
+    html += '<div class="' + _wDayCls(ds,'all-cal-week-agenda-day') + '">';
     html += '<div class="all-cal-week-agenda-head">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
-    if (dayEvs.length) { dayEvs.forEach(function(ev) { html += _wSlot(ev); }); }
+    if (dayEvs.length) { dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'full'); }); }
     else { html += '<div style="font-size:.72rem;color:var(--text3);">Nessun slot</div>'; }
     html += '</div>';
   });
@@ -14136,11 +14202,24 @@ function _allCalRenderList(gridEl) {
     const ts = st?st+(et?'–'+et:''):'';
     const d = ds ? new Date(ds+'T00:00:00') : null;
     const dateStr = d ? _AC_DAYS[(d.getDay()+6)%7]+' '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear() : '';
-    const titolo = ev.titolo ? escapeHtml(ev.titolo) : 'Allenamento';
-    html += '<div class="all-cal-list-card" onclick="_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')">';
-    html += '<div style="font-size:.78rem;color:var(--text2);margin-bottom:2px;">'+dateStr+(ts?' · '+ts:'')+'</div>';
-    html += '<div style="font-size:.9rem;font-weight:700;">✅ '+titolo+'</div>';
-    html += '</div>';
+    const titolo  = ev.allenamento_titolo ? escapeHtml(ev.allenamento_titolo) : 'Allenamento';
+    const durata  = ev.allenamento_durata_totale_minuti || 0;
+    const nSess   = ev.allenamento_num_sessioni || 0;
+    const visG    = ev.allenamento_visibilita_genitori;
+    const obiett  = ev.allenamento_obiettivo || '';
+    const onclick = '_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')';
+    html += '<div class="all-cal-list-card" onclick="' + onclick + '">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:3px;">' + dateStr + (ts ? ' · ' + ts : '') + '</div>';
+    html += '<div style="font-size:.93rem;font-weight:700;margin-bottom:2px;">✅ ' + titolo + '</div>';
+    if (obiett) html += '<div style="font-size:.78rem;color:var(--text2);font-style:italic;margin-bottom:3px;">' + escapeHtml(obiett) + '</div>';
+    const parts = [];
+    if (durata) parts.push('🕐 ' + durata + ' min');
+    if (nSess)  parts.push(nSess + ' sessioni');
+    parts.push(visG ? '👨‍👩‍👧 Famiglie' : '🔒 Solo staff');
+    html += '<div style="font-size:.75rem;color:var(--text3);">' + parts.join(' · ') + '</div>';
+    html += '</div></div></div>';
   });
   html += '</div>';
   gridEl.innerHTML = html;
