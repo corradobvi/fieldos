@@ -318,7 +318,7 @@ router.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermissi
 router.get("/allenamenti", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser!;
   const isGenitore = RUOLI_GENITORE.has(role);
-  const { leva_id, da, a, limit = "30", offset = "0" } = req.query as Record<string, string>;
+  const { leva_id, da, a, limit = "30", offset = "0", event_id } = req.query as Record<string, string>;
   const limitN  = Math.min(parseInt(limit) || 30, 200);
   const offsetN = Math.max(parseInt(offset) || 0, 0);
 
@@ -326,9 +326,10 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
     const conditions: string[] = ["a.societa_id = ?"];
     const params: any[]        = [societyId];
 
-    if (leva_id) { conditions.push("a.leva_id = ?"); params.push(parseInt(leva_id)); }
-    if (da)      { conditions.push("a.data >= ?");   params.push(da); }
-    if (a)       { conditions.push("a.data <= ?");   params.push(a); }
+    if (leva_id)  { conditions.push("a.leva_id = ?");  params.push(parseInt(leva_id)); }
+    if (da)       { conditions.push("a.data >= ?");   params.push(da); }
+    if (a)        { conditions.push("a.data <= ?");   params.push(a); }
+    if (event_id) { conditions.push("a.event_id = ?"); params.push(parseInt(event_id)); }
 
     if (isGenitore) {
       conditions.push("a.visibilita_genitori = TRUE");
@@ -348,9 +349,10 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
     const where = "WHERE " + conditions.join(" AND ");
 
     const selectFields = isGenitore
-      ? `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti,
+      ? `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.event_id,
          (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni`
       : `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.visibilita_genitori,
+         a.event_id,
          (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni,
          CONCAT(u.nome, ' ', u.cognome) AS creato_da_nome`;
 
@@ -429,7 +431,7 @@ router.get("/allenamenti/:id", requireAuth, async (req, res) => {
 // POST /api/v2/allenamenti
 router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
-  const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [] } =
+  const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } =
     req.body as Record<string, any>;
 
   if (!leva_id || !titolo || !data)
@@ -445,11 +447,24 @@ router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allen
   try {
     await conn.beginTransaction();
 
+    // Valida event_id se fornito
+    const eventIdVal = event_id != null ? parseInt(event_id) : null;
+    if (eventIdVal != null) {
+      const [evCheck] = (await conn.execute(
+        "SELECT id FROM events WHERE id = ? AND society_id = ?", [eventIdVal, societyId]
+      )) as [any[], any];
+      if (!evCheck.length) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ error: "event_id_non_valido" });
+      }
+    }
+
     const allenamentoId = randomUUID();
     await conn.execute(
-      `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null]
+      `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti, event_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
     );
 
     const sessioniCreate: any[] = [];

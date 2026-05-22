@@ -394,7 +394,21 @@ ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL;
 ALTER TABLE societies MODIFY COLUMN logo_url MEDIUMTEXT;
 ALTER TABLE ai_budget_utilizzo ADD COLUMN budget_key VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL;
 ALTER TABLE ai_budget_utilizzo DROP INDEX uq_ai_budget;
-ALTER TABLE ai_budget_utilizzo ADD UNIQUE KEY uq_ai_budget_key (budget_key)
+ALTER TABLE ai_budget_utilizzo ADD UNIQUE KEY uq_ai_budget_key (budget_key);
+CREATE TABLE IF NOT EXISTS event_leve (
+  event_id  INT NOT NULL,
+  leva_id   INT NOT NULL,
+  PRIMARY KEY (event_id, leva_id),
+  FOREIGN KEY fk_el_event (event_id) REFERENCES events(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_el_leva  (leva_id)  REFERENCES leve(id)   ON DELETE CASCADE
+);
+ALTER TABLE events ADD COLUMN recur_group_id VARCHAR(36) NULL;
+ALTER TABLE events ADD INDEX idx_events_society_data (society_id, data_inizio);
+ALTER TABLE events ADD INDEX idx_events_tipo (tipo);
+ALTER TABLE events ADD INDEX idx_events_recur_group (recur_group_id);
+ALTER TABLE allenamenti ADD COLUMN event_id INT NULL;
+ALTER TABLE allenamenti ADD CONSTRAINT fk_allenamenti_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL;
+ALTER TABLE allenamenti ADD INDEX idx_allenamenti_event (event_id)
 `;
 
 export const SEED_SQL = `

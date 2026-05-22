@@ -78752,7 +78752,21 @@ ALTER TABLE allenamento_sessioni ADD COLUMN note_snapshot TEXT NULL;
 ALTER TABLE societies MODIFY COLUMN logo_url MEDIUMTEXT;
 ALTER TABLE ai_budget_utilizzo ADD COLUMN budget_key VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL;
 ALTER TABLE ai_budget_utilizzo DROP INDEX uq_ai_budget;
-ALTER TABLE ai_budget_utilizzo ADD UNIQUE KEY uq_ai_budget_key (budget_key)
+ALTER TABLE ai_budget_utilizzo ADD UNIQUE KEY uq_ai_budget_key (budget_key);
+CREATE TABLE IF NOT EXISTS event_leve (
+  event_id  INT NOT NULL,
+  leva_id   INT NOT NULL,
+  PRIMARY KEY (event_id, leva_id),
+  FOREIGN KEY fk_el_event (event_id) REFERENCES events(id) ON DELETE CASCADE,
+  FOREIGN KEY fk_el_leva  (leva_id)  REFERENCES leve(id)   ON DELETE CASCADE
+);
+ALTER TABLE events ADD COLUMN recur_group_id VARCHAR(36) NULL;
+ALTER TABLE events ADD INDEX idx_events_society_data (society_id, data_inizio);
+ALTER TABLE events ADD INDEX idx_events_tipo (tipo);
+ALTER TABLE events ADD INDEX idx_events_recur_group (recur_group_id);
+ALTER TABLE allenamenti ADD COLUMN event_id INT NULL;
+ALTER TABLE allenamenti ADD CONSTRAINT fk_allenamenti_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL;
+ALTER TABLE allenamenti ADD INDEX idx_allenamenti_event (event_id)
 `;
 var SEED_SQL = `
 INSERT IGNORE INTO societies (nome, citta, codice, piano, stato)
@@ -85150,29 +85164,187 @@ var users_default = router15;
 
 // src/routes/v2/events.ts
 var import_express16 = __toESM(require_express2(), 1);
+import { randomUUID } from "crypto";
 var router16 = (0, import_express16.Router)();
 var WRITE_ROLES = ["admin", "allenatore", "dirigente", "mister_admin"];
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setUTCDate(r.getUTCDate() + n);
+  return r;
+}
+function ymd(d) {
+  return d.toISOString().slice(0, 10);
+}
+function parseDate(s) {
+  const [y, m, dd] = s.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, dd));
+}
+function todayStr() {
+  return ymd(/* @__PURE__ */ new Date());
+}
+function expandRecurrences(ev, da, a) {
+  const evStart = parseDate(ev.data_inizio);
+  const evEnd = ev.fino_al ? parseDate(ev.fino_al) : parseDate(a);
+  const rangeS = parseDate(da) > evStart ? parseDate(da) : new Date(evStart);
+  const rangeE = parseDate(a) < evEnd ? parseDate(a) : new Date(evEnd);
+  if (rangeS > rangeE) return [];
+  const freq = ev.freq || "none";
+  const result = [];
+  if (freq === "daily") {
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      result.push(ymd(cur));
+    return result;
+  }
+  if (freq === "weekly") {
+    const days = (ev.giorni || "").split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    if (!days.length) return [];
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      if (days.includes(cur.getUTCDay())) result.push(ymd(cur));
+    return result;
+  }
+  if (freq === "monthly") {
+    const targetDay = evStart.getUTCDate();
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      if (cur.getUTCDate() === targetDay) result.push(ymd(cur));
+    return result;
+  }
+  return [];
+}
+async function fetchLeveForEvents(ids) {
+  if (!ids.length) return {};
+  const ph = ids.map(() => "?").join(",");
+  const [rows] = await pool.execute(
+    `SELECT el.event_id, l.id, l.nome
+     FROM event_leve el JOIN leve l ON l.id = el.leva_id
+     WHERE el.event_id IN (${ph})`,
+    ids
+  );
+  const map = {};
+  for (const r of rows) {
+    if (!map[r.event_id]) map[r.event_id] = [];
+    map[r.event_id].push({ id: r.id, nome: r.nome });
+  }
+  return map;
+}
+async function fetchAllenamentiForEvents(ids) {
+  if (!ids.length) return {};
+  const ph = ids.map(() => "?").join(",");
+  const [rows] = await pool.execute(
+    `SELECT event_id, id AS allenamento_id FROM allenamenti WHERE event_id IN (${ph})`,
+    ids
+  );
+  const map = {};
+  for (const r of rows) map[r.event_id] = r.allenamento_id;
+  return map;
+}
+async function insertLeveForEvent(conn, eventId, leve) {
+  for (const levaId of leve) {
+    await conn.execute(
+      "INSERT IGNORE INTO event_leve (event_id, leva_id) VALUES (?, ?)",
+      [eventId, parseInt(levaId)]
+    );
+  }
+}
 router16.get("/events", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
-  const { month, year: year2, leva } = req.query;
-  let whereExtra = "";
-  const params = [societyId];
-  if (month && year2) {
-    whereExtra += " AND MONTH(data_inizio) = ? AND YEAR(data_inizio) = ?";
-    params.push(parseInt(month), parseInt(year2));
-  }
-  if (leva) {
-    whereExtra += " AND (leva = ? OR leva IS NULL)";
-    params.push(leva);
-  }
+  const {
+    leva_id,
+    tipi,
+    da = todayStr(),
+    a = ymd(addDays(/* @__PURE__ */ new Date(), 90)),
+    expand_recurrences = "true",
+    month,
+    year: year2,
+    leva
+    // retrocompat
+  } = req.query;
+  const doExpand = expand_recurrences !== "false";
   try {
+    const conds = ["e.society_id = ?"];
+    const params = [societyId];
+    if (tipi) {
+      const arr = tipi.split(",").map((t) => t.trim()).filter(Boolean);
+      if (arr.length) {
+        conds.push(`e.tipo IN (${arr.map(() => "?").join(",")})`);
+        params.push(...arr);
+      }
+    }
+    if (month && year2) {
+      conds.push("MONTH(e.data_inizio) = ? AND YEAR(e.data_inizio) = ?");
+      params.push(parseInt(month), parseInt(year2));
+    } else {
+      conds.push(
+        "((e.ricorrente = 0 AND e.data_inizio BETWEEN ? AND ?) OR (e.ricorrente = 1 AND e.data_inizio <= ? AND (e.fino_al IS NULL OR e.fino_al >= ?)))"
+      );
+      params.push(da, a, a, da);
+    }
+    if (leva_id) {
+      conds.push("EXISTS (SELECT 1 FROM event_leve el WHERE el.event_id = e.id AND el.leva_id = ?)");
+      params.push(parseInt(leva_id));
+    } else if (leva) {
+      conds.push("(e.leva = ? OR e.leva IS NULL)");
+      params.push(leva);
+    }
     const [rows] = await pool.execute(
-      `SELECT id, tipo, titolo, leva, luogo, data_inizio, ora_inizio, data_fine, ora_fine,
-              note, ricorrente, freq, giorni, fino_al, created_at
-       FROM events WHERE society_id = ?${whereExtra} ORDER BY data_inizio, ora_inizio`,
+      `SELECT e.id, e.tipo, e.titolo, e.luogo,
+              e.data_inizio, e.ora_inizio, e.ora_fine,
+              e.note, e.ricorrente, e.freq, e.giorni, e.fino_al,
+              e.recur_group_id, e.created_at
+       FROM events e WHERE ${conds.join(" AND ")}
+       ORDER BY e.data_inizio, e.ora_inizio`,
       params
     );
-    return res.json(rows);
+    if (!rows.length) return res.json([]);
+    const eventIds = rows.map((r) => r.id);
+    const leveMap = await fetchLeveForEvents(eventIds);
+    const allMap = await fetchAllenamentiForEvents(eventIds);
+    const occurrences = [];
+    for (const ev of rows) {
+      const leve = leveMap[ev.id] || [];
+      const allenamento_id = allMap[ev.id] || null;
+      if (ev.ricorrente && doExpand && !month) {
+        const dates = expandRecurrences(
+          { data_inizio: ev.data_inizio, fino_al: ev.fino_al, freq: ev.freq, giorni: ev.giorni },
+          da,
+          a
+        );
+        for (const d of dates) {
+          occurrences.push({
+            event_id: ev.id,
+            recur_group_id: ev.recur_group_id,
+            tipo: ev.tipo,
+            titolo: ev.titolo,
+            leve,
+            data: d,
+            ora_inizio: ev.ora_inizio,
+            ora_fine: ev.ora_fine,
+            luogo: ev.luogo,
+            note: ev.note,
+            is_recurring_occurrence: true,
+            allenamento_id
+          });
+        }
+      } else {
+        occurrences.push({
+          event_id: ev.id,
+          recur_group_id: ev.recur_group_id,
+          tipo: ev.tipo,
+          titolo: ev.titolo,
+          leve,
+          data: ev.data_inizio,
+          ora_inizio: ev.ora_inizio,
+          ora_fine: ev.ora_fine,
+          luogo: ev.luogo,
+          note: ev.note,
+          is_recurring_occurrence: false,
+          allenamento_id
+        });
+      }
+    }
+    occurrences.sort(
+      (a2, b) => a2.data < b.data ? -1 : a2.data > b.data ? 1 : (a2.ora_inizio || "").localeCompare(b.ora_inizio || "")
+    );
+    return res.json(occurrences);
   } catch (e) {
     logger.error({ err: e }, "GET events error");
     return res.status(500).json({ error: "server_error" });
@@ -85186,8 +85358,11 @@ router16.get("/events/:id", requireAuth, async (req, res) => {
       [req.params.id, societyId]
     );
     if (!rows.length) return res.status(404).json({ error: "not_found" });
-    return res.json(rows[0]);
+    const ev = rows[0];
+    const leveMap = await fetchLeveForEvents([ev.id]);
+    return res.json({ ...ev, leve: leveMap[ev.id] || [] });
   } catch (e) {
+    logger.error({ err: e }, "GET events/:id error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -85196,125 +85371,410 @@ router16.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, r
   const {
     tipo,
     titolo,
-    leva,
+    leve = [],
     luogo,
     dataInizio,
     oraInizio,
-    dataFine,
     oraFine,
     note,
-    ricorrente,
+    ricorrente = false,
     freq,
     giorni,
     finoAl
   } = req.body;
   if (!tipo || !titolo) return res.status(400).json({ error: "tipo_titolo_required" });
+  if (!Array.isArray(leve)) return res.status(400).json({ error: "leve_must_be_array" });
+  const conn = await pool.getConnection();
   try {
-    const [result] = await pool.execute(
-      `INSERT INTO events (society_id, tipo, titolo, leva, luogo, data_inizio, ora_inizio,
-                           data_fine, ora_fine, note, ricorrente, freq, giorni, fino_al)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        societyId,
-        tipo,
-        titolo,
-        leva ?? null,
-        luogo ?? null,
-        dataInizio ?? null,
-        oraInizio ?? null,
-        dataFine ?? null,
-        oraFine ?? null,
-        note ?? null,
-        ricorrente ? 1 : 0,
-        freq ?? null,
-        giorni ?? null,
-        finoAl ?? null
-      ]
-    );
-    if (tipo === "convocazione") {
-      const _where = luogo ? `${dataInizio || ""} \xB7 ${luogo}` : dataInizio || titolo;
-      getUsersForPush(societyId, { leva: leva ?? null }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
-        title: "\u{1F4E3} Nuova convocazione",
-        body: `${titolo} \u2014 ${_where}`.slice(0, 100),
-        url: "/calendario",
-        tag: "convocazione"
-      }, "notify_convocazioni")).catch((e) => logger.warn({ err: e }, "convocazione push error"));
+    await conn.beginTransaction();
+    if (ricorrente && finoAl && freq) {
+      const recurGroupId = randomUUID();
+      const dates = expandRecurrences(
+        { data_inizio: dataInizio, fino_al: finoAl, freq, giorni: giorni ?? null },
+        dataInizio,
+        finoAl
+      );
+      if (!dates.length) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ error: "nessuna_occorrenza_nel_range" });
+      }
+      const ids = [];
+      for (const d of dates) {
+        const [r] = await conn.execute(
+          `INSERT INTO events
+             (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
+              note, ricorrente, freq, giorni, fino_al, recur_group_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+          [
+            societyId,
+            tipo,
+            titolo,
+            luogo ?? null,
+            d,
+            oraInizio ?? null,
+            oraFine ?? null,
+            note ?? null,
+            freq,
+            giorni ?? null,
+            finoAl,
+            recurGroupId
+          ]
+        );
+        ids.push(r.insertId);
+      }
+      for (const eid of ids) await insertLeveForEvent(conn, eid, leve);
+      await conn.commit();
+      return res.status(201).json({
+        recur_group_id: recurGroupId,
+        total_created: ids.length,
+        first_event_id: ids[0]
+      });
+    } else {
+      const recurGroupId = ricorrente ? randomUUID() : null;
+      const [r] = await conn.execute(
+        `INSERT INTO events
+           (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
+            note, ricorrente, freq, giorni, fino_al, recur_group_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          societyId,
+          tipo,
+          titolo,
+          luogo ?? null,
+          dataInizio ?? null,
+          oraInizio ?? null,
+          oraFine ?? null,
+          note ?? null,
+          ricorrente ? 1 : 0,
+          freq ?? null,
+          giorni ?? null,
+          finoAl ?? null,
+          recurGroupId
+        ]
+      );
+      const eventId = r.insertId;
+      await insertLeveForEvent(conn, eventId, leve);
+      await conn.commit();
+      const [rows] = await pool.execute(
+        "SELECT * FROM events WHERE id = ?",
+        [eventId]
+      );
+      const leveMap = await fetchLeveForEvents([eventId]);
+      return res.status(201).json({ ...rows[0], leve: leveMap[eventId] || [] });
     }
-    return res.status(201).json({ id: result.insertId });
   } catch (e) {
+    await conn.rollback();
     logger.error({ err: e }, "POST event error");
     return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router16.put("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const conn = await pool.getConnection();
+  try {
+    const [evRows] = await conn.execute(
+      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id) {
+      conn.release();
+      return res.status(404).json({ error: "serie_non_trovata" });
+    }
+    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
+    await conn.beginTransaction();
+    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(groupId, fromDate, societyId);
+      await conn.execute(
+        `UPDATE events SET ${upd.join(", ")}
+         WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?`,
+        params
+      );
+    }
+    if (Array.isArray(leve)) {
+      const [futureEvs] = await conn.execute(
+        "SELECT id FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
+        [groupId, fromDate, societyId]
+      );
+      for (const ev of futureEvs) {
+        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
+        await insertLeveForEvent(conn, ev.id, leve);
+      }
+    }
+    await conn.commit();
+    return res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "PUT events/:id/series/from-here error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router16.put("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const conn = await pool.getConnection();
+  try {
+    const [evRows] = await conn.execute(
+      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id) {
+      conn.release();
+      return res.status(404).json({ error: "serie_non_trovata" });
+    }
+    const groupId = evRows[0].recur_group_id;
+    await conn.beginTransaction();
+    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(groupId, societyId);
+      await conn.execute(
+        `UPDATE events SET ${upd.join(", ")}
+         WHERE recur_group_id = ? AND society_id = ?`,
+        params
+      );
+    }
+    if (Array.isArray(leve)) {
+      const [allEvs] = await conn.execute(
+        "SELECT id FROM events WHERE recur_group_id = ? AND society_id = ?",
+        [groupId, societyId]
+      );
+      for (const ev of allEvs) {
+        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
+        await insertLeveForEvent(conn, ev.id, leve);
+      }
+    }
+    await conn.commit();
+    return res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "PUT events/:id/series error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
   }
 });
 router16.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
   const { societyId } = req.jwtUser;
-  const {
-    tipo,
-    titolo,
-    leva,
-    luogo,
-    dataInizio,
-    oraInizio,
-    dataFine,
-    oraFine,
-    note,
-    ricorrente,
-    freq,
-    giorni,
-    finoAl
-  } = req.body;
+  const conn = await pool.getConnection();
   try {
-    const [result] = await pool.execute(
-      `UPDATE events SET
-        tipo        = COALESCE(?, tipo),
-        titolo      = COALESCE(?, titolo),
-        leva        = COALESCE(?, leva),
-        luogo       = COALESCE(?, luogo),
-        data_inizio = COALESCE(?, data_inizio),
-        ora_inizio  = COALESCE(?, ora_inizio),
-        data_fine   = COALESCE(?, data_fine),
-        ora_fine    = COALESCE(?, ora_fine),
-        note        = COALESCE(?, note),
-        ricorrente  = COALESCE(?, ricorrente),
-        freq        = COALESCE(?, freq),
-        giorni      = COALESCE(?, giorni),
-        fino_al     = COALESCE(?, fino_al)
-       WHERE id = ? AND society_id = ?`,
-      [
-        tipo ?? null,
-        titolo ?? null,
-        leva ?? null,
-        luogo ?? null,
-        dataInizio ?? null,
-        oraInizio ?? null,
-        dataFine ?? null,
-        oraFine ?? null,
-        note ?? null,
-        ricorrente != null ? ricorrente ? 1 : 0 : null,
-        freq ?? null,
-        giorni ?? null,
-        finoAl ?? null,
-        req.params.id,
-        societyId
-      ]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    await conn.beginTransaction();
+    const {
+      tipo,
+      titolo,
+      leve,
+      luogo,
+      dataInizio,
+      oraInizio,
+      oraFine,
+      note,
+      ricorrente,
+      freq,
+      giorni,
+      finoAl
+    } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (dataInizio !== void 0) {
+      upd.push("data_inizio = ?");
+      params.push(dataInizio ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (ricorrente !== void 0) {
+      upd.push("ricorrente = ?");
+      params.push(ricorrente ? 1 : 0);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(req.params.id, societyId);
+      const [r] = await conn.execute(
+        `UPDATE events SET ${upd.join(", ")} WHERE id = ? AND society_id = ?`,
+        params
+      );
+      if (!r.affectedRows) {
+        await conn.rollback();
+        conn.release();
+        return res.status(404).json({ error: "not_found" });
+      }
+    }
+    if (Array.isArray(leve)) {
+      await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [req.params.id]);
+      await insertLeveForEvent(conn, parseInt(req.params.id), leve);
+    }
+    await conn.commit();
     return res.json({ ok: true });
   } catch (e) {
+    await conn.rollback();
     logger.error({ err: e }, "PUT event error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router16.delete("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [evRows] = await pool.execute(
+      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id)
+      return res.status(404).json({ error: "serie_non_trovata" });
+    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
+    const [r] = await pool.execute(
+      "DELETE FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
+      [groupId, fromDate, societyId]
+    );
+    return res.json({ ok: true, deleted: r.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE events/:id/series/from-here error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.delete("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [evRows] = await pool.execute(
+      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id)
+      return res.status(404).json({ error: "serie_non_trovata" });
+    const groupId = evRows[0].recur_group_id;
+    const [r] = await pool.execute(
+      "DELETE FROM events WHERE recur_group_id = ? AND society_id = ?",
+      [groupId, societyId]
+    );
+    return res.json({ ok: true, deleted: r.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE events/:id/series error");
     return res.status(500).json({ error: "server_error" });
   }
 });
 router16.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
-    const [result] = await pool.execute(
+    const [r] = await pool.execute(
       "DELETE FROM events WHERE id = ? AND society_id = ?",
       [req.params.id, societyId]
     );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
     return res.json({ ok: true });
   } catch (e) {
+    logger.error({ err: e }, "DELETE event error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -87306,7 +87766,7 @@ var notification_preferences_default = router26;
 // src/routes/v2/allenamenti.ts
 var import_express27 = __toESM(require_express2(), 1);
 var import_multer = __toESM(require_multer(), 1);
-import { randomUUID } from "crypto";
+import { randomUUID as randomUUID2 } from "crypto";
 import path from "path";
 import fs from "fs";
 var router27 = (0, import_express27.Router)();
@@ -87348,7 +87808,7 @@ var audioStorage = import_multer.default.diskStorage({
       cb(new Error("formato_non_supportato"), "");
       return;
     }
-    cb(null, `${randomUUID()}.${ext}`);
+    cb(null, `${randomUUID2()}.${ext}`);
   }
 });
 var uploadAudio = (0, import_multer.default)({
@@ -87489,7 +87949,7 @@ router27.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("
     if (t === null) return res.status(400).json({ error: "tag_non_validi", message: "Max 10 tag, 30 char ciascuno" });
     tagValidato = t;
   }
-  const id = randomUUID();
+  const id = randomUUID2();
   try {
     await pool.execute(
       `INSERT INTO sessioni_libreria
@@ -87610,7 +88070,7 @@ router27.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermis
 router27.get("/allenamenti", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   const isGenitore = RUOLI_GENITORE.has(role);
-  const { leva_id, da, a, limit = "30", offset = "0" } = req.query;
+  const { leva_id, da, a, limit = "30", offset = "0", event_id } = req.query;
   const limitN = Math.min(parseInt(limit) || 30, 200);
   const offsetN = Math.max(parseInt(offset) || 0, 0);
   try {
@@ -87628,6 +88088,10 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
       conditions.push("a.data <= ?");
       params.push(a);
     }
+    if (event_id) {
+      conditions.push("a.event_id = ?");
+      params.push(parseInt(event_id));
+    }
     if (isGenitore) {
       conditions.push("a.visibilita_genitori = TRUE");
       conditions.push("a.created_at <= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
@@ -87642,8 +88106,9 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
       params.push(userId, societyId);
     }
     const where = "WHERE " + conditions.join(" AND ");
-    const selectFields = isGenitore ? `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti,
+    const selectFields = isGenitore ? `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.event_id,
          (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni` : `a.id, a.titolo, a.obiettivo, a.data, a.durata_totale_minuti, a.visibilita_genitori,
+         a.event_id,
          (SELECT COUNT(*) FROM allenamento_sessioni WHERE allenamento_id = a.id) AS num_sessioni,
          CONCAT(u.nome, ' ', u.cognome) AS creato_da_nome`;
     const join = isGenitore ? "" : "LEFT JOIN users u ON u.id = a.creato_da";
@@ -87707,7 +88172,7 @@ router27.get("/allenamenti/:id", requireAuth, async (req, res) => {
 });
 router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
-  const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [] } = req.body;
+  const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } = req.body;
   if (!leva_id || !titolo || !data)
     return res.status(400).json({ error: "campi_obbligatori_mancanti", message: "leva_id, titolo, data richiesti" });
   if (typeof titolo !== "string" || titolo.length < 3 || titolo.length > 200)
@@ -87719,16 +88184,28 @@ router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_all
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const allenamentoId = randomUUID();
+    const eventIdVal = event_id != null ? parseInt(event_id) : null;
+    if (eventIdVal != null) {
+      const [evCheck] = await conn.execute(
+        "SELECT id FROM events WHERE id = ? AND society_id = ?",
+        [eventIdVal, societyId]
+      );
+      if (!evCheck.length) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ error: "event_id_non_valido" });
+      }
+    }
+    const allenamentoId = randomUUID2();
     await conn.execute(
-      `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
-      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null]
+      `INSERT INTO allenamenti (id, leva_id, societa_id, creato_da, titolo, obiettivo, data, visibilita_genitori, note_testo, durata_totale_minuti, event_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+      [allenamentoId, parseInt(leva_id), societyId, userId, titolo, obiettivo ?? null, data, visibilita_genitori ? 1 : 0, note_testo ?? null, eventIdVal]
     );
     const sessioniCreate = [];
     for (let i = 0; i < sessioni.length; i++) {
       const s = sessioni[i];
-      const sessioneId = randomUUID();
+      const sessioneId = randomUUID2();
       let snap;
       if (s.sessione_libreria_id) {
         snap = await snapshotDaLibreria(conn, s.sessione_libreria_id, userId);
@@ -87915,7 +88392,7 @@ router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modif
       );
       newOrdine = maxRow[0].maxOrd + 1;
     }
-    const sessioneId = randomUUID();
+    const sessioneId = randomUUID2();
     const tagSnap = Array.isArray(snap.tag) ? snap.tag : [];
     const noteSnap = typeof note_snapshot === "string" && note_snapshot.trim() ? note_snapshot.trim() : snap.note ?? null;
     await conn.execute(
@@ -88152,7 +88629,7 @@ router27.post(
       );
       if (!check.length) return res.status(404).json({ error: "allenamento_non_trovato" });
       const relPath = path.join("storage", "note-vocali", id, req.file.filename);
-      const notaId = randomUUID();
+      const notaId = randomUUID2();
       await pool.execute(
         `INSERT INTO allenamento_note_vocali (id, allenamento_id, creato_da, url_audio, durata_secondi, momento)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -88227,7 +88704,7 @@ async function chiamataClaude({
 }
 
 // src/lib/ai-budget.ts
-import { randomUUID as randomUUID2 } from "crypto";
+import { randomUUID as randomUUID3 } from "crypto";
 var BUDGET_MISTER_PRO = 35e3;
 var BUDGET_SOCIETA = 28e4;
 var PIANO_NORM2 = {
@@ -88258,7 +88735,7 @@ async function getOrCreateBudgetRow(opts) {
   const budgetKey = `${misterId ?? 0}_${societaId ?? 0}_${mese}`;
   await pool.execute(
     "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget) VALUES (?, ?, ?, ?, 0, ?)",
-    [randomUUID2(), misterId, societaId, mese, budget]
+    [randomUUID3(), misterId, societaId, mese, budget]
   );
   const [rows] = await pool.execute(
     "SELECT id, token_consumati, token_budget FROM ai_budget_utilizzo WHERE budget_key = ? LIMIT 1",
@@ -88323,7 +88800,7 @@ async function registraConsumoBudget(params) {
          (id, mister_id, societa_id, tipo, prompt_input, token_input, token_output, token_totale, modello, successo, errore)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        randomUUID2(),
+        randomUUID3(),
         userId,
         societaId || null,
         tipo,
@@ -88400,7 +88877,7 @@ async function getBudgetInfo(userId, societaId) {
 }
 
 // src/routes/v2/ai-allenamenti.ts
-import { randomUUID as randomUUID3 } from "crypto";
+import { randomUUID as randomUUID4 } from "crypto";
 var router28 = (0, import_express28.Router)();
 var CATEGORIE_IT = {
   riscaldamento: "Riscaldamento",
@@ -88522,7 +88999,7 @@ router28.post("/ai/allowlist", requireAuth, async (req, res) => {
     } else {
       await pool.execute(
         "INSERT INTO ai_societa_allowlist (id, societa_id, mister_id, abilitato, abilitato_da) VALUES (?, ?, ?, ?, ?)",
-        [randomUUID3(), user.societyId, mister_id, abilitato ? 1 : 0, user.userId]
+        [randomUUID4(), user.societyId, mister_id, abilitato ? 1 : 0, user.userId]
       );
     }
     return res.json({ ok: true, mister_id, abilitato });
@@ -88679,7 +89156,7 @@ router28.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   };
   let sessioneId = null;
   if (salva_in_libreria) {
-    sessioneId = randomUUID3();
+    sessioneId = randomUUID4();
     const societaId = user.societyId ?? null;
     await pool.execute(
       `INSERT INTO sessioni_libreria
@@ -88829,7 +89306,7 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
-      allenamentoId = randomUUID3();
+      allenamentoId = randomUUID4();
       const durataTotale = sessioni.reduce((s, se) => s + se.durata_minuti, 0);
       await conn.execute(
         `INSERT INTO allenamenti
@@ -88854,7 +89331,7 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
               titolo_snapshot, descrizione_snapshot, durata_minuti_snapshot, categoria_snapshot, tag_snapshot)
            VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
           [
-            randomUUID3(),
+            randomUUID4(),
             allenamentoId,
             i + 1,
             s.titolo,
