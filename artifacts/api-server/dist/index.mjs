@@ -87609,19 +87609,6 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/superadmin/phone-diag", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
-  const [userRow] = await pool.execute(
-    "SELECT id, email, phone, whatsapp_number, created_at FROM users WHERE id = 20 LIMIT 1"
-  );
-  const [phoneCol] = await pool.execute(
-    "SHOW COLUMNS FROM users LIKE 'phone'"
-  );
-  const [waCol] = await pool.execute(
-    "SHOW COLUMNS FROM users LIKE 'whatsapp_number'"
-  );
-  return res.json({ userRow: userRow[0] ?? null, phoneCol: phoneCol[0] ?? null, waCol: waCol[0] ?? null });
-});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
@@ -88105,8 +88092,11 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
     const conditions = ["a.societa_id = ?"];
     const params = [societyId];
     if (leva_id) {
-      conditions.push("a.leva_id = ?");
-      params.push(parseInt(leva_id));
+      const n = parseInt(leva_id);
+      if (!isNaN(n)) {
+        conditions.push("a.leva_id = ?");
+        params.push(n);
+      }
     }
     if (da) {
       conditions.push("a.data >= ?");
@@ -88120,8 +88110,11 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
       if (event_id === "null") {
         conditions.push("a.event_id IS NULL");
       } else {
-        conditions.push("a.event_id = ?");
-        params.push(parseInt(event_id));
+        const eid = parseInt(event_id);
+        if (!isNaN(eid)) {
+          conditions.push("a.event_id = ?");
+          params.push(eid);
+        }
       }
     }
     if (isGenitore) {

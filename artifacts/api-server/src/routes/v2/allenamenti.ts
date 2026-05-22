@@ -328,15 +328,15 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
     const conditions: string[] = ["a.societa_id = ?"];
     const params: any[]        = [societyId];
 
-    if (leva_id)  { conditions.push("a.leva_id = ?");  params.push(parseInt(leva_id)); }
+    if (leva_id)  { const n = parseInt(leva_id);  if (!isNaN(n)) { conditions.push("a.leva_id = ?");  params.push(n); } }
     if (da)       { conditions.push("a.data >= ?");   params.push(da); }
     if (a)        { conditions.push("a.data <= ?");   params.push(a); }
     if (event_id !== undefined) {
       if (event_id === 'null') {
         conditions.push("a.event_id IS NULL");
       } else {
-        conditions.push("a.event_id = ?");
-        params.push(parseInt(event_id));
+        const eid = parseInt(event_id);
+        if (!isNaN(eid)) { conditions.push("a.event_id = ?"); params.push(eid); }
       }
     }
 
