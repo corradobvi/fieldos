@@ -17897,7 +17897,8 @@ function saveGcGiornate() {
   campionato[leva].giornate = _gcCampGiornateUI.map(g=>({num:g.num,data:g.data||''}));
   closeM('mGcGiornate');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Giornate salvate!');
 }
 
@@ -17948,7 +17949,8 @@ function saveGcAssegnaFinali() {
   });
   closeM('mGcAssegnaFinali');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Squadre assegnate!');
 }
 
@@ -18014,7 +18016,8 @@ function saveGcBracketEdit() {
   document.getElementById('gcBracketFaseId').value = fBracket.id;
   closeM('mGcBracketEdit');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Tabellone salvato!');
 }
 
@@ -18517,7 +18520,8 @@ function saveQuickResult(tipo, ref, idC, idO) {
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
-  window.__fieldosSaveState(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
 }
 
 // ─── MODALI AMICHEVOLE ───
@@ -18591,7 +18595,8 @@ function savePtAmich() {
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
 }
 
@@ -18694,7 +18699,8 @@ function saveCampSetup() {
   campionato[currentLeva].squadre = [..._campSetupSquadre];
   campionato[currentLeva].partite = _campSetupMatches.map(m => ({...m}));
   closeM('mCampSetup');
-  window.__fieldosSaveState(); renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Campionato configurato!');
 }
 
@@ -18974,7 +18980,8 @@ function savePtRisultato() {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
-  window.__fieldosSaveState(); renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Risultato salvato!');
 }
 
