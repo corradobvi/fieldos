@@ -3825,6 +3825,7 @@ let eventTypes = [
 let nextEventTypeId = 100;
 let events = [];
 let nextEventId = 1;
+let _calLeveMap = {}; // leva nome→id da GET /api/v2/leve, per chiamate API
 let campi = [];
 let nextCampoId = 1;
 let convocazioni = [];
@@ -4809,6 +4810,7 @@ function bootApp(user) {
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+    setTimeout(function() { _loadCalEvents(); }, 400);
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
@@ -15339,6 +15341,56 @@ function userLeve(){
   if (l === 'Tutte' || l === 'tutte') return leve.slice();
   return l ? [l] : [];
 }
+// ── API calendario: normalizza evento REST → formato frontend ─────────────────
+function _normalizeApiEvent(ev) {
+  return {
+    id: ev.event_id,
+    title: ev.titolo || '',
+    type: ev.tipo || 'evento',
+    date: ev.data || '',
+    start: ev.ora_inizio || '',
+    end: ev.ora_fine || '',
+    luogo: ev.luogo || '',
+    note: ev.note || '',
+    leve: (ev.leve || []).map(function(l) { return l.nome; }),
+    recur: 'none',
+    recurUntil: null,
+    recurGroupId: ev.recur_group_id || null,
+    visibilitaMode: 'default',
+    visibilitaFase1Days: null,
+    visibilitaFase2Days: null,
+    createdBy: ev.created_by || '',
+    _fromApi: true
+  };
+}
+
+// ── Carica eventi dal server REST e aggiorna l'array events ──────────────────
+function _loadCalEvents() {
+  if (!_v2Token) return;
+  var _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+  if (_isDemoSoc) return;
+  var _hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+  var _leveP = fetch(API_BASE + '/api/v2/leve', { headers: _hdrs })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .catch(function() { return []; });
+  var _da = new Date(); _da.setMonth(_da.getMonth() - 3);
+  var _a  = new Date(); _a.setMonth(_a.getMonth() + 12);
+  var _evP = fetch(API_BASE + '/api/v2/events?da=' + ymd(_da) + '&a=' + ymd(_a), { headers: _hdrs })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .catch(function() { return []; });
+  Promise.all([_leveP, _evP]).then(function(res) {
+    var leveData = res[0], apiEvents = res[1];
+    _calLeveMap = {};
+    (leveData || []).forEach(function(l) { _calLeveMap[l.nome] = l.id; });
+    // Mantieni partita/torneo dal blob (gestiti da campionato/tornei/amichevoli)
+    var _blobPT = events.filter(function(e) { return !e._fromApi && (e.type === 'partita' || e.type === 'torneo'); });
+    events.length = 0;
+    (apiEvents || []).forEach(function(ev) { events.push(_normalizeApiEvent(ev)); });
+    _blobPT.forEach(function(ev) { events.push(ev); });
+    if (typeof renderCal === 'function') renderCal();
+  });
+}
+
 function canEditCalendar(){ return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || isAdminMisterForLeva(currentLeva)); }
 function canEditEvent(ev){
   if (!me) return false;
@@ -15943,20 +15995,50 @@ function saveEvento(){
       return;
     }
     if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
-    toast('✅ Evento aggiornato');
+    if (ev._fromApi) {
+      // Evento API: aggiorna via REST
+      const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+      closeM('mEvento');
+      fetch(API_BASE + '/api/v2/events/' + ev.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ tipo: type, titolo: title, dataInizio: date, oraInizio: start || null, oraFine: end || null, luogo: luogo || null, note: note || null, leve: _leveIds })
+      }).then(function(r) {
+        if (!r.ok) { toast('⛔ Errore aggiornamento evento'); return; }
+        toast('✅ Evento aggiornato');
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    } else {
+      // Evento blob (es. partita/torneo): aggiorna in memoria
+      Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
+      toast('✅ Evento aggiornato');
+      closeM('mEvento');
+      renderCal();
+      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+    }
+    return;
   } else {
+    // Crea nuovo evento via API
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days, createdBy: me.email };
-    events.push(_newEv);
-    // Notifica ai genitori/nonni delle leve coinvolte
+    const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+    // Notifica ai genitori/nonni delle leve coinvolte (ottimistica, prima della risposta API)
     (function(){
       const _tl = { allenamento:'🏃 Allenamento aggiunto', allenamento_portieri:'🧤 Allenamento portieri', partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
       const _pids = new Set();
       USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
-      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
+      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
     })();
-    toast('✅ Evento creato');
+    closeM('mEvento');
+    fetch(API_BASE + '/api/v2/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ tipo: type, titolo: title, leve: _leveIds, dataInizio: date, oraInizio: start || null, oraFine: end || null, luogo: luogo || null, note: note || null, ricorrente: false })
+    }).then(function(r) {
+      if (!r.ok) { return r.json().then(function(e) { toast('⛔ Errore creazione: ' + (e.error || r.status)); }); }
+      toast('✅ Evento creato');
+      _loadCalEvents();
+    }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
   }
   closeM('mEvento');
   renderCal();
@@ -15980,6 +16062,17 @@ function deleteCurrentEvento(){
     return;
   }
   if (!confirm('Eliminare l\'evento "' + ev.title + '"?')) return;
+  if (ev._fromApi) {
+    closeM('mEvento');
+    fetch(API_BASE + '/api/v2/events/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token } })
+      .then(function(r) {
+        if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
+        purgeEventRefs(id);
+        toast('🗑 Evento eliminato');
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
+  }
   purgeEventRefs(id);
   events = events.filter(e => e.id !== id);
   closeM('mEvento'); renderCal();
@@ -15991,6 +16084,31 @@ function applyDeleteChoice() {
   const choice = (document.querySelector('#mDeleteChoice input[name="delChoice"]:checked') || {}).value || 'solo';
   const ev = events.find(e => e.id === _deleteTargetId);
   if (!ev) { _deleteTargetId = null; closeM('mDeleteChoice'); return; }
+
+  if (ev._fromApi) {
+    // Conta per il messaggio di conferma
+    const serie = events.filter(e => e.recurGroupId === ev.recurGroupId);
+    const fut   = serie.filter(e => e.date >= ev.date).length;
+    const n = choice === 'solo' ? 1 : choice === 'futuri' ? fut : serie.length;
+    const label = choice === 'solo' ? 'questo evento' : choice === 'futuri'
+      ? `${n} event${n===1?'o':'i'} (questo e i successivi)` : `tutta la serie (${n} event${n===1?'o':'i'})`;
+    if (!confirm(`Eliminare ${label}?\n\nQuesta azione non può essere annullata.`)) return;
+    const _url = choice === 'solo'
+      ? API_BASE + '/api/v2/events/' + ev.id
+      : choice === 'futuri'
+        ? API_BASE + '/api/v2/events/' + ev.id + '/series/from-here'
+        : API_BASE + '/api/v2/events/' + ev.id + '/series';
+    _deleteTargetId = null;
+    closeM('mDeleteChoice');
+    fetch(_url, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token } })
+      .then(function(r) {
+        if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
+        purgeEventRefs(ev.id);
+        toast('🗑 Eliminat' + (n===1?'o':'i') + ' ' + n + ' event' + (n===1?'o':'i'));
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
+  }
 
   let toDelete = [];
   if (choice === 'solo') {
@@ -16035,6 +16153,35 @@ function applyEditChoice() {
   if (newCampoId && newCampoId !== oldCampoId) {
     const c = campi.find(x => x.id === newCampoId);
     if (c) c.usageCount = (c.usageCount || 0) + 1;
+  }
+
+  if (ev._fromApi) {
+    const _leveIds = (fields.leve || []).map(n => _calLeveMap[n]).filter(Boolean);
+    const _body = {
+      tipo: fields.type, titolo: fields.title,
+      dataInizio: fields.date, oraInizio: fields.start || null, oraFine: fields.end || null,
+      luogo: fields.luogo || null, note: fields.note || null, leve: _leveIds
+    };
+    const _url = choice === 'solo'
+      ? API_BASE + '/api/v2/events/' + evId
+      : choice === 'futuri'
+        ? API_BASE + '/api/v2/events/' + evId + '/series/from-here'
+        : API_BASE + '/api/v2/events/' + evId + '/series';
+    _editPendingData = null;
+    closeM('mEditChoice');
+    fetch(_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(_body)
+    }).then(function(r) {
+      if (!r.ok) { toast('⛔ Errore aggiornamento'); return; }
+      const _msg = choice === 'solo' ? '✅ Evento aggiornato'
+        : choice === 'futuri' ? '✅ Aggiornati eventi successivi'
+        : '✅ Tutta la serie aggiornata';
+      toast(_msg);
+      _loadCalEvents();
+    }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
   }
 
   if (choice === 'solo') {
@@ -16134,17 +16281,31 @@ function creaAllenamentiRicorrenti(){
   if (!giorni.length) { toast('⚠️ Seleziona almeno un giorno della settimana'); return; }
   if (!da || !a)      { toast('⚠️ Imposta data inizio e fine'); return; }
   if (a < da)         { toast('⚠️ La data di fine deve essere dopo quella di inizio'); return; }
-  const groupId = Date.now();
-  const cur = parseYmd(da), fin = parseYmd(a);
-  const dates = [];
-  while (cur <= fin) { if (giorni.includes(cur.getDay())) dates.push(ymd(new Date(cur))); cur.setDate(cur.getDate()+1); }
-  if (!dates.length) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
-  if (dates.length > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
-  dates.forEach(d => events.push({ id:nextEventId++, title, type, date:d, start, end, luogo, campoId:campoIdSel||undefined, note, recur:'none', recurUntil:null, leve:leveSel.slice(), visibilitaMode, createdBy:me.email, recurGroupId:groupId }));
-  if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+dates.length; }
-  closeM('mEvento'); renderCal();
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast('✅ Creati ' + dates.length + ' allenament' + (dates.length===1?'o':'i'));
+  // Stima locale per validazione max 200
+  const _cur = parseYmd(da), _fin = parseYmd(a);
+  let _cnt = 0;
+  while (_cur <= _fin && _cnt <= 201) { if (giorni.includes(_cur.getDay())) _cnt++; _cur.setDate(_cur.getDate()+1); }
+  if (_cnt === 0) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
+  if (_cnt > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
+  if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+_cnt; }
+  const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+  closeM('mEvento');
+  fetch(API_BASE + '/api/v2/events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+    body: JSON.stringify({
+      tipo: type, titolo: title, leve: _leveIds,
+      dataInizio: da, oraInizio: start || null, oraFine: end || null,
+      luogo: luogo || null, note: note || null,
+      ricorrente: true, freq: 'weekly', giorni: giorni.join(','), finoAl: a
+    })
+  }).then(function(r) {
+    if (!r.ok) { return r.json().then(function(e) { toast('⛔ Errore: ' + (e.error || r.status)); }); }
+    return r.json().then(function(data) {
+      toast('✅ Creati ' + data.total_created + ' allenament' + (data.total_created===1?'o':'i'));
+      _loadCalEvents();
+    });
+  }).catch(function() { toast('⛔ Errore di rete'); });
 }
 
 // ── Gestione campi ───────────────────────────────
