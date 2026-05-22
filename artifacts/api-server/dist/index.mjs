@@ -26241,7 +26241,7 @@ var require_thread_stream = __commonJS({
 var require_transport = __commonJS({
   "../../node_modules/.pnpm/pino@9.14.0/node_modules/pino/lib/transport.js"(exports, module) {
     "use strict";
-    var { createRequire } = __require("module");
+    var { createRequire: createRequire2 } = __require("module");
     var getCallers = require_caller();
     var { join, isAbsolute, sep } = __require("node:path");
     var sleep = require_atomic_sleep();
@@ -26352,7 +26352,7 @@ var require_transport = __commonJS({
         for (const filePath of callers) {
           try {
             const context = filePath === "node:repl" ? process.cwd() + sep : filePath;
-            fixTarget2 = createRequire(context).resolve(origin);
+            fixTarget2 = createRequire2(context).resolve(origin);
             break;
           } catch (err) {
             continue;
@@ -63784,10 +63784,10 @@ var require_buffer_list = __commonJS({
       }
       return (hint === "string" ? String : Number)(input);
     }
-    var _require = __require("buffer");
-    var Buffer2 = _require.Buffer;
-    var _require2 = __require("util");
-    var inspect = _require2.inspect;
+    var _require2 = __require("buffer");
+    var Buffer2 = _require2.Buffer;
+    var _require22 = __require("util");
+    var inspect = _require22.inspect;
     var custom = inspect && inspect.custom || "inspect";
     function copyBuffer(src, target, offset) {
       Buffer2.prototype.copy.call(src, target, offset);
@@ -64208,8 +64208,8 @@ var require_stream_writable = __commonJS({
       return Buffer2.isBuffer(obj) || obj instanceof OurUint8Array;
     }
     var destroyImpl = require_destroy();
-    var _require = require_state();
-    var getHighWaterMark = _require.getHighWaterMark;
+    var _require2 = require_state();
+    var getHighWaterMark = _require2.getHighWaterMark;
     var _require$codes = require_errors2().codes;
     var ERR_INVALID_ARG_TYPE = _require$codes.ERR_INVALID_ARG_TYPE;
     var ERR_METHOD_NOT_IMPLEMENTED = _require$codes.ERR_METHOD_NOT_IMPLEMENTED;
@@ -65405,8 +65405,8 @@ var require_stream_readable = __commonJS({
     }
     var BufferList = require_buffer_list();
     var destroyImpl = require_destroy();
-    var _require = require_state();
-    var getHighWaterMark = _require.getHighWaterMark;
+    var _require2 = require_state();
+    var getHighWaterMark = _require2.getHighWaterMark;
     var _require$codes = require_errors2().codes;
     var ERR_INVALID_ARG_TYPE = _require$codes.ERR_INVALID_ARG_TYPE;
     var ERR_STREAM_PUSH_AFTER_EOF = _require$codes.ERR_STREAM_PUSH_AFTER_EOF;
@@ -83880,34 +83880,45 @@ var auth_default2 = router9;
 var import_express10 = __toESM(require_express2(), 1);
 
 // src/lib/email.ts
-var RESEND_API = "https://api.resend.com/emails";
-var FROM = "MyVivaio <noreply@myvivaio.app>";
+import { createRequire } from "node:module";
+var _require = createRequire(import.meta.url);
+var nodemailer = _require("nodemailer");
+var FROM = '"MyVivaio" <info@myvivaio.app>';
 var ADMIN_TO = "info@myvivaio.app";
+function _transport() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST ?? "smtps.aruba.it",
+    port: parseInt(process.env.SMTP_PORT ?? "465"),
+    secure: process.env.SMTP_SECURE !== "false",
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS
+    },
+    connectionTimeout: 1e4,
+    socketTimeout: 1e4,
+    greetingTimeout: 1e4
+  });
+}
 async function sendMail(to, subject, html) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    logger.warn("RESEND_API_KEY not set \u2014 email skipped");
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    logger.warn("SMTP credentials not set \u2014 email skipped");
     return;
   }
-  const resp = await fetch(RESEND_API, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html })
-  });
-  if (!resp.ok) {
-    const body = await resp.text().catch(() => "");
-    throw new Error(`Resend ${resp.status}: ${body}`);
-  }
+  const t = _transport();
+  await t.sendMail({ from: FROM, replyTo: ADMIN_TO, to, subject, html });
 }
 async function sendWelcomeEmails(opts) {
-  const { nome, cognome, email, phone, nomeSocieta, piano, demoExpires } = opts;
+  const { nome, cognome, email, phone, nomeSocieta, citta, piano, demoExpires, societyId } = opts;
   const pianoLabel = piano === "mister" ? "Mister" : piano === "mister_pro" ? "Mister Pro" : "Societ\xE0";
   const dataReg = (/* @__PURE__ */ new Date()).toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  const waLink = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
-  const adminHtml = `
-<div style="font-family:sans-serif;max-width:480px;color:#1e293b;">
-  <h2 style="color:#1A7A4A;margin-bottom:4px;">\u{1F195} Nuova registrazione \u2014 MyVivaio</h2>
-  <p style="color:#64748b;font-size:.85rem;margin-top:0;">${dataReg}</p>
+  const waNum = phone.replace(/\D/g, "");
+  const waLink = waNum ? `https://wa.me/${waNum}` : null;
+  const waDisplay = phone ? phone.replace(/(\+39)(\d{3})(\d{3})(\d{4})/, "$1 $2 $3 $4") : "\u2014";
+  const saLink = societyId ? `https://app.myvivaio.app/superadmin?societyId=${societyId}` : "https://app.myvivaio.app/superadmin";
+  const html = `
+<div style="font-family:sans-serif;max-width:520px;color:#1e293b;">
+  <h2 style="color:#1A7A4A;margin-bottom:4px;">\u{1F389} Nuovo cliente MyVivaio: ${nomeSocieta} (${pianoLabel})</h2>
+  <p style="color:#64748b;font-size:.85rem;margin-top:0;">Self-register completato il ${dataReg}</p>
   <table style="border-collapse:collapse;width:100%;margin-top:12px;">
     <tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 16px 8px 0;color:#64748b;font-size:.85rem;white-space:nowrap;">Nome</td>
@@ -83918,12 +83929,12 @@ async function sendWelcomeEmails(opts) {
       <td style="padding:8px 0;"><a href="mailto:${email}" style="color:#1A7A4A;">${email}</a></td>
     </tr>
     <tr style="border-bottom:1px solid #f1f5f9;">
-      <td style="padding:8px 16px 8px 0;color:#64748b;font-size:.85rem;">WhatsApp</td>
-      <td style="padding:8px 0;">${waLink ? `<a href="${waLink}" style="color:#1A7A4A;font-weight:700;">${phone}</a>` : "\u2014"}</td>
+      <td style="padding:8px 16px 8px 0;color:#64748b;font-size:.85rem;">Telefono / WhatsApp</td>
+      <td style="padding:8px 0;">${waLink ? `<a href="${waLink}" style="color:#1A7A4A;font-weight:700;">${waDisplay}</a>` : "\u2014"}</td>
     </tr>
     <tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 16px 8px 0;color:#64748b;font-size:.85rem;">Societ\xE0</td>
-      <td style="padding:8px 0;font-weight:700;">${nomeSocieta}</td>
+      <td style="padding:8px 0;font-weight:700;">${nomeSocieta}${citta ? ` \u2014 ${citta}` : ""}</td>
     </tr>
     <tr style="border-bottom:1px solid #f1f5f9;">
       <td style="padding:8px 16px 8px 0;color:#64748b;font-size:.85rem;">Piano</td>
@@ -83934,17 +83945,23 @@ async function sendWelcomeEmails(opts) {
       <td style="padding:8px 0;">${demoExpires.toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" })}</td>
     </tr>
   </table>
-  ${waLink ? `<p style="margin-top:20px;"><a href="${waLink}" style="background:#25d366;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;">\u{1F4AC} Apri WhatsApp</a></p>` : ""}
+  <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+    ${waLink ? `<a href="${waLink}" style="background:#25d366;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.88rem;">\u{1F4AC} Apri WhatsApp</a>` : ""}
+    <a href="${saLink}" style="background:#1A7A4A;color:white;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.88rem;">\u{1F3E2} Apri in SuperAdmin</a>
+  </div>
+  <p style="margin-top:20px;background:#fef9c3;border-left:3px solid #eab308;padding:10px 14px;font-size:.85rem;border-radius:0 6px 6px 0;">
+    \u26A0\uFE0F <strong>Aggiungi il contatto manualmente in Superchat</strong> per attivare il funnel WhatsApp.
+  </p>
 </div>`;
   try {
     await sendMail(
       ADMIN_TO,
-      `[MyVivaio] Nuova registrazione: ${nome} ${cognome} \u2014 ${nomeSocieta}`,
-      adminHtml
+      `\u{1F389} Nuovo cliente MyVivaio: ${nomeSocieta} (${pianoLabel})`,
+      html
     );
-    logger.info({ email }, "admin notification sent");
+    logger.info({ email, societyId }, "welcome admin notification sent");
   } catch (e) {
-    logger.error({ err: e }, "email send failed (non-blocking)");
+    logger.error({ err: e?.message }, "welcome email failed (non-blocking)");
   }
 }
 async function sendPasswordResetEmail(opts) {
@@ -83970,7 +83987,7 @@ async function sendPasswordResetEmail(opts) {
     await sendMail(email, `[MyVivaio] Nuova password temporanea \u2014 ${nomeSocieta}`, html);
     logger.info({ email }, "password reset email sent");
   } catch (e) {
-    logger.error({ err: e }, "password reset email failed (non-blocking)");
+    logger.error({ err: e?.message }, "password reset email failed (non-blocking)");
   }
 }
 async function sendSuspendEmail(opts) {
@@ -83993,7 +84010,7 @@ async function sendSuspendEmail(opts) {
     await sendMail(email, `[MyVivaio] Account ${nomeSocieta} sospeso`, html);
     logger.info({ email }, "suspend email sent");
   } catch (e) {
-    logger.error({ err: e }, "suspend email failed (non-blocking)");
+    logger.error({ err: e?.message }, "suspend email failed (non-blocking)");
   }
 }
 async function sendReactivateEmail(opts) {
@@ -84012,7 +84029,7 @@ async function sendReactivateEmail(opts) {
     await sendMail(email, `[MyVivaio] Account ${nomeSocieta} riattivato`, html);
     logger.info({ email }, "reactivate email sent");
   } catch (e) {
-    logger.error({ err: e }, "reactivate email failed (non-blocking)");
+    logger.error({ err: e?.message }, "reactivate email failed (non-blocking)");
   }
 }
 async function sendDemoExtendedEmail(opts) {
@@ -84036,7 +84053,7 @@ async function sendDemoExtendedEmail(opts) {
     await sendMail(email, `[MyVivaio] Demo ${nomeSocieta} estesa di ${days} giorni`, html);
     logger.info({ email }, "demo extended email sent");
   } catch (e) {
-    logger.error({ err: e }, "demo extended email failed (non-blocking)");
+    logger.error({ err: e?.message }, "demo extended email failed (non-blocking)");
   }
 }
 async function sendPaymentFailedEmail(opts) {
@@ -84070,7 +84087,7 @@ async function sendPaymentFailedEmail(opts) {
     await sendMail(email, `[MyVivaio] Pagamento non riuscito \u2014 ${nomeSocieta} (tentativo ${attemptCount})`, html);
     logger.info({ email, attemptCount }, "payment failed warning email sent");
   } catch (e) {
-    logger.error({ err: e }, "payment failed warning email failed (non-blocking)");
+    logger.error({ err: e?.message }, "payment failed warning email failed (non-blocking)");
   }
 }
 async function sendCancelledEmail(opts) {
@@ -84099,7 +84116,7 @@ async function sendCancelledEmail(opts) {
     await sendMail(email, `[MyVivaio] Abbonamento ${nomeSocieta} cancellato`, html);
     logger.info({ email }, "cancellation email sent");
   } catch (e) {
-    logger.error({ err: e }, "cancellation email failed (non-blocking)");
+    logger.error({ err: e?.message }, "cancellation email failed (non-blocking)");
   }
 }
 
@@ -84111,7 +84128,7 @@ var DEMO_DAYS = {
   societa: 14
 };
 var VALID_PIANI = /* @__PURE__ */ new Set(["mister", "mister_pro", "societa"]);
-var WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+var PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 router10.post("/auth/self-register", async (req, res) => {
   const {
     nome,
@@ -84122,7 +84139,6 @@ router10.post("/auth/self-register", async (req, res) => {
     nomeSocieta,
     citta,
     piano,
-    whatsappNumber,
     privacyAccepted,
     marketingConsent
   } = req.body;
@@ -84138,9 +84154,9 @@ router10.post("/auth/self-register", async (req, res) => {
   if (privacyAccepted !== true) {
     return res.status(400).json({ error: "privacy_required" });
   }
-  const waNum = typeof whatsappNumber === "string" ? whatsappNumber.replace(/\s/g, "") : "";
-  if (!WA_REGEX.test(waNum)) {
-    return res.status(400).json({ error: "invalid_whatsapp" });
+  const phoneNorm = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
+  if (!PHONE_IT_REGEX.test(phoneNorm)) {
+    return res.status(400).json({ error: "phone_required", message: "Cellulare obbligatorio in formato +39XXXXXXXXX" });
   }
   const normalizedEmail = email.trim().toLowerCase();
   const pianoNorm = VALID_PIANI.has(piano ?? "") ? piano : "mister";
@@ -84181,8 +84197,8 @@ router10.post("/auth/self-register", async (req, res) => {
         cognome.trim(),
         normalizedEmail,
         hash,
-        (phone ?? "").trim(),
-        waNum,
+        phoneNorm,
+        phoneNorm,
         mktConsent,
         mktConsent ? /* @__PURE__ */ new Date() : null
       ]
@@ -84196,19 +84212,21 @@ router10.post("/auth/self-register", async (req, res) => {
     pool.execute(
       `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [userId, normalizedEmail, (phone ?? "").trim(), nome.trim(), cognome.trim(), pianoNorm]
+      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), pianoNorm]
     ).catch((e) => logger.warn({ err: e?.message }, "demo-wa contact insert failed"));
     const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
-    _superchatWebhook({ phone: (phone ?? "").trim(), nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {
+    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {
     });
     sendWelcomeEmails({
       nome: nome.trim(),
       cognome: cognome.trim(),
       email: normalizedEmail,
-      phone: (phone ?? "").trim(),
+      phone: phoneNorm,
       nomeSocieta: nomeSocieta.trim(),
+      citta: (citta ?? "").trim(),
       piano: pianoNorm,
-      demoExpires
+      demoExpires,
+      societyId
     }).catch(() => {
     });
     logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm }, "self-register ok");

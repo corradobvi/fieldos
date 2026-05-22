@@ -2103,7 +2103,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
     <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;">(min. 8 car.)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
-    <div class="fg"><label class="fl">📱 WhatsApp *</label><input class="fi" type="tel" id="rPhone" placeholder="+39 333 000 0000" autocomplete="tel"></div>
+    <div class="fg">
+      <label class="fl">📱 Cellulare (per WhatsApp) *</label>
+      <div class="fi-wrap" style="height:40px;">
+        <span style="padding:0 10px;font-size:.88rem;color:var(--text2);font-weight:700;white-space:nowrap;border-right:1.5px solid var(--border);display:flex;align-items:center;flex-shrink:0;">+39</span>
+        <input class="fi" type="tel" id="rPhoneNum" placeholder="3471234567" maxlength="10" pattern="[0-9]{9,10}" autocomplete="tel" inputmode="numeric" style="border-radius:0 9px 9px 0!important;border:none!important;box-shadow:none!important;background:transparent;flex:1;min-width:0;">
+      </div>
+      <div style="font-size:.77rem;color:var(--text2);margin-top:4px;">Riceverai gli aggiornamenti della tua prova via WhatsApp</div>
+    </div>
     <div class="rf-row2">
       <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
       <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
@@ -21786,7 +21793,7 @@ function _rejectParentalConsent() {
   logout();
 }
 
-const _WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+const _PHONE_IT_REGEX = /^\d{9,10}$/;
 
 async function doSelfRegister() {
   _rClearErr();
@@ -21795,8 +21802,8 @@ async function doSelfRegister() {
   const cogn            = (document.getElementById('rCogn').value || '').trim();
   const email           = (document.getElementById('rEmail').value || '').trim().toLowerCase();
   const pass            = document.getElementById('rPass').value || '';
-  const phone           = (document.getElementById('rPhone').value || '').trim();
-  const whatsappNumber  = phone.replace(/\s/g, '');
+  const phoneDigits     = (document.getElementById('rPhoneNum').value || '').replace(/\D/g, '');
+  const phone           = phoneDigits ? '+39' + phoneDigits : '';
   const societa         = (document.getElementById('rSocieta').value || '').trim();
   const citta           = (document.getElementById('rCitta').value || '').trim();
   const piano           = document.getElementById('rPiano').value || 'mister';
@@ -21807,7 +21814,7 @@ async function doSelfRegister() {
   if (!cogn)                                { _rShowErr('⚠️ Inserisci il cognome'); return; }
   if (!email || !email.includes('@'))       { _rShowErr('⚠️ Email non valida'); return; }
   if (pass.length < 8)                      { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
-  if (!_WA_REGEX.test(whatsappNumber))      { _rShowErr('⚠️ Inserisci un numero WhatsApp valido con prefisso internazionale (es. +39 333 0000000)'); return; }
+  if (!_PHONE_IT_REGEX.test(phoneDigits))   { _rShowErr('⚠️ Inserisci il numero di cellulare (9-10 cifre, es. 3471234567)'); return; }
   if (!societa)                             { _rShowErr('⚠️ Inserisci il nome della società'); return; }
   if (!privacyAccepted)                     { _rShowErr('⚠️ Devi accettare la Privacy Policy per registrarti'); return; }
 
@@ -21820,7 +21827,7 @@ async function doSelfRegister() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome, cognome: cogn, email, password: pass,
-        phone, whatsappNumber, nomeSocieta: societa, citta, piano,
+        phone, nomeSocieta: societa, citta, piano,
         privacyAccepted: true, marketingConsent,
       }),
     });
@@ -21831,7 +21838,8 @@ async function doSelfRegister() {
     if (resp.status === 400) {
       const msg = data.error === 'invalid_email'       ? '⚠️ Email non valida'
                 : data.error === 'password_too_short'  ? '⚠️ Password troppo corta (min. 8 caratteri)'
-                : data.error === 'invalid_whatsapp'    ? '⚠️ Numero WhatsApp non valido — usa il formato +39 333 0000000'
+                : data.error === 'phone_required'      ? '⚠️ Inserisci un numero di cellulare italiano valido (es. 3471234567)'
+                : data.error === 'invalid_whatsapp'    ? '⚠️ Numero di cellulare non valido'
                 : data.error === 'privacy_required'    ? '⚠️ Devi accettare la Privacy Policy'
                 : '⚠️ Compila tutti i campi obbligatori';
       _rShowErr(msg); return;

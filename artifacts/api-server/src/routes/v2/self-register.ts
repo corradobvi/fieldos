@@ -15,13 +15,13 @@ const DEMO_DAYS: Record<string, number> = {
 
 const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
 
-const WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+const PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
   const { nome, cognome, email, password, phone, nomeSocieta, citta, piano,
-          whatsappNumber, privacyAccepted, marketingConsent } =
+          privacyAccepted, marketingConsent } =
     req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
@@ -36,9 +36,9 @@ router.post("/auth/self-register", async (req, res) => {
   if (privacyAccepted !== true) {
     return res.status(400).json({ error: "privacy_required" });
   }
-  const waNum = typeof whatsappNumber === "string" ? whatsappNumber.replace(/\s/g, "") : "";
-  if (!WA_REGEX.test(waNum)) {
-    return res.status(400).json({ error: "invalid_whatsapp" });
+  const phoneNorm = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
+  if (!PHONE_IT_REGEX.test(phoneNorm)) {
+    return res.status(400).json({ error: "phone_required", message: "Cellulare obbligatorio in formato +39XXXXXXXXX" });
   }
 
   const normalizedEmail  = email.trim().toLowerCase();
@@ -81,8 +81,8 @@ router.post("/auth/self-register", async (req, res) => {
           is_account_owner)
        VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?,
                ?, NOW(), ?, ?, 1)`,
-      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, (phone ?? "").trim(),
-       waNum, mktConsent, mktConsent ? new Date() : null]
+      [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, phoneNorm,
+       phoneNorm, mktConsent, mktConsent ? new Date() : null]
     )) as [any, any];
     const userId: number = userRes.insertId;
 
@@ -98,23 +98,25 @@ router.post("/auth/self-register", async (req, res) => {
     pool.execute(
       `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [userId, normalizedEmail, (phone ?? "").trim(), nome.trim(), cognome.trim(), pianoNorm]
+      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), pianoNorm]
     ).catch((e: any) => logger.warn({ err: e?.message }, "demo-wa contact insert failed"));
 
     const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
 
     // Webhook Superchat in background — non blocca la risposta
-    _superchatWebhook({ phone: (phone ?? "").trim(), nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {});
+    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {});
 
     // Email in background — non blocca la risposta
     sendWelcomeEmails({
-      nome: nome.trim(),
-      cognome: cognome.trim(),
-      email: normalizedEmail,
-      phone: (phone ?? "").trim(),
+      nome:       nome.trim(),
+      cognome:    cognome.trim(),
+      email:      normalizedEmail,
+      phone:      phoneNorm,
       nomeSocieta: nomeSocieta.trim(),
-      piano: pianoNorm,
+      citta:      (citta ?? "").trim(),
+      piano:      pianoNorm,
       demoExpires,
+      societyId,
     }).catch(() => {});
 
     logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm }, "self-register ok");
