@@ -461,4 +461,68 @@ router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
 
 // [REMOVED] cleanup-orphaned-blobs — FASE 3 2026-05-22: soc_1/soc_201/soc_2 già assenti, SA blob pulito
 
+// TEMPORARY: purge-test-blobs — FASE 4 2026-05-22 — remove after use
+router.post("/superadmin/purge-test-blobs", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+
+  const BLOB_KEYS_TO_DELETE = [
+    "fieldos_state_v1",   // id=0: test misterpro contaminato
+    "fieldos_state_soc_6",
+    "fieldos_state_soc_7",
+    "fieldos_state_soc_8",  // corradob.vi@gmail.it
+    "fieldos_state_soc_9",  // corradobafico.pt@gmail.com
+    "fieldos_state_soc_10", // test@test.it
+    "fieldos_state_soc_29",
+    "fieldos_state_soc_30",
+    "fieldos_state_soc_31", // corradob.vi@gmail.app
+    "fieldos_state_soc_32", // corradob.vi@gmail.eu
+    "fieldos_state_soc_33", // corradob.vi@gmail.fff
+    "fieldos_state_soc_34", // prova@prova.it
+    "fieldos_state_soc_35", // corradob.vi@gmail.fr
+  ];
+
+  const SA_IDS_TO_REMOVE = new Set([0, 6, 7, 8, 9, 10, 29, 30, 31, 32, 33, 34, 35]);
+
+  const results: any[] = [];
+  try {
+    // Step 1: DELETE blob rows
+    for (const key of BLOB_KEYS_TO_DELETE) {
+      const [r] = (await pool.execute(
+        "DELETE FROM `society_state` WHERE `key` = ?", [key]
+      )) as [any, any];
+      results.push({ key, affectedRows: r.affectedRows });
+    }
+
+    // Step 2: Aggiorna SA blob
+    const [saRows] = (await pool.execute(
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1' LIMIT 1"
+    )) as [any[], any];
+    if (!saRows.length) return res.status(404).json({ error: "sa_blob_not_found", results });
+
+    const saState = JSON.parse(saRows[0].state_json as string);
+    const before = (saState.saSocieties || []).length;
+    saState.saSocieties = (saState.saSocieties || []).filter(
+      (s: any) => !SA_IDS_TO_REMOVE.has(s.id)
+    );
+    const after = saState.saSocieties.length;
+    await pool.execute(
+      "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
+      [JSON.stringify(saState)]
+    );
+
+    logger.info({ deleted: results, saRemoved: before - after }, "purge-test-blobs done");
+    return res.json({
+      ok: true,
+      blobsDeleted: results,
+      saEntriesBefore: before,
+      saEntriesAfter: after,
+      saRemoved: before - after,
+      saRemaining: saState.saSocieties.map((s: any) => ({ id: s.id, nome: s.nome, fromMySQL: s.fromMySQL })),
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "purge-test-blobs error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+
 export default router;
