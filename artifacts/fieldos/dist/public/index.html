@@ -1560,6 +1560,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .all-cal-slot.ac-filled:hover{background:#a7f3d0;}
 .all-cal-slot.ac-empty{background:var(--bg);border-color:var(--border);color:var(--text3);border-style:dashed;}
 .all-cal-slot.ac-empty:hover{background:var(--cl);border-color:var(--cp);color:var(--cp);}
+.all-cal-viewsel{display:flex;gap:4px;margin-bottom:12px;}
+.all-cal-viewsel-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.all-cal-viewsel-btn.ac-active{background:var(--cp);color:#fff;border-color:var(--cp);}
+.all-cal-week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:24px;}
+.all-cal-week-col{border-radius:8px;border:1.5px solid var(--border);background:var(--white);padding:5px 4px;min-height:90px;display:flex;flex-direction:column;gap:2px;}
+.all-cal-week-col.ac-today{border-color:var(--cp) !important;border-width:2px;}
+.all-cal-week-head{text-align:center;font-size:.63rem;font-weight:700;color:var(--text2);padding:2px 0 5px;text-transform:uppercase;}
+.all-cal-week-head.ac-today{color:var(--cp);}
+.all-cal-week-agenda{display:none;}
+.all-cal-week-agenda-day{border-radius:8px;border:1.5px solid var(--border);background:var(--white);padding:8px 10px;margin-bottom:6px;}
+.all-cal-week-agenda-day.ac-today{border-color:var(--cp);}
+.all-cal-week-agenda-head{font-size:.78rem;font-weight:800;margin-bottom:5px;color:var(--text1);}
+.all-cal-week-agenda-day.ac-today .all-cal-week-agenda-head{color:var(--cp);}
+.all-cal-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+.all-cal-list-card{border-radius:10px;border:1.5px solid var(--border);background:var(--white);padding:10px 14px;cursor:pointer;transition:box-shadow .1s;}
+.all-cal-list-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+@media(max-width:600px){.all-cal-week-grid{display:none;}.all-cal-week-agenda{display:block;}}
 
 /* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
@@ -13607,7 +13624,7 @@ const ALL_AI_ENABLED = false;
 let _allSt = {
   tab: 'lista',
   lista: { periodo: '30g', stato: 'tutti', items: null },
-  cal: { anno: new Date().getFullYear(), mese: new Date().getMonth(), leva: '', events: [], bozze: [] },
+  cal: { anno: new Date().getFullYear(), mese: new Date().getMonth(), leva: '', events: [], bozze: [], viewMode: '', weekStart: null, listRange: '30g' },
   lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
   _nsTags: [],
   _costruttore: { id: null, sessioni: [], _editIdx: null, eventId: null },
@@ -13719,13 +13736,48 @@ function _renderAllLista(cont) {
     </div>`;
   } else {
     if (!_allSt.cal.leva) _allSt.cal.leva = currentLeva;
+    if (!_allSt.cal.viewMode) { try { _allSt.cal.viewMode = sessionStorage.getItem('mv_all_view') || 'week'; } catch(_) { _allSt.cal.viewMode = 'week'; } }
+    if (!_allSt.cal.weekStart) {
+      const _td = new Date(); const _dw = _td.getDay(); const _di = _dw===0?-6:1-_dw;
+      const _mn = new Date(_td); _mn.setDate(_mn.getDate()+_di);
+      _allSt.cal.weekStart = _mn.toISOString().slice(0,10);
+    }
     const multiLeva = leve.length > 1;
     const levaSel = multiLeva
       ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allCalChangeLeva(this.value)">
            ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===_allSt.cal.leva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
          </select>`
       : `<span style="font-size:.9rem;font-weight:700;color:var(--cp);">${escapeHtml(currentLeva)}</span>`;
-    const _MESI_AC = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+    const vm = _allSt.cal.viewMode || 'week';
+    const viewSel = `<div class="all-cal-viewsel">
+      <button class="all-cal-viewsel-btn${vm==='month'?' ac-active':''}" onclick="_allCalChangeView('month')">Mese</button>
+      <button class="all-cal-viewsel-btn${vm==='week'?' ac-active':''}" onclick="_allCalChangeView('week')">Settimana</button>
+      <button class="all-cal-viewsel-btn${vm==='list'?' ac-active':''}" onclick="_allCalChangeView('list')">Lista</button>
+    </div>`;
+    let navBar = '';
+    if (vm === 'month') {
+      navBar = `<div class="all-cal-nav">
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(-1)">◀</button>
+        <span class="all-cal-mlbl" id="allCalMonthLbl">${_AC_MESI[_allSt.cal.mese]} ${_allSt.cal.anno}</span>
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(1)">▶</button>
+      </div>`;
+    } else if (vm === 'week') {
+      navBar = `<div class="all-cal-nav">
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeWeek(-1)">◀</button>
+        <span class="all-cal-mlbl" id="allCalWeekLbl">${_allWeekLabel()}</span>
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeWeek(1)">▶</button>
+      </div>`;
+    } else {
+      const lr = _allSt.cal.listRange || '30g';
+      navBar = `<div class="all-cal-nav">
+        <select class="fi" style="max-width:180px;font-size:.82rem;padding:5px 10px;" onchange="_allCalChangeListRange(this.value)">
+          <option value="30g"${lr==='30g'?' selected':''}>Prossimi 30 giorni</option>
+          <option value="90g"${lr==='90g'?' selected':''}>Prossimi 90 giorni</option>
+          <option value="365g"${lr==='365g'?' selected':''}>Prossimi 12 mesi</option>
+          <option value="passati"${lr==='passati'?' selected':''}>Passati (30 gg)</option>
+        </select>
+      </div>`;
+    }
     hdr = `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
       <div style="flex:1;">
         <div style="font-size:1.1rem;font-weight:800;">Allenamenti</div>
@@ -13733,11 +13785,8 @@ function _renderAllLista(cont) {
       </div>
       ${levaSel}
     </div>
-    <div class="all-cal-nav">
-      <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(-1)">◀</button>
-      <span class="all-cal-mlbl" id="allCalMonthLbl">${_MESI_AC[_allSt.cal.mese]} ${_allSt.cal.anno}</span>
-      <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(1)">▶</button>
-    </div>`;
+    ${viewSel}
+    ${navBar}`;
   }
 
   if (isGenitore) {
@@ -13853,12 +13902,24 @@ async function _allCalLoadEvents() {
   if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
   if (!_v2Token) { gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato.</div>'; return; }
 
-  const { anno, mese } = _allSt.cal;
   const leva = _allSt.cal.leva || currentLeva;
   const pad2 = n => String(n).padStart(2,'0');
-  const da = anno + '-' + pad2(mese+1) + '-01';
-  const lastDay = new Date(anno, mese+1, 0).getDate();
-  const a  = anno + '-' + pad2(mese+1) + '-' + pad2(lastDay);
+  const vm = _allSt.cal.viewMode || 'week';
+  let da, a;
+  if (vm === 'month') {
+    const { anno, mese } = _allSt.cal;
+    da = anno + '-' + pad2(mese+1) + '-01';
+    const lastDay = new Date(anno, mese+1, 0).getDate();
+    a  = anno + '-' + pad2(mese+1) + '-' + pad2(lastDay);
+  } else if (vm === 'week') {
+    da = _allSt.cal.weekStart;
+    const _sunD = new Date(da + 'T00:00:00'); _sunD.setDate(_sunD.getDate() + 6);
+    a = _sunD.toISOString().slice(0, 10);
+  } else {
+    const _lr = _allSt.cal.listRange || '30g'; const _t = new Date();
+    if (_lr === 'passati') { const _p = new Date(_t); _p.setDate(_p.getDate()-30); da = _p.toISOString().slice(0,10); a = _t.toISOString().slice(0,10); }
+    else { da = _t.toISOString().slice(0,10); const _e = new Date(_t); _e.setDate(_e.getDate()+(_lr==='365g'?365:_lr==='90g'?90:30)); a = _e.toISOString().slice(0,10); }
+  }
   const levaId = _calLeveMap[leva] || '';
 
   gridEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Caricamento…</div>';
@@ -13885,12 +13946,18 @@ function _allCalRender() {
   const gridEl = document.getElementById('allCalGrid');
   const bozzeEl = document.getElementById('allCalBozze');
   if (!gridEl) return;
+  const vm = _allSt.cal.viewMode || 'week';
+  if (vm === 'week') _allCalRenderWeek(gridEl);
+  else if (vm === 'list') _allCalRenderList(gridEl);
+  else _allCalRenderMonth(gridEl);
+  if (bozzeEl) _allCalRenderBozze(bozzeEl);
+}
 
+function _allCalRenderMonth(gridEl) {
   const { anno, mese, events } = _allSt.cal;
   const todayStr = new Date().toISOString().slice(0,10);
   const pad2 = n => String(n).padStart(2,'0');
 
-  // Raggruppa eventi per data
   const byDate = {};
   (events || []).forEach(function(ev) {
     const d = (ev.data || '').slice(0,10);
@@ -13935,9 +14002,7 @@ function _allCalRender() {
     html += '<div class="all-cal-cell ac-other"><div class="all-cal-dn">' + i + '</div></div>';
   }
   html += '</div>';
-
   gridEl.innerHTML = html;
-  if (bozzeEl) _allCalRenderBozze(bozzeEl);
 }
 
 function _allCalRenderBozze(el) {
@@ -13971,6 +14036,114 @@ function _allCalChangeLeva(v) {
   currentLeva = v;
   _allSt.cal.leva = v;
   _allCalLoadEvents();
+}
+
+function _allCalChangeView(mode) {
+  _allSt.cal.viewMode = mode;
+  try { sessionStorage.setItem('mv_all_view', mode); } catch(_) {}
+  _renderAllTabContent();
+}
+
+function _allWeekLabel() {
+  const ws = _allSt.cal.weekStart;
+  if (!ws) return '';
+  const mon = new Date(ws + 'T00:00:00');
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.getDate() + '/' + (d.getMonth()+1);
+  return _AC_DAYS[0] + ' ' + fmt(mon) + ' – ' + _AC_DAYS[6] + ' ' + fmt(sun);
+}
+
+function _allCalChangeWeek(dir) {
+  const ws = new Date((_allSt.cal.weekStart || new Date().toISOString().slice(0,10)) + 'T00:00:00');
+  ws.setDate(ws.getDate() + dir * 7);
+  _allSt.cal.weekStart = ws.toISOString().slice(0,10);
+  const lbl = document.getElementById('allCalWeekLbl');
+  if (lbl) lbl.textContent = _allWeekLabel();
+  _allCalLoadEvents();
+}
+
+function _allCalChangeListRange(v) {
+  _allSt.cal.listRange = v;
+  _allCalLoadEvents();
+}
+
+function _allCalRenderWeek(gridEl) {
+  const ws = _allSt.cal.weekStart;
+  if (!ws) { gridEl.innerHTML = ''; return; }
+  const { events } = _allSt.cal;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(ws + 'T00:00:00'); d.setDate(d.getDate() + i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const byDate = {};
+  (events || []).forEach(function(ev) {
+    const d = (ev.data || '').slice(0,10);
+    if (d) { if (!byDate[d]) byDate[d] = []; byDate[d].push(ev); }
+  });
+  Object.keys(byDate).forEach(function(d) {
+    byDate[d].sort(function(a,b) { return (a.ora_inizio||'').localeCompare(b.ora_inizio||''); });
+  });
+  function _wSlot(ev) {
+    const st=(ev.ora_inizio||'').slice(0,5); const et=(ev.ora_fine||'').slice(0,5);
+    const ts=st?st+(et?'–'+et:''):''; const filled=!!ev.allenamento_id;
+    return '<div class="all-cal-slot '+(filled?'ac-filled':'ac-empty')+'" onclick="_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')">'
+      +(ts?'<div style="font-weight:700;">'+escapeHtml(ts)+'</div>':'')
+      +'<div>'+(filled?'✅ Creato':'➕ Crea')+'</div></div>';
+  }
+  let html = '<div class="all-cal-week-grid">';
+  days.forEach(function(ds, i) {
+    const isToday = ds === todayStr;
+    const dayEvs = byDate[ds] || [];
+    const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
+    html += '<div class="all-cal-week-col'+(isToday?' ac-today':'')+'">';
+    html += '<div class="all-cal-week-head'+(isToday?' ac-today':'')+'">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
+    dayEvs.forEach(function(ev) { html += _wSlot(ev); });
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div class="all-cal-week-agenda">';
+  days.forEach(function(ds, i) {
+    const isToday = ds === todayStr;
+    const dayEvs = byDate[ds] || [];
+    const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
+    html += '<div class="all-cal-week-agenda-day'+(isToday?' ac-today':'')+'">';
+    html += '<div class="all-cal-week-agenda-head">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
+    if (dayEvs.length) { dayEvs.forEach(function(ev) { html += _wSlot(ev); }); }
+    else { html += '<div style="font-size:.72rem;color:var(--text3);">Nessun slot</div>'; }
+    html += '</div>';
+  });
+  html += '</div>';
+  gridEl.innerHTML = html;
+}
+
+function _allCalRenderList(gridEl) {
+  const evs = ((_allSt.cal.events)||[]).filter(function(ev) { return !!ev.allenamento_id; });
+  evs.sort(function(a,b) {
+    const da=(a.data||'').slice(0,10), db=(b.data||'').slice(0,10);
+    if (da!==db) return da.localeCompare(db);
+    return (a.ora_inizio||'').localeCompare(b.ora_inizio||'');
+  });
+  if (!evs.length) {
+    gridEl.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text2);font-size:.88rem;">Nessun allenamento nel periodo selezionato.</div>';
+    return;
+  }
+  let html = '<div class="all-cal-list">';
+  evs.forEach(function(ev) {
+    const ds = (ev.data||'').slice(0,10);
+    const st=(ev.ora_inizio||'').slice(0,5); const et=(ev.ora_fine||'').slice(0,5);
+    const ts = st?st+(et?'–'+et:''):'';
+    const d = ds ? new Date(ds+'T00:00:00') : null;
+    const dateStr = d ? _AC_DAYS[(d.getDay()+6)%7]+' '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear() : '';
+    const titolo = ev.titolo ? escapeHtml(ev.titolo) : 'Allenamento';
+    html += '<div class="all-cal-list-card" onclick="_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')">';
+    html += '<div style="font-size:.78rem;color:var(--text2);margin-bottom:2px;">'+dateStr+(ts?' · '+ts:'')+'</div>';
+    html += '<div style="font-size:.9rem;font-weight:700;">✅ '+titolo+'</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  gridEl.innerHTML = html;
 }
 
 function _allCalClickSlot(eventId, allenId) {
