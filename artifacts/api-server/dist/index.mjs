@@ -87609,6 +87609,19 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router24.get("/superadmin/phone-diag", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const [userRow] = await pool.execute(
+    "SELECT id, email, phone, whatsapp_number, created_at FROM users WHERE id = 20 LIMIT 1"
+  );
+  const [phoneCol] = await pool.execute(
+    "SHOW COLUMNS FROM users LIKE 'phone'"
+  );
+  const [waCol] = await pool.execute(
+    "SHOW COLUMNS FROM users LIKE 'whatsapp_number'"
+  );
+  return res.json({ userRow: userRow[0] ?? null, phoneCol: phoneCol[0] ?? null, waCol: waCol[0] ?? null });
+});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
@@ -88087,6 +88100,7 @@ router27.get("/allenamenti", requireAuth, async (req, res) => {
   const { leva_id, da, a, limit = "30", offset = "0", event_id } = req.query;
   const limitN = Math.min(parseInt(limit) || 30, 200);
   const offsetN = Math.max(parseInt(offset) || 0, 0);
+  logger.info({ userId, societyId, leva_id, event_id }, "GET allenamenti");
   try {
     const conditions = ["a.societa_id = ?"];
     const params = [societyId];
@@ -88331,8 +88345,8 @@ router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_pian
       }
     }
     if (!updates.length) return res.status(400).json({ error: "nessun_campo_da_aggiornare" });
-    params.push(id);
-    await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ?`, params);
+    params.push(id, societyId);
+    await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ? AND societa_id = ?`, params);
     return res.json({ ok: true, id, event_id: event_id !== void 0 ? event_id === null ? null : parseInt(event_id) : void 0 });
   } catch (e) {
     logger.error({ err: e }, "PATCH allenamenti error");
@@ -88594,7 +88608,7 @@ router27.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res)
     );
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     const row = rows[0];
-    if (row.societa_id !== societyId) return res.status(403).json({ error: "forbidden" });
+    if (row.societa_id !== societyId) return res.status(404).json({ error: "not_found" });
     if (isGenitore) {
       if (!row.visibilita_genitori) return res.status(403).json({ error: "forbidden" });
       if (Date.now() - new Date(row.created_at).getTime() < 24 * 60 * 60 * 1e3)
@@ -88624,7 +88638,7 @@ router27.delete("/allenamenti/note-vocali/:id", requireAuth, requirePermission("
     );
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     const row = rows[0];
-    if (row.societa_id !== societyId) return res.status(403).json({ error: "forbidden" });
+    if (row.societa_id !== societyId) return res.status(404).json({ error: "not_found" });
     if (!isAdmin && row.creato_da !== userId) return res.status(403).json({ error: "forbidden" });
     await pool.execute("DELETE FROM allenamento_note_vocali WHERE id = ?", [id]);
     try {

@@ -322,6 +322,8 @@ router.get("/allenamenti", requireAuth, async (req, res) => {
   const limitN  = Math.min(parseInt(limit) || 30, 200);
   const offsetN = Math.max(parseInt(offset) || 0, 0);
 
+  logger.info({ userId, societyId, leva_id, event_id }, "GET allenamenti");
+
   try {
     const conditions: string[] = ["a.societa_id = ?"];
     const params: any[]        = [societyId];
@@ -579,8 +581,8 @@ router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_
 
     if (!updates.length) return res.status(400).json({ error: "nessun_campo_da_aggiornare" });
 
-    params.push(id);
-    await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ?`, params);
+    params.push(id, societyId);
+    await pool.execute(`UPDATE allenamenti SET ${updates.join(", ")} WHERE id = ? AND societa_id = ?`, params);
     return res.json({ ok: true, id, event_id: event_id !== undefined ? (event_id === null ? null : parseInt(event_id)) : undefined });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH allenamenti error");
@@ -839,7 +841,7 @@ router.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res) =
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     const row = rows[0];
 
-    if (row.societa_id !== societyId) return res.status(403).json({ error: "forbidden" });
+    if (row.societa_id !== societyId) return res.status(404).json({ error: "not_found" });
     if (isGenitore) {
       if (!row.visibilita_genitori) return res.status(403).json({ error: "forbidden" });
       if (Date.now() - new Date(row.created_at).getTime() < 24 * 60 * 60 * 1000)
@@ -875,7 +877,7 @@ router.delete("/allenamenti/note-vocali/:id", requireAuth, requirePermission("mo
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     const row = rows[0];
 
-    if (row.societa_id !== societyId) return res.status(403).json({ error: "forbidden" });
+    if (row.societa_id !== societyId) return res.status(404).json({ error: "not_found" });
     if (!isAdmin && row.creato_da !== userId) return res.status(403).json({ error: "forbidden" });
 
     await pool.execute("DELETE FROM allenamento_note_vocali WHERE id = ?", [id]);
