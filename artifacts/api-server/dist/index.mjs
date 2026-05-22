@@ -87609,6 +87609,81 @@ router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router24.post("/superadmin/migrate-users-to-existing", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  const { users } = req.body;
+  if (!Array.isArray(users) || !users.length) {
+    return res.status(400).json({ error: "missing_users_array" });
+  }
+  const emails = users.map((u) => u.email.toLowerCase());
+  const ph = emails.map(() => "?").join(",");
+  const [dupRows] = await pool.execute(
+    `SELECT id, email, society_id FROM users WHERE LOWER(email) IN (${ph})`,
+    emails
+  );
+  if (dupRows.length > 0) {
+    return res.status(409).json({
+      error: "duplicate_emails",
+      found: dupRows.map((r) => ({ id: r.id, email: r.email, society_id: r.society_id }))
+    });
+  }
+  const usersReady = [];
+  for (const u of users) {
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM society_state WHERE `key` = ? LIMIT 1",
+      [u.sourceBlob]
+    );
+    if (!blobRows.length) return res.status(404).json({ error: "source_blob_not_found", sourceBlob: u.sourceBlob });
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return res.status(500).json({ error: "blob_parse_error", sourceBlob: u.sourceBlob });
+    }
+    const blobUser = (state.USERS_DB || []).find(
+      (b) => typeof b.email === "string" && b.email.toLowerCase() === u.email.toLowerCase()
+    );
+    if (!blobUser?.pass) return res.status(400).json({ error: "user_not_in_blob", email: u.email });
+    usersReady.push({ u, plainPass: blobUser.pass });
+  }
+  let conn = null;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    const inserted = [];
+    for (const { u, plainPass } of usersReady) {
+      const pwHash = hashPassword(plainPass);
+      const [uRes] = await conn.execute(
+        `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, phone, stato, temp_password, is_account_owner)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'attivo', FALSE, 0)`,
+        [
+          u.societyId,
+          u.nome,
+          u.cognome,
+          u.email.toLowerCase(),
+          pwHash,
+          u.ruolo,
+          u.leva ?? null,
+          u.phone ?? null
+        ]
+      );
+      inserted.push({ id: uRes.insertId, email: u.email, ruolo: u.ruolo, society_id: u.societyId });
+    }
+    await conn.commit();
+    logger.info({ count: inserted.length }, "migrate-users-to-existing: COMMIT OK");
+    const [verRows] = await pool.execute(
+      `SELECT id, email, ruolo, society_id, is_account_owner, nome, cognome FROM users WHERE LOWER(email) IN (${ph})`,
+      emails
+    );
+    return res.json({ ok: true, inserted, verification: verRows });
+  } catch (txErr) {
+    if (conn) await conn.rollback();
+    logger.error({ err: txErr }, "migrate-users-to-existing: ROLLBACK");
+    return res.status(500).json({ error: "transaction_failed", detail: txErr?.sqlMessage ?? txErr?.message });
+  } finally {
+    if (conn) conn.release();
+  }
+});
 var superadmin_default = router24;
 
 // src/routes/v2/account.ts
