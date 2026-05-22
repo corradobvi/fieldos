@@ -1595,6 +1595,34 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .all-cal-stat-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:4px;letter-spacing:.04em;}
 .all-cal-stat-val{font-size:1.3rem;font-weight:500;color:var(--text1);}
 @media(max-width:500px){.all-cal-stats{grid-template-columns:1fr;}}
+.all-cal-filters{margin-bottom:14px;}
+.all-cal-filters-toggle{display:none;align-items:center;gap:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:8px;padding:5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;margin-bottom:8px;}
+.all-cal-filters-toggle.ac-active{border-color:var(--cp);color:var(--cp);}
+.all-cal-filters-badge{background:var(--cp);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;font-weight:700;}
+.all-cal-filters-inner{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+.all-cal-fgroup{display:flex;flex-direction:column;gap:5px;}
+.all-cal-fgroup-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.05em;}
+.all-cal-fgroup-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.all-cal-fchip{border:1.5px solid var(--border);background:var(--white);color:var(--text2);border-radius:20px;padding:4px 10px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.all-cal-fchip.ac-active{background:var(--cp);color:#fff;border-color:var(--cp);}
+.all-cal-fchip:hover:not(.ac-active){border-color:var(--cp);color:var(--cp);}
+.all-bozze-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.all-bozze-card{border-radius:12px;border:1.5px dashed var(--border2);background:var(--white);padding:14px;display:flex;flex-direction:column;transition:border .15s;}
+.all-bozze-card:hover{border-style:solid;border-color:var(--cp);}
+.all-bozze-badge{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+.all-bozze-menu-btn{border:none;background:none;cursor:pointer;font-size:1.1rem;color:var(--text2);padding:2px 6px;border-radius:4px;line-height:1;transition:background .1s;}
+.all-bozze-menu-btn:hover{background:var(--bg);}
+.all-bozze-menu{position:absolute;right:0;top:100%;background:var(--white);border:1px solid var(--border2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;min-width:140px;}
+.all-bozze-menu-item{padding:8px 14px;font-size:.82rem;cursor:pointer;white-space:nowrap;}
+.all-bozze-menu-item:hover{background:var(--bg);}
+.aggancia-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9100;display:flex;align-items:center;justify-content:center;}
+.aggancia-modal-ov .modal{max-width:560px;width:94vw;}
+.aggancia-slot-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-top:8px;}
+.aggancia-slot-card{border-radius:8px;border:1.5px solid var(--border);background:var(--bg);padding:10px 14px;cursor:pointer;transition:all .1s;}
+.aggancia-slot-card:hover{border-color:var(--cp);background:var(--cl);}
+@media(max-width:900px){.all-bozze-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.all-bozze-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){.all-cal-filters-toggle{display:inline-flex;}.all-cal-filters-panel{display:none;}.all-cal-filters-panel.open{display:block;}.all-cal-filters-inner{flex-direction:column;gap:12px;}}
 
 /* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
@@ -13643,6 +13671,7 @@ let _allSt = {
   tab: 'lista',
   lista: { periodo: '30g', stato: 'tutti', items: null },
   cal: { anno: new Date().getFullYear(), mese: new Date().getMonth(), leva: '', events: [], bozze: [], viewMode: '', weekStart: null, listRange: '30g' },
+  filters: { tipo: 'tutti', stato: 'tutti', visibilita: 'tutti', _open: false },
   lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
   _nsTags: [],
   _costruttore: { id: null, sessioni: [], _editIdx: null, eventId: null },
@@ -13755,6 +13784,7 @@ function _renderAllLista(cont) {
   } else {
     if (!_allSt.cal.leva) _allSt.cal.leva = currentLeva;
     if (!_allSt.cal.viewMode) { try { _allSt.cal.viewMode = sessionStorage.getItem('mv_all_view') || 'week'; } catch(_) { _allSt.cal.viewMode = 'week'; } }
+    if (!_allSt.filters.tipo) { try { const _sf = JSON.parse(sessionStorage.getItem('mv_all_filters')||'{}'); Object.assign(_allSt.filters, _sf); } catch(_) {} }
     if (!_allSt.cal.weekStart) {
       const _td = new Date(); const _dw = _td.getDay(); const _di = _dw===0?-6:1-_dw;
       const _mn = new Date(_td); _mn.setDate(_mn.getDate()+_di);
@@ -13811,7 +13841,7 @@ function _renderAllLista(cont) {
     cont.innerHTML = hdr + `<div id="allListItems"></div>`;
     _loadAllLista();
   } else {
-    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalStats"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
+    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalFilters"></div><div id="allCalStats"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
     _allCalLoadEvents();
   }
 }
@@ -13942,7 +13972,8 @@ async function _allCalLoadEvents() {
 
   gridEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Caricamento…</div>';
 
-  const evParams = new URLSearchParams({ da, a, tipi: 'allenamento,allenamento_portieri', expand_recurrences: 'true' });
+  const _ft = (_allSt.filters && _allSt.filters.tipo && _allSt.filters.tipo !== 'tutti') ? _allSt.filters.tipo : 'allenamento,allenamento_portieri';
+  const evParams = new URLSearchParams({ da, a, tipi: _ft, expand_recurrences: 'true' });
   if (levaId) evParams.set('leva_id', levaId);
   const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
 
@@ -13961,12 +13992,14 @@ async function _allCalLoadEvents() {
 }
 
 function _allCalRender() {
-  const gridEl  = document.getElementById('allCalGrid');
-  const bozzeEl = document.getElementById('allCalBozze');
-  const statsEl = document.getElementById('allCalStats');
+  const gridEl    = document.getElementById('allCalGrid');
+  const bozzeEl   = document.getElementById('allCalBozze');
+  const statsEl   = document.getElementById('allCalStats');
+  const filtersEl = document.getElementById('allCalFilters');
   if (!gridEl) return;
+  if (filtersEl) _allCalRenderFilters(filtersEl);
+  if (statsEl)   _allCalRenderStats(statsEl, _allSt.cal.events || []);
   const vm = _allSt.cal.viewMode || 'week';
-  if (statsEl) _allCalRenderStats(statsEl, _allSt.cal.events || []);
   if (vm === 'week') _allCalRenderWeek(gridEl);
   else if (vm === 'list') _allCalRenderList(gridEl);
   else _allCalRenderMonth(gridEl);
@@ -14021,7 +14054,8 @@ function _allCalRenderStats(el, events) {
 }
 
 function _allCalRenderMonth(gridEl) {
-  const { anno, mese, events } = _allSt.cal;
+  const { anno, mese } = _allSt.cal;
+  const events = _allCalApplyFilters(_allSt.cal.events || []);
   const todayStr = new Date().toISOString().slice(0,10);
   const pad2 = n => String(n).padStart(2,'0');
 
@@ -14071,19 +14105,265 @@ function _allCalRenderMonth(gridEl) {
 function _allCalRenderBozze(el) {
   const bozze = _allSt.cal.bozze || [];
   const canEdit = isAdminLike() || hasPerm('modifica_piano_allenamento');
-  if (!bozze.length) { el.innerHTML = ''; return; }
+  if (!bozze.length || !canEdit) { el.innerHTML = ''; return; }
+  const pad = n => String(n).padStart(2,'0');
   let html = '<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">';
-  html += '<div style="font-size:.85rem;font-weight:800;margin-bottom:10px;color:var(--text2);">📋 Allenamenti senza slot programmato (' + bozze.length + ')</div>';
-  html += bozze.map(function(a) {
-    return '<div class="all-card" style="cursor:pointer;" onclick="_openAllenamentiDetail(\'' + a.id + '\')">'
-      + '<div style="display:flex;align-items:center;gap:8px;">'
-      + '<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">' + escapeHtml(a.titolo) + '</div>'
-      + '<div style="font-size:.75rem;color:var(--text3);">🕐 ' + (a.durata_totale_minuti||0) + ' min · ' + (a.num_sessioni||0) + ' sessioni</div></div>'
-      + (canEdit ? '<button class="btn btn-g btn-sm" onclick="event.stopPropagation();_openCostruisciAllenamento(\'' + a.id + '\')">✏️</button>' : '')
-      + '</div></div>';
-  }).join('');
+  html += '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">';
+  html += '<div style="font-size:.95rem;font-weight:800;">Allenamenti in bozza</div>';
+  html += '<div style="font-size:.78rem;color:var(--text3);">' + bozze.length + ' allenament' + (bozze.length===1?'o':'i') + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:16px;">Preparati in anticipo, non ancora legati a uno slot del calendario</div>';
+  html += '<div class="all-bozze-grid">';
+  bozze.forEach(function(b) {
+    const d   = b.data ? new Date(b.data.slice(0,10)+'T00:00:00') : null;
+    const dtS = d ? 'Creata il ' + pad(d.getDate()) + '/' + pad(d.getMonth()+1) : '';
+    const dur  = b.durata_totale_minuti || 0;
+    const sess = b.num_sessioni || 0;
+    const bid  = b.id;
+    html += '<div class="all-bozze-card">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span class="all-bozze-badge">BOZZA</span>';
+    html += '<div style="position:relative;">';
+    html += '<button class="all-bozze-menu-btn" onclick="event.stopPropagation();_toggleBozzaMenu(\'' + bid + '\')">⋯</button>';
+    html += '<div class="all-bozze-menu" id="bm_' + bid + '" style="display:none;">';
+    html += '<div class="all-bozze-menu-item" onclick="document.querySelectorAll(\'.all-bozze-menu\').forEach(m=>m.style.display=\'none\');_openCostruisciAllenamento(\'' + bid + '\')">✏️ Modifica</div>';
+    html += '<div class="all-bozze-menu-item" onclick="_duplicaBozza(\'' + bid + '\')">📋 Duplica</div>';
+    html += '<div class="all-bozze-menu-item" style="color:#c0392b;" onclick="_eliminaBozza(\'' + bid + '\')">🗑️ Elimina</div>';
+    html += '</div></div></div>';
+    html += '<div style="cursor:pointer;flex:1;" onclick="_openAllenamentiDetail(\'' + bid + '\')">';
+    html += '<div style="font-size:.88rem;font-weight:600;margin-bottom:4px;line-height:1.3;">' + escapeHtml(b.titolo) + '</div>';
+    if (b.obiettivo) html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + escapeHtml(b.obiettivo) + '</div>';
+    const metaP = []; if (dur) metaP.push('🕐 '+dur+' min'); if (sess) metaP.push(sess+' sessioni');
+    if (metaP.length) html += '<div style="font-size:.72rem;color:var(--text3);margin-bottom:6px;">' + metaP.join(' · ') + '</div>';
+    if (dtS) html += '<div style="font-size:.67rem;color:var(--text3);margin-bottom:10px;">' + dtS + '</div>';
+    html += '</div>';
+    html += '<button class="btn btn-p btn-sm" style="width:100%;margin-top:6px;" onclick="event.stopPropagation();_openAgganciaModal(\'' + bid + '\')">📅 Aggancia a slot</button>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function _toggleBozzaMenu(id) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { if (m.id !== 'bm_'+id) m.style.display='none'; });
+  const menu = document.getElementById('bm_'+id);
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function _cl() { if(menu) menu.style.display='none'; document.removeEventListener('click',_cl); }, {once:true});
+    }, 0);
+  }
+}
+
+function _allCalApplyFilters(events) {
+  const f = _allSt.filters || {};
+  let res = events || [];
+  if (f.stato === 'vuoti')       res = res.filter(function(ev) { return !ev.allenamento_id; });
+  else if (f.stato === 'pieni')  res = res.filter(function(ev) { return !!ev.allenamento_id; });
+  if (f.visibilita === 'visibili')   res = res.filter(function(ev) { return !ev.allenamento_id || ev.allenamento_visibilita_genitori; });
+  else if (f.visibilita === 'solo_staff') res = res.filter(function(ev) { return !ev.allenamento_id || !ev.allenamento_visibilita_genitori; });
+  return res;
+}
+
+function _allCalSetFilter(key, val) {
+  if (!_allSt.filters) _allSt.filters = { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  _allSt.filters[key] = (_allSt.filters[key] === val) ? 'tutti' : val;
+  try { sessionStorage.setItem('mv_all_filters', JSON.stringify({tipo:_allSt.filters.tipo, stato:_allSt.filters.stato, visibilita:_allSt.filters.visibilita})); } catch(_) {}
+  if (key === 'tipo') { _allCalLoadEvents(); } else { _allCalRender(); }
+}
+
+function _allCalToggleFilters() {
+  if (!_allSt.filters) _allSt.filters = { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  _allSt.filters._open = !_allSt.filters._open;
+  const panel = document.querySelector('#allCalFilters .all-cal-filters-panel');
+  const btn   = document.querySelector('#allCalFilters .all-cal-filters-toggle');
+  if (panel) panel.classList.toggle('open', _allSt.filters._open);
+  if (btn)   btn.classList.toggle('ac-active', _allSt.filters._open);
+}
+
+function _allCalRenderFilters(el) {
+  const f = _allSt.filters || { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  const n = [f.tipo, f.stato, f.visibilita].filter(function(v) { return v !== 'tutti'; }).length;
+  function fc(key, val, lbl) {
+    return '<button class="all-cal-fchip'+(f[key]===val?' ac-active':'')+'" onclick="_allCalSetFilter(\''+key+'\',\''+val+'\')">'+lbl+'</button>';
+  }
+  const inner = '<div class="all-cal-filters-inner">'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Tipo evento</div><div class="all-cal-fgroup-chips">'
+    + fc('tipo','tutti','Tutti') + fc('tipo','allenamento','Allenamento') + fc('tipo','allenamento_portieri','Portieri')
+    + '</div></div>'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Stato slot</div><div class="all-cal-fgroup-chips">'
+    + fc('stato','tutti','Tutti') + fc('stato','vuoti','Vuoti') + fc('stato','pieni','Pieni')
+    + '</div></div>'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Visibilità</div><div class="all-cal-fgroup-chips">'
+    + fc('visibilita','tutti','Tutti') + fc('visibilita','visibili','👨‍👩‍👧 Famiglie') + fc('visibilita','solo_staff','🔒 Staff')
+    + '</div></div>'
+    + '</div>';
+  el.innerHTML = '<div class="all-cal-filters">'
+    + '<button class="all-cal-filters-toggle'+(f._open?' ac-active':'')+'" onclick="_allCalToggleFilters()">🔧 Filtri'+(n?' <span class="all-cal-filters-badge">'+n+'</span>':'')+'</button>'
+    + '<div class="all-cal-filters-panel'+(f._open?' open':'')+'">' + inner + '</div>'
+    + '</div>';
+}
+
+let _agganciaState = null;
+
+async function _openAgganciaModal(allenId) {
+  if (!_v2Token) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!resp.ok) { toast('❌ Errore caricamento bozza'); return; }
+    const bozza = await resp.json();
+    const levaId = bozza.leva_id;
+    const lEntry = Object.entries(_calLeveMap).find(function(e) { return String(e[1]) === String(levaId); });
+    _agganciaState = { bozza, levaId: levaId, levaNome: lEntry ? lEntry[0] : '', range: '30g' };
+    _renderAgganciaModal();
+    _loadAgganciaSlots();
+  } catch(e) { toast('❌ Errore apertura modal'); }
+}
+
+function _closeAgganciaModal() {
+  const el = document.getElementById('_agganciaOv');
+  if (el) { el.parentNode && el.parentNode.removeChild(el); document.body.style.overflow = ''; }
+  _agganciaState = null;
+}
+
+function _renderAgganciaModal() {
+  let ov = document.getElementById('_agganciaOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = '_agganciaOv';
+    ov.className = 'aggancia-modal-ov';
+    ov.addEventListener('click', function(e) { if (e.target === ov) _closeAgganciaModal(); });
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+  }
+  const st = _agganciaState;
+  if (!st) return;
+  const b = st.bozza;
+  const rOpts = [['7g','7 giorni'],['30g','30 giorni'],['tutti','Tutti i futuri']];
+  const metaP = [];
+  if (b.durata_totale_minuti) metaP.push('🕐 '+b.durata_totale_minuti+' min');
+  if (b.num_sessioni) metaP.push(b.num_sessioni+' sessioni');
+  if (st.levaNome) metaP.push('🏷️ '+escapeHtml(st.levaNome));
+  let html = '<div class="modal">';
+  html += '<div class="mh"><div class="mt">📅 Aggancia bozza a uno slot</div><button class="mx" onclick="_closeAgganciaModal()">✕</button></div>';
+  html += '<div style="background:var(--bg);border-radius:10px;padding:10px 14px;margin:12px 0 14px;">';
+  html += '<div style="font-size:.82rem;font-weight:700;">' + escapeHtml(b.titolo) + '</div>';
+  if (metaP.length) html += '<div style="font-size:.72rem;color:var(--text2);margin-top:3px;">' + metaP.join(' · ') + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;">Slot disponibili in:</div>';
+  html += '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">';
+  rOpts.forEach(function(r) { html += '<button class="all-cal-fchip'+(st.range===r[0]?' ac-active':'')+'" onclick="_agganciaChangeRange(\''+r[0]+'\')">'+r[1]+'</button>'; });
+  html += '</div>';
+  html += '<div id="_agganciaSlotList"><div style="text-align:center;padding:20px;color:var(--text2);font-size:.85rem;">Caricamento…</div></div>';
+  html += '<div style="margin-top:16px;text-align:right;"><button class="btn btn-g" onclick="_closeAgganciaModal()">Annulla</button></div>';
+  html += '</div>';
+  ov.innerHTML = html;
+}
+
+async function _loadAgganciaSlots() {
+  const listEl = document.getElementById('_agganciaSlotList');
+  if (!listEl || !_agganciaState) return;
+  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.85rem;">Caricamento…</div>';
+  const st = _agganciaState;
+  const today = new Date().toISOString().slice(0,10);
+  const endD = new Date();
+  if (st.range==='7g') endD.setDate(endD.getDate()+7);
+  else if (st.range==='30g') endD.setDate(endD.getDate()+30);
+  else endD.setFullYear(endD.getFullYear()+2);
+  const a = endD.toISOString().slice(0,10);
+  const params = new URLSearchParams({ da: today, a, tipi: 'allenamento,allenamento_portieri', expand_recurrences: 'true' });
+  if (st.levaId) params.set('leva_id', String(st.levaId));
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/events?' + params, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    const evs = resp.ok ? (await resp.json()) : [];
+    const vuoti = evs.filter(function(ev) { return !ev.allenamento_id; });
+    _renderAgganciaSlotList(listEl, vuoti, st.levaNome);
+  } catch(e) { listEl.innerHTML = '<div style="color:#c0392b;padding:12px;font-size:.85rem;">❌ Errore caricamento slot.</div>'; }
+}
+
+function _renderAgganciaSlotList(el, slots, levaNome) {
+  if (!slots.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.84rem;line-height:1.5;">Nessuno slot vuoto disponibile per la leva <strong>' + escapeHtml(levaNome||'') + '</strong> nel periodo selezionato.<br><span style="font-size:.8rem;">Crea uno slot dal Calendario prima di agganciare.</span></div>';
+    return;
+  }
+  let html = '<div class="aggancia-slot-list">';
+  slots.forEach(function(ev) {
+    const ds = (ev.data||'').slice(0,10);
+    const d  = ds ? new Date(ds+'T00:00:00') : null;
+    const dStr = d ? _AC_DAYS[(d.getDay()+6)%7]+' '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear() : ds;
+    const st2 = (ev.ora_inizio||'').slice(0,5); const et2 = (ev.ora_fine||'').slice(0,5);
+    const ts  = st2 ? st2+(et2?'–'+et2:'') : '';
+    html += '<div class="aggancia-slot-card" onclick="_agganciaSlot('+ev.event_id+',\''+dStr+'\')"> ';
+    html += '<div style="font-size:.85rem;font-weight:600;">' + dStr + '</div>';
+    if (ts) html += '<div style="font-size:.78rem;color:var(--text2);">' + ts + '</div>';
+    if (ev.titolo) html += '<div style="font-size:.72rem;color:var(--text3);">' + escapeHtml(ev.titolo) + '</div>';
+    html += '</div>';
+  });
   html += '</div>';
   el.innerHTML = html;
+}
+
+function _agganciaChangeRange(range) {
+  if (!_agganciaState) return;
+  _agganciaState.range = range;
+  _renderAgganciaModal();
+  _loadAgganciaSlots();
+}
+
+async function _agganciaSlot(eventId, dateLabel) {
+  if (!_agganciaState || !_agganciaState.bozza) return;
+  const allenId = _agganciaState.bozza.id;
+  if (!confirm('Agganciare "' + _agganciaState.bozza.titolo + '" allo slot del ' + dateLabel + '?')) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, {
+      method: 'PATCH', headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    _closeAgganciaModal();
+    toast('✅ Agganciato al ' + dateLabel);
+    _allCalLoadEvents();
+  } catch(e) { toast('❌ Errore durante l\'aggancio. Riprova.'); }
+}
+
+async function _duplicaBozza(allenId) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { m.style.display='none'; });
+  if (!_v2Token) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!resp.ok) { toast('❌ Errore caricamento allenamento'); return; }
+    const b = await resp.json();
+    const sessioni = (b.sessioni||[]).map(function(s) {
+      return s.sessione_libreria_id
+        ? { sessione_libreria_id: s.sessione_libreria_id }
+        : { titolo: s.titolo_snapshot, descrizione: s.descrizione_snapshot, durata_minuti: s.durata_minuti_snapshot, categoria: s.categoria_snapshot, tag: s.tag_snapshot||[] };
+    });
+    const body = { leva_id: b.leva_id, titolo: 'Copia di '+b.titolo, obiettivo: b.obiettivo||null, data: b.data ? b.data.slice(0,10) : new Date().toISOString().slice(0,10), visibilita_genitori: !!b.visibilita_genitori, note_testo: b.note_testo||null, sessioni, event_id: null };
+    const cr = await fetch(API_BASE + '/api/v2/allenamenti', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!cr.ok) { const er = await cr.json().catch(()=>({})); toast('❌ Errore: '+(er.message||er.error||cr.status)); return; }
+    toast('📋 Allenamento duplicato!');
+    _allCalLoadEvents();
+  } catch(e) { toast('❌ Errore durante la duplicazione.'); }
+}
+
+async function _eliminaBozza(allenId) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { m.style.display='none'; });
+  const bozza = (_allSt.cal.bozze||[]).find(function(b) { return b.id === allenId; });
+  const titolo = bozza ? bozza.titolo : 'questo allenamento';
+  if (!confirm('Eliminare "' + titolo + '"? L\'azione non è reversibile.')) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, {
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!resp.ok && resp.status !== 404) { toast('❌ Errore eliminazione (HTTP '+resp.status+')'); return; }
+    toast('🗑️ Allenamento eliminato');
+    _allCalLoadEvents();
+  } catch(e) { toast('❌ Errore durante l\'eliminazione.'); }
 }
 
 function _allCalChangeMese(dir) {
@@ -14133,7 +14413,7 @@ function _allCalChangeListRange(v) {
 function _allCalRenderWeek(gridEl) {
   const ws = _allSt.cal.weekStart;
   if (!ws) { gridEl.innerHTML = ''; return; }
-  const { events } = _allSt.cal;
+  const events = _allCalApplyFilters(_allSt.cal.events || []);
   const todayStr = new Date().toISOString().slice(0,10);
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -14185,7 +14465,7 @@ function _allCalRenderWeek(gridEl) {
 }
 
 function _allCalRenderList(gridEl) {
-  const evs = ((_allSt.cal.events)||[]).filter(function(ev) { return !!ev.allenamento_id; });
+  const evs = _allCalApplyFilters((_allSt.cal.events)||[]).filter(function(ev) { return !!ev.allenamento_id; });
   evs.sort(function(a,b) {
     const da=(a.data||'').slice(0,10), db=(b.data||'').slice(0,10);
     if (da!==db) return da.localeCompare(db);
