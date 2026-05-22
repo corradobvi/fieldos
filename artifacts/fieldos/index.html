@@ -15343,13 +15343,18 @@ function userLeve(){
 }
 // ── API calendario: normalizza evento REST → formato frontend ─────────────────
 function _normalizeApiEvent(ev) {
+  // data può arrivare come "2026-05-26T00:00:00.000Z" — prendi solo i primi 10 char
+  var _date = (ev.data || '').slice(0, 10);
+  // ora_inizio/ora_fine possono avere secondi "10:00:00" — tieni solo "HH:MM"
+  var _start = (ev.ora_inizio || '').slice(0, 5);
+  var _end   = (ev.ora_fine   || '').slice(0, 5);
   return {
     id: ev.event_id,
     title: ev.titolo || '',
     type: ev.tipo || 'evento',
-    date: ev.data || '',
-    start: ev.ora_inizio || '',
-    end: ev.ora_fine || '',
+    date: _date,
+    start: _start,
+    end: _end,
     luogo: ev.luogo || '',
     note: ev.note || '',
     leve: (ev.leve || []).map(function(l) { return l.nome; }),
