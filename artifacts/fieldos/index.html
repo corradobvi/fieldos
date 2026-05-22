@@ -1545,6 +1545,21 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-badge-conv{background:#dcfce7;color:#166534;}
 .cgm-badge-noconv{background:var(--border);color:var(--text2);}
 .cgm-badge-wait{background:#fef9c3;color:#854d0e;}
+/* ── Allenamenti calendar view ─────────── */
+.all-cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.all-cal-mlbl{font-weight:800;font-size:.95rem;min-width:130px;text-align:center;color:var(--text1);}
+.all-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:24px;}
+.all-cal-head{text-align:center;font-size:.63rem;font-weight:700;color:var(--text3);padding:3px 0 6px;text-transform:uppercase;}
+.all-cal-cell{min-height:72px;border-radius:8px;padding:5px 4px;border:1.5px solid var(--border);background:var(--white);display:flex;flex-direction:column;gap:2px;}
+.all-cal-cell.ac-today{border-color:var(--cp) !important;border-width:2px;}
+.all-cal-cell.ac-other{opacity:.22;background:var(--bg);pointer-events:none;}
+.all-cal-dn{font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:1px;}
+.all-cal-cell.ac-today .all-cal-dn{color:var(--cp);}
+.all-cal-slot{border-radius:5px;padding:3px 5px;font-size:.6rem;cursor:pointer;border:1px solid transparent;transition:background .1s;margin-bottom:1px;-webkit-tap-highlight-color:transparent;line-height:1.3;}
+.all-cal-slot.ac-filled{background:#d1fae5;border-color:#6ee7b7;color:#065f46;}
+.all-cal-slot.ac-filled:hover{background:#a7f3d0;}
+.all-cal-slot.ac-empty{background:var(--bg);border-color:var(--border);color:var(--text3);border-style:dashed;}
+.all-cal-slot.ac-empty:hover{background:var(--cl);border-color:var(--cp);color:var(--cp);}
 
 /* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
@@ -13592,9 +13607,10 @@ const ALL_AI_ENABLED = false;
 let _allSt = {
   tab: 'lista',
   lista: { periodo: '30g', stato: 'tutti', items: null },
+  cal: { anno: new Date().getFullYear(), mese: new Date().getMonth(), leva: '', events: [], bozze: [] },
   lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
   _nsTags: [],
-  _costruttore: { id: null, sessioni: [], _editIdx: null },
+  _costruttore: { id: null, sessioni: [], _editIdx: null, eventId: null },
   _aiBudget: null,
   _aiAbilitato: false,
 };
@@ -13702,36 +13718,35 @@ function _renderAllLista(cont) {
       <div style="font-size:.82rem;color:var(--text2);margin-top:3px;">Condivisi dalla società — visibili 24h dopo la creazione</div>
     </div>`;
   } else {
+    if (!_allSt.cal.leva) _allSt.cal.leva = currentLeva;
     const multiLeva = leve.length > 1;
     const levaSel = multiLeva
-      ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allChangeLeva(this.value)">
-           ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===currentLeva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
+      ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allCalChangeLeva(this.value)">
+           ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===_allSt.cal.leva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
          </select>`
       : `<span style="font-size:.9rem;font-weight:700;color:var(--cp);">${escapeHtml(currentLeva)}</span>`;
+    const _MESI_AC = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
     hdr = `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
       <div style="flex:1;">
         <div style="font-size:1.1rem;font-weight:800;">Allenamenti</div>
-        <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Pianifica e gestisci le sedute della tua leva</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Pianifica le sedute della tua leva</div>
       </div>
       ${levaSel}
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangePeriodo(this.value)">
-        <option value="30g" ${_allSt.lista.periodo==='30g'?'selected':''}>Prossimi 30 giorni</option>
-        <option value="mese_corrente" ${_allSt.lista.periodo==='mese_corrente'?'selected':''}>Mese corrente</option>
-        <option value="mese_scorso" ${_allSt.lista.periodo==='mese_scorso'?'selected':''}>Mese scorso</option>
-        <option value="tutti" ${_allSt.lista.periodo==='tutti'?'selected':''}>Tutti</option>
-      </select>
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangeStato(this.value)">
-        <option value="tutti" ${_allSt.lista.stato==='tutti'?'selected':''}>Tutti</option>
-        <option value="futuri" ${_allSt.lista.stato==='futuri'?'selected':''}>Futuri</option>
-        <option value="passati" ${_allSt.lista.stato==='passati'?'selected':''}>Passati</option>
-      </select>
+    <div class="all-cal-nav">
+      <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(-1)">◀</button>
+      <span class="all-cal-mlbl" id="allCalMonthLbl">${_MESI_AC[_allSt.cal.mese]} ${_allSt.cal.anno}</span>
+      <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(1)">▶</button>
     </div>`;
   }
 
-  cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allListItems"></div>`;
-  _loadAllLista();
+  if (isGenitore) {
+    cont.innerHTML = hdr + `<div id="allListItems"></div>`;
+    _loadAllLista();
+  } else {
+    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
+    _allCalLoadEvents();
+  }
 }
 
 async function _loadAllLista() {
@@ -13827,6 +13842,145 @@ function _allChangePeriodo(v) { _allSt.lista.periodo = v; _loadAllLista(); }
 function _allChangeStato(v)   { _allSt.lista.stato   = v; _renderAllListItems(document.getElementById('allListItems')); }
 function _allChangeLeva(v)    { currentLeva = v; _loadAllLista(); }
 
+// ── VISTA CALENDARIO ALLENAMENTI ──────────────────────────────────────────
+
+const _AC_MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const _AC_DAYS = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+async function _allCalLoadEvents() {
+  const gridEl = document.getElementById('allCalGrid');
+  if (!gridEl) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) { gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato.</div>'; return; }
+
+  const { anno, mese } = _allSt.cal;
+  const leva = _allSt.cal.leva || currentLeva;
+  const pad2 = n => String(n).padStart(2,'0');
+  const da = anno + '-' + pad2(mese+1) + '-01';
+  const lastDay = new Date(anno, mese+1, 0).getDate();
+  const a  = anno + '-' + pad2(mese+1) + '-' + pad2(lastDay);
+  const levaId = _calLeveMap[leva] || '';
+
+  gridEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Caricamento…</div>';
+
+  const evParams = new URLSearchParams({ da, a, tipi: 'allenamento,allenamento_portieri', expand_recurrences: 'true' });
+  if (levaId) evParams.set('leva_id', levaId);
+  const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+
+  try {
+    const [evResp, allResp] = await Promise.all([
+      fetch(API_BASE + '/api/v2/events?' + evParams, { headers: hdrs }),
+      fetch(API_BASE + '/api/v2/allenamenti', { headers: hdrs })
+    ]);
+    _allSt.cal.events = evResp.ok ? (await evResp.json()) : [];
+    const allData = allResp.ok ? (await allResp.json()) : { items: [] };
+    _allSt.cal.bozze = (allData.items || []).filter(function(x) { return !x.event_id; });
+    _allCalRender();
+  } catch(e) {
+    if (gridEl) gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">❌ Errore caricamento. <a style="cursor:pointer;text-decoration:underline;" onclick="_allCalLoadEvents()">Riprova</a></div>';
+  }
+}
+
+function _allCalRender() {
+  const gridEl = document.getElementById('allCalGrid');
+  const bozzeEl = document.getElementById('allCalBozze');
+  if (!gridEl) return;
+
+  const { anno, mese, events } = _allSt.cal;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const pad2 = n => String(n).padStart(2,'0');
+
+  // Raggruppa eventi per data
+  const byDate = {};
+  (events || []).forEach(function(ev) {
+    const d = (ev.data || '').slice(0,10);
+    if (d) { if (!byDate[d]) byDate[d] = []; byDate[d].push(ev); }
+  });
+
+  const firstDow = new Date(anno, mese, 1).getDay();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(anno, mese+1, 0).getDate();
+  const prevDays = new Date(anno, mese, 0).getDate();
+
+  let html = '<div class="all-cal-grid">';
+  _AC_DAYS.forEach(function(d) { html += '<div class="all-cal-head">' + d + '</div>'; });
+
+  for (let i = 0; i < offset; i++) {
+    html += '<div class="all-cal-cell ac-other"><div class="all-cal-dn">' + (prevDays - offset + i + 1) + '</div></div>';
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = anno + '-' + pad2(mese+1) + '-' + pad2(day);
+    const isToday = ds === todayStr;
+    const dayEvs = byDate[ds] || [];
+    html += '<div class="all-cal-cell' + (isToday ? ' ac-today' : '') + '">';
+    html += '<div class="all-cal-dn">' + day + '</div>';
+    dayEvs.forEach(function(ev) {
+      const startT = (ev.ora_inizio || '').slice(0,5);
+      const endT   = (ev.ora_fine   || '').slice(0,5);
+      const timeStr = startT ? startT + (endT ? '–' + endT : '') : '';
+      const isFilled = !!ev.allenamento_id;
+      const slotClass = isFilled ? 'ac-filled' : 'ac-empty';
+      const lbl = isFilled ? '✅ Creato' : '➕ Crea';
+      html += '<div class="all-cal-slot ' + slotClass + '" onclick="_allCalClickSlot(' + ev.event_id + ',' + (ev.allenamento_id || 'null') + ')">';
+      if (timeStr) html += '<div style="font-weight:700;">' + escapeHtml(timeStr) + '</div>';
+      html += '<div>' + lbl + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
+  for (let i = 1; i <= trailing; i++) {
+    html += '<div class="all-cal-cell ac-other"><div class="all-cal-dn">' + i + '</div></div>';
+  }
+  html += '</div>';
+
+  gridEl.innerHTML = html;
+  if (bozzeEl) _allCalRenderBozze(bozzeEl);
+}
+
+function _allCalRenderBozze(el) {
+  const bozze = _allSt.cal.bozze || [];
+  const canEdit = isAdminLike() || hasPerm('modifica_piano_allenamento');
+  if (!bozze.length) { el.innerHTML = ''; return; }
+  let html = '<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">';
+  html += '<div style="font-size:.85rem;font-weight:800;margin-bottom:10px;color:var(--text2);">📋 Allenamenti senza slot programmato (' + bozze.length + ')</div>';
+  html += bozze.map(function(a) {
+    return '<div class="all-card" style="cursor:pointer;" onclick="_openAllenamentiDetail(\'' + a.id + '\')">'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<div style="flex:1;"><div style="font-weight:700;font-size:.9rem;">' + escapeHtml(a.titolo) + '</div>'
+      + '<div style="font-size:.75rem;color:var(--text3);">🕐 ' + (a.durata_totale_minuti||0) + ' min · ' + (a.num_sessioni||0) + ' sessioni</div></div>'
+      + (canEdit ? '<button class="btn btn-g btn-sm" onclick="event.stopPropagation();_openCostruisciAllenamento(\'' + a.id + '\')">✏️</button>' : '')
+      + '</div></div>';
+  }).join('');
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function _allCalChangeMese(dir) {
+  _allSt.cal.mese += dir;
+  if (_allSt.cal.mese > 11) { _allSt.cal.mese = 0; _allSt.cal.anno++; }
+  if (_allSt.cal.mese < 0)  { _allSt.cal.mese = 11; _allSt.cal.anno--; }
+  const lbl = document.getElementById('allCalMonthLbl');
+  if (lbl) lbl.textContent = _AC_MESI[_allSt.cal.mese] + ' ' + _allSt.cal.anno;
+  _allCalLoadEvents();
+}
+
+function _allCalChangeLeva(v) {
+  currentLeva = v;
+  _allSt.cal.leva = v;
+  _allCalLoadEvents();
+}
+
+function _allCalClickSlot(eventId, allenId) {
+  if (allenId) {
+    _openAllenamentiDetail(String(allenId));
+  } else {
+    _openCostruisciAllenamento(null, eventId);
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // AI BUDGET — carica e mostra
 // ══════════════════════════════════════════════════════════════════════════
@@ -13911,8 +14065,8 @@ function _canUseAI() {
 
 function _openNuovoAllenamento() { _openCostruisciAllenamento(null); }
 
-function _openCostruisciAllenamento(allenamentoId) {
-  _allSt._costruttore = { id: allenamentoId, sessioni: [], _editIdx: null };
+function _openCostruisciAllenamento(allenamentoId, eventId) {
+  _allSt._costruttore = { id: allenamentoId, sessioni: [], _editIdx: null, eventId: eventId || null };
   const isNew = !allenamentoId;
   const el = document.getElementById('_allFsModal');
   if (!el) return;
@@ -13935,6 +14089,24 @@ function _openCostruisciAllenamento(allenamentoId) {
   if (allenamentoId) {
     _loadAllenamientoPerModifica(allenamentoId);
   } else {
+    if (eventId) {
+      // Pre-popola dal evento calendario
+      const ev = (_allSt.cal.events || []).find(function(e) { return e.event_id === eventId; });
+      if (ev) {
+        const dateStr = (ev.data || '').slice(0,10);
+        if (dateStr) document.getElementById('_allFsData').value = dateStr;
+        // Imposta titolo automatico
+        if (dateStr) {
+          const _dp = dateStr.split('-').map(Number);
+          const _dt = new Date(_dp[0], _dp[1]-1, _dp[2]);
+          const _GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+          document.getElementById('_allFsTitolo').value = 'Allenamento ' + _GG[_dt.getDay()] + ' ' + _dp[2] + '/' + _dp[1];
+        }
+        // Imposta leva
+        const levaNome = ev.leve && ev.leve[0] ? ev.leve[0].nome : currentLeva;
+        if (levaEl) { for (let o of levaEl.options) { if (o.value === levaNome) { o.selected = true; break; } } }
+      }
+    }
     _renderCostruisciSessioni();
   }
 
@@ -14118,10 +14290,12 @@ async function _salvaAllenamento() {
       };
     }),
   };
+  if (_allSt._costruttore.eventId) body.event_id = _allSt._costruttore.eventId;
 
   const id = _allSt._costruttore.id;
   const url  = id ? `${API_BASE}/api/v2/allenamenti/${id}` : `${API_BASE}/api/v2/allenamenti`;
   const method = id ? 'PATCH' : 'POST';
+  const _wasFromEvent = !!_allSt._costruttore.eventId;
 
   try {
     const resp = await fetch(url, {
@@ -14135,7 +14309,7 @@ async function _salvaAllenamento() {
     }
     _closeCostruisciAllenamento();
     toast('✅ Allenamento salvato');
-    _loadAllLista();
+    if (_wasFromEvent) { _allCalLoadEvents(); } else { _loadAllLista(); }
   } catch(e) {
     if (errEl) errEl.textContent = '❌ ' + e.message;
   } finally {
