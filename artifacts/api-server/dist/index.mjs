@@ -89648,6 +89648,10 @@ async function ensureSchema() {
       "SHOW INDEX FROM `ai_budget_utilizzo` WHERE Key_name = 'uq_ai_budget_key'"
     );
     if (!idxRows.length) {
+      await pool.execute(
+        "DELETE t1 FROM `ai_budget_utilizzo` t1 INNER JOIN `ai_budget_utilizzo` t2 ON t1.budget_key = t2.budget_key AND t1.id > t2.id"
+      );
+      console.log("[SCHEMA_GUARD] ai_budget_utilizzo deduplicata");
       await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD UNIQUE KEY uq_ai_budget_key (`budget_key`)");
       console.log("[SCHEMA_GUARD] uq_ai_budget_key index added");
       logger.info("v2: uq_ai_budget_key index added via explicit guard");

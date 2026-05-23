@@ -78,12 +78,17 @@ async function ensureSchema() {
     logger.error({ err: e?.message }, "v2: budget_key column guard failed");
   }
 
-  // Guard: unique index uq_ai_budget_key su ai_budget_utilizzo
+  // Guard: unique index uq_ai_budget_key su ai_budget_utilizzo (con deduplicazione preventiva)
   try {
     const [idxRows] = await pool.execute(
       "SHOW INDEX FROM `ai_budget_utilizzo` WHERE Key_name = 'uq_ai_budget_key'"
     ) as [any[], any];
     if (!idxRows.length) {
+      // Deduplicazione: mantieni la riga con id minore per ogni budget_key
+      await pool.execute(
+        "DELETE t1 FROM `ai_budget_utilizzo` t1 INNER JOIN `ai_budget_utilizzo` t2 ON t1.budget_key = t2.budget_key AND t1.id > t2.id"
+      );
+      console.log("[SCHEMA_GUARD] ai_budget_utilizzo deduplicata");
       await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD UNIQUE KEY uq_ai_budget_key (`budget_key`)");
       console.log("[SCHEMA_GUARD] uq_ai_budget_key index added");
       logger.info("v2: uq_ai_budget_key index added via explicit guard");
