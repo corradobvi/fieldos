@@ -83880,7 +83880,7 @@ var auth_default2 = router9;
 var import_express10 = __toESM(require_express2(), 1);
 
 // src/lib/email.ts
-var FROM = "MyVivaio <onboarding@resend.dev>";
+var FROM = "MyVivaio <info@myvivaio.app>";
 var ADMIN_TO = "info@myvivaio.app";
 async function sendMail(to, subject, html) {
   const apiKey = process.env.RESEND_API_KEY;

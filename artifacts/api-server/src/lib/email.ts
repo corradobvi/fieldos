@@ -1,6 +1,6 @@
 import { logger } from "./logger";
 
-const FROM     = "MyVivaio <onboarding@resend.dev>";
+const FROM     = "MyVivaio <info@myvivaio.app>";
 const ADMIN_TO = "info@myvivaio.app";
 
 async function sendMail(to: string, subject: string, html: string): Promise<void> {
