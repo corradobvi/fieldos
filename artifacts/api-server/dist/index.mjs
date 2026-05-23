@@ -89601,6 +89601,7 @@ var router30 = (0, import_express30.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
+  console.log("[SCHEMA_GUARD] ensureSchema started");
   const statements = SCHEMA_SQL.split(";").map((s) => s.trim()).filter(Boolean);
   for (const sql2 of statements) {
     await pool.execute(sql2);
@@ -89617,12 +89618,17 @@ async function ensureSchema() {
     ["ai_budget_utilizzo", "budget_key", "VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL"]
   ]) {
     try {
+      if (table === "ai_budget_utilizzo") console.log("[SCHEMA_GUARD] checking budget_key column");
       const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
+      if (table === "ai_budget_utilizzo") console.log(`[SCHEMA_GUARD] budget_key result: found=${cols.length} rows`);
       if (!cols.length) {
+        console.log(`[SCHEMA_GUARD] budget_key MISSING \u2014 running ALTER TABLE`);
         await pool.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`);
+        console.log(`[SCHEMA_GUARD] budget_key ALTER TABLE completed`);
         logger.info({ table, col }, "v2: column added via explicit guard");
       }
     } catch (e) {
+      console.log(`[SCHEMA_GUARD] explicit column guard FAILED for ${table}.${col}: ${e?.message}`);
       logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
     }
   }
@@ -89635,6 +89641,7 @@ async function ensureSchema() {
       logger.info("v2: uq_ai_budget_key index added via explicit guard");
     }
   } catch (e) {
+    console.log(`[SCHEMA_GUARD] uq_ai_budget_key index guard FAILED: ${e?.message}`);
     logger.error({ err: e?.message }, "v2: uq_ai_budget_key index guard failed");
   }
   try {
@@ -89755,6 +89762,7 @@ async function ensureSchema() {
     logger.info("v2: seed data inserted");
   }
   _schemaReady = true;
+  console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
 router30.use(async (_req, _res, next) => {
@@ -89794,6 +89802,21 @@ router30.get("/health/ai-key", (_req, res) => {
     keyLength: key.length,
     keyPrefix: key.slice(0, 7) + "..."
   });
+});
+router30.get("/health/schema-budget", async (_req, res) => {
+  try {
+    const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
+    const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
+    return res.json({
+      schemaReady: _schemaReady,
+      columns: cols.map((c) => ({ field: c.Field, type: c.Type, null: c.Null, key: c.Key, extra: c.Extra })),
+      indexes: idxRows.map((r) => ({ keyName: r.Key_name, column: r.Column_name, unique: r.Non_unique === 0 })),
+      hasBudgetKey: cols.some((c) => c.Field === "budget_key"),
+      hasUqIndex: idxRows.some((r) => r.Key_name === "uq_ai_budget_key")
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
 });
 router30.use(auth_default2);
 router30.use(self_register_default);
