@@ -3830,6 +3830,8 @@ let _gcTorneoGironiUI = [];
 let _gcTorneiEspansi = new Set();
 let _gcShowArchiviati = false;
 let _ptMostraArchiviati = false;
+let _importPdfStep = 1;
+let _importPdfData = null;
 const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
 const GC_SPAREGGIO_OPTIONS = [
   {k:'scontro_diretto',label:'Scontro diretto'},
@@ -17616,6 +17618,7 @@ function renderGestComp() {
     }
     if (gcCurrentTab === 'tornei' && isAdmin) {
       const b = document.createElement('button'); b.className='btn btn-p btn-sm'; b.textContent='+ Nuovo torneo'; b.onclick=()=>openGcTorneoEdit(null); actEl.appendChild(b);
+      const b2 = document.createElement('button'); b2.className='btn btn-s btn-sm'; b2.style.marginLeft='6px'; b2.textContent='📄 Importa da PDF'; b2.onclick=()=>openImportTorneoPdf(); actEl.appendChild(b2);
     }
     if (gcCurrentTab === 'amichevoli' && canAll) {
       const b = document.createElement('button'); b.className='btn btn-p btn-sm'; b.textContent='+ Amichevole'; b.onclick=()=>openPtAmich(null); actEl.appendChild(b);

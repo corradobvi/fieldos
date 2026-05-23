@@ -67144,7 +67144,7 @@ var require_multer = __commonJS({
       }
       return makeMiddleware(setup.bind(this));
     };
-    function multer2(options) {
+    function multer3(options) {
       if (options === void 0) {
         return new Multer({});
       }
@@ -67153,7 +67153,7 @@ var require_multer = __commonJS({
       }
       throw new TypeError("Expected object for argument options");
     }
-    module.exports = multer2;
+    module.exports = multer3;
     module.exports.diskStorage = diskStorage;
     module.exports.memoryStorage = memoryStorage;
     module.exports.MulterError = MulterError;
@@ -89073,8 +89073,8 @@ router28.post("/ai/spunto-rapido", requireAuth, async (req, res) => {
   if (!domanda || typeof domanda !== "string" || domanda.trim().length < 5) {
     return res.status(400).json({ error: "domanda richiesta (min 5 caratteri)" });
   }
-  const TOKEN_STIMATI = 1500;
-  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI);
+  const TOKEN_STIMATI2 = 1500;
+  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI2);
   if (!budget.ok) {
     return res.status(402).json({
       error: "budget_insufficiente",
@@ -89138,8 +89138,8 @@ router28.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   if (durata_minuti && (typeof durata_minuti !== "number" || durata_minuti < 5 || durata_minuti > 120)) {
     return res.status(400).json({ error: "durata_minuti deve essere tra 5 e 120" });
   }
-  const TOKEN_STIMATI = 2e3;
-  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI);
+  const TOKEN_STIMATI2 = 2e3;
+  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI2);
   if (!budget.ok) {
     return res.status(402).json({
       error: "budget_insufficiente",
@@ -89258,8 +89258,8 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
   if (!eta_leva || !LEVE_VALIDE.includes(eta_leva)) {
     return res.status(400).json({ error: "eta_leva non valida", valide: LEVE_VALIDE });
   }
-  const TOKEN_STIMATI = 4e3;
-  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI);
+  const TOKEN_STIMATI2 = 4e3;
+  const budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI2);
   if (!budget.ok) {
     return res.status(402).json({
       error: "budget_insufficiente",
@@ -89419,77 +89419,174 @@ router28.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
 });
 var ai_allenamenti_default = router28;
 
-// src/routes/v2/diag.ts
+// src/routes/v2/ai-tornei.ts
 var import_express29 = __toESM(require_express2(), 1);
+var import_multer2 = __toESM(require_multer(), 1);
 var router29 = (0, import_express29.Router)();
-var SA_SECRET2 = process.env.SA_SECRET ?? "super123";
-router29.get("/_diag/societies-vs-allenamenti", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET2) {
-    return res.status(401).json({ error: "unauthorized" });
-  }
-  try {
-    const [societies] = await pool.execute(
-      "SELECT id, nome, piano, stato FROM societies ORDER BY id"
-    );
-    const [users] = await pool.execute(
-      `SELECT id, email, CONCAT(nome, ' ', cognome) AS nome_completo,
-              society_id, ruolo, stato
-       FROM users ORDER BY society_id, id LIMIT 100`
-    );
-    const [allenamenti] = await pool.execute(
-      `SELECT a.id, a.titolo, a.societa_id,
-              s.nome AS societa_nome,
-              a.event_id, a.leva_id, a.creato_da,
-              u.email AS creato_da_email,
-              a.created_at
-       FROM allenamenti a
-       LEFT JOIN societies s ON s.id = a.societa_id
-       LEFT JOIN users u ON u.id = a.creato_da
-       ORDER BY a.created_at DESC LIMIT 30`
-    );
-    const [orphanRows] = await pool.execute(
-      `SELECT DISTINCT a.societa_id
-       FROM allenamenti a
-       LEFT JOIN societies s ON s.id = a.societa_id
-       WHERE s.id IS NULL`
-    );
-    const orphan_societa_ids = orphanRows.map((r) => r.societa_id);
-    const [countRows] = await pool.execute(
-      `SELECT a.societa_id, s.nome AS societa_nome, COUNT(*) AS n
-       FROM allenamenti a
-       LEFT JOIN societies s ON s.id = a.societa_id
-       GROUP BY a.societa_id, s.nome
-       ORDER BY a.societa_id`
-    );
-    const [tablesRows] = await pool.execute(
-      "SHOW TABLES LIKE 'user_societies'"
-    );
-    const ha_tabella_user_societies = tablesRows.length > 0;
-    const [colSocietyIdUsers] = await pool.execute(
-      "SHOW COLUMNS FROM `users` LIKE 'society_id'"
-    );
-    const [colSocietaIdAll] = await pool.execute(
-      "SHOW COLUMNS FROM `allenamenti` LIKE 'societa_id'"
-    );
-    logger.info({ endpoint: "_diag/societies-vs-allenamenti" }, "diag endpoint called");
-    return res.json({
-      societies,
-      users,
-      allenamenti,
-      allenamenti_per_societa: countRows,
-      orphan_societa_ids,
-      schema_check: {
-        ha_tabella_user_societies,
-        colonna_society_id_su_users: colSocietyIdUsers.length > 0,
-        colonna_societa_id_su_allenamenti: colSocietaIdAll.length > 0
-      }
-    });
-  } catch (e) {
-    logger.error({ err: e }, "_diag/societies-vs-allenamenti error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
-  }
+var upload = (0, import_multer2.default)({
+  storage: import_multer2.default.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
+  // 5 MB
 });
-var diag_default = router29;
+var API_URL2 = "https://api.anthropic.com/v1/messages";
+var TOKEN_STIMATI = 8e3;
+var SYSTEM_PROMPT2 = "Sei un assistente che estrae dati strutturati da PDF di tornei di calcio giovanile italiani. Restituisci SOLO JSON valido, nessun testo aggiuntivo, nessun markdown.";
+var USER_PROMPT = `Analizza questo PDF di un torneo di calcio giovanile ed estrai i dati strutturati.
+
+Restituisci SOLO il seguente oggetto JSON (senza markdown, senza testo aggiuntivo):
+{
+  "nome": "Nome del torneo",
+  "luogo": "Citt\xE0/campo oppure null",
+  "dataInizio": "YYYY-MM-DD oppure null",
+  "dataFine": "YYYY-MM-DD oppure null",
+  "gironi": [
+    { "nome": "A", "squadre": ["NOME1", "NOME2", "NOME3"] }
+  ],
+  "partite": [
+    {
+      "data": "YYYY-MM-DD oppure null",
+      "orario": "HH:MM oppure null",
+      "girone": "A",
+      "casa": "NOME1",
+      "ospite": "NOME2",
+      "luogo": null
+    }
+  ]
+}
+
+Per le squadre usa i nomi esattamente come appaiono nel PDF, in maiuscolo.
+Se un campo non \xE8 identificabile usa null. Non aggiungere campi extra.`;
+router29.post(
+  "/ai/import-torneo-pdf",
+  requireAuth,
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err?.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({
+          error: "file_troppo_grande",
+          message: "Il PDF non pu\xF2 superare 5 MB"
+        });
+      }
+      if (err) {
+        return res.status(400).json({
+          error: "upload_error",
+          message: String(err.message || err)
+        });
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    const user = req.jwtUser;
+    if (!req.file) {
+      return res.status(400).json({ error: "file_mancante", message: "Carica un file PDF" });
+    }
+    if (req.file.mimetype !== "application/pdf") {
+      return res.status(400).json({ error: "file_non_valido", message: "Il file deve essere un PDF" });
+    }
+    let budget;
+    try {
+      budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI);
+    } catch (e) {
+      logger.error({ err: e }, "ai-tornei: budget check failed");
+      return res.status(500).json({ error: "server_error", message: "Errore server" });
+    }
+    if (!budget.ok) {
+      return res.status(402).json({
+        error: "budget_insufficiente",
+        motivo: budget.motivo,
+        budgetRimasto: budget.budgetRimasto,
+        budgetTotale: budget.budgetTotale
+      });
+    }
+    const apiKey = process.env.ANTHROPIC_API_KEY ?? "";
+    if (!apiKey) {
+      return res.status(503).json({ error: "api_key_invalid", message: "ANTHROPIC_API_KEY non configurata" });
+    }
+    const pdfBase64 = req.file.buffer.toString("base64");
+    let resp;
+    try {
+      resp = await fetch(API_URL2, {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "pdfs-2024-09-25",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: AI_MODEL,
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT2,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "document",
+                  source: {
+                    type: "base64",
+                    media_type: "application/pdf",
+                    data: pdfBase64
+                  }
+                },
+                {
+                  type: "text",
+                  text: USER_PROMPT
+                }
+              ]
+            }
+          ]
+        })
+      });
+    } catch (e) {
+      logger.error({ err: e }, "ai-tornei: fetch error");
+      return res.status(500).json({ error: "ai_error", message: `Errore di rete: ${e?.message ?? "fetch failed"}` });
+    }
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      logger.warn({ status: resp.status, body: body.slice(0, 200) }, "ai-tornei: Anthropic error");
+      if (resp.status === 429)
+        return res.status(429).json({ error: "rate_limit", message: "Limite richieste AI raggiunto, riprova tra qualche minuto" });
+      if (resp.status === 401)
+        return res.status(401).json({ error: "api_key_invalid", message: "Chiave API non valida" });
+      return res.status(500).json({ error: "ai_error", message: `HTTP ${resp.status}` });
+    }
+    let data;
+    try {
+      data = await resp.json();
+    } catch {
+      return res.status(500).json({ error: "ai_error", message: "Risposta non JSON da Anthropic" });
+    }
+    const testo = data.content?.[0]?.text ?? "";
+    const tokenInput = data.usage?.input_tokens ?? 0;
+    const tokenOutput = data.usage?.output_tokens ?? 0;
+    const tokenTotale = tokenInput + tokenOutput;
+    logger.info({ model: AI_MODEL, tokenInput, tokenOutput }, "ai-tornei: chiamata completata");
+    registraConsumoBudget({
+      userId: user.userId,
+      societaId: user.societyId,
+      tokenEffettivi: { input: tokenInput, output: tokenOutput, totale: tokenTotale },
+      tipo: "spunto_rapido",
+      promptInput: "import-torneo-pdf",
+      successo: true
+    }).catch((e) => logger.warn({ err: e }, "ai-tornei: budget registration failed"));
+    let torneoData;
+    try {
+      const jsonMatch = testo.match(/```json\s*([\s\S]*?)```/) || testo.match(/```\s*([\s\S]*?)```/);
+      const jsonStr = jsonMatch ? jsonMatch[1].trim() : testo.trim();
+      torneoData = JSON.parse(jsonStr);
+    } catch {
+      logger.warn({ testo: testo.slice(0, 500) }, "ai-tornei: JSON parse failed");
+      return res.status(422).json({
+        error: "parsing_fallito",
+        message: "Impossibile parsare il PDF, verifica il file"
+      });
+    }
+    return res.json({ ok: true, data: torneoData });
+  }
+);
+var ai_tornei_default = router29;
 
 // src/routes/v2/index.ts
 var router30 = (0, import_express30.Router)();
@@ -89698,7 +89795,7 @@ router30.use(account_default);
 router30.use(notification_preferences_default);
 router30.use(allenamenti_default);
 router30.use(ai_allenamenti_default);
-router30.use(diag_default);
+router30.use(ai_tornei_default);
 var v2_default = router30;
 
 // src/routes/index.ts
