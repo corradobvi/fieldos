@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router32;
+    module.exports = Router33;
     module.exports.Route = Route;
-    function Router32(options) {
-      if (!(this instanceof Router32)) {
-        return new Router32(options);
+    function Router33(options) {
+      if (!(this instanceof Router33)) {
+        return new Router33(options);
       }
       const opts = options || {};
-      function router32(req, res, next) {
-        router32.handle(req, res, next);
+      function router33(req, res, next) {
+        router33.handle(req, res, next);
       }
-      Object.setPrototypeOf(router32, this);
-      router32.caseSensitive = opts.caseSensitive;
-      router32.mergeParams = opts.mergeParams;
-      router32.params = {};
-      router32.strict = opts.strict;
-      router32.stack = [];
-      return router32;
+      Object.setPrototypeOf(router33, this);
+      router33.caseSensitive = opts.caseSensitive;
+      router33.mergeParams = opts.mergeParams;
+      router33.params = {};
+      router33.strict = opts.strict;
+      router33.stack = [];
+      return router33;
     }
-    Router32.prototype = function() {
+    Router33.prototype = function() {
     };
-    Router32.prototype.param = function param(name, fn) {
+    Router33.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router32.prototype.handle = function handle(req, res, callback) {
+    Router33.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router32.prototype.use = function use(handler) {
+    Router33.prototype.use = function use(handler) {
       let offset = 0;
       let path3 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router32.prototype.route = function route(path3) {
+    Router33.prototype.route = function route(path3) {
       const route2 = new Route(path3);
       const layer = new Layer(path3, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router32.prototype[method] = function(path3) {
+      Router33.prototype[method] = function(path3) {
         const route = this.route(path3);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router32 = require_router();
+    var Router33 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router32 = null;
+      var router33 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router32 === null) {
-            router32 = new Router32({
+          if (router33 === null) {
+            router33 = new Router33({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router32;
+          return router33;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router32 = this.router;
+      var router33 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router32.use(path3, fn2);
+          return router33.use(path3, fn2);
         }
         debug(".use app under %s", path3);
         fn2.mountpath = path3;
         fn2.parent = this;
-        router32.use(path3, function mounted_app(req, res, next) {
+        router33.use(path3, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router32 = require_router();
+    var Router33 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router32.Route;
-    exports.Router = Router32;
+    exports.Route = Router33.Route;
+    exports.Router = Router33;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express32 = __toESM(require_express2(), 1);
+var import_express33 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path2 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express31 = __toESM(require_express2(), 1);
+var import_express32 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78359,7 +78359,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express30 = __toESM(require_express2(), 1);
+var import_express31 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -89596,8 +89596,60 @@ router29.post(
 );
 var ai_tornei_default = router29;
 
-// src/routes/v2/index.ts
+// src/routes/v2/diag.ts
+var import_express30 = __toESM(require_express2(), 1);
 var router30 = (0, import_express30.Router)();
+var SA_SECRET2 = process.env.SA_SECRET ?? "super123";
+router30.post("/superadmin/_diag/cleanup-preview", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET2) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  try {
+    const [societies] = await pool.execute(
+      `SELECT id, nome, citta, piano, billing_mode, subscription_status, demo_scadenza, stato, created_at
+       FROM societies WHERE id IN (1, 2, 6, 7, 29, 30) ORDER BY id`
+    );
+    const [users] = await pool.execute(
+      `SELECT id, email, ruolo, society_id, nome, cognome, created_at
+       FROM users WHERE society_id IN (1, 2, 6, 7, 29, 30) ORDER BY society_id, id`
+    );
+    const [blobs] = await pool.execute(
+      `SELECT \`key\`, LENGTH(state_json) AS bytes,
+         JSON_LENGTH(JSON_EXTRACT(state_json, '$.USERS_DB')) AS n_utenti
+       FROM society_state
+       WHERE \`key\` IN ('fieldos_state_soc_1','fieldos_state_soc_2','fieldos_state_soc_6','fieldos_state_soc_7','fieldos_state_soc_29','fieldos_state_soc_30')`
+    );
+    const [saRows] = await pool.execute(
+      `SELECT JSON_EXTRACT(state_json, '$.saSocieties') AS societa_list
+       FROM society_state WHERE \`key\` = 'fieldos_sa_v1'`
+    );
+    const saList = saRows.length ? saRows[0].societa_list : null;
+    const [corradoUsers] = await pool.execute(
+      `SELECT id, email, society_id, ruolo FROM users WHERE email LIKE 'corradob.vi%'`
+    );
+    const [bannerTest] = await pool.execute(
+      `SELECT s.id as soc_id, s.nome, u.id as user_id, u.email
+       FROM societies s LEFT JOIN users u ON u.society_id = s.id
+       WHERE s.nome = 'Banner Test Demo'`
+    );
+    logger.info({ endpoint: "cleanup-preview" }, "diag cleanup-preview called");
+    return res.json({
+      societies_target: societies,
+      users_linked: users,
+      blobs_existing: blobs,
+      sa_societies_list: saList,
+      corrado_users: corradoUsers,
+      banner_test_demo: bannerTest
+    });
+  } catch (e) {
+    logger.error({ err: e }, "cleanup-preview error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+var diag_default = router30;
+
+// src/routes/v2/index.ts
+var router31 = (0, import_express31.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -89745,7 +89797,7 @@ async function ensureSchema() {
   _schemaReady = true;
   logger.info("v2: schema ready");
 }
-router30.use(async (_req, _res, next) => {
+router31.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -89754,7 +89806,7 @@ router30.use(async (_req, _res, next) => {
     next();
   }
 });
-router30.get("/schema-info", async (_req, res) => {
+router31.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -89772,7 +89824,7 @@ router30.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router30.get("/health/ai-key", (_req, res) => {
+router31.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -89783,44 +89835,45 @@ router30.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router30.use(auth_default2);
-router30.use(self_register_default);
-router30.use(society_default);
-router30.use(leve_default);
-router30.use(minors_default);
-router30.use(players_default);
-router30.use(users_default);
-router30.use(events_default);
-router30.use(presenze_default);
-router30.use(comunicazioni_default);
-router30.use(chat_default);
-router30.use(quote_default);
-router30.use(migrate_default);
-router30.use(stripe_default);
-router30.use(demo_wa_default);
-router30.use(superadmin_default);
-router30.use(account_default);
-router30.use(notification_preferences_default);
-router30.use(allenamenti_default);
-router30.use(ai_allenamenti_default);
-router30.use(ai_tornei_default);
-var v2_default = router30;
+router31.use(auth_default2);
+router31.use(self_register_default);
+router31.use(society_default);
+router31.use(leve_default);
+router31.use(minors_default);
+router31.use(players_default);
+router31.use(users_default);
+router31.use(events_default);
+router31.use(presenze_default);
+router31.use(comunicazioni_default);
+router31.use(chat_default);
+router31.use(quote_default);
+router31.use(migrate_default);
+router31.use(stripe_default);
+router31.use(demo_wa_default);
+router31.use(superadmin_default);
+router31.use(account_default);
+router31.use(notification_preferences_default);
+router31.use(allenamenti_default);
+router31.use(ai_allenamenti_default);
+router31.use(ai_tornei_default);
+router31.use(diag_default);
+var v2_default = router31;
 
 // src/routes/index.ts
-var router31 = (0, import_express31.Router)();
-router31.use(health_default);
-router31.use(login_default);
-router31.use(auth_default);
-router31.use(state_default);
-router31.use(assist_default);
-router31.use(push_default);
-router31.use(upload_default);
-router31.use(public_default);
-router31.use("/v2", v2_default);
-var routes_default = router31;
+var router32 = (0, import_express32.Router)();
+router32.use(health_default);
+router32.use(login_default);
+router32.use(auth_default);
+router32.use(state_default);
+router32.use(assist_default);
+router32.use(push_default);
+router32.use(upload_default);
+router32.use(public_default);
+router32.use("/v2", v2_default);
+var routes_default = router32;
 
 // src/app.ts
-var app = (0, import_express32.default)();
+var app = (0, import_express33.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -89841,17 +89894,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express32.default.json({
+app.use(import_express33.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express32.default.urlencoded({ extended: true }));
+app.use(import_express33.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path2.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express32.default.static(staticDir));
+  app.use(import_express33.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path2.join(staticDir, "index.html"));
   });
