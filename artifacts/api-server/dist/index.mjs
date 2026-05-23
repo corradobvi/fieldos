@@ -88796,8 +88796,8 @@ async function getOrCreateBudgetRow(opts) {
   const { misterId, societaId, mese, budget } = opts;
   const budgetKey = `${misterId ?? 0}_${societaId ?? 0}_${mese}`;
   await pool.execute(
-    "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget) VALUES (?, ?, ?, ?, 0, ?)",
-    [randomUUID3(), misterId, societaId, mese, budget]
+    "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget, budget_key) VALUES (?, ?, ?, ?, 0, ?, ?)",
+    [randomUUID3(), misterId, societaId, mese, budget, budgetKey]
   );
   const [rows] = await pool.execute(
     "SELECT id, token_consumati, token_budget FROM ai_budget_utilizzo WHERE budget_key = ? LIMIT 1",
@@ -89614,30 +89614,42 @@ async function ensureSchema() {
   }
   for (const [table, col, def] of [
     ["users", "founding_promo_pending", "VARCHAR(20) NULL DEFAULT NULL"],
-    ["societies", "founding_active", "VARCHAR(20) NULL DEFAULT NULL"],
-    ["ai_budget_utilizzo", "budget_key", "VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL"]
+    ["societies", "founding_active", "VARCHAR(20) NULL DEFAULT NULL"]
   ]) {
     try {
-      if (table === "ai_budget_utilizzo") console.log("[SCHEMA_GUARD] checking budget_key column");
       const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
-      if (table === "ai_budget_utilizzo") console.log(`[SCHEMA_GUARD] budget_key result: found=${cols.length} rows`);
       if (!cols.length) {
-        console.log(`[SCHEMA_GUARD] budget_key MISSING \u2014 running ALTER TABLE`);
         await pool.execute(`ALTER TABLE \`${table}\` ADD COLUMN \`${col}\` ${def}`);
-        console.log(`[SCHEMA_GUARD] budget_key ALTER TABLE completed`);
         logger.info({ table, col }, "v2: column added via explicit guard");
       }
     } catch (e) {
-      console.log(`[SCHEMA_GUARD] explicit column guard FAILED for ${table}.${col}: ${e?.message}`);
       logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
     }
+  }
+  try {
+    console.log("[SCHEMA_GUARD] checking budget_key column");
+    const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo` LIKE 'budget_key'");
+    console.log(`[SCHEMA_GUARD] budget_key result: found=${cols.length} rows`);
+    if (!cols.length) {
+      console.log("[SCHEMA_GUARD] budget_key MISSING \u2014 adding regular VARCHAR column");
+      await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD COLUMN `budget_key` VARCHAR(50) NULL");
+      await pool.execute(
+        "UPDATE `ai_budget_utilizzo` SET `budget_key` = CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento) WHERE `budget_key` IS NULL"
+      );
+      console.log("[SCHEMA_GUARD] budget_key column added and existing rows populated");
+      logger.info("v2: budget_key regular column added via guard");
+    }
+  } catch (e) {
+    console.log(`[SCHEMA_GUARD] budget_key guard FAILED: ${e?.message}`);
+    logger.error({ err: e?.message }, "v2: budget_key column guard failed");
   }
   try {
     const [idxRows] = await pool.execute(
       "SHOW INDEX FROM `ai_budget_utilizzo` WHERE Key_name = 'uq_ai_budget_key'"
     );
     if (!idxRows.length) {
-      await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD UNIQUE KEY uq_ai_budget_key (budget_key)");
+      await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD UNIQUE KEY uq_ai_budget_key (`budget_key`)");
+      console.log("[SCHEMA_GUARD] uq_ai_budget_key index added");
       logger.info("v2: uq_ai_budget_key index added via explicit guard");
     }
   } catch (e) {

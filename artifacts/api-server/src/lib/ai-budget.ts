@@ -44,8 +44,8 @@ async function getOrCreateBudgetRow(opts: {
 
   // INSERT IGNORE: se esiste già una riga con la stessa budget_key non fa nulla (atomico)
   await pool.execute(
-    "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget) VALUES (?, ?, ?, ?, 0, ?)",
-    [randomUUID(), misterId, societaId, mese, budget]
+    "INSERT IGNORE INTO ai_budget_utilizzo (id, mister_id, societa_id, mese_riferimento, token_consumati, token_budget, budget_key) VALUES (?, ?, ?, ?, 0, ?, ?)",
+    [randomUUID(), misterId, societaId, mese, budget, budgetKey]
   );
 
   const [rows] = (await pool.execute(
