@@ -1121,10 +1121,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   padding:0 3px;line-height:1;border:2px solid var(--white);
 }
 /* Bell icon (topbar, mister-only) */
-.tb-bell-btn{display:none;position:relative;width:38px;height:38px;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;font-size:1.25rem;border-radius:50%;-webkit-tap-highlight-color:transparent;padding:0;flex-shrink:0;}
+.tb-bell-btn{display:flex;position:relative;width:38px;height:38px;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;font-size:1.25rem;border-radius:50%;-webkit-tap-highlight-color:transparent;padding:0;flex-shrink:0;}
 .tb-bell-btn:active{background:var(--cl);}
-.tb-bell-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--white);display:none;}
-.tb-bell-btn.on{display:flex;}
+.tb-bell-dot{display:none;position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 3px;background:var(--red);border-radius:999px;border:2px solid var(--white);font-size:9px;font-weight:700;color:#fff;line-height:12px;text-align:center;box-sizing:border-box;}
 /* Giocatori sub-tab nav (mister mobile) */
 .gioc-subnav{display:none;gap:0;margin:-12px -16px 14px;border-bottom:2px solid var(--border);background:var(--white);overflow:hidden;}
 .gioc-subnav .gsnb{flex:1;border:none;background:none;padding:11px 4px 10px;font-size:.78rem;font-weight:700;color:var(--text3);cursor:pointer;letter-spacing:.2px;transition:color .12s;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
@@ -4971,11 +4970,8 @@ function buildMobNav(role) {
   const nav = document.getElementById('mobNav');
   if (!nav) return;
   nav.innerHTML = '';
-  // Bell icon: show only for mister roles (Avvisi moved to bell in header)
-  const bell = document.getElementById('tbBell');
   const isMister = role === 'allenatore' || role === 'mister_admin';
   const isAdminMister = role === 'admin' && isAdminMisterForLeva(currentLeva);
-  if (bell) bell.classList.toggle('on', isMister || isAdminMister);
   let items;
   if (role === 'genitore' || role === 'nonno') {
     items = [
@@ -5028,9 +5024,16 @@ function refreshMobBadges() {
   const mnComm = document.getElementById('mn-comm');
   if (mnChat) { mnChat.textContent = chatN > 99 ? '99+' : chatN||''; mnChat.style.display = chatN>0?'':'none'; }
   if (mnComm) { mnComm.textContent = commN > 99 ? '99+' : commN||''; mnComm.style.display = commN>0?'':'none'; }
-  // Bell dot in topbar (mister only)
+  // Bell badge in topbar — tutti i ruoli
   const bellDot = document.getElementById('tbBellDot');
-  if (bellDot) bellDot.style.display = commN > 0 ? '' : 'none';
+  if (bellDot) {
+    if (commN > 0) {
+      bellDot.textContent = commN > 99 ? '99+' : String(commN);
+      bellDot.style.display = '';
+    } else {
+      bellDot.style.display = 'none';
+    }
+  }
 }
 
 function buildSidebar(role) {
