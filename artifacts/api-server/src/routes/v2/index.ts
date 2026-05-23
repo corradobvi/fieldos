@@ -24,6 +24,7 @@ import notifPrefsRouter        from "./notification-preferences";
 import allenamentiRouter       from "./allenamenti";
 import aiAllenamentiRouter     from "./ai-allenamenti";
 import aiTorneiRouter          from "./ai-tornei";
+import diagRouter              from "./diag";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -274,4 +275,5 @@ router.use(notifPrefsRouter);
 router.use(allenamentiRouter);
 router.use(aiAllenamentiRouter);
 router.use(aiTorneiRouter);
+router.use(diagRouter);
 export default router;
