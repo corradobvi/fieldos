@@ -44,10 +44,11 @@ async function ensureSchema() {
     });
   }
 
-  // Explicit column guards for founding — SHOW COLUMNS is reliable across all MySQL versions
+  // Explicit column guards — SHOW COLUMNS is reliable across all MySQL versions
   for (const [table, col, def] of [
-    ["users",     "founding_promo_pending", "VARCHAR(20) NULL DEFAULT NULL"],
-    ["societies", "founding_active",        "VARCHAR(20) NULL DEFAULT NULL"],
+    ["users",              "founding_promo_pending", "VARCHAR(20) NULL DEFAULT NULL"],
+    ["societies",          "founding_active",        "VARCHAR(20) NULL DEFAULT NULL"],
+    ["ai_budget_utilizzo", "budget_key",             "VARCHAR(50) GENERATED ALWAYS AS (CONCAT(COALESCE(mister_id,0),'_',COALESCE(societa_id,0),'_',mese_riferimento)) STORED NOT NULL"],
   ] as [string, string, string][]) {
     try {
       const [cols] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]) as [any[], any];
@@ -58,6 +59,19 @@ async function ensureSchema() {
     } catch (e: any) {
       logger.error({ table, col, err: e?.message }, "v2: explicit column guard failed");
     }
+  }
+
+  // Guard: unique index uq_ai_budget_key su ai_budget_utilizzo (dipende da budget_key)
+  try {
+    const [idxRows] = await pool.execute(
+      "SHOW INDEX FROM `ai_budget_utilizzo` WHERE Key_name = 'uq_ai_budget_key'"
+    ) as [any[], any];
+    if (!idxRows.length) {
+      await pool.execute("ALTER TABLE `ai_budget_utilizzo` ADD UNIQUE KEY uq_ai_budget_key (budget_key)");
+      logger.info("v2: uq_ai_budget_key index added via explicit guard");
+    }
+  } catch (e: any) {
+    logger.error({ err: e?.message }, "v2: uq_ai_budget_key index guard failed");
   }
 
   // ENUM guard: aggiunge 'primi_calci' a eta_leva se non già presente
