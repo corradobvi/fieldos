@@ -24464,6 +24464,7 @@ async function doRejoinSocieta() {
       });
       // Migrazione idempotente: aggiunge archiviato:false ai tornei esistenti
       if (Array.isArray(tornei)) tornei.forEach(t => { if (t.archiviato === undefined) t.archiviato = false; });
+      if (Array.isArray(tornei)) tornei.forEach(t => { if (t.squadreMieFlag === undefined) t.squadreMieFlag = []; });
       if (typeof s.nextTorneoId === 'number') nextTorneoId = s.nextTorneoId;
       if (typeof s.nextFaseId === 'number') nextFaseId = s.nextFaseId;
       if (typeof s.nextTornMatchId === 'number') nextTornMatchId = s.nextTornMatchId;
