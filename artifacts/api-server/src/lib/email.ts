@@ -1,9 +1,5 @@
-import { createRequire } from "node:module";
+import nodemailer from "nodemailer";
 import { logger } from "./logger";
-
-const _require = createRequire(import.meta.url);
-// nodemailer is CJS — externalized from esbuild bundle, loaded at runtime
-const nodemailer = _require("nodemailer") as typeof import("nodemailer");
 
 const FROM     = '"MyVivaio" <info@myvivaio.app>';
 const ADMIN_TO = "info@myvivaio.app";
