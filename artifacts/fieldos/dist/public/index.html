@@ -1802,6 +1802,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .users-desktop-table{display:none!important;}
   .users-mob-list{display:block;}
 }
+
+/* ── Demo WA banner ── */
+.demo-wa-banner{position:sticky;top:0;width:100%;background:var(--cp);color:#fff;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.demo-wa-banner__inner{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;}
+.demo-wa-banner__icon{font-size:18px;}
+.demo-wa-banner__text{font-weight:600;font-size:14px;}
+.demo-wa-banner__cta{background:var(--ca);color:#1a1a1a;padding:6px 14px;border-radius:999px;font-weight:700;text-decoration:none;font-size:13px;transition:transform .15s ease;}
+.demo-wa-banner__cta:hover{transform:translateY(-1px);}
+@media(max-width:480px){
+  .demo-wa-banner__text{font-size:13px;}
+  .demo-wa-banner__cta{padding:5px 12px;font-size:12px;}
+}
 </style>
 </head>
 <body>
@@ -4772,6 +4784,8 @@ async function doLogin() {
 function logout() {
   localStorage.removeItem('mv_session');
   me = null;
+  const _wb = document.getElementById('demo-wa-banner');
+  if (_wb) _wb.remove();
   document.getElementById('app').classList.remove('on');
   const ls = document.getElementById('loginScreen');
   ls.style.display = 'flex';
@@ -4825,6 +4839,37 @@ function migraChatAdmin(user) {
   if (changed) {
     window.__fieldosSaveState && window.__fieldosSaveState();
   }
+}
+
+function renderDemoWaBanner() {
+  const existing = document.getElementById('demo-wa-banner');
+  const isDemo = currentSocietyMeta &&
+    (currentSocietyMeta.piano === 'demo' || currentSocietyMeta.billingMode === 'demo');
+  const shouldShow = !!(me && isAccountOwner() && isDemo);
+
+  if (!shouldShow) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return; // già presente, non duplicare
+
+  const nome     = (me.nome || me.email || '').trim();
+  const societa  = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || '';
+  const waMsg    = encodeURIComponent('Ciao Vivi, sono ' + nome + (societa ? ' di ' + societa : ''));
+  const waUrl    = 'https://wa.me/393793827922?text=' + waMsg;
+
+  const banner = document.createElement('div');
+  banner.id = 'demo-wa-banner';
+  banner.className = 'demo-wa-banner';
+  banner.setAttribute('role', 'region');
+  banner.setAttribute('aria-label', 'Supporto WhatsApp');
+  banner.innerHTML =
+    '<div class="demo-wa-banner__inner">' +
+      '<span class="demo-wa-banner__icon">📱</span>' +
+      '<span class="demo-wa-banner__text">Hai bisogno di aiuto? Scrivici su WhatsApp</span>' +
+      '<a class="demo-wa-banner__cta" href="' + waUrl + '" target="_blank" rel="noopener">Scrivimi</a>' +
+    '</div>';
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 function bootApp(user) {
@@ -4892,6 +4937,7 @@ function bootApp(user) {
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
+    renderDemoWaBanner();
     // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
     if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
     // Restore WA token from session if available (page reload)
@@ -17736,6 +17782,189 @@ function gcArchiviaTorneo(id, val) {
   renderGestComp();
   toast(val ? '📦 Torneo archiviato' : '↩ Torneo ripristinato');
 }
+// ─── Import Torneo da PDF ────────────────────────────────────────────────────
+function openImportTorneoPdf() {
+  _importPdfStep = 1; _importPdfData = null;
+  _ipRenderStep();
+  const fi = document.getElementById('ipFile'); if (fi) fi.value = '';
+  _ipShowErr(''); _ipShowSpinner(false);
+  const fn = document.getElementById('ipFileName'); if (fn) fn.textContent = '';
+  openM('mImportPdf');
+}
+function _ipOnFileChange() {
+  const file = document.getElementById('ipFile')?.files?.[0];
+  const fn = document.getElementById('ipFileName');
+  if (fn) fn.textContent = file ? `${file.name} (${Math.round(file.size/1024)} KB)` : '';
+  _ipShowErr('');
+}
+function _ipShowErr(msg) {
+  const el = document.getElementById('ipErr'); if (!el) return;
+  el.style.display = msg ? '' : 'none'; el.textContent = msg;
+}
+function _ipShowSpinner(on) {
+  const s = document.getElementById('ipSpinner'); const b = document.getElementById('ipBtnAnalyze');
+  if (s) s.style.display = on ? '' : 'none'; if (b) b.disabled = on;
+}
+function _ipRenderStep() {
+  const bar = document.getElementById('ipStepBar');
+  const lbls = ['1. Carica PDF','2. Verifica dati','3. Squadre mie'];
+  if (bar) bar.innerHTML = [1,2,3].map(n => {
+    const active=n===_importPdfStep, done=n<_importPdfStep;
+    return `<div style="flex:1;text-align:center;padding:6px 4px;font-size:.73rem;font-weight:${active?700:400};color:${active?'var(--cl)':done?'#16a34a':'var(--text3)'};border-bottom:2px solid ${active?'var(--cl)':done?'#16a34a':'transparent'};">${done?'✓ ':''}${lbls[n-1]}</div>`;
+  }).join('');
+  ['ipStep1','ipStep2','ipStep3'].forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.style.display=(_importPdfStep===i+1)?'':'none'; });
+  if (_importPdfStep===2 && _importPdfData) _ipPopulateStep2();
+  if (_importPdfStep===3 && _importPdfData) _ipPopulateStep3();
+}
+function _ipPopulateStep2() {
+  const d=_importPdfData;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('ipNome',d.nome); set('ipDataI',d.dataInizio); set('ipDataF',d.dataFine); set('ipLuogo',d.luogo);
+  _ipRenderGironi(); _ipRenderPartite();
+}
+function _ipRenderGironi() {
+  const el=document.getElementById('ipGironiList'); if(!el||!_importPdfData) return;
+  el.innerHTML=(_importPdfData.gironi||[]).map((g,gi)=>{
+    const sqPills=(g.squadre||[]).map((s,si)=>
+      `<span style="background:var(--cl);color:var(--cp);padding:2px 8px;border-radius:10px;font-size:.74rem;display:inline-flex;align-items:center;gap:3px;">${escapeHtml(s)}<button onclick="_ipRemoveSquadra(${gi},${si})" style="background:none;border:none;cursor:pointer;color:inherit;padding:0 0 0 1px;line-height:1;font-size:.68rem;">✕</button></span>`
+    ).join('');
+    return `<div style="background:var(--bg2,#f3f4f6);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+        <input value="${escapeHtml(g.nome)}" placeholder="Nome girone" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_importPdfData.gironi[${gi}].nome=this.value">
+        <button class="btn btn-r btn-sm" onclick="_ipRemoveGirone(${gi})" title="Elimina girone">🗑</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;">${sqPills}<button onclick="_ipAddSquadra(${gi})" style="border:1px dashed var(--border);background:none;border-radius:10px;padding:2px 8px;font-size:.72rem;cursor:pointer;color:var(--text2);">+ squadra</button></div>
+    </div>`;
+  }).join('')||'<div style="color:var(--text3);font-size:.8rem;padding:4px;">Nessun girone.</div>';
+}
+function _ipRenderPartite() {
+  const el=document.getElementById('ipPartiteList'); const cnt=document.getElementById('ipPartiteCount');
+  if(!el||!_importPdfData) return;
+  const partite=_importPdfData.partite||[];
+  if(cnt) cnt.textContent=`(${partite.length})`;
+  if(!partite.length){el.innerHTML='<div style="color:var(--text3);font-size:.8rem;padding:8px 4px;">Nessuna partita estratta.</div>';return;}
+  const gironiNomi=(_importPdfData.gironi||[]).map(g=>g.nome);
+  const is='padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;width:100%;min-width:0;';
+  el.innerHTML=partite.map((p,pi)=>{
+    const opts=gironiNomi.map(n=>`<option${n===p.girone?' selected':''}>${escapeHtml(n)}</option>`).join('');
+    return `<div style="display:grid;grid-template-columns:90px 64px 80px 1fr 1fr 26px;gap:3px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+      <input type="date" value="${escapeHtml(p.data||'')}" style="${is}" oninput="_importPdfData.partite[${pi}].data=this.value||null">
+      <input value="${escapeHtml(p.orario||'')}" placeholder="HH:MM" style="${is}" oninput="_importPdfData.partite[${pi}].orario=this.value||null">
+      <select style="padding:2px 3px;border:1px solid var(--border);border-radius:4px;font-size:.7rem;width:100%;min-width:0;" onchange="_importPdfData.partite[${pi}].girone=this.value">${opts||'<option></option>'}</select>
+      <input value="${escapeHtml(p.casa||'')}" placeholder="Casa" style="${is}" oninput="_importPdfData.partite[${pi}].casa=this.value">
+      <input value="${escapeHtml(p.ospite||'')}" placeholder="Ospite" style="${is}" oninput="_importPdfData.partite[${pi}].ospite=this.value">
+      <button onclick="_ipRemovePartita(${pi})" style="border:none;background:var(--rbg,#fef2f2);color:var(--red,#dc2626);border-radius:4px;cursor:pointer;padding:2px 4px;font-size:.7rem;" title="Elimina">🗑</button>
+    </div>`;
+  }).join('');
+}
+function _ipRemoveGirone(gi) { if(!_importPdfData) return; _importPdfData.gironi.splice(gi,1); _ipRenderGironi(); _ipRenderPartite(); }
+function _ipAddGirone() {
+  if(!_importPdfData) return;
+  if(!Array.isArray(_importPdfData.gironi)) _importPdfData.gironi=[];
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  _importPdfData.gironi.push({nome:letters[_importPdfData.gironi.length]||'Nuovo',squadre:[]});
+  _ipRenderGironi();
+}
+function _ipRemoveSquadra(gi,si) { if(!_importPdfData) return; _importPdfData.gironi[gi].squadre.splice(si,1); _ipRenderGironi(); }
+function _ipAddSquadra(gi) {
+  const nome=prompt('Nome squadra:'); if(!nome||!nome.trim()) return;
+  if(!Array.isArray(_importPdfData.gironi[gi].squadre)) _importPdfData.gironi[gi].squadre=[];
+  _importPdfData.gironi[gi].squadre.push(nome.trim().toUpperCase()); _ipRenderGironi();
+}
+function _ipRemovePartita(pi) { if(!_importPdfData) return; _importPdfData.partite.splice(pi,1); _ipRenderPartite(); }
+function _ipAddPartita() {
+  if(!_importPdfData) return;
+  if(!Array.isArray(_importPdfData.partite)) _importPdfData.partite=[];
+  const primoGirone=(_importPdfData.gironi||[])[0]?.nome||'';
+  _importPdfData.partite.push({data:null,orario:null,girone:primoGirone,casa:'',ospite:'',luogo:null});
+  _ipRenderPartite();
+}
+function _ipGoToStep3() {
+  if(!_importPdfData) return;
+  const nome=document.getElementById('ipNome')?.value?.trim();
+  if(!nome){toast('⚠️ Inserisci il nome del torneo');return;}
+  _importPdfData.nome=nome;
+  _importPdfData.dataInizio=document.getElementById('ipDataI')?.value||null;
+  _importPdfData.dataFine=document.getElementById('ipDataF')?.value||null;
+  _importPdfData.luogo=document.getElementById('ipLuogo')?.value?.trim()||null;
+  _importPdfStep=3; _ipRenderStep();
+}
+function _ipPopulateStep3() {
+  const el=document.getElementById('ipSquadreList'); if(!el||!_importPdfData) return;
+  const all=new Set();
+  (_importPdfData.gironi||[]).forEach(g=>(g.squadre||[]).forEach(s=>all.add(s)));
+  (_importPdfData.partite||[]).forEach(p=>{if(p.casa)all.add(p.casa);if(p.ospite)all.add(p.ospite);});
+  const teams=[...all].sort();
+  if(!teams.length){el.innerHTML='<div style="color:var(--text3);font-size:.83rem;">Nessuna squadra trovata. Torna indietro e verifica i gironi.</div>';return;}
+  el.innerHTML=teams.map(t=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);"><input type="checkbox" class="ip-sq-chk" value="${escapeHtml(t)}" style="width:17px;height:17px;flex-shrink:0;"><span style="font-size:.86rem;">${escapeHtml(t)}</span></label>`).join('');
+}
+async function importPdfAnalyze() {
+  const fileEl=document.getElementById('ipFile'); const file=fileEl?.files?.[0];
+  if(!file){_ipShowErr('Seleziona un file PDF prima di continuare');return;}
+  if(!file.name.toLowerCase().endsWith('.pdf')){_ipShowErr('Il file deve essere un PDF');return;}
+  if(file.size>5*1024*1024){_ipShowErr('Il PDF supera il limite di 5 MB');return;}
+  _ipShowSpinner(true); _ipShowErr('');
+  const fd=new FormData(); fd.append('file',file); fd.append('leva',currentLeva||'');
+  try {
+    const resp=await fetch(API_BASE+'/api/v2/ai/import-torneo-pdf',{method:'POST',headers:{'Authorization':'Bearer '+_v2Token},body:fd});
+    const json=await resp.json().catch(()=>({}));
+    if(!resp.ok){
+      const msg=json.message||json.motivo||json.error||"Errore durante l'analisi";
+      _ipShowErr(resp.status===402?'Budget AI esaurito: '+msg:msg);
+      _ipShowSpinner(false); return;
+    }
+    _importPdfData=json.data;
+    if(!Array.isArray(_importPdfData?.gironi)) _importPdfData.gironi=[];
+    if(!Array.isArray(_importPdfData?.partite)) _importPdfData.partite=[];
+    _importPdfStep=2; _ipRenderStep();
+  } catch(e) { _ipShowErr('Errore di rete — verifica la connessione'); }
+  _ipShowSpinner(false);
+}
+function importPdfSave() {
+  if(!_importPdfData) return;
+  const chks=document.querySelectorAll('#ipSquadreList .ip-sq-chk:checked');
+  const squadreMieFlag=Array.from(chks).map(c=>c.value);
+  const fasi=(_importPdfData.gironi||[]).map(g=>({
+    id:'f'+nextFaseId++,
+    nome:g.nome,
+    tipo:'girone',
+    faseGruppo:null,
+    squadre:[...(g.squadre||[])],
+    partite:(_importPdfData.partite||[]).filter(p=>p.girone===g.nome).map(p=>({
+      id:'tm'+nextTornMatchId++,
+      data:p.data||null,
+      casa:p.casa||'',
+      ospite:p.ospite||'',
+      played:false,
+      golCasa:0,
+      golOspiti:0,
+      stats:[],
+      visibilitaSubito:false,
+    })),
+  }));
+  const allSq=[...new Set((_importPdfData.gironi||[]).flatMap(g=>g.squadre||[]))];
+  tornei.push({
+    id:'t'+nextTorneoId++,
+    nome:_importPdfData.nome||'Torneo importato',
+    leva:currentLeva,
+    luogo:_importPdfData.luogo||'',
+    dataInizio:_importPdfData.dataInizio||'',
+    dataFine:_importPdfData.dataFine||'',
+    tipo:3,
+    spareggio:['scontro_diretto','dr_generale','gf_generale'],
+    squadrePartecipanti:allSq,
+    fasi,
+    convocati:[],
+    archiviato:false,
+    squadreMieFlag,
+    _migrated_gironi_v1:true,
+  });
+  window.__fieldosSaveState();
+  closeM('mImportPdf');
+  renderGestComp(); renderPartite(); renderCal();
+  toast(`✅ Torneo "${_importPdfData.nome||'importato'}" salvato!`);
+}
+
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
   const all = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
@@ -24904,6 +25133,63 @@ async function doRejoinSocieta() {
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcAddMatch')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveGcAddMatch()">💾 Aggiungi partita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Importa Torneo da PDF ── -->
+<div class="ov" id="mImportPdf">
+  <div class="modal" style="width:680px;max-width:96vw;max-height:92vh;overflow-y:auto;">
+    <div class="mh" style="position:sticky;top:0;background:var(--white);z-index:2;">
+      <div class="mt">📄 Importa torneo da PDF</div>
+      <button class="mx" onclick="closeM('mImportPdf')">✕</button>
+    </div>
+    <div id="ipStepBar" style="display:flex;padding:0 16px 12px;border-bottom:1px solid var(--border);"></div>
+    <!-- Step 1 -->
+    <div id="ipStep1" style="padding:16px;">
+      <div style="text-align:center;padding:24px 0;">
+        <div style="font-size:2.8rem;margin-bottom:12px;">📄</div>
+        <div style="font-size:.88rem;color:var(--text2);margin-bottom:18px;">Carica il PDF del tabellone.<br>Claude estrarrà gironi, squadre e partite automaticamente.</div>
+        <label for="ipFile" style="display:inline-block;cursor:pointer;padding:12px 24px;border:2px dashed var(--border);border-radius:10px;font-size:.88rem;color:var(--text2);background:var(--bg);">📂 Scegli PDF</label>
+        <input type="file" id="ipFile" accept=".pdf" style="display:none;" onchange="_ipOnFileChange()">
+        <div id="ipFileName" style="margin-top:8px;font-size:.8rem;color:var(--text3);min-height:1.2em;"></div>
+        <div id="ipErr" style="display:none;margin-top:10px;padding:8px 12px;background:var(--rbg,#fef2f2);color:var(--red,#dc2626);border-radius:7px;font-size:.83rem;"></div>
+        <div id="ipSpinner" style="display:none;margin-top:14px;color:var(--text2);font-size:.85rem;">⏳ Claude sta analizzando il PDF…</div>
+        <button id="ipBtnAnalyze" class="btn btn-p" style="margin-top:16px;width:100%;max-width:260px;" onclick="importPdfAnalyze()">🔍 Analizza PDF</button>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div id="ipStep2" style="display:none;padding:16px;">
+      <div style="font-weight:700;font-size:.83rem;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Dati torneo</div>
+      <div class="fg"><label class="fl">Nome torneo *</label><input class="fi" id="ipNome" placeholder="Es. Torneo Primavera" oninput="_importPdfData.nome=this.value"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="fg"><label class="fl">Data inizio</label><input class="fi" type="date" id="ipDataI" oninput="_importPdfData.dataInizio=this.value||null"></div>
+        <div class="fg"><label class="fl">Data fine</label><input class="fi" type="date" id="ipDataF" oninput="_importPdfData.dataFine=this.value||null"></div>
+      </div>
+      <div class="fg"><label class="fl">Luogo</label><input class="fi" id="ipLuogo" placeholder="Es. Stadio Comunale" oninput="_importPdfData.luogo=this.value.trim()||null"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;">
+        <div style="font-weight:700;font-size:.83rem;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;flex:1;">Gironi e squadre</div>
+        <button class="btn btn-s btn-sm" onclick="_ipAddGirone()">+ Girone</button>
+      </div>
+      <div id="ipGironiList"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;">
+        <div style="font-weight:700;font-size:.83rem;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;flex:1;">Partite <span id="ipPartiteCount" style="font-weight:400;text-transform:none;font-size:.78rem;"></span></div>
+        <button class="btn btn-s btn-sm" onclick="_ipAddPartita()">+ Partita</button>
+      </div>
+      <div id="ipPartiteList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:7px;padding:4px 8px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=1;_ipRenderStep()">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;" onclick="_ipGoToStep3()">Avanti → Seleziona squadre</button>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div id="ipStep3" style="display:none;padding:16px;">
+      <div style="font-size:.88rem;color:var(--text2);margin-bottom:14px;">Seleziona le squadre <strong>della tua società</strong> che partecipano al torneo.</div>
+      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow-y:auto;padding-right:4px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=2;_ipRenderStep()">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;" onclick="importPdfSave()">✅ Salva torneo</button>
+      </div>
     </div>
   </div>
 </div>
