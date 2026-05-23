@@ -89623,7 +89623,6 @@ router30.post("/superadmin/_diag/cleanup-preview", async (req, res) => {
       `SELECT JSON_EXTRACT(state_json, '$.saSocieties') AS societa_list
        FROM society_state WHERE \`key\` = 'fieldos_sa_v1'`
     );
-    const saList = saRows.length ? saRows[0].societa_list : null;
     const [corradoUsers] = await pool.execute(
       `SELECT id, email, society_id, ruolo FROM users WHERE email LIKE 'corradob.vi%'`
     );
@@ -89637,13 +89636,115 @@ router30.post("/superadmin/_diag/cleanup-preview", async (req, res) => {
       societies_target: societies,
       users_linked: users,
       blobs_existing: blobs,
-      sa_societies_list: saList,
+      sa_societies_list: saRows.length ? saRows[0].societa_list : null,
       corrado_users: corradoUsers,
       banner_test_demo: bannerTest
     });
   } catch (e) {
     logger.error({ err: e }, "cleanup-preview error");
     return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+router30.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
+  if (req.headers["x-sa-secret"] !== SA_SECRET2) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  const { confirmDelete, societyIds } = req.body;
+  if (!confirmDelete || !Array.isArray(societyIds) || societyIds.length === 0) {
+    return res.status(400).json({ error: "missing_confirmation", message: "Body deve contenere confirmDelete:true e societyIds:[...]" });
+  }
+  const SAFE_IDS = [8, 37, 38, 39, 40, 41, 42];
+  const intersection = societyIds.filter((id) => SAFE_IDS.includes(id));
+  if (intersection.length > 0) {
+    return res.status(400).json({ error: "safe_society_in_delete_list", safe_ids_found: intersection });
+  }
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const placeholdersSafe = SAFE_IDS.map(() => "?").join(",");
+    const [safeBefore] = await conn.execute(
+      `SELECT COUNT(*) AS n FROM users WHERE society_id IN (${placeholdersSafe})`,
+      SAFE_IDS
+    );
+    const safeCountBefore = safeBefore[0].n;
+    const placeholders = societyIds.map(() => "?").join(",");
+    const [delUsers] = await conn.execute(
+      `DELETE FROM users WHERE society_id IN (${placeholders})`,
+      societyIds
+    );
+    const usersDeleted = delUsers.affectedRows;
+    const blobKeys = societyIds.map((id) => `fieldos_state_soc_${id}`);
+    const blobPlaceholders = blobKeys.map(() => "?").join(",");
+    const [delBlobs] = await conn.execute(
+      `DELETE FROM society_state WHERE \`key\` IN (${blobPlaceholders})`,
+      blobKeys
+    );
+    const blobsDeleted = delBlobs.affectedRows;
+    const [saRows] = await conn.execute(
+      "SELECT state_json FROM society_state WHERE `key` = 'fieldos_sa_v1'"
+    );
+    let saEntriesRemoved = 0;
+    if (saRows.length) {
+      let saState;
+      try {
+        saState = JSON.parse(saRows[0].state_json);
+      } catch {
+        saState = {};
+      }
+      const before = Array.isArray(saState.saSocieties) ? saState.saSocieties : [];
+      const after = before.filter((s) => !societyIds.includes(s.id));
+      saEntriesRemoved = before.length - after.length;
+      saState.saSocieties = after;
+      await conn.execute(
+        "UPDATE society_state SET state_json = ? WHERE `key` = 'fieldos_sa_v1'",
+        [JSON.stringify(saState)]
+      );
+    }
+    const [delSoc] = await conn.execute(
+      `DELETE FROM societies WHERE id IN (${placeholders})`,
+      societyIds
+    );
+    const societiesDeleted = delSoc.affectedRows;
+    const [safeAfter] = await conn.execute(
+      `SELECT COUNT(*) AS n FROM users WHERE society_id IN (${placeholdersSafe})`,
+      SAFE_IDS
+    );
+    const safeCountAfter = safeAfter[0].n;
+    if (safeCountAfter !== safeCountBefore) {
+      await conn.rollback();
+      logger.error({ safeCountBefore, safeCountAfter }, "cleanup-execute ROLLBACK: safe societies touched");
+      return res.status(500).json({
+        ok: false,
+        error: "safe_societies_touched",
+        rollback: true,
+        safeCountBefore,
+        safeCountAfter
+      });
+    }
+    const [remSocieties] = await conn.execute(
+      "SELECT id, nome FROM societies ORDER BY id"
+    );
+    const [remUsers] = await conn.execute(
+      "SELECT id, email, society_id FROM users ORDER BY society_id, id"
+    );
+    await conn.commit();
+    logger.info({ societyIds, usersDeleted, blobsDeleted, saEntriesRemoved, societiesDeleted }, "cleanup-execute committed");
+    return res.json({
+      ok: true,
+      societies_deleted: societiesDeleted,
+      users_deleted: usersDeleted,
+      blobs_deleted: blobsDeleted,
+      sa_entries_removed: saEntriesRemoved,
+      societies_remaining_intact: SAFE_IDS,
+      post_cleanup_societies: remSocieties,
+      post_cleanup_users: remUsers
+    });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "cleanup-execute ROLLBACK on error");
+    return res.status(500).json({ ok: false, error: e?.message, rollback: true });
+  } finally {
+    conn.release();
   }
 });
 var diag_default = router30;
