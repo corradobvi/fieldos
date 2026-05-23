@@ -1,31 +1,26 @@
-import nodemailer from "nodemailer";
 import { logger } from "./logger";
 
-const FROM     = '"MyVivaio" <info@myvivaio.app>';
+const FROM     = "MyVivaio <onboarding@resend.dev>";
 const ADMIN_TO = "info@myvivaio.app";
 
-function _transport() {
-  return nodemailer.createTransport({
-    host:           process.env.SMTP_HOST ?? "smtps.aruba.it",
-    port:           parseInt(process.env.SMTP_PORT ?? "465"),
-    secure:         process.env.SMTP_SECURE !== "false",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    connectionTimeout: 10_000,
-    socketTimeout:     10_000,
-    greetingTimeout:   10_000,
-  } as any);
-}
-
 async function sendMail(to: string, subject: string, html: string): Promise<void> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    logger.warn("SMTP credentials not set — email skipped");
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    logger.warn("RESEND_API_KEY not set — email skipped");
     return;
   }
-  const t = _transport();
-  await t.sendMail({ from: FROM, replyTo: ADMIN_TO, to, subject, html });
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: FROM, reply_to: ADMIN_TO, to, subject, html }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Resend error ${res.status}: ${detail}`);
+  }
 }
 
 export async function sendWelcomeEmails(opts: {
