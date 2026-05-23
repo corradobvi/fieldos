@@ -81,12 +81,18 @@ router.post(
       return res.status(400).json({ error: "file_non_valido", message: "Il file deve essere un PDF" });
     }
 
+    logger.info({ userId: user.userId, societyId: user.societyId, tokenStimati: TOKEN_STIMATI }, "ai-tornei: budget check params");
+
     let budget: Awaited<ReturnType<typeof verificaEScalaBudget>>;
     try {
       budget = await verificaEScalaBudget(user.userId, user.societyId, TOKEN_STIMATI);
     } catch (e: any) {
-      logger.error({ err: e }, "ai-tornei: budget check failed");
-      return res.status(500).json({ error: "server_error", message: "Errore server" });
+      const msg = e?.message ?? "errore sconosciuto";
+      if (msg.includes("Cannot read properties of undefined") || e instanceof TypeError) {
+        logger.error({ userId: user.userId, societyId: user.societyId }, `ai-tornei: probabile riga budget mancante per la chiave ${user.userId}_0_${new Date().toISOString().slice(0, 7)}`);
+      }
+      logger.error({ err: e, userId: user.userId, societyId: user.societyId }, "ai-tornei: budget check failed");
+      return res.status(500).json({ error: "server_error", message: `Budget check error: ${msg}` });
     }
     if (!budget.ok) {
       return res.status(402).json({
