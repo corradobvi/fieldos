@@ -4698,6 +4698,7 @@ async function doLogin() {
       currentSocietyMeta = {
         piano:          data.societyPiano            || null,
         billingMode:    data.societyBillingMode      || null,
+        isDemo:         data.societyIsDemo           ?? null,
         logoUrl:        data.societyLogoUrl          || null,
         colorePrimario: data.societyColorePrimario   || null,
         coloreAccento:  data.societyColoreAccento    || null,
@@ -4843,8 +4844,7 @@ function migraChatAdmin(user) {
 
 function renderDemoWaBanner() {
   const existing = document.getElementById('demo-wa-banner');
-  const isDemo = currentSocietyMeta &&
-    (currentSocietyMeta.piano === 'demo' || currentSocietyMeta.billingMode === 'demo');
+  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true;
   const shouldShow = !!(me && isAccountOwner() && isDemo);
 
   if (!shouldShow) {

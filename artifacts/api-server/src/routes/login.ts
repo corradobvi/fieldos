@@ -69,11 +69,12 @@ router.post("/login", async (req, res) => {
       colorePrimario?: string | null; coloreAccento?: string | null;
       logoUrl?: string | null; nomeSocieta?: string | null;
       citta?: string | null; codiceSocieta?: string | null;
+      isDemo?: boolean;
     }> {
       if (societyId <= 0) return { ok: true };
       try {
         const [rows] = (await pool.execute(
-          "SELECT stato, piano, billing_mode, colore_primario, colore_accento, logo_url, nome, citta, codice FROM societies WHERE id = ? LIMIT 1",
+          "SELECT stato, piano, billing_mode, subscription_status, colore_primario, colore_accento, logo_url, nome, citta, codice FROM societies WHERE id = ? LIMIT 1",
           [societyId]
         )) as [any[], any];
         if (!rows.length) return { ok: true }; // blob-only society, allow
@@ -86,6 +87,7 @@ router.post("/login", async (req, res) => {
           ok: true,
           piano: ms.piano ?? null,
           billingMode: ms.billing_mode ?? null,
+          isDemo: (ms.subscription_status ?? 'demo') === 'demo',
           colorePrimario: ms.colore_primario ?? null,
           coloreAccento:  ms.colore_accento  ?? null,
           logoUrl:        ms.logo_url        ?? null,
@@ -147,6 +149,7 @@ router.post("/login", async (req, res) => {
         user: { ...found.user, is_account_owner: _pc.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck.piano ?? null, societyBillingMode: msCheck.billingMode ?? null,
+        societyIsDemo: msCheck.isDemo ?? null,
         societyColorePrimario: msCheck.colorePrimario ?? null,
         societyColoreAccento:  msCheck.coloreAccento  ?? null,
         societyLogoUrl:        msCheck.logoUrl        ?? null,
@@ -185,6 +188,7 @@ router.post("/login", async (req, res) => {
         user: { ...found.user, is_account_owner: _pc2.isAccountOwner },
         stateJson: found.stateJson,
         societyPiano: msCheck2.piano ?? null, societyBillingMode: msCheck2.billingMode ?? null,
+        societyIsDemo: msCheck2.isDemo ?? null,
         societyColorePrimario: msCheck2.colorePrimario ?? null,
         societyColoreAccento:  msCheck2.coloreAccento  ?? null,
         societyLogoUrl:        msCheck2.logoUrl        ?? null,
