@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scaletta agility base · MyVivaio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f4ee;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .quaderno {
+    background: #fefdf8;
+    border: 2px solid #2D3748;
+    border-radius: 4px;
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header {
+    border-bottom: 2px dashed #2D3748;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+  }
+  .header-id { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #1A7A4A; }
+  .header-eta { font-size: 11px; color: #666; }
+  .titolo { font-size: 24px; font-weight: 800; margin: 8px 0 4px; color: #2D3748; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #555; margin-top: 6px; }
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) {
+    .body-grid { grid-template-columns: 1fr; }
+    body { padding: 8px; }
+    .quaderno { padding: 16px; }
+  }
+  .schema-figura {
+    background: #fefdf8;
+    border: 1.5px solid #2D3748;
+    aspect-ratio: 7 / 6;
+    width: 100%;
+  }
+  .figura-caption {
+    font-size: 10px; color: #666; margin-top: 4px;
+    text-align: center; font-style: italic; font-family: 'Courier New', monospace;
+  }
+  .section { margin-bottom: 14px; }
+  .section-title {
+    font-size: 11px; font-weight: 800; color: #1A7A4A;
+    letter-spacing: 1px; border-bottom: 1px solid #1A7A4A;
+    padding-bottom: 2px; margin-bottom: 6px;
+  }
+  .section-content { font-size: 13px; color: #2D3748; line-height: 1.5; }
+  .section-content ol { margin: 0; padding-left: 18px; }
+  .section-content ol li { margin-bottom: 4px; }
+  .nota-mister {
+    background: #f0fdf4; padding: 10px;
+    border-left: 3px solid #1A7A4A; border-radius: 2px; margin-top: 14px;
+  }
+  .nota-label { font-size: 10px; font-weight: 800; color: #1A7A4A; letter-spacing: 1px; }
+  .nota-testo { font-size: 12px; color: #555; margin-top: 4px; }
+  .footer {
+    border-top: 1px dashed #2D3748; margin-top: 16px; padding-top: 8px;
+    font-size: 10px; color: #999; text-align: center; font-family: 'Courier New', monospace;
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .quaderno { border: none; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="quaderno">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-id">MYVIVAIO · SESSIONE N° 051</div>
+      <div class="header-eta">Esordienti · U11-U12</div>
+    </div>
+    <h1 class="titolo">Scaletta agility base</h1>
+    <div class="meta">
+      <span><strong>⏱</strong> 18 min</span>
+      <span><strong>◆</strong> Atletica e fisico</span>
+      <span><strong>★</strong> Ufficiale MyVivaio</span>
+    </div>
+  </div>
+  <div class="body-grid">
+    <div>
+      <svg class="schema-figura" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="240" fill="#1A7A4A"/>
+  <rect x="8" y="8" width="264" height="224" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
+  <!-- scaletta a terra (griglia rettangoli) -->
+  <g stroke="white" stroke-width="1.5" fill="none" opacity=".9">
+    <rect x="40" y="100" width="24" height="40"/>
+    <rect x="64" y="100" width="24" height="40"/>
+    <rect x="88" y="100" width="24" height="40"/>
+    <rect x="112" y="100" width="24" height="40"/>
+    <rect x="136" y="100" width="24" height="40"/>
+    <rect x="160" y="100" width="24" height="40"/>
+    <rect x="184" y="100" width="24" height="40"/>
+  </g>
+  <!-- giocatore alla partenza -->
+  <circle cx="40" cy="80" r="10" fill="white" stroke="#1A7A4A" stroke-width="1.5"/>
+  <text x="40" y="84" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">1</text>
+  <!-- freccia avanzamento -->
+  <path d="M52 80 L200 80" stroke="#f9e04b" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <!-- cinesini slalom a destra -->
+  <polygon points="230,85 225,100 235,100" fill="#f9e04b"/>
+  <polygon points="230,115 225,130 235,130" fill="#f9e04b"/>
+  <polygon points="230,145 225,160 235,160" fill="#f9e04b"/>
+  <!-- etichette -->
+  <text x="115" y="88" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.7)">SCALETTA</text>
+  <text x="140" y="230" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.6)">ATLETICA E FISICO</text>
+</svg>
+      <div class="figura-caption">Fig. 1 — Schema disposizione</div>
+    </div>
+    <div>
+      <div class="section">
+        <div class="section-title">OBIETTIVO</div>
+        <div class="section-content">Posiziona la scaletta agility a terra</div>
+      </div>
+      <div class="section">
+        <div class="section-title">SVOLGIMENTO</div>
+        <div class="section-content">
+          <ol>
+            <li>Posiziona la scaletta agility a terra.</li>
+            <li>I giocatori eseguono in sequenza: due piedi in ogni quadrato (ritmo normale), poi due piedi ogni quadrato (ritmo veloce), poi un piede alternato destra-sinistra, poi doppio passo laterale.</li>
+            <li>Ogni sequenza circa 10 secondi, poi sprint di 5m all'uscita.</li>
+            <li>3 serie per ogni schema, pausa di 30 secondi tra le serie.</li>
+            <li>Variante: alla fine della scaletta aggiungi una palla in movimento: un compagno lancia e il giocatore controlla subito dopo l'uscita.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">MATERIALE</div>
+        <div class="section-content">Cinesini, scaletta (se disponibile), cronometro</div>
+      </div>
+      <div class="nota-mister">
+        <div class="nota-label">NOTA MISTER</div>
+        <div class="nota-testo">Bilanciare gioco e principi tecnici di base.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">myvivaio.app · 051-scaletta-agility-base.html</div>
+</div>
+</body>
+</html>

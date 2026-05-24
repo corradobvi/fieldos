@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rondo 5v2 nel rettangolo · MyVivaio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f4ee;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .quaderno {
+    background: #fefdf8;
+    border: 2px solid #2D3748;
+    border-radius: 4px;
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header {
+    border-bottom: 2px dashed #2D3748;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+  }
+  .header-id { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #1A7A4A; }
+  .header-eta { font-size: 11px; color: #666; }
+  .titolo { font-size: 24px; font-weight: 800; margin: 8px 0 4px; color: #2D3748; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #555; margin-top: 6px; }
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) {
+    .body-grid { grid-template-columns: 1fr; }
+    body { padding: 8px; }
+    .quaderno { padding: 16px; }
+  }
+  .schema-figura {
+    background: #fefdf8;
+    border: 1.5px solid #2D3748;
+    aspect-ratio: 7 / 6;
+    width: 100%;
+  }
+  .figura-caption {
+    font-size: 10px; color: #666; margin-top: 4px;
+    text-align: center; font-style: italic; font-family: 'Courier New', monospace;
+  }
+  .section { margin-bottom: 14px; }
+  .section-title {
+    font-size: 11px; font-weight: 800; color: #1A7A4A;
+    letter-spacing: 1px; border-bottom: 1px solid #1A7A4A;
+    padding-bottom: 2px; margin-bottom: 6px;
+  }
+  .section-content { font-size: 13px; color: #2D3748; line-height: 1.5; }
+  .section-content ol { margin: 0; padding-left: 18px; }
+  .section-content ol li { margin-bottom: 4px; }
+  .nota-mister {
+    background: #f0fdf4; padding: 10px;
+    border-left: 3px solid #1A7A4A; border-radius: 2px; margin-top: 14px;
+  }
+  .nota-label { font-size: 10px; font-weight: 800; color: #1A7A4A; letter-spacing: 1px; }
+  .nota-testo { font-size: 12px; color: #555; margin-top: 4px; }
+  .footer {
+    border-top: 1px dashed #2D3748; margin-top: 16px; padding-top: 8px;
+    font-size: 10px; color: #999; text-align: center; font-family: 'Courier New', monospace;
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .quaderno { border: none; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="quaderno">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-id">MYVIVAIO · SESSIONE N° 031</div>
+      <div class="header-eta">Esordienti · U11-U12</div>
+    </div>
+    <h1 class="titolo">Rondo 5v2 nel rettangolo</h1>
+    <div class="meta">
+      <span><strong>⏱</strong> 22 min</span>
+      <span><strong>◆</strong> Possesso palla</span>
+      <span><strong>★</strong> Ufficiale MyVivaio</span>
+    </div>
+  </div>
+  <div class="body-grid">
+    <div>
+      <svg class="schema-figura" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="240" fill="#1A7A4A"/>
+  <!-- 4 zone -->
+  <line x1="140" y1="20" x2="140" y2="220" stroke="white" stroke-width="1" opacity=".4"/>
+  <line x1="20" y1="120" x2="260" y2="120" stroke="white" stroke-width="1" opacity=".4"/>
+  <rect x="20" y="20" width="264" height="200" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
+  <!-- cinesini angoli zone -->
+  <polygon points="140,20 136,28 144,28" fill="#f9e04b"/>
+  <polygon points="140,220 136,212 144,212" fill="#f9e04b"/>
+  <polygon points="20,120 28,116 28,124" fill="#f9e04b"/>
+  <polygon points="260,120 252,116 252,124" fill="#f9e04b"/>
+  <!-- 3 giocatori bianchi -->
+  <circle cx="75" cy="80" r="10" fill="white" stroke="#1A7A4A" stroke-width="1.5"/>
+  <text x="75" y="84" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">B</text>
+  <circle cx="200" cy="155" r="10" fill="white" stroke="#1A7A4A" stroke-width="1.5"/>
+  <text x="200" y="159" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">B</text>
+  <circle cx="190" cy="75" r="10" fill="white" stroke="#1A7A4A" stroke-width="1.5"/>
+  <text x="190" y="79" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">B</text>
+  <!-- 3 giocatori neri -->
+  <circle cx="75" cy="160" r="10" fill="#2D3748" stroke="white" stroke-width="1.5"/>
+  <text x="75" y="164" text-anchor="middle" font-size="9" fill="white" font-weight="700">N</text>
+  <circle cx="175" cy="80" r="10" fill="#2D3748" stroke="white" stroke-width="1.5"/>
+  <text x="175" y="84" text-anchor="middle" font-size="9" fill="white" font-weight="700">N</text>
+  <circle cx="85" cy="155" r="10" fill="#2D3748" stroke="white" stroke-width="1.5"/>
+  <text x="85" y="159" text-anchor="middle" font-size="9" fill="white" font-weight="700">N</text>
+  <!-- pallone -->
+  <circle cx="130" cy="110" r="5" fill="#f9e04b" stroke="white" stroke-width="1"/>
+  <text x="140" y="230" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.6)">POSSESSO PALLA</text>
+</svg>
+      <div class="figura-caption">Fig. 1 — Schema disposizione</div>
+    </div>
+    <div>
+      <div class="section">
+        <div class="section-title">OBIETTIVO</div>
+        <div class="section-content">In un rettangolo 12x8m, 5 giocatori in possesso contro 2 difensori</div>
+      </div>
+      <div class="section">
+        <div class="section-title">SVOLGIMENTO</div>
+        <div class="section-content">
+          <ol>
+            <li>In un rettangolo 12x8m, 5 giocatori in possesso contro 2 difensori.</li>
+            <li>I cinque fanno più passaggi consecutivi senza che i due tocchino la palla.</li>
+            <li>Chi sbaglia (passaggio scarso o intercettato) entra in difesa e il difensore più a lungo in campo esce.</li>
+            <li>Massimo 3 tocchi per giocatore.</li>
+            <li>Variante: riduci i tocchi a 2 obbligatori dopo 5 minuti.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">MATERIALE</div>
+        <div class="section-content">1 pallone, cinesini per delimitare zone, casacche</div>
+      </div>
+      <div class="nota-mister">
+        <div class="nota-label">NOTA MISTER</div>
+        <div class="nota-testo">Bilanciare gioco e principi tecnici di base.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">myvivaio.app · 031-rondo-5v2-nel-rettangolo.html</div>
+</div>
+</body>
+</html>

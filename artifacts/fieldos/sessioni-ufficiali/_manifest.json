@@ -1,0 +1,3782 @@
+[
+  {
+    "sessione_id": "02a0182e-1e1c-43aa-87c0-e7b5ab84b9dc",
+    "titolo": "Il semaforo magico",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 7,
+    "file_path": "primi-calci/001-il-semaforo-magico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/001-il-semaforo-magico.html"
+  },
+  {
+    "sessione_id": "1bae0331-efb3-469c-9ffd-e352a5add04e",
+    "titolo": "Gli orsetti vanno a raccogliere il miele",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 8,
+    "file_path": "primi-calci/002-gli-orsetti-vanno-a-raccogliere-il-miele.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/002-gli-orsetti-vanno-a-raccogliere-il-miele.html"
+  },
+  {
+    "sessione_id": "027b6534-566e-4f34-894c-837e7a003f22",
+    "titolo": "Serpentino degli animali",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 7,
+    "file_path": "primi-calci/003-serpentino-degli-animali.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/003-serpentino-degli-animali.html"
+  },
+  {
+    "sessione_id": "e850411c-b8fe-4adc-8abc-2106bbc0a242",
+    "titolo": "La pioggia di stelle (tocchi sul posto)",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 6,
+    "file_path": "primi-calci/004-la-pioggia-di-stelle-tocchi-sul-posto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/004-la-pioggia-di-stelle-tocchi-sul-posto.html"
+  },
+  {
+    "sessione_id": "38fd08da-e8b4-417e-8e50-d34669a4e6e4",
+    "titolo": "I robot si svegliano",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 7,
+    "file_path": "primi-calci/005-i-robot-si-svegliano.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/005-i-robot-si-svegliano.html"
+  },
+  {
+    "sessione_id": "6209794d-9427-4628-9605-c5c71f65c222",
+    "titolo": "La caccia al dinosauro",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 8,
+    "file_path": "primi-calci/006-la-caccia-al-dinosauro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/006-la-caccia-al-dinosauro.html"
+  },
+  {
+    "sessione_id": "dae7375f-1b83-4714-b523-a67fa04b4ea0",
+    "titolo": "Pirati sull'isola (giro della palla)",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 8,
+    "file_path": "primi-calci/007-pirati-sullisola-giro-della-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/007-pirati-sullisola-giro-della-palla.html"
+  },
+  {
+    "sessione_id": "1ae6d3af-7cbb-436c-bb6b-f18dc0c387d0",
+    "titolo": "Il vulcano che trema",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 7,
+    "file_path": "primi-calci/008-il-vulcano-che-trema.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/008-il-vulcano-che-trema.html"
+  },
+  {
+    "sessione_id": "608dba1b-f4ab-4d2c-b237-81d28737469c",
+    "titolo": "Supereroi in pattuglia",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 8,
+    "file_path": "primi-calci/009-supereroi-in-pattuglia.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/009-supereroi-in-pattuglia.html"
+  },
+  {
+    "sessione_id": "69e0c53c-9a18-4ce4-8830-a36279d8b228",
+    "titolo": "Il gatto e la coda magica",
+    "eta": "primi_calci",
+    "categoria": "riscaldamento",
+    "durata_minuti": 8,
+    "file_path": "primi-calci/010-il-gatto-e-la-coda-magica.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/010-il-gatto-e-la-coda-magica.html"
+  },
+  {
+    "sessione_id": "188d1fde-cc00-4c42-8000-3a28839c4c00",
+    "titolo": "La palla conosce i miei piedi",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/011-la-palla-conosce-i-miei-piedi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/011-la-palla-conosce-i-miei-piedi.html"
+  },
+  {
+    "sessione_id": "397aee58-50d0-47a8-8ae0-97dc99f08a30",
+    "titolo": "La lumachina con la casa (conduzione lenta)",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/012-la-lumachina-con-la-casa-conduzione-lenta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/012-la-lumachina-con-la-casa-conduzione-lenta.html"
+  },
+  {
+    "sessione_id": "38bd514b-e62b-456c-b027-b12e5427260c",
+    "titolo": "Il treno e la locomotiva",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/013-il-treno-e-la-locomotiva.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/013-il-treno-e-la-locomotiva.html"
+  },
+  {
+    "sessione_id": "94cc96a4-43f0-41dc-8660-93a6c7786590",
+    "titolo": "Batti e fuggi con la palla fantasma",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/014-batti-e-fuggi-con-la-palla-fantasma.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/014-batti-e-fuggi-con-la-palla-fantasma.html"
+  },
+  {
+    "sessione_id": "e74d3015-ebb1-40b6-b93b-4c5890a3328a",
+    "titolo": "La palla che dorme e si sveglia",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/015-la-palla-che-dorme-e-si-sveglia.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/015-la-palla-che-dorme-e-si-sveglia.html"
+  },
+  {
+    "sessione_id": "50a6b1ea-8824-408e-87d0-cd4cc164bff4",
+    "titolo": "Il cobra che striscia (conduzione esterna)",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/016-il-cobra-che-striscia-conduzione-esterna.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/016-il-cobra-che-striscia-conduzione-esterna.html"
+  },
+  {
+    "sessione_id": "3cd8c739-98cb-4a04-920d-fa82bd3d2ac6",
+    "titolo": "Acchiappa l'ombra della palla",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/017-acchiappa-lombra-della-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/017-acchiappa-lombra-della-palla.html"
+  },
+  {
+    "sessione_id": "2731fadd-ab6d-453a-bb27-7a737fe7204a",
+    "titolo": "La palla fa il giro del mondo",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/018-la-palla-fa-il-giro-del-mondo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/018-la-palla-fa-il-giro-del-mondo.html"
+  },
+  {
+    "sessione_id": "3959ab4f-31f9-49ca-9469-cd997285a590",
+    "titolo": "Il gigante e il topolino",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/019-il-gigante-e-il-topolino.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/019-il-gigante-e-il-topolino.html"
+  },
+  {
+    "sessione_id": "c1ad872a-2e44-490e-8350-90c36e24dd14",
+    "titolo": "Tocca e scappa (finta del coniglio)",
+    "eta": "primi_calci",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/020-tocca-e-scappa-finta-del-coniglio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/020-tocca-e-scappa-finta-del-coniglio.html"
+  },
+  {
+    "sessione_id": "96158bb2-4a7e-47d2-8be8-b2604c60d196",
+    "titolo": "Tutti in casa (occupare lo spazio)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/021-tutti-in-casa-occupare-lo-spazio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/021-tutti-in-casa-occupare-lo-spazio.html"
+  },
+  {
+    "sessione_id": "c63b5c85-c919-4ace-bec3-09a9e64b07da",
+    "titolo": "Non svegliate l'orco (no ammucchiamento)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/022-non-svegliate-lorco-no-ammucchiamento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/022-non-svegliate-lorco-no-ammucchiamento.html"
+  },
+  {
+    "sessione_id": "d1a5b8ee-9b72-4ff6-87a0-2aa57718ecd2",
+    "titolo": "Seguimi! (tutti attacco, tutti dietro)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/023-seguimi-tutti-attacco-tutti-dietro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/023-seguimi-tutti-attacco-tutti-dietro.html"
+  },
+  {
+    "sessione_id": "f05c7cf6-c59a-4e6e-8f50-672732986aca",
+    "titolo": "La missione dello spazio vuoto",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/024-la-missione-dello-spazio-vuoto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/024-la-missione-dello-spazio-vuoto.html"
+  },
+  {
+    "sessione_id": "15110bcf-7865-4796-9995-dd887c5981f0",
+    "titolo": "Il re del castello (1v1 giocoso)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 13,
+    "file_path": "primi-calci/025-il-re-del-castello-1v1-giocoso.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/025-il-re-del-castello-1v1-giocoso.html"
+  },
+  {
+    "sessione_id": "1b0ff8ba-f3e2-4372-8388-7e126bc8e06a",
+    "titolo": "Passa la palla all'amico (coppia)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/026-passa-la-palla-allamico-coppia.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/026-passa-la-palla-allamico-coppia.html"
+  },
+  {
+    "sessione_id": "db843b2d-3105-4a22-badf-ba12010f9bda",
+    "titolo": "La palla viaggiatrice (triangolo di amici)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/027-la-palla-viaggiatrice-triangolo-di-amici.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/027-la-palla-viaggiatrice-triangolo-di-amici.html"
+  },
+  {
+    "sessione_id": "bd90a393-6a6d-4ca6-9a29-6bf96f353044",
+    "titolo": "La patata bollente (passaggio veloce)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/028-la-patata-bollente-passaggio-veloce.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/028-la-patata-bollente-passaggio-veloce.html"
+  },
+  {
+    "sessione_id": "4fa03775-8b55-4402-bd67-bc24b377c632",
+    "titolo": "Il tesoro protetto (2v1 semplice)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/029-il-tesoro-protetto-2v1-semplice.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/029-il-tesoro-protetto-2v1-semplice.html"
+  },
+  {
+    "sessione_id": "b3d0a21c-644a-440c-86d4-65fcf610029e",
+    "titolo": "Passa e corri dall'amico",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/030-passa-e-corri-dallamico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/030-passa-e-corri-dallamico.html"
+  },
+  {
+    "sessione_id": "c4b17b1a-e9c8-46f6-8c20-7856edec65e8",
+    "titolo": "Chiama il mio nome e passa",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/031-chiama-il-mio-nome-e-passa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/031-chiama-il-mio-nome-e-passa.html"
+  },
+  {
+    "sessione_id": "f996117d-8719-431e-bb0b-9399b2631c12",
+    "titolo": "La palla che rimbalza tra i castelli",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 13,
+    "file_path": "primi-calci/032-la-palla-che-rimbalza-tra-i-castelli.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/032-la-palla-che-rimbalza-tra-i-castelli.html"
+  },
+  {
+    "sessione_id": "1134093f-1849-48da-97c9-9fc4d1e55f80",
+    "titolo": "Il cerchio magico (mantieni il possesso)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/033-il-cerchio-magico-mantieni-il-possesso.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/033-il-cerchio-magico-mantieni-il-possesso.html"
+  },
+  {
+    "sessione_id": "36fa9830-62a0-46d0-84c0-5314aee09660",
+    "titolo": "Palla al capitano dei pirati",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/034-palla-al-capitano-dei-pirati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/034-palla-al-capitano-dei-pirati.html"
+  },
+  {
+    "sessione_id": "6a7e3272-00b0-444e-8c40-2de7663c0cf0",
+    "titolo": "Due contro il mago (2v1 con il mister)",
+    "eta": "primi_calci",
+    "categoria": "possesso_palla",
+    "durata_minuti": 13,
+    "file_path": "primi-calci/035-due-contro-il-mago-2v1-con-il-mister.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/035-due-contro-il-mago-2v1-con-il-mister.html"
+  },
+  {
+    "sessione_id": "70847059-0293-471c-90a5-55b9b7455236",
+    "titolo": "Aiuta il compagno bloccato",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/036-aiuta-il-compagno-bloccato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/036-aiuta-il-compagno-bloccato.html"
+  },
+  {
+    "sessione_id": "607f7ab8-e660-4cc8-8640-d22bb6708020",
+    "titolo": "La squadra degli esploratori (3v0)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/037-la-squadra-degli-esploratori-3v0.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/037-la-squadra-degli-esploratori-3v0.html"
+  },
+  {
+    "sessione_id": "6ae1ea4b-8a75-4d1e-91f9-c99ec7559b8c",
+    "titolo": "Lo specchio del mister",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/038-lo-specchio-del-mister.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/038-lo-specchio-del-mister.html"
+  },
+  {
+    "sessione_id": "bedd051a-6636-430a-8498-07524610a2ae",
+    "titolo": "Tutti in barca (cambio di campo)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/039-tutti-in-barca-cambio-di-campo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/039-tutti-in-barca-cambio-di-campo.html"
+  },
+  {
+    "sessione_id": "7bb3eb34-72d4-44fc-8a48-dc234fc8889c",
+    "titolo": "Mini regno 2v2 (la prima partitella)",
+    "eta": "primi_calci",
+    "categoria": "tattica",
+    "durata_minuti": 13,
+    "file_path": "primi-calci/040-mini-regno-2v2-la-prima-partitella.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/040-mini-regno-2v2-la-prima-partitella.html"
+  },
+  {
+    "sessione_id": "29b59d0c-5660-49b4-8ec0-ccf004b8f8a0",
+    "titolo": "Abbatti il castello del drago",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/041-abbatti-il-castello-del-drago.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/041-abbatti-il-castello-del-drago.html"
+  },
+  {
+    "sessione_id": "30622b8c-78e0-4534-8bc0-0cb8feb80320",
+    "titolo": "Il cannone dei pirati (tiro alla porta)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/042-il-cannone-dei-pirati-tiro-alla-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/042-il-cannone-dei-pirati-tiro-alla-porta.html"
+  },
+  {
+    "sessione_id": "2aecba98-f05e-4318-8df4-e053e9805daa",
+    "titolo": "Gol nel buco del coniglio",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/043-gol-nel-buco-del-coniglio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/043-gol-nel-buco-del-coniglio.html"
+  },
+  {
+    "sessione_id": "199da688-d630-4078-8e20-de86f6f0b810",
+    "titolo": "Colpisci il mostro addormentato",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/044-colpisci-il-mostro-addormentato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/044-colpisci-il-mostro-addormentato.html"
+  },
+  {
+    "sessione_id": "079b7d76-e51a-43ee-8250-02597e98d74a",
+    "titolo": "La porta arcobaleno (tiro con rincorsa)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/045-la-porta-arcobaleno-tiro-con-rincorsa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/045-la-porta-arcobaleno-tiro-con-rincorsa.html"
+  },
+  {
+    "sessione_id": "49a56c75-9557-4b18-95fd-defff76db0aa",
+    "titolo": "Tira e raggiungi (movimento dopo il tiro)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/046-tira-e-raggiungi-movimento-dopo-il-tiro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/046-tira-e-raggiungi-movimento-dopo-il-tiro.html"
+  },
+  {
+    "sessione_id": "3fca041d-4c57-4ed8-9d65-7e745ac56132",
+    "titolo": "La grotta dell'orso (tiro basso)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/047-la-grotta-dellorso-tiro-basso.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/047-la-grotta-dellorso-tiro-basso.html"
+  },
+  {
+    "sessione_id": "02dc684a-2968-4506-8720-f8bacd4cee48",
+    "titolo": "Sfida al bersaglio colorato",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/048-sfida-al-bersaglio-colorato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/048-sfida-al-bersaglio-colorato.html"
+  },
+  {
+    "sessione_id": "e924ac9f-6349-421a-9269-5fd09e857120",
+    "titolo": "Gol dei supereroi (tiro in corsa)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/049-gol-dei-supereroi-tiro-in-corsa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/049-gol-dei-supereroi-tiro-in-corsa.html"
+  },
+  {
+    "sessione_id": "d6c3b0d3-d3bf-48f0-be53-8714a8234dec",
+    "titolo": "La porta della giungla (tiro libero)",
+    "eta": "primi_calci",
+    "categoria": "finalizzazione",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/050-la-porta-della-giungla-tiro-libero.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/050-la-porta-della-giungla-tiro-libero.html"
+  },
+  {
+    "sessione_id": "704c0319-6693-481c-94e5-d5f09b054276",
+    "titolo": "La sfilata degli animali (andature)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/051-la-sfilata-degli-animali-andature.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/051-la-sfilata-degli-animali-andature.html"
+  },
+  {
+    "sessione_id": "438ff279-1167-4748-9f11-eb0d75316e76",
+    "titolo": "Salta le pozzanghere (salti e atterraggi)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/052-salta-le-pozzanghere-salti-e-atterraggi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/052-salta-le-pozzanghere-salti-e-atterraggi.html"
+  },
+  {
+    "sessione_id": "68e94975-a505-4bf2-b9f7-02f932873cf2",
+    "titolo": "Il ponte e il tunnel (su e giù con il corpo)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/053-il-ponte-e-il-tunnel-su-e-giu-con-il-corpo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/053-il-ponte-e-il-tunnel-su-e-giu-con-il-corpo.html"
+  },
+  {
+    "sessione_id": "2373f4f8-147c-4a68-81e8-ead9ae907594",
+    "titolo": "La statua di ghiaccio (equilibrio su un piede)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/054-la-statua-di-ghiaccio-equilibrio-su-un-piede.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/054-la-statua-di-ghiaccio-equilibrio-su-un-piede.html"
+  },
+  {
+    "sessione_id": "4a8bef4b-8fcf-4460-bc1b-96f2ab2bd3d4",
+    "titolo": "La missione spaziale (percorso motorio)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/055-la-missione-spaziale-percorso-motorio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/055-la-missione-spaziale-percorso-motorio.html"
+  },
+  {
+    "sessione_id": "80fcfc79-6255-4bea-be13-eb889793cc46",
+    "titolo": "Destra o sinistra? (scoperta della lateralità)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/056-destra-o-sinistra-scoperta-della-lateralita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/056-destra-o-sinistra-scoperta-della-lateralita.html"
+  },
+  {
+    "sessione_id": "918393ed-5279-48de-be3b-7c04bb334c42",
+    "titolo": "Il robot balla (ritmo e coordinazione)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/057-il-robot-balla-ritmo-e-coordinazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/057-il-robot-balla-ritmo-e-coordinazione.html"
+  },
+  {
+    "sessione_id": "42bb618e-c754-40ba-8bc0-e0b70134fc94",
+    "titolo": "Il gigante addormentato si alza (alzate e abbassate)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/058-il-gigante-addormentato-si-alza-alzate-e-abbassate.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/058-il-gigante-addormentato-si-alza-alzate-e-abbassate.html"
+  },
+  {
+    "sessione_id": "3538737d-18b7-40f8-9265-3735b3859ad2",
+    "titolo": "Corri e abbraccia il cono (accelerazione breve)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/059-corri-e-abbraccia-il-cono-accelerazione-breve.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/059-corri-e-abbraccia-il-cono-accelerazione-breve.html"
+  },
+  {
+    "sessione_id": "5f618f5a-15d8-4a56-8c60-551f650c39b8",
+    "titolo": "La nuvola morbida (atterraggi e cadute sicure)",
+    "eta": "primi_calci",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/060-la-nuvola-morbida-atterraggi-e-cadute-sicure.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/060-la-nuvola-morbida-atterraggi-e-cadute-sicure.html"
+  },
+  {
+    "sessione_id": "e0a8290d-8ebd-462a-b527-9268bf27db9a",
+    "titolo": "Tutti portieri per un minuto",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/061-tutti-portieri-per-un-minuto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/061-tutti-portieri-per-un-minuto.html"
+  },
+  {
+    "sessione_id": "d45c7c41-e055-453a-b2ab-9e16597bd2fe",
+    "titolo": "Il muro magico (blocca la palla)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/062-il-muro-magico-blocca-la-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/062-il-muro-magico-blocca-la-palla.html"
+  },
+  {
+    "sessione_id": "f1c6d9bf-ee75-4ce6-9d75-c7637559c300",
+    "titolo": "Prendi la palla che rotola (presa bassa)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 9,
+    "file_path": "primi-calci/063-prendi-la-palla-che-rotola-presa-bassa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/063-prendi-la-palla-che-rotola-presa-bassa.html"
+  },
+  {
+    "sessione_id": "ffd55470-a228-4310-8c30-e615b7600e18",
+    "titolo": "Il guardiano del castello (porta + movimento)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/064-il-guardiano-del-castello-porta-movimento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/064-il-guardiano-del-castello-porta-movimento.html"
+  },
+  {
+    "sessione_id": "c2e1d496-2892-413e-82d0-55e565a83a42",
+    "titolo": "Tuffati sulla nuvola (primo tuffo ludico)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/065-tuffati-sulla-nuvola-primo-tuffo-ludico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/065-tuffati-sulla-nuvola-primo-tuffo-ludico.html"
+  },
+  {
+    "sessione_id": "c71e9970-9cec-4c50-89e8-d2b235201504",
+    "titolo": "La palla ti cerca (reazione e posizione)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/066-la-palla-ti-cerca-reazione-e-posizione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/066-la-palla-ti-cerca-reazione-e-posizione.html"
+  },
+  {
+    "sessione_id": "42f17dcb-a17b-4e5c-ba37-b29a3397cb4c",
+    "titolo": "Il gigante delle porte (porta grande)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/067-il-gigante-delle-porte-porta-grande.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/067-il-gigante-delle-porte-porta-grande.html"
+  },
+  {
+    "sessione_id": "6ec43f8a-759e-49ea-8a18-de4c46608f86",
+    "titolo": "Rimanda con le mani (rinvio del portiere)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 12,
+    "file_path": "primi-calci/068-rimanda-con-le-mani-rinvio-del-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/068-rimanda-con-le-mani-rinvio-del-portiere.html"
+  },
+  {
+    "sessione_id": "c89b4c87-741d-4d9e-9875-30d99119cc68",
+    "titolo": "Non far cadere il pallone (presa alta)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 10,
+    "file_path": "primi-calci/069-non-far-cadere-il-pallone-presa-alta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/069-non-far-cadere-il-pallone-presa-alta.html"
+  },
+  {
+    "sessione_id": "7458ce62-a3c8-4aee-8fe0-22e2448cfc28",
+    "titolo": "La porta invisibile (comunicazione del portiere)",
+    "eta": "primi_calci",
+    "categoria": "portieri",
+    "durata_minuti": 11,
+    "file_path": "primi-calci/070-la-porta-invisibile-comunicazione-del-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/primi-calci/070-la-porta-invisibile-comunicazione-del-portiere.html"
+  },
+  {
+    "sessione_id": "db49f5d6-b7d4-4e52-8a20-0667db84adf4",
+    "titolo": "Il postino portapalla",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/001-il-postino-portapalla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/001-il-postino-portapalla.html"
+  },
+  {
+    "sessione_id": "d282164d-1c55-4df2-b0af-d63bfbbf1cfa",
+    "titolo": "Acchiappacode con pallone",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/002-acchiappacode-con-pallone.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/002-acchiappacode-con-pallone.html"
+  },
+  {
+    "sessione_id": "37f90316-e3c8-465a-8340-e5ab754ce088",
+    "titolo": "Semaforo con pallone",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 10,
+    "file_path": "pulcini/003-semaforo-con-pallone.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/003-semaforo-con-pallone.html"
+  },
+  {
+    "sessione_id": "fb2287c0-bc68-4640-8330-0ee791803f58",
+    "titolo": "Ladri nel pollaio",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/004-ladri-nel-pollaio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/004-ladri-nel-pollaio.html"
+  },
+  {
+    "sessione_id": "6f3eced6-bf94-46d2-8420-fcb6f8045bb4",
+    "titolo": "Quattro angoli e via",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/005-quattro-angoli-e-via.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/005-quattro-angoli-e-via.html"
+  },
+  {
+    "sessione_id": "790a72cc-85dc-42a4-8bf8-c1479068fe24",
+    "titolo": "Il trenino degli attaccanti",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 10,
+    "file_path": "pulcini/006-il-trenino-degli-attaccanti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/006-il-trenino-degli-attaccanti.html"
+  },
+  {
+    "sessione_id": "636722a1-2acb-42a4-9695-c0d3d0059c5e",
+    "titolo": "Corsa degli animali",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 10,
+    "file_path": "pulcini/007-corsa-degli-animali.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/007-corsa-degli-animali.html"
+  },
+  {
+    "sessione_id": "04e09fad-80c9-49ae-bbeb-390906031b22",
+    "titolo": "Il labirinto dei coni",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/008-il-labirinto-dei-coni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/008-il-labirinto-dei-coni.html"
+  },
+  {
+    "sessione_id": "0311d938-86b0-4bc8-8020-63aa02f01690",
+    "titolo": "Passa e scappa",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 10,
+    "file_path": "pulcini/009-passa-e-scappa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/009-passa-e-scappa.html"
+  },
+  {
+    "sessione_id": "d0586f4b-f1e5-4dee-9929-21ad12a5f8cc",
+    "titolo": "Il re del cerchio",
+    "eta": "pulcini",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "pulcini/010-il-re-del-cerchio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/010-il-re-del-cerchio.html"
+  },
+  {
+    "sessione_id": "2072282b-57ad-4e16-91b1-40e8563de61c",
+    "titolo": "Slalom alternato dentro-fuori",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 18,
+    "file_path": "pulcini/011-slalom-alternato-dentro-fuori.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/011-slalom-alternato-dentro-fuori.html"
+  },
+  {
+    "sessione_id": "84427c39-2cf9-4ee6-bd4f-4ac052df61b6",
+    "titolo": "Stop e vai orientato",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "pulcini/012-stop-e-vai-orientato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/012-stop-e-vai-orientato.html"
+  },
+  {
+    "sessione_id": "def511d2-0526-43e2-8e08-494e72308b2e",
+    "titolo": "Dribbling del cobra",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 18,
+    "file_path": "pulcini/013-dribbling-del-cobra.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/013-dribbling-del-cobra.html"
+  },
+  {
+    "sessione_id": "08677239-ce63-472c-9e35-514b1515e056",
+    "titolo": "Piede debole è bello",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "pulcini/014-piede-debole-e-bello.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/014-piede-debole-e-bello.html"
+  },
+  {
+    "sessione_id": "0ac86033-6a73-4b14-bf57-080bbb27e524",
+    "titolo": "Colpisci il cono",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 15,
+    "file_path": "pulcini/015-colpisci-il-cono.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/015-colpisci-il-cono.html"
+  },
+  {
+    "sessione_id": "4db27051-0c51-4e1e-b99f-634ede4f65ce",
+    "titolo": "La palla incollata",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 18,
+    "file_path": "pulcini/016-la-palla-incollata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/016-la-palla-incollata.html"
+  },
+  {
+    "sessione_id": "5a319cb3-5e35-406e-96b1-b40a8cddf884",
+    "titolo": "Rimbalzo e ricontrollo",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 15,
+    "file_path": "pulcini/017-rimbalzo-e-ricontrollo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/017-rimbalzo-e-ricontrollo.html"
+  },
+  {
+    "sessione_id": "efa4f025-8b85-4852-bb87-6260e8776002",
+    "titolo": "Guida e fermati!",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "pulcini/018-guida-e-fermati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/018-guida-e-fermati.html"
+  },
+  {
+    "sessione_id": "ff12139a-236e-429a-8978-f0fb4100ba16",
+    "titolo": "Il triangolo tecnico",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "pulcini/019-il-triangolo-tecnico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/019-il-triangolo-tecnico.html"
+  },
+  {
+    "sessione_id": "8b0411ec-fef0-4b94-88e0-032d3a780610",
+    "titolo": "Finta e supera",
+    "eta": "pulcini",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 18,
+    "file_path": "pulcini/020-finta-e-supera.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/020-finta-e-supera.html"
+  },
+  {
+    "sessione_id": "6dd593ff-204b-415c-b60b-3982a2a31640",
+    "titolo": "Trova il buco",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 22,
+    "file_path": "pulcini/021-trova-il-buco.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/021-trova-il-buco.html"
+  },
+  {
+    "sessione_id": "6ee1a2a1-e7fb-4d94-9f65-fa780f35789e",
+    "titolo": "Difendiamo il fortino",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "pulcini/022-difendiamo-il-fortino.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/022-difendiamo-il-fortino.html"
+  },
+  {
+    "sessione_id": "333830d6-3b5a-454e-8090-85d585989bca",
+    "titolo": "L'ombra del compagno",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 20,
+    "file_path": "pulcini/023-lombra-del-compagno.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/023-lombra-del-compagno.html"
+  },
+  {
+    "sessione_id": "2a367aa9-68ed-4b52-bd4b-ee9341fb45a6",
+    "titolo": "Il passaggio segreto",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 22,
+    "file_path": "pulcini/024-il-passaggio-segreto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/024-il-passaggio-segreto.html"
+  },
+  {
+    "sessione_id": "8686d021-2995-46ba-b58b-5a0f769bac1e",
+    "titolo": "Gioco a zone elementare",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "pulcini/025-gioco-a-zone-elementare.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/025-gioco-a-zone-elementare.html"
+  },
+  {
+    "sessione_id": "9c9fa115-a1c1-4cc6-b6eb-f58dddd3c72a",
+    "titolo": "Chi preme vince",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 20,
+    "file_path": "pulcini/026-chi-preme-vince.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/026-chi-preme-vince.html"
+  },
+  {
+    "sessione_id": "c04af5dd-1edd-452a-b277-89cad0f73caa",
+    "titolo": "Triangolo e porta",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "pulcini/027-triangolo-e-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/027-triangolo-e-porta.html"
+  },
+  {
+    "sessione_id": "e34232ac-37fc-4ec4-8fb8-ada1fc68f844",
+    "titolo": "2v1 verso la porta",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 22,
+    "file_path": "pulcini/028-2v1-verso-la-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/028-2v1-verso-la-porta.html"
+  },
+  {
+    "sessione_id": "24b056b6-e860-43aa-8300-d3c1c51c2b60",
+    "titolo": "Attacco e difesa rapida",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "pulcini/029-attacco-e-difesa-rapida.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/029-attacco-e-difesa-rapida.html"
+  },
+  {
+    "sessione_id": "9056bf49-0dc1-4a1e-ba37-bb9ad55707f6",
+    "titolo": "Il corridoio stretto",
+    "eta": "pulcini",
+    "categoria": "tattica",
+    "durata_minuti": 20,
+    "file_path": "pulcini/030-il-corridoio-stretto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/030-il-corridoio-stretto.html"
+  },
+  {
+    "sessione_id": "cda0f7f0-3b28-4b90-8e30-1d609c603518",
+    "titolo": "Il quadrato del furbo",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "pulcini/031-il-quadrato-del-furbo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/031-il-quadrato-del-furbo.html"
+  },
+  {
+    "sessione_id": "3b40aaf0-027a-4db0-812c-1c1b17406356",
+    "titolo": "Palla avvelenata",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 18,
+    "file_path": "pulcini/032-palla-avvelenata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/032-palla-avvelenata.html"
+  },
+  {
+    "sessione_id": "4780347f-a3b3-40a4-b3f3-927474db1040",
+    "titolo": "Passa e muoviti",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "pulcini/033-passa-e-muoviti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/033-passa-e-muoviti.html"
+  },
+  {
+    "sessione_id": "e9b2a767-6fcd-42ae-9dc5-9ea3f5c99208",
+    "titolo": "4v2 nel cerchio",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "pulcini/034-4v2-nel-cerchio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/034-4v2-nel-cerchio.html"
+  },
+  {
+    "sessione_id": "1b68afc9-38a7-4688-98a1-c15a09413006",
+    "titolo": "Proteggi la tua palla",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 18,
+    "file_path": "pulcini/035-proteggi-la-tua-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/035-proteggi-la-tua-palla.html"
+  },
+  {
+    "sessione_id": "b1797749-3eb9-4286-b97f-1453e5cf97c6",
+    "titolo": "Il labirinto vivente",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "pulcini/036-il-labirinto-vivente.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/036-il-labirinto-vivente.html"
+  },
+  {
+    "sessione_id": "96106500-1608-4300-81f0-4f03460047f8",
+    "titolo": "Mantieni e conquista",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "pulcini/037-mantieni-e-conquista.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/037-mantieni-e-conquista.html"
+  },
+  {
+    "sessione_id": "7f16c653-aef5-446e-94d1-bd4f923d0a24",
+    "titolo": "Palla al capitano",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 18,
+    "file_path": "pulcini/038-palla-al-capitano.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/038-palla-al-capitano.html"
+  },
+  {
+    "sessione_id": "43f42f30-ebe6-48b0-8794-8ad4b7805c72",
+    "titolo": "Il cerchio rotante",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "pulcini/039-il-cerchio-rotante.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/039-il-cerchio-rotante.html"
+  },
+  {
+    "sessione_id": "7d28cd85-b05d-4c7a-b06f-9ca8e1ff5032",
+    "titolo": "Scambi a catena",
+    "eta": "pulcini",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "pulcini/040-scambi-a-catena.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/040-scambi-a-catena.html"
+  },
+  {
+    "sessione_id": "267cbe6a-e70a-4ed2-8c48-23b790b89b42",
+    "titolo": "Bomba da tre posizioni",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 18,
+    "file_path": "pulcini/041-bomba-da-tre-posizioni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/041-bomba-da-tre-posizioni.html"
+  },
+  {
+    "sessione_id": "176a4e9b-ed47-46b8-b743-ca3098231a04",
+    "titolo": "1v1 col portiere",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 20,
+    "file_path": "pulcini/042-1v1-col-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/042-1v1-col-portiere.html"
+  },
+  {
+    "sessione_id": "6b76f1b8-c4ac-4328-8008-5c440290c4a4",
+    "titolo": "Combinazione e conclusione",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 18,
+    "file_path": "pulcini/043-combinazione-e-conclusione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/043-combinazione-e-conclusione.html"
+  },
+  {
+    "sessione_id": "25437178-6094-44a8-8e78-f0dee5d06eec",
+    "titolo": "Slalom e bomba in porta",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 20,
+    "file_path": "pulcini/044-slalom-e-bomba-in-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/044-slalom-e-bomba-in-porta.html"
+  },
+  {
+    "sessione_id": "2749e333-d85b-41dc-bd1f-f8e7f2ef1544",
+    "titolo": "La sfida dei gol",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 15,
+    "file_path": "pulcini/045-la-sfida-dei-gol.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/045-la-sfida-dei-gol.html"
+  },
+  {
+    "sessione_id": "1c6b7b35-d971-4db6-b15b-d5b72683982a",
+    "titolo": "Porta doppia, doppio divertimento",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 20,
+    "file_path": "pulcini/046-porta-doppia-doppio-divertimento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/046-porta-doppia-doppio-divertimento.html"
+  },
+  {
+    "sessione_id": "cd7b1936-0da8-4ffa-8940-43b1a6cc34e8",
+    "titolo": "Tiro di prima al volo",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 18,
+    "file_path": "pulcini/047-tiro-di-prima-al-volo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/047-tiro-di-prima-al-volo.html"
+  },
+  {
+    "sessione_id": "fe0e5161-4dbf-4150-9e61-cd76d03143de",
+    "titolo": "Cross basso e tap-in",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 20,
+    "file_path": "pulcini/048-cross-basso-e-tap-in.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/048-cross-basso-e-tap-in.html"
+  },
+  {
+    "sessione_id": "da7fe587-07d3-4aa4-bafb-6b5dbf230d28",
+    "titolo": "2v1 e gol",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "pulcini/049-2v1-e-gol.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/049-2v1-e-gol.html"
+  },
+  {
+    "sessione_id": "3e4e111c-434e-4e9c-815c-9e837f80f212",
+    "titolo": "Il rigore degli eroi",
+    "eta": "pulcini",
+    "categoria": "finalizzazione",
+    "durata_minuti": 15,
+    "file_path": "pulcini/050-il-rigore-degli-eroi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/050-il-rigore-degli-eroi.html"
+  },
+  {
+    "sessione_id": "0935f0b8-6c36-4bf8-8544-361a0b404972",
+    "titolo": "Percorso dell'astronauta",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 15,
+    "file_path": "pulcini/051-percorso-dellastronauta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/051-percorso-dellastronauta.html"
+  },
+  {
+    "sessione_id": "7054f797-83f3-4f84-b8eb-5180f813bb18",
+    "titolo": "Il polpo salta tutto",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 12,
+    "file_path": "pulcini/052-il-polpo-salta-tutto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/052-il-polpo-salta-tutto.html"
+  },
+  {
+    "sessione_id": "245b04fd-669b-4aa4-9491-d348be59820a",
+    "titolo": "Equilibrio da campione",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 12,
+    "file_path": "pulcini/053-equilibrio-da-campione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/053-equilibrio-da-campione.html"
+  },
+  {
+    "sessione_id": "459d5907-2eb7-4a68-b73f-7d99d36f2988",
+    "titolo": "Corsa dei granchi",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 10,
+    "file_path": "pulcini/054-corsa-dei-granchi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/054-corsa-dei-granchi.html"
+  },
+  {
+    "sessione_id": "b11c5dbe-5bd0-47c2-8000-07745a7cebd0",
+    "titolo": "Il serpente veloce",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 15,
+    "file_path": "pulcini/055-il-serpente-veloce.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/055-il-serpente-veloce.html"
+  },
+  {
+    "sessione_id": "8a08e67e-97ea-4e76-8780-70ac4808906a",
+    "titolo": "Tocca e scappa",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 12,
+    "file_path": "pulcini/056-tocca-e-scappa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/056-tocca-e-scappa.html"
+  },
+  {
+    "sessione_id": "509dfee6-6988-488a-86c0-6b4d466c0f48",
+    "titolo": "Andature nel bosco",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 15,
+    "file_path": "pulcini/057-andature-nel-bosco.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/057-andature-nel-bosco.html"
+  },
+  {
+    "sessione_id": "a04e24e7-a153-42a4-bfdb-11c43643ee88",
+    "titolo": "Il salto della rana",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 12,
+    "file_path": "pulcini/058-il-salto-della-rana.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/058-il-salto-della-rana.html"
+  },
+  {
+    "sessione_id": "1bc73169-561b-4014-99ad-5b84717dafb6",
+    "titolo": "Circuito dei supereroi",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "pulcini/059-circuito-dei-supereroi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/059-circuito-dei-supereroi.html"
+  },
+  {
+    "sessione_id": "699cf48a-8b7a-4652-80c8-026212d80bb2",
+    "titolo": "Stretching degli animali",
+    "eta": "pulcini",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 12,
+    "file_path": "pulcini/060-stretching-degli-animali.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/060-stretching-degli-animali.html"
+  },
+  {
+    "sessione_id": "a5845f98-5ce4-4b88-8dd8-bd381410e13c",
+    "titolo": "Re del castello",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 18,
+    "file_path": "pulcini/061-re-del-castello.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/061-re-del-castello.html"
+  },
+  {
+    "sessione_id": "46ab162a-af98-4786-83e0-3b8901ac0c78",
+    "titolo": "Para tutto!",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 20,
+    "file_path": "pulcini/062-para-tutto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/062-para-tutto.html"
+  },
+  {
+    "sessione_id": "3fc1689d-fd05-4682-b1af-009ade1f4caa",
+    "titolo": "Il gatto reattivo",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 18,
+    "file_path": "pulcini/063-il-gatto-reattivo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/063-il-gatto-reattivo.html"
+  },
+  {
+    "sessione_id": "c32d3d09-b0b5-432a-b463-f349ce2374d6",
+    "titolo": "Mani di ferro",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 15,
+    "file_path": "pulcini/064-mani-di-ferro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/064-mani-di-ferro.html"
+  },
+  {
+    "sessione_id": "9245a869-6593-45dc-9475-907dcdb5c1e6",
+    "titolo": "Dove mi metto?",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 18,
+    "file_path": "pulcini/065-dove-mi-metto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/065-dove-mi-metto.html"
+  },
+  {
+    "sessione_id": "20e42955-4a1d-465a-bf9f-18273f0fe582",
+    "titolo": "Portiere jolly",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 20,
+    "file_path": "pulcini/066-portiere-jolly.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/066-portiere-jolly.html"
+  },
+  {
+    "sessione_id": "5d3e1661-bb91-48be-bf4f-094efedf74de",
+    "titolo": "Para e riparti",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 20,
+    "file_path": "pulcini/067-para-e-riparti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/067-para-e-riparti.html"
+  },
+  {
+    "sessione_id": "123dc30e-468c-4e6a-8c40-77cc3d64eacc",
+    "titolo": "La barriera mobile",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 18,
+    "file_path": "pulcini/068-la-barriera-mobile.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/068-la-barriera-mobile.html"
+  },
+  {
+    "sessione_id": "f62fbcde-6d40-45c2-8800-597ea91c1540",
+    "titolo": "Il tuffo del felino",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 22,
+    "file_path": "pulcini/069-il-tuffo-del-felino.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/069-il-tuffo-del-felino.html"
+  },
+  {
+    "sessione_id": "7fc61a82-86ac-4006-8050-c1917a8496fc",
+    "titolo": "Il portiere dei campioni",
+    "eta": "pulcini",
+    "categoria": "portieri",
+    "durata_minuti": 20,
+    "file_path": "pulcini/070-il-portiere-dei-campioni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/pulcini/070-il-portiere-dei-campioni.html"
+  },
+  {
+    "sessione_id": "fe1b39c7-7951-42b2-9a49-5a3eab75b318",
+    "titolo": "Giro del campo con variazioni",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "esordienti/001-giro-del-campo-con-variazioni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/001-giro-del-campo-con-variazioni.html"
+  },
+  {
+    "sessione_id": "bc6645b9-65e9-4556-b05f-3e62a0ef85b6",
+    "titolo": "Ruba bandiera a squadre",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "esordienti/002-ruba-bandiera-a-squadre.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/002-ruba-bandiera-a-squadre.html"
+  },
+  {
+    "sessione_id": "d1725eb3-9e97-43e8-b9ab-ead29d5b173c",
+    "titolo": "Sprint ai coni numerati",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "esordienti/003-sprint-ai-coni-numerati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/003-sprint-ai-coni-numerati.html"
+  },
+  {
+    "sessione_id": "b5eba045-0c67-4ea8-9efd-17d3beed929a",
+    "titolo": "Pressione a coppie con pallone",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 14,
+    "file_path": "esordienti/004-pressione-a-coppie-con-pallone.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/004-pressione-a-coppie-con-pallone.html"
+  },
+  {
+    "sessione_id": "24ab9527-56c5-4066-96bd-642845415078",
+    "titolo": "Il triangolo infinito",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "esordienti/005-il-triangolo-infinito.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/005-il-triangolo-infinito.html"
+  },
+  {
+    "sessione_id": "2ef706b8-3c5e-4538-8234-d72213804e6a",
+    "titolo": "Riscaldamento a specchio",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 14,
+    "file_path": "esordienti/006-riscaldamento-a-specchio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/006-riscaldamento-a-specchio.html"
+  },
+  {
+    "sessione_id": "3fff22f5-5cfd-4f3a-b61f-6c229dcf2ae2",
+    "titolo": "Rombo di passaggi in movimento",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "esordienti/007-rombo-di-passaggi-in-movimento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/007-rombo-di-passaggi-in-movimento.html"
+  },
+  {
+    "sessione_id": "360cc0cf-66a9-409a-9a99-a300a055bc30",
+    "titolo": "Zona libera 4v4 senza porte",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 18,
+    "file_path": "esordienti/008-zona-libera-4v4-senza-porte.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/008-zona-libera-4v4-senza-porte.html"
+  },
+  {
+    "sessione_id": "4891c80a-6f84-462e-80d0-aab70e245f54",
+    "titolo": "Passaggi incrociati in corsa",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "esordienti/009-passaggi-incrociati-in-corsa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/009-passaggi-incrociati-in-corsa.html"
+  },
+  {
+    "sessione_id": "20e7d14d-ddb3-4eac-91e9-45cf2fe19c5a",
+    "titolo": "Attivazione con palla in mano",
+    "eta": "esordienti",
+    "categoria": "riscaldamento",
+    "durata_minuti": 12,
+    "file_path": "esordienti/010-attivazione-con-palla-in-mano.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/010-attivazione-con-palla-in-mano.html"
+  },
+  {
+    "sessione_id": "b22a907a-3102-46f2-8988-7ca97688e88a",
+    "titolo": "Slalom con cambio lato",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "esordienti/011-slalom-con-cambio-lato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/011-slalom-con-cambio-lato.html"
+  },
+  {
+    "sessione_id": "f714a2df-f9db-4e4c-b3fb-71044c93ca20",
+    "titolo": "Stop orientato su passaggio mosso",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "esordienti/012-stop-orientato-su-passaggio-mosso.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/012-stop-orientato-su-passaggio-mosso.html"
+  },
+  {
+    "sessione_id": "451db919-122d-40f2-b25b-56e2a9eb7076",
+    "titolo": "Il muro tecnico a velocità",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "esordienti/013-il-muro-tecnico-a-velocita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/013-il-muro-tecnico-a-velocita.html"
+  },
+  {
+    "sessione_id": "5d5693e1-6395-463a-b14b-c68625dbb2de",
+    "titolo": "1v1 in corridoio stretto",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "esordienti/014-1v1-in-corridoio-stretto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/014-1v1-in-corridoio-stretto.html"
+  },
+  {
+    "sessione_id": "17f45359-a75d-44e2-b9eb-8c38f7bb0eb6",
+    "titolo": "Prima intenzione a tre",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "esordienti/015-prima-intenzione-a-tre.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/015-prima-intenzione-a-tre.html"
+  },
+  {
+    "sessione_id": "655a6529-ad51-4f6e-b9c7-a8067a476496",
+    "titolo": "Colpo di testa piatto su lancio",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "esordienti/016-colpo-di-testa-piatto-su-lancio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/016-colpo-di-testa-piatto-su-lancio.html"
+  },
+  {
+    "sessione_id": "2b591161-0819-4936-b0c7-741fb857c8de",
+    "titolo": "Conduzione con accelerazione programmata",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "esordienti/017-conduzione-con-accelerazione-programmata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/017-conduzione-con-accelerazione-programmata.html"
+  },
+  {
+    "sessione_id": "f482ed8b-ff2d-4e56-9f51-518fa3dde07c",
+    "titolo": "Stop di petto orientato",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "esordienti/018-stop-di-petto-orientato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/018-stop-di-petto-orientato.html"
+  },
+  {
+    "sessione_id": "8986059e-da06-44ce-8ac0-7394d15060c6",
+    "titolo": "Il circuito tecnico completo",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "esordienti/019-il-circuito-tecnico-completo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/019-il-circuito-tecnico-completo.html"
+  },
+  {
+    "sessione_id": "e239f7e3-c561-40ea-913d-4b4e6709245c",
+    "titolo": "Il doppio passo verso la porta",
+    "eta": "esordienti",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "esordienti/020-il-doppio-passo-verso-la-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/020-il-doppio-passo-verso-la-porta.html"
+  },
+  {
+    "sessione_id": "bebd7745-0dcb-44b4-9509-02ee73f118c2",
+    "titolo": "Giocare largo: ampiezza in attacco",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "esordienti/021-giocare-largo-ampiezza-in-attacco.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/021-giocare-largo-ampiezza-in-attacco.html"
+  },
+  {
+    "sessione_id": "5f5586e1-c71b-4774-9705-9eb56195f01e",
+    "titolo": "Sostegno al portatore di palla",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "esordienti/022-sostegno-al-portatore-di-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/022-sostegno-al-portatore-di-palla.html"
+  },
+  {
+    "sessione_id": "17892e47-7bcf-4be0-b857-8aa245a76398",
+    "titolo": "Pressing coordinato sulla palla",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "esordienti/023-pressing-coordinato-sulla-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/023-pressing-coordinato-sulla-palla.html"
+  },
+  {
+    "sessione_id": "51331261-7487-4168-9999-9b4e13096d1e",
+    "titolo": "Transizione veloce 5v5",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "esordienti/024-transizione-veloce-5v5.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/024-transizione-veloce-5v5.html"
+  },
+  {
+    "sessione_id": "0e31890c-c79c-4c64-8e78-328eb56819e4",
+    "titolo": "Gioco a tre linee orizzontali",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "esordienti/025-gioco-a-tre-linee-orizzontali.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/025-gioco-a-tre-linee-orizzontali.html"
+  },
+  {
+    "sessione_id": "a0525104-c7ee-4504-8cec-4f1f64007b02",
+    "titolo": "Uscita dalla pressione",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 25,
+    "file_path": "esordienti/026-uscita-dalla-pressione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/026-uscita-dalla-pressione.html"
+  },
+  {
+    "sessione_id": "fbdd43ba-fdf6-4b2a-8dd8-f7060890c02e",
+    "titolo": "Copertura del lato debole",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "esordienti/027-copertura-del-lato-debole.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/027-copertura-del-lato-debole.html"
+  },
+  {
+    "sessione_id": "cd1ef0fa-329c-484e-8970-11ac08b4bbec",
+    "titolo": "Prima linea di pressing offensivo",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "esordienti/028-prima-linea-di-pressing-offensivo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/028-prima-linea-di-pressing-offensivo.html"
+  },
+  {
+    "sessione_id": "be57ca79-3eeb-49e4-98ad-bef1639d8646",
+    "titolo": "5v5 con ruoli assegnati",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "esordienti/029-5v5-con-ruoli-assegnati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/029-5v5-con-ruoli-assegnati.html"
+  },
+  {
+    "sessione_id": "d45772d1-e8c7-46a8-9649-b23654798e8e",
+    "titolo": "Il rombo compatto in difesa",
+    "eta": "esordienti",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "esordienti/030-il-rombo-compatto-in-difesa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/030-il-rombo-compatto-in-difesa.html"
+  },
+  {
+    "sessione_id": "5065e388-30ac-4c98-8048-9f421f1020e4",
+    "titolo": "Rondo 5v2 nel rettangolo",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "esordienti/031-rondo-5v2-nel-rettangolo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/031-rondo-5v2-nel-rettangolo.html"
+  },
+  {
+    "sessione_id": "9517718d-5b73-42ec-98e9-4cd92361339a",
+    "titolo": "Possesso con porte di passaggio",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "esordienti/032-possesso-con-porte-di-passaggio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/032-possesso-con-porte-di-passaggio.html"
+  },
+  {
+    "sessione_id": "43da1ce4-9436-4544-8efc-eaadf9a08aca",
+    "titolo": "Rondo a due tocchi obbligatori",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "esordienti/033-rondo-a-due-tocchi-obbligatori.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/033-rondo-a-due-tocchi-obbligatori.html"
+  },
+  {
+    "sessione_id": "ee8a9772-7d88-44de-8060-2e6053ac8de8",
+    "titolo": "Possesso in profondità",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "esordienti/034-possesso-in-profondita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/034-possesso-in-profondita.html"
+  },
+  {
+    "sessione_id": "2b5970ec-fcba-465c-8794-9ee226b04b2e",
+    "titolo": "3v3 con jolly neutro",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "esordienti/035-3v3-con-jolly-neutro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/035-3v3-con-jolly-neutro.html"
+  },
+  {
+    "sessione_id": "dcde4e1e-8276-47ee-81c0-6745f9f083b6",
+    "titolo": "Possesso con cambio campo obbligatorio",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "esordienti/036-possesso-con-cambio-campo-obbligatorio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/036-possesso-con-cambio-campo-obbligatorio.html"
+  },
+  {
+    "sessione_id": "2fd3f068-8174-46f8-8ef8-1cb7d6903f8c",
+    "titolo": "Possesso con pressing time",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "esordienti/037-possesso-con-pressing-time.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/037-possesso-con-pressing-time.html"
+  },
+  {
+    "sessione_id": "01898014-597a-47a4-8f04-e38c17b0567e",
+    "titolo": "Il quadrato con uscita in profondità",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "esordienti/038-il-quadrato-con-uscita-in-profondita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/038-il-quadrato-con-uscita-in-profondita.html"
+  },
+  {
+    "sessione_id": "db48d191-9d0d-4502-b463-dc050493d96e",
+    "titolo": "Rondo con inversione di direzione",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "esordienti/039-rondo-con-inversione-di-direzione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/039-rondo-con-inversione-di-direzione.html"
+  },
+  {
+    "sessione_id": "3d1ed3b2-e284-4366-8230-8d4ca0d420b4",
+    "titolo": "Torello con jolly esterno",
+    "eta": "esordienti",
+    "categoria": "possesso_palla",
+    "durata_minuti": 20,
+    "file_path": "esordienti/040-torello-con-jolly-esterno.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/040-torello-con-jolly-esterno.html"
+  },
+  {
+    "sessione_id": "8da2afbf-520b-4a1c-b90b-f32035a36b00",
+    "titolo": "Conclusione dopo conduzione centrale",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "esordienti/041-conclusione-dopo-conduzione-centrale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/041-conclusione-dopo-conduzione-centrale.html"
+  },
+  {
+    "sessione_id": "b6d05d03-78a9-40d2-93c5-60e19dd1eb6c",
+    "titolo": "Cross e colpo di testa in area",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "esordienti/042-cross-e-colpo-di-testa-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/042-cross-e-colpo-di-testa-in-area.html"
+  },
+  {
+    "sessione_id": "529915ba-b000-44a6-8000-7bb8611c7000",
+    "titolo": "3v2 in progressione verso porta",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "esordienti/043-3v2-in-progressione-verso-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/043-3v2-in-progressione-verso-porta.html"
+  },
+  {
+    "sessione_id": "da92e1ab-2c79-4032-98ed-1ea921998494",
+    "titolo": "Tiro dalla distanza con portiere",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "esordienti/044-tiro-dalla-distanza-con-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/044-tiro-dalla-distanza-con-portiere.html"
+  },
+  {
+    "sessione_id": "44d0ca64-898a-4574-8f84-01a39f10f60e",
+    "titolo": "Inserimento in corsa e conclusione",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "esordienti/045-inserimento-in-corsa-e-conclusione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/045-inserimento-in-corsa-e-conclusione.html"
+  },
+  {
+    "sessione_id": "5462949d-de89-468e-babb-9cde8213d432",
+    "titolo": "2v2 in area con portiere",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "esordienti/046-2v2-in-area-con-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/046-2v2-in-area-con-portiere.html"
+  },
+  {
+    "sessione_id": "fef59740-7fd2-4a40-8c5c-9839dd00c38e",
+    "titolo": "Sfida di tiro in contemporanea",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 20,
+    "file_path": "esordienti/047-sfida-di-tiro-in-contemporanea.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/047-sfida-di-tiro-in-contemporanea.html"
+  },
+  {
+    "sessione_id": "4c5f5abc-4ebe-457c-8d7c-a650afc093c2",
+    "titolo": "Combinazione a tre e conclusione",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "esordienti/048-combinazione-a-tre-e-conclusione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/048-combinazione-a-tre-e-conclusione.html"
+  },
+  {
+    "sessione_id": "ea6b5f14-f88c-4cbc-88f8-726e63a8b074",
+    "titolo": "Sfruttare la rimessa laterale",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "esordienti/049-sfruttare-la-rimessa-laterale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/049-sfruttare-la-rimessa-laterale.html"
+  },
+  {
+    "sessione_id": "252fc28e-46cc-496a-8640-ad4cebe4a08c",
+    "titolo": "Partita con porta grande e portieri",
+    "eta": "esordienti",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "esordienti/050-partita-con-porta-grande-e-portieri.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/050-partita-con-porta-grande-e-portieri.html"
+  },
+  {
+    "sessione_id": "fecaa52a-f61a-4132-8d08-490544189b12",
+    "titolo": "Scaletta agility base",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "esordienti/051-scaletta-agility-base.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/051-scaletta-agility-base.html"
+  },
+  {
+    "sessione_id": "63d34671-12e7-4f88-9cc9-887659f9be2e",
+    "titolo": "Circuito di rapidità con ostacoli",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "esordienti/052-circuito-di-rapidita-con-ostacoli.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/052-circuito-di-rapidita-con-ostacoli.html"
+  },
+  {
+    "sessione_id": "9fe847de-e188-4c52-8b00-3dbe0b8c1a88",
+    "titolo": "Skip e andature coordinative",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "esordienti/053-skip-e-andature-coordinative.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/053-skip-e-andature-coordinative.html"
+  },
+  {
+    "sessione_id": "6d4546f8-6cd0-4708-80e0-1a8ea1f0ec30",
+    "titolo": "Reazione al segnale con partenza variabile",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "esordienti/054-reazione-al-segnale-con-partenza-variabile.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/054-reazione-al-segnale-con-partenza-variabile.html"
+  },
+  {
+    "sessione_id": "7790eecd-1ab1-4346-b183-17b9ed8b0b32",
+    "titolo": "Salti coordinati agli ostacoli",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "esordienti/055-salti-coordinati-agli-ostacoli.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/055-salti-coordinati-agli-ostacoli.html"
+  },
+  {
+    "sessione_id": "e5dc6c76-0454-4632-89a0-3fea9a449df4",
+    "titolo": "Il tabellone dei movimenti",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "esordienti/056-il-tabellone-dei-movimenti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/056-il-tabellone-dei-movimenti.html"
+  },
+  {
+    "sessione_id": "a285d5a8-cd4e-46a8-86b4-b7e00300bbfa",
+    "titolo": "Velocità di gambe nel rettangolo",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "esordienti/057-velocita-di-gambe-nel-rettangolo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/057-velocita-di-gambe-nel-rettangolo.html"
+  },
+  {
+    "sessione_id": "5972074a-19ea-4a72-8508-82f56d386ce2",
+    "titolo": "Corsa con variazioni tecniche",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "esordienti/058-corsa-con-variazioni-tecniche.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/058-corsa-con-variazioni-tecniche.html"
+  },
+  {
+    "sessione_id": "d1ce4f82-0ea4-4b16-8270-bc34e4946cd4",
+    "titolo": "Interval training breve",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "esordienti/059-interval-training-breve.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/059-interval-training-breve.html"
+  },
+  {
+    "sessione_id": "9755e4c3-6523-4c64-bc17-6c87f8a75934",
+    "titolo": "Mobilità e rinforzo caviglia",
+    "eta": "esordienti",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "esordienti/060-mobilita-e-rinforzo-caviglia.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/060-mobilita-e-rinforzo-caviglia.html"
+  },
+  {
+    "sessione_id": "f2d05494-b4a2-4884-8e94-f34f6c108a36",
+    "titolo": "Posizione di base e scivolamento",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 22,
+    "file_path": "esordienti/061-posizione-di-base-e-scivolamento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/061-posizione-di-base-e-scivolamento.html"
+  },
+  {
+    "sessione_id": "36bf1ca9-8947-4de8-9f61-b83d0141d626",
+    "titolo": "Presa bassa di sicurezza",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 22,
+    "file_path": "esordienti/062-presa-bassa-di-sicurezza.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/062-presa-bassa-di-sicurezza.html"
+  },
+  {
+    "sessione_id": "1c2495fb-747d-4726-98b1-c23502dd2ccc",
+    "titolo": "Presa alta su traiettoria diretta",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 22,
+    "file_path": "esordienti/063-presa-alta-su-traiettoria-diretta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/063-presa-alta-su-traiettoria-diretta.html"
+  },
+  {
+    "sessione_id": "c92f0ec2-5ed0-41be-8cc0-80576f7c7210",
+    "titolo": "Tuffo laterale destro-sinistro",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "esordienti/064-tuffo-laterale-destro-sinistro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/064-tuffo-laterale-destro-sinistro.html"
+  },
+  {
+    "sessione_id": "e7d3735b-601d-4606-9ef1-199a855ddeec",
+    "titolo": "Uscita coraggiosa sul 1v1",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "esordienti/065-uscita-coraggiosa-sul-1v1.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/065-uscita-coraggiosa-sul-1v1.html"
+  },
+  {
+    "sessione_id": "e1f4bb69-ee79-4f86-b09f-020d24ef2ee6",
+    "titolo": "Rinvio dal basso con il piede",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 22,
+    "file_path": "esordienti/066-rinvio-dal-basso-con-il-piede.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/066-rinvio-dal-basso-con-il-piede.html"
+  },
+  {
+    "sessione_id": "4b69771f-ddb1-4a62-9951-dff6cd7df4e0",
+    "titolo": "Lancio laterale con la mano",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 20,
+    "file_path": "esordienti/067-lancio-laterale-con-la-mano.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/067-lancio-laterale-con-la-mano.html"
+  },
+  {
+    "sessione_id": "607fa5fe-319e-471e-8980-d44682e0b81e",
+    "titolo": "Comunicazione difensiva semplice",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "esordienti/068-comunicazione-difensiva-semplice.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/068-comunicazione-difensiva-semplice.html"
+  },
+  {
+    "sessione_id": "51223921-2e07-45e8-9b59-53566cc9055e",
+    "titolo": "Parate in sequenza ravvicinata",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "esordienti/069-parate-in-sequenza-ravvicinata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/069-parate-in-sequenza-ravvicinata.html"
+  },
+  {
+    "sessione_id": "88d05161-ce05-42aa-bd5b-16c583cbc35e",
+    "titolo": "Portiere protagonista nella partita",
+    "eta": "esordienti",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "esordienti/070-portiere-protagonista-nella-partita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/esordienti/070-portiere-protagonista-nella-partita.html"
+  },
+  {
+    "sessione_id": "df9b3f64-152a-43f4-87c4-5460ac90c2ee",
+    "titolo": "Attivazione con possesso 6v3 a pressione alta",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 17,
+    "file_path": "giovanissimi/001-attivazione-con-possesso-6v3-a-pressione-alta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/001-attivazione-con-possesso-6v3-a-pressione-alta.html"
+  },
+  {
+    "sessione_id": "63a18b9f-eded-443e-988d-5d522fa1e560",
+    "titolo": "Circuito agility con palla tra ostacoli alti",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "giovanissimi/002-circuito-agility-con-palla-tra-ostacoli-alti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/002-circuito-agility-con-palla-tra-ostacoli-alti.html"
+  },
+  {
+    "sessione_id": "607a511e-67b6-416e-83c0-fa7af0708476",
+    "titolo": "Riscaldamento con andature calcistiche strutturate",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "giovanissimi/003-riscaldamento-con-andature-calcistiche-strutturate.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/003-riscaldamento-con-andature-calcistiche-strutturate.html"
+  },
+  {
+    "sessione_id": "e7aeba1a-1e7c-4cee-8770-fd6da6f4990c",
+    "titolo": "Possesso dinamico a coppie con cambio di ruolo",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 17,
+    "file_path": "giovanissimi/004-possesso-dinamico-a-coppie-con-cambio-di-ruolo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/004-possesso-dinamico-a-coppie-con-cambio-di-ruolo.html"
+  },
+  {
+    "sessione_id": "237908d5-b5b7-4038-917d-9f7c38ed84ca",
+    "titolo": "Pressing cooperativo a zone come warm-up tattico",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/005-pressing-cooperativo-a-zone-come-warm-up-tattico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/005-pressing-cooperativo-a-zone-come-warm-up-tattico.html"
+  },
+  {
+    "sessione_id": "bb6c0791-7d21-49ae-b60f-ce438e3f2b2e",
+    "titolo": "Triangoli in movimento per attivazione tecnica",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 17,
+    "file_path": "giovanissimi/006-triangoli-in-movimento-per-attivazione-tecnica.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/006-triangoli-in-movimento-per-attivazione-tecnica.html"
+  },
+  {
+    "sessione_id": "df7cbfd0-6a80-4b30-8300-aaf3d4e02980",
+    "titolo": "Corsa tecnica con cambio direzione a segnale",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 16,
+    "file_path": "giovanissimi/007-corsa-tecnica-con-cambio-direzione-a-segnale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/007-corsa-tecnica-con-cambio-direzione-a-segnale.html"
+  },
+  {
+    "sessione_id": "aa1d8db1-be7d-4ef2-b453-06314343ba2e",
+    "titolo": "Partitella di attivazione 5v5 a due tocchi",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/008-partitella-di-attivazione-5v5-a-due-tocchi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/008-partitella-di-attivazione-5v5-a-due-tocchi.html"
+  },
+  {
+    "sessione_id": "d762f305-20cd-4caa-babf-be57afaf4a72",
+    "titolo": "Attivazione propriocettiva con palla a coppie",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 16,
+    "file_path": "giovanissimi/009-attivazione-propriocettiva-con-palla-a-coppie.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/009-attivazione-propriocettiva-con-palla-a-coppie.html"
+  },
+  {
+    "sessione_id": "358f12d4-be88-434c-8450-e53b81989ad8",
+    "titolo": "Percorso tattico guidato come warm-up",
+    "eta": "giovanissimi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "giovanissimi/010-percorso-tattico-guidato-come-warm-up.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/010-percorso-tattico-guidato-come-warm-up.html"
+  },
+  {
+    "sessione_id": "c25ff1fe-bf4c-42ba-8700-91f8e344a84c",
+    "titolo": "Controllo orientato e passaggio filtrante",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 23,
+    "file_path": "giovanissimi/011-controllo-orientato-e-passaggio-filtrante.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/011-controllo-orientato-e-passaggio-filtrante.html"
+  },
+  {
+    "sessione_id": "8cd632fd-78db-4964-9951-94093b99818a",
+    "titolo": "Stop e conclusione dalla distanza su palla tesa",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/012-stop-e-conclusione-dalla-distanza-su-palla-tesa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/012-stop-e-conclusione-dalla-distanza-su-palla-tesa.html"
+  },
+  {
+    "sessione_id": "7e8e087d-cf97-4798-9e05-4c2d2fe5d192",
+    "titolo": "Dribbling tra sagome con finta e accelerazione",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/013-dribbling-tra-sagome-con-finta-e-accelerazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/013-dribbling-tra-sagome-con-finta-e-accelerazione.html"
+  },
+  {
+    "sessione_id": "ab0b46d7-bdfb-4dcc-bff3-bb874b1b4208",
+    "titolo": "Finta laterale con accelerazione e conduzione",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/014-finta-laterale-con-accelerazione-e-conduzione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/014-finta-laterale-con-accelerazione-e-conduzione.html"
+  },
+  {
+    "sessione_id": "3189f41a-1ad0-4a66-8d40-0e864e7c9790",
+    "titolo": "Primo tocco sotto pressione e scarico veloce",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 20,
+    "file_path": "giovanissimi/015-primo-tocco-sotto-pressione-e-scarico-veloce.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/015-primo-tocco-sotto-pressione-e-scarico-veloce.html"
+  },
+  {
+    "sessione_id": "a3c3f647-5cf7-44a8-b03f-489132ef9cc8",
+    "titolo": "Colpo di testa su cross con inserimento in area",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/016-colpo-di-testa-su-cross-con-inserimento-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/016-colpo-di-testa-su-cross-con-inserimento-in-area.html"
+  },
+  {
+    "sessione_id": "68dac0bc-18fa-476c-85f4-a2b977d04d0e",
+    "titolo": "Passaggio lungo preciso con il piede debole",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/017-passaggio-lungo-preciso-con-il-piede-debole.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/017-passaggio-lungo-preciso-con-il-piede-debole.html"
+  },
+  {
+    "sessione_id": "6f4e8c8e-61aa-4446-8be0-a33318c84a4a",
+    "titolo": "Protezione palla in 1v1 e scarico tempestivo",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/018-protezione-palla-in-1v1-e-scarico-tempestivo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/018-protezione-palla-in-1v1-e-scarico-tempestivo.html"
+  },
+  {
+    "sessione_id": "62bba339-989f-4ef0-92d9-ed967dc99a46",
+    "titolo": "Ricezione di spalle e girata sul difensore",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/019-ricezione-di-spalle-e-girata-sul-difensore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/019-ricezione-di-spalle-e-girata-sul-difensore.html"
+  },
+  {
+    "sessione_id": "755043ce-2bfa-45e6-8760-5a6e36284c9a",
+    "titolo": "Smarcamento con taglio e ricezione in profondità",
+    "eta": "giovanissimi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/020-smarcamento-con-taglio-e-ricezione-in-profondita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/020-smarcamento-con-taglio-e-ricezione-in-profondita.html"
+  },
+  {
+    "sessione_id": "6eb3ef3b-7583-45e4-bc0f-66a65adff98c",
+    "titolo": "Costruzione dal basso contro pressing su 4-3-3",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/021-costruzione-dal-basso-contro-pressing-su-4-3-3.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/021-costruzione-dal-basso-contro-pressing-su-4-3-3.html"
+  },
+  {
+    "sessione_id": "421f95c1-8e71-4d1e-b90f-6b1808dfe77e",
+    "titolo": "Linea difensiva alta e trappola fuorigioco coordinata",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "giovanissimi/022-linea-difensiva-alta-e-trappola-fuorigioco-coordinata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/022-linea-difensiva-alta-e-trappola-fuorigioco-coordinata.html"
+  },
+  {
+    "sessione_id": "5df64e22-9bd4-4bd6-8530-004ea5f49ee4",
+    "titolo": "Pressing ultra-offensivo: trigger e scalate",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 32,
+    "file_path": "giovanissimi/023-pressing-ultra-offensivo-trigger-e-scalate.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/023-pressing-ultra-offensivo-trigger-e-scalate.html"
+  },
+  {
+    "sessione_id": "ecf16910-d8be-4e10-8b24-873ff700339a",
+    "titolo": "Transizione positiva: da recupero palla a 3v2",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/024-transizione-positiva-da-recupero-palla-a-3v2.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/024-transizione-positiva-da-recupero-palla-a-3v2.html"
+  },
+  {
+    "sessione_id": "8d5de768-d5a0-4118-83c0-bf1f06706660",
+    "titolo": "Ampiezza e profondità: movimenti ala e centravanti",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/025-ampiezza-e-profondita-movimenti-ala-e-centravanti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/025-ampiezza-e-profondita-movimenti-ala-e-centravanti.html"
+  },
+  {
+    "sessione_id": "ad93f509-9eb1-494e-bf87-80cbec479136",
+    "titolo": "Raddoppio di marcatura e diagonale di copertura",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "giovanissimi/026-raddoppio-di-marcatura-e-diagonale-di-copertura.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/026-raddoppio-di-marcatura-e-diagonale-di-copertura.html"
+  },
+  {
+    "sessione_id": "2f90ac7c-ea58-4ca4-86b0-0dcf50d8cce8",
+    "titolo": "Fase di non possesso compatta: blocco 4-4-2",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 32,
+    "file_path": "giovanissimi/027-fase-di-non-possesso-compatta-blocco-4-4-2.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/027-fase-di-non-possesso-compatta-blocco-4-4-2.html"
+  },
+  {
+    "sessione_id": "26c69aff-4ac3-4fd4-bb83-6c6c352b1140",
+    "titolo": "Uscita palla dal portiere sotto pressing alto",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/028-uscita-palla-dal-portiere-sotto-pressing-alto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/028-uscita-palla-dal-portiere-sotto-pressing-alto.html"
+  },
+  {
+    "sessione_id": "bdb4aa47-94ad-4c4e-9c45-95b02609f8e8",
+    "titolo": "Inserimento del mezzala da zona interna",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/029-inserimento-del-mezzala-da-zona-interna.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/029-inserimento-del-mezzala-da-zona-interna.html"
+  },
+  {
+    "sessione_id": "b34303d3-ca89-4212-9d55-42cf21c1f7dc",
+    "titolo": "Pressing alto coordinato su rimessa del portiere",
+    "eta": "giovanissimi",
+    "categoria": "tattica",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/030-pressing-alto-coordinato-su-rimessa-del-portiere.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/030-pressing-alto-coordinato-su-rimessa-del-portiere.html"
+  },
+  {
+    "sessione_id": "89e89381-59a7-4348-9f19-838670c996be",
+    "titolo": "Rondo 7v3 con transizione rapida su recupero",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/031-rondo-7v3-con-transizione-rapida-su-recupero.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/031-rondo-7v3-con-transizione-rapida-su-recupero.html"
+  },
+  {
+    "sessione_id": "89288634-7eb0-4d4c-8ae0-f38c4b78f450",
+    "titolo": "Possesso 5v5 più due jolly su metà campo",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/032-possesso-5v5-piu-due-jolly-su-meta-campo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/032-possesso-5v5-piu-due-jolly-su-meta-campo.html"
+  },
+  {
+    "sessione_id": "9c90dfe2-c3d0-429e-8ec0-fadaad7cad10",
+    "titolo": "Circolazione con variazione di ritmo lento-veloce",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/033-circolazione-con-variazione-di-ritmo-lento-veloce.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/033-circolazione-con-variazione-di-ritmo-lento-veloce.html"
+  },
+  {
+    "sessione_id": "4ff4b54e-e080-40d2-8800-135bf59c1880",
+    "titolo": "Possesso posizionale con terzo uomo libero",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 23,
+    "file_path": "giovanissimi/034-possesso-posizionale-con-terzo-uomo-libero.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/034-possesso-posizionale-con-terzo-uomo-libero.html"
+  },
+  {
+    "sessione_id": "25f27a2d-20b7-4578-9915-bc2dbf5529a2",
+    "titolo": "Cambio di fronte su campo largo 9v4",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/035-cambio-di-fronte-su-campo-largo-9v4.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/035-cambio-di-fronte-su-campo-largo-9v4.html"
+  },
+  {
+    "sessione_id": "eff99bd3-db35-40ae-9a91-496b6b7df1a4",
+    "titolo": "Mantenimento con linee verticali obbligate",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/036-mantenimento-con-linee-verticali-obbligate.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/036-mantenimento-con-linee-verticali-obbligate.html"
+  },
+  {
+    "sessione_id": "172885d3-c535-46ae-9291-198ad37dc7a4",
+    "titolo": "Possesso con pressing a coppie dopo perdita palla",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/037-possesso-con-pressing-a-coppie-dopo-perdita-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/037-possesso-con-pressing-a-coppie-dopo-perdita-palla.html"
+  },
+  {
+    "sessione_id": "4ffee7bd-52d9-4dde-bd8b-7dc1fa639f52",
+    "titolo": "Triangolo mediano con vertice mobile in rotazione",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/038-triangolo-mediano-con-vertice-mobile-in-rotazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/038-triangolo-mediano-con-vertice-mobile-in-rotazione.html"
+  },
+  {
+    "sessione_id": "70cfd496-8d8a-412e-8990-465115b8e41a",
+    "titolo": "Possesso su campo intero con verticalizzazione",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/039-possesso-su-campo-intero-con-verticalizzazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/039-possesso-su-campo-intero-con-verticalizzazione.html"
+  },
+  {
+    "sessione_id": "0dad6a9b-a337-41c8-b6f3-dc4feb53e5c4",
+    "titolo": "Possesso 8v4 con zone di conquista sui lati",
+    "eta": "giovanissimi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/040-possesso-8v4-con-zone-di-conquista-sui-lati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/040-possesso-8v4-con-zone-di-conquista-sui-lati.html"
+  },
+  {
+    "sessione_id": "f414b5ac-1e90-4054-8620-6f6515f888b0",
+    "titolo": "Combinazione 2v1 con inserimento del terzo uomo",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/041-combinazione-2v1-con-inserimento-del-terzo-uomo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/041-combinazione-2v1-con-inserimento-del-terzo-uomo.html"
+  },
+  {
+    "sessione_id": "f8ce5c91-0893-4c3c-94fd-8f06b0adac6e",
+    "titolo": "Lancio filtrante e tiro in corsa senza stop",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/042-lancio-filtrante-e-tiro-in-corsa-senza-stop.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/042-lancio-filtrante-e-tiro-in-corsa-senza-stop.html"
+  },
+  {
+    "sessione_id": "9d48f9df-1411-4142-9d71-96e9f89d1960",
+    "titolo": "Cross dal fondo con attacco coordinato in area",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/043-cross-dal-fondo-con-attacco-coordinato-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/043-cross-dal-fondo-con-attacco-coordinato-in-area.html"
+  },
+  {
+    "sessione_id": "416a44cf-672f-4240-bdbf-5a70568f4a90",
+    "titolo": "Finalizzazione in 1v1 dopo superamento difensore",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/044-finalizzazione-in-1v1-dopo-superamento-difensore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/044-finalizzazione-in-1v1-dopo-superamento-difensore.html"
+  },
+  {
+    "sessione_id": "405e88c7-0c97-4b48-b15f-dba3f38f7dc8",
+    "titolo": "Palla inattiva su corner: blocco e movimento",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/045-palla-inattiva-su-corner-blocco-e-movimento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/045-palla-inattiva-su-corner-blocco-e-movimento.html"
+  },
+  {
+    "sessione_id": "b81f0d11-909f-4570-95b1-a4cdc861152e",
+    "titolo": "Colpo di testa su palla servita in quota",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/046-colpo-di-testa-su-palla-servita-in-quota.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/046-colpo-di-testa-su-palla-servita-in-quota.html"
+  },
+  {
+    "sessione_id": "13dc7d37-d1a3-4554-b53b-d28978633498",
+    "titolo": "Tiro dalla distanza dopo triangolo uno-due",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/047-tiro-dalla-distanza-dopo-triangolo-uno-due.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/047-tiro-dalla-distanza-dopo-triangolo-uno-due.html"
+  },
+  {
+    "sessione_id": "f69906f7-acd5-41f6-94bd-cf58f7011868",
+    "titolo": "Contropiede 3v2 a velocità massima verso porta",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/048-contropiede-3v2-a-velocita-massima-verso-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/048-contropiede-3v2-a-velocita-massima-verso-porta.html"
+  },
+  {
+    "sessione_id": "d8fec98a-6b88-4886-8fa0-8ffe210c8428",
+    "titolo": "Combinazione ala-centravanti: dai e vai in area",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/049-combinazione-ala-centravanti-dai-e-vai-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/049-combinazione-ala-centravanti-dai-e-vai-in-area.html"
+  },
+  {
+    "sessione_id": "406d4423-f689-4df2-9005-045db9d1d68c",
+    "titolo": "Finalizzazione su schema palla inattiva laterale",
+    "eta": "giovanissimi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/050-finalizzazione-su-schema-palla-inattiva-laterale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/050-finalizzazione-su-schema-palla-inattiva-laterale.html"
+  },
+  {
+    "sessione_id": "399e431e-e496-452e-83c0-ed6406302756",
+    "titolo": "Intermittente 10-20-30 con palla in campo",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "giovanissimi/051-intermittente-10-20-30-con-palla-in-campo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/051-intermittente-10-20-30-con-palla-in-campo.html"
+  },
+  {
+    "sessione_id": "871bc505-73d9-400e-b683-6460550b355a",
+    "titolo": "Accelerazioni brevi con palla e cambio direzione",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "giovanissimi/052-accelerazioni-brevi-con-palla-e-cambio-direzione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/052-accelerazioni-brevi-con-palla-e-cambio-direzione.html"
+  },
+  {
+    "sessione_id": "b02663c1-00e9-4486-b497-d3dff747f47e",
+    "titolo": "Skip e balzelli: forza naturale e coordinazione",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/053-skip-e-balzelli-forza-naturale-e-coordinazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/053-skip-e-balzelli-forza-naturale-e-coordinazione.html"
+  },
+  {
+    "sessione_id": "fd8cfcdc-3202-47ac-80c4-03c29b7082c6",
+    "titolo": "Pliometria leggera: saltelli e rapidità coordinata",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/054-pliometria-leggera-saltelli-e-rapidita-coordinata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/054-pliometria-leggera-saltelli-e-rapidita-coordinata.html"
+  },
+  {
+    "sessione_id": "a7129591-4993-493c-9efd-6d7cccad376e",
+    "titolo": "Circuito resistenza aerobica: 6 stazioni in campo",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "giovanissimi/055-circuito-resistenza-aerobica-6-stazioni-in-campo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/055-circuito-resistenza-aerobica-6-stazioni-in-campo.html"
+  },
+  {
+    "sessione_id": "3c0fb8f4-2a06-4614-81bc-9537dee01bba",
+    "titolo": "Scaletta agility con uscita tecnica e tiro",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "giovanissimi/056-scaletta-agility-con-uscita-tecnica-e-tiro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/056-scaletta-agility-con-uscita-tecnica-e-tiro.html"
+  },
+  {
+    "sessione_id": "9d494c9d-d529-406e-ba9b-b199acf35fb2",
+    "titolo": "Corsa tecnica avanzata con andature specifiche",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "giovanissimi/057-corsa-tecnica-avanzata-con-andature-specifiche.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/057-corsa-tecnica-avanzata-con-andature-specifiche.html"
+  },
+  {
+    "sessione_id": "d207955d-42d3-4dcc-9e19-22d61891bcca",
+    "titolo": "Circuit training a carico naturale: 5 esercizi",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/058-circuit-training-a-carico-naturale-5-esercizi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/058-circuit-training-a-carico-naturale-5-esercizi.html"
+  },
+  {
+    "sessione_id": "0b1bfbe5-ff2f-40c0-94b5-443eeb255b9a",
+    "titolo": "Accelerazioni con reazione al segnale visivo",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 18,
+    "file_path": "giovanissimi/059-accelerazioni-con-reazione-al-segnale-visivo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/059-accelerazioni-con-reazione-al-segnale-visivo.html"
+  },
+  {
+    "sessione_id": "69a318f1-e3cf-4b20-9ae1-0eccb3d1a92e",
+    "titolo": "Partitella a campo stretto per resistenza specifica",
+    "eta": "giovanissimi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "giovanissimi/060-partitella-a-campo-stretto-per-resistenza-specifica.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/060-partitella-a-campo-stretto-per-resistenza-specifica.html"
+  },
+  {
+    "sessione_id": "3b686a0e-e7cc-4dea-8c40-bbb137e4fb8c",
+    "titolo": "Presa alta in salto su cross da entrambi i lati",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/061-presa-alta-in-salto-su-cross-da-entrambi-i-lati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/061-presa-alta-in-salto-su-cross-da-entrambi-i-lati.html"
+  },
+  {
+    "sessione_id": "6a9cf624-6d00-479c-8200-f52981b8ff00",
+    "titolo": "Tuffo in allungo su tiro a giro e palla angolata",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/062-tuffo-in-allungo-su-tiro-a-giro-e-palla-angolata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/062-tuffo-in-allungo-su-tiro-a-giro-e-palla-angolata.html"
+  },
+  {
+    "sessione_id": "9a5f7357-01b9-483a-9261-9dacdb6dd3d8",
+    "titolo": "Uscita coraggiosa sul pallone conteso in area",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/063-uscita-coraggiosa-sul-pallone-conteso-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/063-uscita-coraggiosa-sul-pallone-conteso-in-area.html"
+  },
+  {
+    "sessione_id": "9229d3f9-4d79-4ee6-bd8f-4e195d1f50f6",
+    "titolo": "Rinvio lungo con piede forte e piede debole",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/064-rinvio-lungo-con-piede-forte-e-piede-debole.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/064-rinvio-lungo-con-piede-forte-e-piede-debole.html"
+  },
+  {
+    "sessione_id": "8708379f-058d-4fde-902d-241b584165a0",
+    "titolo": "Gioco coi piedi sotto pressing: costruzione bassa",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/065-gioco-coi-piedi-sotto-pressing-costruzione-bassa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/065-gioco-coi-piedi-sotto-pressing-costruzione-bassa.html"
+  },
+  {
+    "sessione_id": "9d38a234-0b8c-4e1c-8978-e7f9dc2852f4",
+    "titolo": "Comunicazione difensiva: organizzare la linea",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/066-comunicazione-difensiva-organizzare-la-linea.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/066-comunicazione-difensiva-organizzare-la-linea.html"
+  },
+  {
+    "sessione_id": "acbacc74-96e0-4acc-8cc0-b24ed6b8da20",
+    "titolo": "Parate riflesse su serie di tiri ravvicinati",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/067-parate-riflesse-su-serie-di-tiri-ravvicinati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/067-parate-riflesse-su-serie-di-tiri-ravvicinati.html"
+  },
+  {
+    "sessione_id": "0d53b145-9f07-4b88-98dd-66da3acda7da",
+    "titolo": "Rilancio di mano: rullata, laterale e schiacciato",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/068-rilancio-di-mano-rullata-laterale-e-schiacciato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/068-rilancio-di-mano-rullata-laterale-e-schiacciato.html"
+  },
+  {
+    "sessione_id": "2cb1f789-7073-457c-9fb5-6df6e2f5cfc6",
+    "titolo": "Presa al secondo palo su cross teso e profondo",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "giovanissimi/069-presa-al-secondo-palo-su-cross-teso-e-profondo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/069-presa-al-secondo-palo-su-cross-teso-e-profondo.html"
+  },
+  {
+    "sessione_id": "35d08d8c-e82c-49a4-8c98-d954542824b4",
+    "titolo": "Il portiere costruttore nella partitella 8v8",
+    "eta": "giovanissimi",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "giovanissimi/070-il-portiere-costruttore-nella-partitella-8v8.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/giovanissimi/070-il-portiere-costruttore-nella-partitella-8v8.html"
+  },
+  {
+    "sessione_id": "431cadfe-018a-4736-8880-79b38ac8c90a",
+    "titolo": "Possesso 6v3 ad alta intensità con uscite rapide",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "allievi/001-possesso-6v3-ad-alta-intensita-con-uscite-rapide.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/001-possesso-6v3-ad-alta-intensita-con-uscite-rapide.html"
+  },
+  {
+    "sessione_id": "c2c11a11-d2cd-4242-ba23-616cb853e8ee",
+    "titolo": "Riscaldamento tattico su modulo 4-3-3",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "allievi/002-riscaldamento-tattico-su-modulo-4-3-3.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/002-riscaldamento-tattico-su-modulo-4-3-3.html"
+  },
+  {
+    "sessione_id": "531a92c1-b0e1-448e-b79f-224f064f577e",
+    "titolo": "Attivazione neuromuscolare con scaletta e tiro",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "allievi/003-attivazione-neuromuscolare-con-scaletta-e-tiro.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/003-attivazione-neuromuscolare-con-scaletta-e-tiro.html"
+  },
+  {
+    "sessione_id": "4ae32b2a-dd56-4f5a-8bb8-174c447076ee",
+    "titolo": "Circuito tecnico-atletico in campo intero",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "allievi/004-circuito-tecnico-atletico-in-campo-intero.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/004-circuito-tecnico-atletico-in-campo-intero.html"
+  },
+  {
+    "sessione_id": "8868d670-f490-4190-8be0-2ad617e07f70",
+    "titolo": "Partitella di attivazione 6v6 a tocchi limitati",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "allievi/005-partitella-di-attivazione-6v6-a-tocchi-limitati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/005-partitella-di-attivazione-6v6-a-tocchi-limitati.html"
+  },
+  {
+    "sessione_id": "abd98f72-b09c-4c36-8850-f5fa2344b8cc",
+    "titolo": "Pressing coordinato su rimessa laterale avversaria",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 22,
+    "file_path": "allievi/006-pressing-coordinato-su-rimessa-laterale-avversaria.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/006-pressing-coordinato-su-rimessa-laterale-avversaria.html"
+  },
+  {
+    "sessione_id": "ada18e7a-1df0-4ec6-8bc0-972c60bcb630",
+    "titolo": "Andature calcistiche avanzate con palla e sprint",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 15,
+    "file_path": "allievi/007-andature-calcistiche-avanzate-con-palla-e-sprint.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/007-andature-calcistiche-avanzate-con-palla-e-sprint.html"
+  },
+  {
+    "sessione_id": "08bb8147-09d7-4888-bf1f-2d0a89cf16c8",
+    "titolo": "Riscaldamento con pressing su fase di costruzione",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 22,
+    "file_path": "allievi/008-riscaldamento-con-pressing-su-fase-di-costruzione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/008-riscaldamento-con-pressing-su-fase-di-costruzione.html"
+  },
+  {
+    "sessione_id": "732ad1e9-55f5-44aa-bd43-d31ae543c8b6",
+    "titolo": "Rondò 8v4 a due tocchi per attivazione rapida",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 18,
+    "file_path": "allievi/009-rondo-8v4-a-due-tocchi-per-attivazione-rapida.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/009-rondo-8v4-a-due-tocchi-per-attivazione-rapida.html"
+  },
+  {
+    "sessione_id": "906c30cb-28cd-4cf6-97b1-91375c3d0f7c",
+    "titolo": "Attivazione con possesso e cambio fronte rapido",
+    "eta": "allievi",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "allievi/010-attivazione-con-possesso-e-cambio-fronte-rapido.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/010-attivazione-con-possesso-e-cambio-fronte-rapido.html"
+  },
+  {
+    "sessione_id": "6f66f3ae-4be8-4fc2-8680-7b1cdc6cad68",
+    "titolo": "Controllo in velocità e girata a pressione alta",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "allievi/011-controllo-in-velocita-e-girata-a-pressione-alta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/011-controllo-in-velocita-e-girata-a-pressione-alta.html"
+  },
+  {
+    "sessione_id": "ca1f8676-65bc-4a42-8ae0-19260c34ef5c",
+    "titolo": "Passaggio filtrante di prima su linee oblique",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 23,
+    "file_path": "allievi/012-passaggio-filtrante-di-prima-su-linee-oblique.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/012-passaggio-filtrante-di-prima-su-linee-oblique.html"
+  },
+  {
+    "sessione_id": "c6ae1efe-c074-47ca-8d00-93e7d934ad74",
+    "titolo": "Dribbling con finta e conclusione in area di rigore",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "allievi/013-dribbling-con-finta-e-conclusione-in-area-di-rigore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/013-dribbling-con-finta-e-conclusione-in-area-di-rigore.html"
+  },
+  {
+    "sessione_id": "3d021364-c990-4a9c-84a0-67b909f87d30",
+    "titolo": "Colpo di testa offensivo su cross da posizione avanzata",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 28,
+    "file_path": "allievi/014-colpo-di-testa-offensivo-su-cross-da-posizione-avanzata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/014-colpo-di-testa-offensivo-su-cross-da-posizione-avanzata.html"
+  },
+  {
+    "sessione_id": "bf3b5a33-e937-4008-b34b-09ed2a3b7a7c",
+    "titolo": "Conduzione con cambio di passo e stop orientato",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "allievi/015-conduzione-con-cambio-di-passo-e-stop-orientato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/015-conduzione-con-cambio-di-passo-e-stop-orientato.html"
+  },
+  {
+    "sessione_id": "d31352df-2619-4a4a-9779-54c658953160",
+    "titolo": "Tiro di collo pieno dalla distanza su palla mossa",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "allievi/016-tiro-di-collo-pieno-dalla-distanza-su-palla-mossa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/016-tiro-di-collo-pieno-dalla-distanza-su-palla-mossa.html"
+  },
+  {
+    "sessione_id": "282e65d8-a7ae-43d8-8154-4bcf9600c6fa",
+    "titolo": "Cross tecnico dal fondo e dalla trequarti a bersaglio",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "allievi/017-cross-tecnico-dal-fondo-e-dalla-trequarti-a-bersaglio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/017-cross-tecnico-dal-fondo-e-dalla-trequarti-a-bersaglio.html"
+  },
+  {
+    "sessione_id": "558d3340-979a-4c40-84cc-07309f004356",
+    "titolo": "Ricezione spalle alla porta e girata con difensore",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "allievi/018-ricezione-spalle-alla-porta-e-girata-con-difensore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/018-ricezione-spalle-alla-porta-e-girata-con-difensore.html"
+  },
+  {
+    "sessione_id": "ac29161a-87da-4d62-8fa8-326c4b78f872",
+    "titolo": "Rimessa laterale con schema codificato per zona",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "allievi/019-rimessa-laterale-con-schema-codificato-per-zona.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/019-rimessa-laterale-con-schema-codificato-per-zona.html"
+  },
+  {
+    "sessione_id": "3eae5c63-c5bb-417c-b46f-a1ecbd1f71d4",
+    "titolo": "Stop di petto e coscia con controllo orientato in serie",
+    "eta": "allievi",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "allievi/020-stop-di-petto-e-coscia-con-controllo-orientato-in-serie.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/020-stop-di-petto-e-coscia-con-controllo-orientato-in-serie.html"
+  },
+  {
+    "sessione_id": "0e24d68e-002e-450e-80a0-10a9f380708e",
+    "titolo": "Fase di possesso in 4-3-3: principi e circolazione",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "allievi/021-fase-di-possesso-in-4-3-3-principi-e-circolazione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/021-fase-di-possesso-in-4-3-3-principi-e-circolazione.html"
+  },
+  {
+    "sessione_id": "88d04b4f-49e5-4a16-9595-b7db61596c70",
+    "titolo": "Pressing ultra-offensivo: trigger, scalate e coperture",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "allievi/022-pressing-ultra-offensivo-trigger-scalate-e-coperture.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/022-pressing-ultra-offensivo-trigger-scalate-e-coperture.html"
+  },
+  {
+    "sessione_id": "fb30d00c-e0b6-4c2c-8a8c-deb86c207a3a",
+    "titolo": "Transizione difensiva: da perdita a blocco difensivo",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "allievi/023-transizione-difensiva-da-perdita-a-blocco-difensivo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/023-transizione-difensiva-da-perdita-a-blocco-difensivo.html"
+  },
+  {
+    "sessione_id": "61ed4659-cd67-4a48-9bf1-de801c117696",
+    "titolo": "Costruzione dal basso 4-2-3-1 con uscita dal pressing",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 38,
+    "file_path": "allievi/024-costruzione-dal-basso-4-2-3-1-con-uscita-dal-pressing.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/024-costruzione-dal-basso-4-2-3-1-con-uscita-dal-pressing.html"
+  },
+  {
+    "sessione_id": "4fdfa905-178f-4ee0-9275-1e0607e5c5fa",
+    "titolo": "Difesa a zona e marcatura preventiva del trequartista",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "allievi/025-difesa-a-zona-e-marcatura-preventiva-del-trequartista.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/025-difesa-a-zona-e-marcatura-preventiva-del-trequartista.html"
+  },
+  {
+    "sessione_id": "f7d3859f-0879-452a-9e99-873ed0b5d6e0",
+    "titolo": "Attacco alla profondità: tagli, sovrapposizioni e scambi",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 38,
+    "file_path": "allievi/026-attacco-alla-profondita-tagli-sovrapposizioni-e-scambi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/026-attacco-alla-profondita-tagli-sovrapposizioni-e-scambi.html"
+  },
+  {
+    "sessione_id": "e2b6f2d3-48f3-4114-b777-e562a3c72f84",
+    "titolo": "Organizzazione difensiva su calci piazzati avversari",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "allievi/027-organizzazione-difensiva-su-calci-piazzati-avversari.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/027-organizzazione-difensiva-su-calci-piazzati-avversari.html"
+  },
+  {
+    "sessione_id": "8faa94c8-d756-4c88-85a4-dce9184062f2",
+    "titolo": "Transizione offensiva rapida in 4v4 più portieri",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 35,
+    "file_path": "allievi/028-transizione-offensiva-rapida-in-4v4-piu-portieri.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/028-transizione-offensiva-rapida-in-4v4-piu-portieri.html"
+  },
+  {
+    "sessione_id": "618f034a-39d0-4536-8a40-f3ced67c5390",
+    "titolo": "Linea di pressione a centrocampo: il blocco medio",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "allievi/029-linea-di-pressione-a-centrocampo-il-blocco-medio.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/029-linea-di-pressione-a-centrocampo-il-blocco-medio.html"
+  },
+  {
+    "sessione_id": "41ee5ab6-790e-43f6-8870-3d1d6940717e",
+    "titolo": "Fase di non possesso: difesa 4-4-2 bassa compatta",
+    "eta": "allievi",
+    "categoria": "tattica",
+    "durata_minuti": 38,
+    "file_path": "allievi/030-fase-di-non-possesso-difesa-4-4-2-bassa-compatta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/030-fase-di-non-possesso-difesa-4-4-2-bassa-compatta.html"
+  },
+  {
+    "sessione_id": "b456d140-328e-4940-82e4-31829800b06a",
+    "titolo": "Possesso 9v5 su campo intero con verticalizzazioni",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/031-possesso-9v5-su-campo-intero-con-verticalizzazioni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/031-possesso-9v5-su-campo-intero-con-verticalizzazioni.html"
+  },
+  {
+    "sessione_id": "4828b31c-80a0-4da4-8540-0bfcbeb885e0",
+    "titolo": "Possesso posizionale 5v5 su griglia a 9 zone",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 28,
+    "file_path": "allievi/032-possesso-posizionale-5v5-su-griglia-a-9-zone.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/032-possesso-posizionale-5v5-su-griglia-a-9-zone.html"
+  },
+  {
+    "sessione_id": "5029003f-2e3b-442c-b9bb-0b6ea4130780",
+    "titolo": "Possesso con transizioni ad alta intensità 8v8",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/033-possesso-con-transizioni-ad-alta-intensita-8v8.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/033-possesso-con-transizioni-ad-alta-intensita-8v8.html"
+  },
+  {
+    "sessione_id": "360accc0-dfb0-4b40-88a0-1b9c7780e710",
+    "titolo": "Circolazione 4-3-3 a due tocchi con pressing reale",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/034-circolazione-4-3-3-a-due-tocchi-con-pressing-reale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/034-circolazione-4-3-3-a-due-tocchi-con-pressing-reale.html"
+  },
+  {
+    "sessione_id": "d828f828-8904-44b8-8058-c9649c90d95c",
+    "titolo": "Possesso 8v4 con recupero e riorganizzazione rapida",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/035-possesso-8v4-con-recupero-e-riorganizzazione-rapida.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/035-possesso-8v4-con-recupero-e-riorganizzazione-rapida.html"
+  },
+  {
+    "sessione_id": "151b4b76-71d2-451e-8e10-eca02e68efc2",
+    "titolo": "Possesso 7v7+2 jolly su campo ridotto con superiorità",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/036-possesso-7v72-jolly-su-campo-ridotto-con-superiorita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/036-possesso-7v72-jolly-su-campo-ridotto-con-superiorita.html"
+  },
+  {
+    "sessione_id": "f460b411-7a2f-40c0-9821-1aa7a4d1620e",
+    "titolo": "Rondò 8v3 con verticalizzazioni obbligatorie",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 25,
+    "file_path": "allievi/037-rondo-8v3-con-verticalizzazioni-obbligatorie.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/037-rondo-8v3-con-verticalizzazioni-obbligatorie.html"
+  },
+  {
+    "sessione_id": "d2eae8c1-4467-4088-9d19-e416c849a97e",
+    "titolo": "Possesso in blocco medio sotto pressing avversario",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "allievi/038-possesso-in-blocco-medio-sotto-pressing-avversario.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/038-possesso-in-blocco-medio-sotto-pressing-avversario.html"
+  },
+  {
+    "sessione_id": "d956dee2-4240-447e-8f00-3c0a0a9c8d40",
+    "titolo": "Possesso con cambio di fronte su griglia a tre corsie",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 28,
+    "file_path": "allievi/039-possesso-con-cambio-di-fronte-su-griglia-a-tre-corsie.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/039-possesso-con-cambio-di-fronte-su-griglia-a-tre-corsie.html"
+  },
+  {
+    "sessione_id": "6c5ed3a4-b8d4-4ecc-8988-17724d68015c",
+    "titolo": "Possesso 10v6 con costruzione dal portiere obbligata",
+    "eta": "allievi",
+    "categoria": "possesso_palla",
+    "durata_minuti": 32,
+    "file_path": "allievi/040-possesso-10v6-con-costruzione-dal-portiere-obbligata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/040-possesso-10v6-con-costruzione-dal-portiere-obbligata.html"
+  },
+  {
+    "sessione_id": "34beca50-1df8-4d30-8c90-32bbd7604168",
+    "titolo": "Finalizzazione su cross basso dal fondo con difensore",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "allievi/041-finalizzazione-su-cross-basso-dal-fondo-con-difensore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/041-finalizzazione-su-cross-basso-dal-fondo-con-difensore.html"
+  },
+  {
+    "sessione_id": "e71c1f22-1b7c-4a86-8b90-01eed5a4b0ec",
+    "titolo": "Combinazione con sovrapposizione terzino e tiro in area",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "allievi/042-combinazione-con-sovrapposizione-terzino-e-tiro-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/042-combinazione-con-sovrapposizione-terzino-e-tiro-in-area.html"
+  },
+  {
+    "sessione_id": "33ddb8b1-31f1-43be-bf1f-bbd43b0ffeee",
+    "titolo": "Tiro di prima intenzione su palla tagliata in area",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "allievi/043-tiro-di-prima-intenzione-su-palla-tagliata-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/043-tiro-di-prima-intenzione-su-palla-tagliata-in-area.html"
+  },
+  {
+    "sessione_id": "250de128-308a-44c8-8edc-5943e5e04e56",
+    "titolo": "Finalizzazione in superiorità numerica 3v2",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "allievi/044-finalizzazione-in-superiorita-numerica-3v2.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/044-finalizzazione-in-superiorita-numerica-3v2.html"
+  },
+  {
+    "sessione_id": "d586ce20-e97c-4c60-8a88-d693f240a3f4",
+    "titolo": "Sponda e tiro: combinazione attaccante fisso e tiratore",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "allievi/045-sponda-e-tiro-combinazione-attaccante-fisso-e-tiratore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/045-sponda-e-tiro-combinazione-attaccante-fisso-e-tiratore.html"
+  },
+  {
+    "sessione_id": "754c5828-f8a2-4408-82ec-36ad2c204a4e",
+    "titolo": "Uno contro uno in area con portiere in uscita",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "allievi/046-uno-contro-uno-in-area-con-portiere-in-uscita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/046-uno-contro-uno-in-area-con-portiere-in-uscita.html"
+  },
+  {
+    "sessione_id": "09ad6781-04bd-4152-b383-e86486d3573e",
+    "titolo": "Tiro da fuori area su combinazione rapida a tre",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "allievi/047-tiro-da-fuori-area-su-combinazione-rapida-a-tre.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/047-tiro-da-fuori-area-su-combinazione-rapida-a-tre.html"
+  },
+  {
+    "sessione_id": "c99435aa-de6e-4aaa-8298-c026ff000cf6",
+    "titolo": "Calcio d'angolo offensivo con schemi codificati",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "allievi/048-calcio-dangolo-offensivo-con-schemi-codificati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/048-calcio-dangolo-offensivo-con-schemi-codificati.html"
+  },
+  {
+    "sessione_id": "d6108568-0d86-4fa8-8804-3f6eeac04582",
+    "titolo": "Dribbling in area con conclusione angolata sul palo lontano",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 25,
+    "file_path": "allievi/049-dribbling-in-area-con-conclusione-angolata-sul-palo-lontano.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/049-dribbling-in-area-con-conclusione-angolata-sul-palo-lontano.html"
+  },
+  {
+    "sessione_id": "6220e437-946d-49ee-9455-73800dd9e038",
+    "titolo": "Inserimento al secondo palo su cross in corsa",
+    "eta": "allievi",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "allievi/050-inserimento-al-secondo-palo-su-cross-in-corsa.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/050-inserimento-al-secondo-palo-su-cross-in-corsa.html"
+  },
+  {
+    "sessione_id": "5551b4a0-3cbc-4fe0-8608-f4877b405ab4",
+    "titolo": "Sprint ripetuti con variazione di distanza e direzione",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "allievi/051-sprint-ripetuti-con-variazione-di-distanza-e-direzione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/051-sprint-ripetuti-con-variazione-di-distanza-e-direzione.html"
+  },
+  {
+    "sessione_id": "5881b7cf-6b4b-4b9c-bb1b-a2f04c534050",
+    "titolo": "Potenza aerobica: interval training 1:1 con palla",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 30,
+    "file_path": "allievi/052-potenza-aerobica-interval-training-11-con-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/052-potenza-aerobica-interval-training-11-con-palla.html"
+  },
+  {
+    "sessione_id": "8793d2f7-7c17-4d48-ba8f-fc7a5fbfc698",
+    "titolo": "Circuito coordinazione-velocità con scala agility",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "allievi/053-circuito-coordinazione-velocita-con-scala-agility.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/053-circuito-coordinazione-velocita-con-scala-agility.html"
+  },
+  {
+    "sessione_id": "fe23a968-1030-4198-8820-5bd6e8f00810",
+    "titolo": "Duello fisico 1v1 con contrasto e recupero della palla",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 30,
+    "file_path": "allievi/054-duello-fisico-1v1-con-contrasto-e-recupero-della-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/054-duello-fisico-1v1-con-contrasto-e-recupero-della-palla.html"
+  },
+  {
+    "sessione_id": "569a0a7b-c6c7-4b38-b723-93ca414301e4",
+    "titolo": "Forza esplosiva: salti monopiede e sprint abbinati",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 28,
+    "file_path": "allievi/055-forza-esplosiva-salti-monopiede-e-sprint-abbinati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/055-forza-esplosiva-salti-monopiede-e-sprint-abbinati.html"
+  },
+  {
+    "sessione_id": "8b79fc05-5649-433e-bd53-9d610f3bab1a",
+    "titolo": "Agilità reattiva con palla su stimolo visivo del mister",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "allievi/056-agilita-reattiva-con-palla-su-stimolo-visivo-del-mister.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/056-agilita-reattiva-con-palla-su-stimolo-visivo-del-mister.html"
+  },
+  {
+    "sessione_id": "8c3f5b7d-323f-4190-94fd-fb29eaed96c2",
+    "titolo": "Core e stabilizzazione: circuito funzionale a corpo libero",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "allievi/057-core-e-stabilizzazione-circuito-funzionale-a-corpo-libero.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/057-core-e-stabilizzazione-circuito-funzionale-a-corpo-libero.html"
+  },
+  {
+    "sessione_id": "e81edf43-5b1d-4c56-9ca9-9a30231527b4",
+    "titolo": "Resistenza lattacida: 5v5 con pressing obbligato dopo perdita",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 30,
+    "file_path": "allievi/058-resistenza-lattacida-5v5-con-pressing-obbligato-dopo-perdita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/058-resistenza-lattacida-5v5-con-pressing-obbligato-dopo-perdita.html"
+  },
+  {
+    "sessione_id": "a9ff0a2e-3412-4b76-8a20-49b6d1589e32",
+    "titolo": "Reazione a segnale: sprint su stimolo acustico variato",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 20,
+    "file_path": "allievi/059-reazione-a-segnale-sprint-su-stimolo-acustico-variato.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/059-reazione-a-segnale-sprint-su-stimolo-acustico-variato.html"
+  },
+  {
+    "sessione_id": "37b16d51-20a5-476a-bd0b-16e2fa3b2dae",
+    "titolo": "Riscaldamento atletico progressivo con palla",
+    "eta": "allievi",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "allievi/060-riscaldamento-atletico-progressivo-con-palla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/060-riscaldamento-atletico-progressivo-con-palla.html"
+  },
+  {
+    "sessione_id": "fec91183-635d-4416-9c29-73985595af74",
+    "titolo": "Uscite alte su cross con attaccante in pressione",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "allievi/061-uscite-alte-su-cross-con-attaccante-in-pressione.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/061-uscite-alte-su-cross-con-attaccante-in-pressione.html"
+  },
+  {
+    "sessione_id": "82b1054f-78e7-4478-ba77-74dd41375290",
+    "titolo": "Parate in tuffo su tiri angolati a media distanza",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "allievi/062-parate-in-tuffo-su-tiri-angolati-a-media-distanza.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/062-parate-in-tuffo-su-tiri-angolati-a-media-distanza.html"
+  },
+  {
+    "sessione_id": "69bb58a7-c06d-46ce-94a5-080c6e69c4c8",
+    "titolo": "Costruzione dal basso con i piedi: schema corto e lungo",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "allievi/063-costruzione-dal-basso-con-i-piedi-schema-corto-e-lungo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/063-costruzione-dal-basso-con-i-piedi-schema-corto-e-lungo.html"
+  },
+  {
+    "sessione_id": "959cbf77-6d2d-4d2e-9955-d0ba9259f478",
+    "titolo": "Reattività su doppia parata ravvicinata consecutiva",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "allievi/064-reattivita-su-doppia-parata-ravvicinata-consecutiva.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/064-reattivita-su-doppia-parata-ravvicinata-consecutiva.html"
+  },
+  {
+    "sessione_id": "40ff047d-3b07-4248-9855-123206351352",
+    "titolo": "Posizionamento e angolazione: scalatura sulla linea di porta",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "allievi/065-posizionamento-e-angolazione-scalatura-sulla-linea-di-porta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/065-posizionamento-e-angolazione-scalatura-sulla-linea-di-porta.html"
+  },
+  {
+    "sessione_id": "cfdc20a7-8a83-4274-b4cb-3d3492d3de48",
+    "titolo": "Uscita bassa 1v1 con attaccante lanciato in profondità",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "allievi/066-uscita-bassa-1v1-con-attaccante-lanciato-in-profondita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/066-uscita-bassa-1v1-con-attaccante-lanciato-in-profondita.html"
+  },
+  {
+    "sessione_id": "6a089f50-a05c-44f0-8188-fb2a5ba0c1d4",
+    "titolo": "Rilancio con mano e piede: precisione su bersagli in campo",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 25,
+    "file_path": "allievi/067-rilancio-con-mano-e-piede-precisione-su-bersagli-in-campo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/067-rilancio-con-mano-e-piede-precisione-su-bersagli-in-campo.html"
+  },
+  {
+    "sessione_id": "b7b7f9b4-7212-46e4-8ab4-e506cf5058a6",
+    "titolo": "Gioco aereo: uscita con presa e pugno su cross alto",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "allievi/068-gioco-aereo-uscita-con-presa-e-pugno-su-cross-alto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/068-gioco-aereo-uscita-con-presa-e-pugno-su-cross-alto.html"
+  },
+  {
+    "sessione_id": "9b8be9f4-813e-4c34-85ec-3c86e5c0f4d2",
+    "titolo": "Portiere come costruttore nella difesa a 4",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "allievi/069-portiere-come-costruttore-nella-difesa-a-4.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/069-portiere-come-costruttore-nella-difesa-a-4.html"
+  },
+  {
+    "sessione_id": "c661457e-0b6a-4076-8580-f78a75082eea",
+    "titolo": "Parate in serie da posizioni diverse con quarto tiro a sorpresa",
+    "eta": "allievi",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "allievi/070-parate-in-serie-da-posizioni-diverse-con-quarto-tiro-a-sorpr.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/allievi/070-parate-in-serie-da-posizioni-diverse-con-quarto-tiro-a-sorpr.html"
+  },
+  {
+    "sessione_id": "0b6ec505-30e1-4c46-b35b-60a4494363ba",
+    "titolo": "Attivazione nel modulo di gara: 4-3-3 con circolazione tra linee",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/001-attivazione-nel-modulo-di-gara-4-3-3-con-circolazione-tra-li.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/001-attivazione-nel-modulo-di-gara-4-3-3-con-circolazione-tra-li.html"
+  },
+  {
+    "sessione_id": "9ded46ae-ffba-45c6-83a0-3209e368ec1a",
+    "titolo": "Rondò 10v4 con transizione immediata su porta piccola",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/002-rondo-10v4-con-transizione-immediata-su-porta-piccola.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/002-rondo-10v4-con-transizione-immediata-su-porta-piccola.html"
+  },
+  {
+    "sessione_id": "d13da871-58c7-47a8-96e9-ee987fd99e2e",
+    "titolo": "Schema di passaggi per linee difesa-centrocampo a ritmo crescente",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 18,
+    "file_path": "juniores/003-schema-di-passaggi-per-linee-difesa-centrocampo-a-ritmo-cres.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/003-schema-di-passaggi-per-linee-difesa-centrocampo-a-ritmo-cres.html"
+  },
+  {
+    "sessione_id": "e0e5cb9d-587d-4d8a-b617-865ae6171e6a",
+    "titolo": "Attivazione pliometrica specifica calcio: potenza e reattività",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 22,
+    "file_path": "juniores/004-attivazione-pliometrica-specifica-calcio-potenza-e-reattivit.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/004-attivazione-pliometrica-specifica-calcio-potenza-e-reattivit.html"
+  },
+  {
+    "sessione_id": "e46d1bac-d20e-422c-82fc-7550f98040f2",
+    "titolo": "Movimenti senza palla nel 4-2-3-1: focus sul trequartista",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 22,
+    "file_path": "juniores/005-movimenti-senza-palla-nel-4-2-3-1-focus-sul-trequartista.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/005-movimenti-senza-palla-nel-4-2-3-1-focus-sul-trequartista.html"
+  },
+  {
+    "sessione_id": "7881de1a-9d82-4f12-8f48-986ac10832ca",
+    "titolo": "Controllo orientato verso spazio libero su stimolo casuale",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/006-controllo-orientato-verso-spazio-libero-su-stimolo-casuale.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/006-controllo-orientato-verso-spazio-libero-su-stimolo-casuale.html"
+  },
+  {
+    "sessione_id": "02efa787-559f-4810-b367-6b969f9746f8",
+    "titolo": "Pressing triggers: simulazione match-specific su costruzione avversaria",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 22,
+    "file_path": "juniores/007-pressing-triggers-simulazione-match-specific-su-costruzione-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/007-pressing-triggers-simulazione-match-specific-su-costruzione-.html"
+  },
+  {
+    "sessione_id": "aac07bde-c738-4572-8d00-fe9f8eac2a38",
+    "titolo": "Duelli 1v1 in corsie strette con transizione offensiva immediata",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/008-duelli-1v1-in-corsie-strette-con-transizione-offensiva-immed.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/008-duelli-1v1-in-corsie-strette-con-transizione-offensiva-immed.html"
+  },
+  {
+    "sessione_id": "8ab7ccdd-7565-4e22-b40f-41ed62ff816a",
+    "titolo": "Possesso cardio con interrupt di sprint ogni 60 secondi",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/009-possesso-cardio-con-interrupt-di-sprint-ogni-60-secondi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/009-possesso-cardio-con-interrupt-di-sprint-ogni-60-secondi.html"
+  },
+  {
+    "sessione_id": "454744b3-7e13-4034-b0f7-0175a4873ee4",
+    "titolo": "Linea difensiva a 4: scalatura coordinata su stimolo del portiere",
+    "eta": "juniores",
+    "categoria": "riscaldamento",
+    "durata_minuti": 20,
+    "file_path": "juniores/010-linea-difensiva-a-4-scalatura-coordinata-su-stimolo-del-port.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/010-linea-difensiva-a-4-scalatura-coordinata-su-stimolo-del-port.html"
+  },
+  {
+    "sessione_id": "6070ded2-782a-439a-89b8-c0cf3d486192",
+    "titolo": "Controllo in doppia marcatura con uscita sul corridoio libero",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/011-controllo-in-doppia-marcatura-con-uscita-sul-corridoio-liber.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/011-controllo-in-doppia-marcatura-con-uscita-sul-corridoio-liber.html"
+  },
+  {
+    "sessione_id": "ffc80b5b-e229-4c62-97ad-8d7c77394584",
+    "titolo": "Passaggio filtrante di prima su movimento in profondità",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/012-passaggio-filtrante-di-prima-su-movimento-in-profondita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/012-passaggio-filtrante-di-prima-su-movimento-in-profondita.html"
+  },
+  {
+    "sessione_id": "c48a6fa6-18c8-464a-8ac0-889ec9eca208",
+    "titolo": "Conduzione ad alta velocità con stop brusco e ripartenza esplosiva",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/013-conduzione-ad-alta-velocita-con-stop-brusco-e-ripartenza-esp.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/013-conduzione-ad-alta-velocita-con-stop-brusco-e-ripartenza-esp.html"
+  },
+  {
+    "sessione_id": "9157c332-fb68-495e-84e0-0457aa6c5f88",
+    "titolo": "Colpo di testa in corsa su cross con timing da crossatore",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/014-colpo-di-testa-in-corsa-su-cross-con-timing-da-crossatore.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/014-colpo-di-testa-in-corsa-su-cross-con-timing-da-crossatore.html"
+  },
+  {
+    "sessione_id": "3debe0c8-db56-4888-85a4-c267b8408ef2",
+    "titolo": "Stop di coscia con proiezione offensiva immediata verso porta",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "juniores/015-stop-di-coscia-con-proiezione-offensiva-immediata-verso-port.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/015-stop-di-coscia-con-proiezione-offensiva-immediata-verso-port.html"
+  },
+  {
+    "sessione_id": "eee1971c-e98c-43d4-8698-aa0264c88f14",
+    "titolo": "Cambio campo di collo esterno su fascia opposta",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/016-cambio-campo-di-collo-esterno-su-fascia-opposta.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/016-cambio-campo-di-collo-esterno-su-fascia-opposta.html"
+  },
+  {
+    "sessione_id": "3c89eba0-c24c-46e0-80e8-d47b6d4012a4",
+    "titolo": "Finta di corpo in corsia laterale con accelerazione al fondo",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/017-finta-di-corpo-in-corsia-laterale-con-accelerazione-al-fondo.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/017-finta-di-corpo-in-corsia-laterale-con-accelerazione-al-fondo.html"
+  },
+  {
+    "sessione_id": "db54f144-9568-46dc-8f90-49655798caf8",
+    "titolo": "Tiro a giro su palla messa in corsa da posizione angolata",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 25,
+    "file_path": "juniores/018-tiro-a-giro-su-palla-messa-in-corsa-da-posizione-angolata.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/018-tiro-a-giro-su-palla-messa-in-corsa-da-posizione-angolata.html"
+  },
+  {
+    "sessione_id": "6b0ab391-a8e3-40cc-9cad-8cf1535d544e",
+    "titolo": "Riduzione tocchi in triangolo: da 3 a 2 a 1 tocco obbligatorio",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 28,
+    "file_path": "juniores/019-riduzione-tocchi-in-triangolo-da-3-a-2-a-1-tocco-obbligatori.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/019-riduzione-tocchi-in-triangolo-da-3-a-2-a-1-tocco-obbligatori.html"
+  },
+  {
+    "sessione_id": "d86fb05f-283f-4730-b55f-5aac476ffd60",
+    "titolo": "Rimessa in gioco del portiere su bersagli in movimento",
+    "eta": "juniores",
+    "categoria": "tecnica_individuale",
+    "durata_minuti": 22,
+    "file_path": "juniores/020-rimessa-in-gioco-del-portiere-su-bersagli-in-movimento.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/020-rimessa-in-gioco-del-portiere-su-bersagli-in-movimento.html"
+  },
+  {
+    "sessione_id": "6e1e2be7-5de5-4c06-999d-5001a7e10478",
+    "titolo": "Costruzione bassa 3+1 in uscita dal pressing alto: schemi A B C",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/021-costruzione-bassa-31-in-uscita-dal-pressing-alto-schemi-a-b-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/021-costruzione-bassa-31-in-uscita-dal-pressing-alto-schemi-a-b-.html"
+  },
+  {
+    "sessione_id": "c0425b50-5438-4030-8410-a8e38b60d028",
+    "titolo": "Pressing a uomo con trigger codificati su costruzione avversaria",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/022-pressing-a-uomo-con-trigger-codificati-su-costruzione-avvers.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/022-pressing-a-uomo-con-trigger-codificati-su-costruzione-avvers.html"
+  },
+  {
+    "sessione_id": "ff3b8f4d-2893-474c-9289-d6650801da1a",
+    "titolo": "Transizione offensiva: verticalizzazione obbligatoria nei 3 secondi",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "juniores/023-transizione-offensiva-verticalizzazione-obbligatoria-nei-3-s.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/023-transizione-offensiva-verticalizzazione-obbligatoria-nei-3-s.html"
+  },
+  {
+    "sessione_id": "b1defb7f-82d3-45c4-b413-9a1d4ebbb6c0",
+    "titolo": "Fuorigioco proattivo coordinato: linea e timing con il portiere",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "juniores/024-fuorigioco-proattivo-coordinato-linea-e-timing-con-il-portie.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/024-fuorigioco-proattivo-coordinato-linea-e-timing-con-il-portie.html"
+  },
+  {
+    "sessione_id": "e89909d5-9ae7-42a8-938d-dd074b7dd96a",
+    "titolo": "Rotazioni di reparto in 4-3-3: centrocampo in fase di possesso",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/025-rotazioni-di-reparto-in-4-3-3-centrocampo-in-fase-di-possess.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/025-rotazioni-di-reparto-in-4-3-3-centrocampo-in-fase-di-possess.html"
+  },
+  {
+    "sessione_id": "d593b36c-51f4-4064-8e28-6a3273089fdc",
+    "titolo": "Counter-press: riaggressione collettiva entro 5 secondi dalla perdita",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "juniores/026-counter-press-riaggressione-collettiva-entro-5-secondi-dalla.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/026-counter-press-riaggressione-collettiva-entro-5-secondi-dalla.html"
+  },
+  {
+    "sessione_id": "9d1a2ec3-10cf-4260-b113-a0fb4ca3f1dc",
+    "titolo": "Uscita palla a 5 contro pressing 4-4-2 con portiere costruttore",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/027-uscita-palla-a-5-contro-pressing-4-4-2-con-portiere-costrutt.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/027-uscita-palla-a-5-contro-pressing-4-4-2-con-portiere-costrutt.html"
+  },
+  {
+    "sessione_id": "b6ab3817-4e13-46a4-b08b-b7edfeb37e98",
+    "titolo": "Rifinitura tra le linee: smarcamento nel mezzo tra centrocampo e difesa",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/028-rifinitura-tra-le-linee-smarcamento-nel-mezzo-tra-centrocamp.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/028-rifinitura-tra-le-linee-smarcamento-nel-mezzo-tra-centrocamp.html"
+  },
+  {
+    "sessione_id": "b0d82ef9-8bf5-424a-b4f3-346e7cb3ff06",
+    "titolo": "Blocco basso 4-1-4-1: linee compatte e pressing reattivo sul secondo tempo",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 40,
+    "file_path": "juniores/029-blocco-basso-4-1-4-1-linee-compatte-e-pressing-reattivo-sul-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/029-blocco-basso-4-1-4-1-linee-compatte-e-pressing-reattivo-sul-.html"
+  },
+  {
+    "sessione_id": "7ba8439a-c0aa-4482-81e8-fccc4718b142",
+    "titolo": "3-5-2 in non possesso: scalate del quinto e marcature preventive",
+    "eta": "juniores",
+    "categoria": "tattica",
+    "durata_minuti": 45,
+    "file_path": "juniores/030-3-5-2-in-non-possesso-scalate-del-quinto-e-marcature-prevent.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/030-3-5-2-in-non-possesso-scalate-del-quinto-e-marcature-prevent.html"
+  },
+  {
+    "sessione_id": "6d2a3d99-37c3-474c-93b5-37324ad56476",
+    "titolo": "Possesso posizionale 9v6 con 8 passaggi obbligatori pre-verticalizzazione",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 35,
+    "file_path": "juniores/031-possesso-posizionale-9v6-con-8-passaggi-obbligatori-pre-vert.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/031-possesso-posizionale-9v6-con-8-passaggi-obbligatori-pre-vert.html"
+  },
+  {
+    "sessione_id": "33c76779-3ca9-4d16-bc5f-9007da6f30f6",
+    "titolo": "Possesso a 3 tocchi obbligatori con smarcamenti coordinati",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "juniores/032-possesso-a-3-tocchi-obbligatori-con-smarcamenti-coordinati.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/032-possesso-a-3-tocchi-obbligatori-con-smarcamenti-coordinati.html"
+  },
+  {
+    "sessione_id": "256859e9-9c0b-4584-98bd-48ef5c6d54b6",
+    "titolo": "Possesso 10v4 su campo intero con ripartenza obbligata dal portiere",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 38,
+    "file_path": "juniores/033-possesso-10v4-su-campo-intero-con-ripartenza-obbligata-dal-p.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/033-possesso-10v4-su-campo-intero-con-ripartenza-obbligata-dal-p.html"
+  },
+  {
+    "sessione_id": "9c2de195-0f0d-4a8a-b62f-53a8cb1f2922",
+    "titolo": "Gioco di posizione 8v8+2 jolly su campo diviso in 9 settori",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 35,
+    "file_path": "juniores/034-gioco-di-posizione-8v82-jolly-su-campo-diviso-in-9-settori.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/034-gioco-di-posizione-8v82-jolly-su-campo-diviso-in-9-settori.html"
+  },
+  {
+    "sessione_id": "e81bf7c8-4404-4498-8dd8-9dde3350c9dc",
+    "titolo": "Possesso full-field 11v11 con counter-press obbligato post-perdita",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 38,
+    "file_path": "juniores/035-possesso-full-field-11v11-con-counter-press-obbligato-post-p.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/035-possesso-full-field-11v11-con-counter-press-obbligato-post-p.html"
+  },
+  {
+    "sessione_id": "e9518740-47de-4340-8444-3b79a400739a",
+    "titolo": "Possesso zona-mista: marcatura stretta sul portatore e copertura di zona",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "juniores/036-possesso-zona-mista-marcatura-stretta-sul-portatore-e-copert.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/036-possesso-zona-mista-marcatura-stretta-sul-portatore-e-copert.html"
+  },
+  {
+    "sessione_id": "e09bb0b1-1b05-46ca-b74b-78ba267bdc4e",
+    "titolo": "Costruzione dal basso con vincolo di 5 tocchi massimi in zona difensiva",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 35,
+    "file_path": "juniores/037-costruzione-dal-basso-con-vincolo-di-5-tocchi-massimi-in-zon.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/037-costruzione-dal-basso-con-vincolo-di-5-tocchi-massimi-in-zon.html"
+  },
+  {
+    "sessione_id": "7a97a543-78b1-409a-95ed-1a1625d9cd5c",
+    "titolo": "Cambio di fronte obbligatorio prima di ogni verticalizzazione",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 38,
+    "file_path": "juniores/038-cambio-di-fronte-obbligatorio-prima-di-ogni-verticalizzazion.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/038-cambio-di-fronte-obbligatorio-prima-di-ogni-verticalizzazion.html"
+  },
+  {
+    "sessione_id": "9d0e54e1-8511-423e-bf4f-d52946dfaa5e",
+    "titolo": "Mantenimento del possesso nella metà campo avversaria",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 35,
+    "file_path": "juniores/039-mantenimento-del-possesso-nella-meta-campo-avversaria.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/039-mantenimento-del-possesso-nella-meta-campo-avversaria.html"
+  },
+  {
+    "sessione_id": "89a0fea5-7b3b-49a4-9b39-d3902701d002",
+    "titolo": "Possesso in inferiorità numerica 7v9: qualità tecnica sotto pressione",
+    "eta": "juniores",
+    "categoria": "possesso_palla",
+    "durata_minuti": 30,
+    "file_path": "juniores/040-possesso-in-inferiorita-numerica-7v9-qualita-tecnica-sotto-p.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/040-possesso-in-inferiorita-numerica-7v9-qualita-tecnica-sotto-p.html"
+  },
+  {
+    "sessione_id": "e205479f-d3ef-4300-b4cf-349ef49f5720",
+    "titolo": "Finalizzazione in transizione 4v3 con verticalizzazione immediata",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "juniores/041-finalizzazione-in-transizione-4v3-con-verticalizzazione-imme.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/041-finalizzazione-in-transizione-4v3-con-verticalizzazione-imme.html"
+  },
+  {
+    "sessione_id": "cf0e9303-2ccd-4c66-9859-bdd8af65c494",
+    "titolo": "Tiro su seconda palla dopo cross respinto in area",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "juniores/042-tiro-su-seconda-palla-dopo-cross-respinto-in-area.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/042-tiro-su-seconda-palla-dopo-cross-respinto-in-area.html"
+  },
+  {
+    "sessione_id": "e6e393ef-e74f-4c60-b6ff-17591f8f31b0",
+    "titolo": "Finalizzazione della seconda punta su sponda del centravanti",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "juniores/043-finalizzazione-della-seconda-punta-su-sponda-del-centravanti.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/043-finalizzazione-della-seconda-punta-su-sponda-del-centravanti.html"
+  },
+  {
+    "sessione_id": "09622659-ed1b-47d4-975d-4064418d8a46",
+    "titolo": "Calci di punizione diretti: schemi per posizioni frontali e laterali",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 35,
+    "file_path": "juniores/044-calci-di-punizione-diretti-schemi-per-posizioni-frontali-e-l.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/044-calci-di-punizione-diretti-schemi-per-posizioni-frontali-e-l.html"
+  },
+  {
+    "sessione_id": "bf13a112-5b3c-4bd6-8050-28d57ac4fb6c",
+    "titolo": "Tiro di potenza da fuori area su combinazione rapida a tre",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "juniores/045-tiro-di-potenza-da-fuori-area-su-combinazione-rapida-a-tre.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/045-tiro-di-potenza-da-fuori-area-su-combinazione-rapida-a-tre.html"
+  },
+  {
+    "sessione_id": "b478bb45-9b55-4922-b157-69a8b2673a02",
+    "titolo": "Cross teso a rientrare dalla fascia con attaccante in anticipo",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "juniores/046-cross-teso-a-rientrare-dalla-fascia-con-attaccante-in-antici.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/046-cross-teso-a-rientrare-dalla-fascia-con-attaccante-in-antici.html"
+  },
+  {
+    "sessione_id": "865fd91b-ac05-48ae-9e39-402f81b5623c",
+    "titolo": "Inserimento in area su cross del terzino sovrapposto",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 30,
+    "file_path": "juniores/047-inserimento-in-area-su-cross-del-terzino-sovrapposto.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/047-inserimento-in-area-su-cross-del-terzino-sovrapposto.html"
+  },
+  {
+    "sessione_id": "9cddd97d-9bdd-4b6a-b057-760f5217ab8a",
+    "titolo": "Conclusione in area affollata: protezione palla e girata con due difensori",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "juniores/048-conclusione-in-area-affollata-protezione-palla-e-girata-con-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/048-conclusione-in-area-affollata-protezione-palla-e-girata-con-.html"
+  },
+  {
+    "sessione_id": "5fcbd2e4-72be-4a24-86cc-2ab4b8c0f472",
+    "titolo": "Tiro al volo su cross alto: coordinazione e anticipazione del punto di contatto",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 28,
+    "file_path": "juniores/049-tiro-al-volo-su-cross-alto-coordinazione-e-anticipazione-del.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/049-tiro-al-volo-su-cross-alto-coordinazione-e-anticipazione-del.html"
+  },
+  {
+    "sessione_id": "a8c11d11-67eb-4d44-96a5-b311c055314e",
+    "titolo": "Corner offensivi con blocco coordinato e taglio al secondo palo",
+    "eta": "juniores",
+    "categoria": "finalizzazione",
+    "durata_minuti": 35,
+    "file_path": "juniores/050-corner-offensivi-con-blocco-coordinato-e-taglio-al-secondo-p.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/050-corner-offensivi-con-blocco-coordinato-e-taglio-al-secondo-p.html"
+  },
+  {
+    "sessione_id": "2be5c9da-4c6a-4242-8768-4bd83b983b02",
+    "titolo": "Sprint lattacidi ripetuti con recupero attivo tecnico",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "juniores/051-sprint-lattacidi-ripetuti-con-recupero-attivo-tecnico.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/051-sprint-lattacidi-ripetuti-con-recupero-attivo-tecnico.html"
+  },
+  {
+    "sessione_id": "db18438d-773b-45c4-93c1-cc4ae64954fa",
+    "titolo": "Potenza esplosiva: squat jump integrati con tecnica di palla immediata",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 28,
+    "file_path": "juniores/052-potenza-esplosiva-squat-jump-integrati-con-tecnica-di-palla-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/052-potenza-esplosiva-squat-jump-integrati-con-tecnica-di-palla-.html"
+  },
+  {
+    "sessione_id": "0bb17091-6a3b-4c14-9ed5-58423c8564ee",
+    "titolo": "Resistenza aerobica specifica: 6v6 continuo ad alta intensità",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 30,
+    "file_path": "juniores/053-resistenza-aerobica-specifica-6v6-continuo-ad-alta-intensita.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/053-resistenza-aerobica-specifica-6v6-continuo-ad-alta-intensita.html"
+  },
+  {
+    "sessione_id": "d8273f03-82ad-42c6-9ab9-8580cdc5d814",
+    "titolo": "Accelerazione sui primi 10 metri da 5 posizioni di partenza diverse",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "juniores/054-accelerazione-sui-primi-10-metri-da-5-posizioni-di-partenza-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/054-accelerazione-sui-primi-10-metri-da-5-posizioni-di-partenza-.html"
+  },
+  {
+    "sessione_id": "728f861d-8903-4dbc-90e9-ad415ba179ea",
+    "titolo": "Forza funzionale: circuito a 5 stazioni con palla e peso corporeo",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 28,
+    "file_path": "juniores/055-forza-funzionale-circuito-a-5-stazioni-con-palla-e-peso-corp.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/055-forza-funzionale-circuito-a-5-stazioni-con-palla-e-peso-corp.html"
+  },
+  {
+    "sessione_id": "b6b8cf98-97f8-4ea8-86d0-98f931307128",
+    "titolo": "Agilità e cambio di direzione: T-test con varianti reattive e con palla",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 25,
+    "file_path": "juniores/056-agilita-e-cambio-di-direzione-t-test-con-varianti-reattive-e.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/056-agilita-e-cambio-di-direzione-t-test-con-varianti-reattive-e.html"
+  },
+  {
+    "sessione_id": "88ebfce6-2bd2-40ce-8c30-5538dc2857e2",
+    "titolo": "Resistenza lattacida: 3v3 massimale con recupero passivo programmato",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 28,
+    "file_path": "juniores/057-resistenza-lattacida-3v3-massimale-con-recupero-passivo-prog.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/057-resistenza-lattacida-3v3-massimale-con-recupero-passivo-prog.html"
+  },
+  {
+    "sessione_id": "c44d1636-113c-4882-87e0-a8972eb466dc",
+    "titolo": "Prevenzione infortuni: propriocezione e stabilizzazione articolare",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "juniores/058-prevenzione-infortuni-propriocezione-e-stabilizzazione-artic.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/058-prevenzione-infortuni-propriocezione-e-stabilizzazione-artic.html"
+  },
+  {
+    "sessione_id": "988fce3c-1342-4a8c-8f84-3e4f24b0bcc6",
+    "titolo": "Velocità reattiva: avvio da posizione scomoda su segnale acustico",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 22,
+    "file_path": "juniores/059-velocita-reattiva-avvio-da-posizione-scomoda-su-segnale-acus.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/059-velocita-reattiva-avvio-da-posizione-scomoda-su-segnale-acus.html"
+  },
+  {
+    "sessione_id": "27d1bc85-711f-47b0-9c25-630efb35bd3a",
+    "titolo": "Forza relativa: circuito isometrico-balistico per calciatori senior",
+    "eta": "juniores",
+    "categoria": "atletica_fisico",
+    "durata_minuti": 28,
+    "file_path": "juniores/060-forza-relativa-circuito-isometrico-balistico-per-calciatori-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/060-forza-relativa-circuito-isometrico-balistico-per-calciatori-.html"
+  },
+  {
+    "sessione_id": "4ced211a-db56-4dca-8518-c7a30cd04e4e",
+    "titolo": "Parate su tiri potenti da distanza con recupero posizionale rapido",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "juniores/061-parate-su-tiri-potenti-da-distanza-con-recupero-posizionale-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/061-parate-su-tiri-potenti-da-distanza-con-recupero-posizionale-.html"
+  },
+  {
+    "sessione_id": "0cc322d9-4b31-452e-b8b7-ef05c7f71386",
+    "titolo": "Sequenza uscita alta su cross più gestione immediata del 1v1",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "juniores/062-sequenza-uscita-alta-su-cross-piu-gestione-immediata-del-1v1.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/062-sequenza-uscita-alta-su-cross-piu-gestione-immediata-del-1v1.html"
+  },
+  {
+    "sessione_id": "e9465b62-14d6-4cd2-8de8-b75537b0e93e",
+    "titolo": "Costruzione con i piedi in 4-2-3-1 contro 5 schemi di pressing diversi",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "juniores/063-costruzione-con-i-piedi-in-4-2-3-1-contro-5-schemi-di-pressi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/063-costruzione-con-i-piedi-in-4-2-3-1-contro-5-schemi-di-pressi.html"
+  },
+  {
+    "sessione_id": "70b30ec4-bb0a-4954-8ac4-420d079091ce",
+    "titolo": "Parate basse angolate: copertura del palo vicino e tuffo sul palo lontano",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "juniores/064-parate-basse-angolate-copertura-del-palo-vicino-e-tuffo-sul-.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/064-parate-basse-angolate-copertura-del-palo-vicino-e-tuffo-sul-.html"
+  },
+  {
+    "sessione_id": "50798726-bc00-487a-8000-c8a2ff5c1c00",
+    "titolo": "Comunicazione difensiva: il portiere come regista della linea",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "juniores/065-comunicazione-difensiva-il-portiere-come-regista-della-linea.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/065-comunicazione-difensiva-il-portiere-come-regista-della-linea.html"
+  },
+  {
+    "sessione_id": "f16f15a6-e212-4d0e-8fb0-543b18a89da2",
+    "titolo": "Uscita bassa 1v1 con valutazione della distanza e gestione del secondo attaccante",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "juniores/066-uscita-bassa-1v1-con-valutazione-della-distanza-e-gestione-d.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/066-uscita-bassa-1v1-con-valutazione-della-distanza-e-gestione-d.html"
+  },
+  {
+    "sessione_id": "55fe0dc8-4470-4f38-8ba0-5049d2f0dfd0",
+    "titolo": "Parate ravvicinate su deviazioni e colpi di testa in area piccola",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 28,
+    "file_path": "juniores/067-parate-ravvicinate-su-deviazioni-e-colpi-di-testa-in-area-pi.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/067-parate-ravvicinate-su-deviazioni-e-colpi-di-testa-in-area-pi.html"
+  },
+  {
+    "sessione_id": "1d88b945-3ac9-443e-be13-d157ad7bc4da",
+    "titolo": "Portiere costruttore: uscita corta a 3 contro pressing a 2 punte",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "juniores/068-portiere-costruttore-uscita-corta-a-3-contro-pressing-a-2-pu.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/068-portiere-costruttore-uscita-corta-a-3-contro-pressing-a-2-pu.html"
+  },
+  {
+    "sessione_id": "0fe269d2-7ec0-4d8e-8900-f942845cc7c0",
+    "titolo": "Gestione delle palle inattive difensive: calci d'angolo e punizioni avversarie",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 35,
+    "file_path": "juniores/069-gestione-delle-palle-inattive-difensive-calci-dangolo-e-puni.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/069-gestione-delle-palle-inattive-difensive-calci-dangolo-e-puni.html"
+  },
+  {
+    "sessione_id": "dbb02bef-3fed-46de-96fd-c865ed314910",
+    "titolo": "Parate ad alta intensità in serie: resistenza specifica del portiere",
+    "eta": "juniores",
+    "categoria": "portieri",
+    "durata_minuti": 30,
+    "file_path": "juniores/070-parate-ad-alta-intensita-in-serie-resistenza-specifica-del-p.html",
+    "url_pubblico": "https://app.myvivaio.app/sessioni-ufficiali/juniores/070-parate-ad-alta-intensita-in-serie-resistenza-specifica-del-p.html"
+  }
+]

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mani di ferro · MyVivaio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #f5f4ee;
+    padding: 20px;
+    min-height: 100vh;
+  }
+  .quaderno {
+    background: #fefdf8;
+    border: 2px solid #2D3748;
+    border-radius: 4px;
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .header {
+    border-bottom: 2px dashed #2D3748;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+  }
+  .header-id { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #1A7A4A; }
+  .header-eta { font-size: 11px; color: #666; }
+  .titolo { font-size: 24px; font-weight: 800; margin: 8px 0 4px; color: #2D3748; }
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: #555; margin-top: 6px; }
+  .body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) {
+    .body-grid { grid-template-columns: 1fr; }
+    body { padding: 8px; }
+    .quaderno { padding: 16px; }
+  }
+  .schema-figura {
+    background: #fefdf8;
+    border: 1.5px solid #2D3748;
+    aspect-ratio: 7 / 6;
+    width: 100%;
+  }
+  .figura-caption {
+    font-size: 10px; color: #666; margin-top: 4px;
+    text-align: center; font-style: italic; font-family: 'Courier New', monospace;
+  }
+  .section { margin-bottom: 14px; }
+  .section-title {
+    font-size: 11px; font-weight: 800; color: #1A7A4A;
+    letter-spacing: 1px; border-bottom: 1px solid #1A7A4A;
+    padding-bottom: 2px; margin-bottom: 6px;
+  }
+  .section-content { font-size: 13px; color: #2D3748; line-height: 1.5; }
+  .section-content ol { margin: 0; padding-left: 18px; }
+  .section-content ol li { margin-bottom: 4px; }
+  .nota-mister {
+    background: #f0fdf4; padding: 10px;
+    border-left: 3px solid #1A7A4A; border-radius: 2px; margin-top: 14px;
+  }
+  .nota-label { font-size: 10px; font-weight: 800; color: #1A7A4A; letter-spacing: 1px; }
+  .nota-testo { font-size: 12px; color: #555; margin-top: 4px; }
+  .footer {
+    border-top: 1px dashed #2D3748; margin-top: 16px; padding-top: 8px;
+    font-size: 10px; color: #999; text-align: center; font-family: 'Courier New', monospace;
+  }
+  @media print {
+    body { background: white; padding: 0; }
+    .quaderno { border: none; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="quaderno">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-id">MYVIVAIO · SESSIONE N° 064</div>
+      <div class="header-eta">Pulcini · U8-U10</div>
+    </div>
+    <h1 class="titolo">Mani di ferro</h1>
+    <div class="meta">
+      <span><strong>⏱</strong> 15 min</span>
+      <span><strong>◆</strong> Portieri</span>
+      <span><strong>★</strong> Ufficiale MyVivaio</span>
+    </div>
+  </div>
+  <div class="body-grid">
+    <div>
+      <svg class="schema-figura" viewBox="0 0 280 240" xmlns="http://www.w3.org/2000/svg">
+  <rect width="280" height="240" fill="#1A7A4A"/>
+  <rect x="8" y="8" width="264" height="224" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1"/>
+  <!-- porta grande -->
+  <rect x="80" y="18" width="120" height="40" fill="none" stroke="white" stroke-width="2.5"/>
+  <!-- portiere -->
+  <circle cx="140" cy="30" r="11" fill="#f9e04b" stroke="white" stroke-width="1.5"/>
+  <text x="140" y="34" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">P</text>
+  <!-- area porta punteggiata -->
+  <rect x="60" y="18" width="160" height="65" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1" stroke-dasharray="4,3"/>
+  <!-- giocatore tiratore -->
+  <circle cx="140" cy="185" r="10" fill="white" stroke="#1A7A4A" stroke-width="1.5"/>
+  <text x="140" y="189" text-anchor="middle" font-size="9" fill="#1A7A4A" font-weight="700">T</text>
+  <!-- cono lanciatore -->
+  <polygon points="80,185 74,200 86,200" fill="#f9e04b"/>
+  <!-- traiettoria pallone -->
+  <path d="M140,175 Q140,120 140,58" stroke="white" stroke-width="1.5" fill="none" stroke-dasharray="6,4"/>
+  <!-- pallone a metà -->
+  <circle cx="140" cy="130" r="5" fill="#f9e04b" stroke="white" stroke-width="1"/>
+  <!-- freccia presa portiere -->
+  <path d="M140 42 Q130 46 128 50" stroke="#1A7A4A" stroke-width="1.5" fill="none"/>
+  <text x="140" y="230" text-anchor="middle" font-size="8" fill="rgba(255,255,255,.6)">PORTIERI</text>
+</svg>
+      <div class="figura-caption">Fig. 1 — Schema disposizione</div>
+    </div>
+    <div>
+      <div class="section">
+        <div class="section-title">OBIETTIVO</div>
+        <div class="section-content">In cerchio con 3-4 bambini, il portiere al centro</div>
+      </div>
+      <div class="section">
+        <div class="section-title">SVOLGIMENTO</div>
+        <div class="section-content">
+          <ol>
+            <li>In cerchio con 3-4 bambini, il portiere al centro.</li>
+            <li>I compagni si passano la palla con le mani (stile basket) e a sorpresa la lanciano verso il portiere.</li>
+            <li>Lui deve bloccarla con una presa pulita, senza farla cadere, e restituirla al lanciatore.</li>
+            <li>Prima fase: lanci frontali, lenti.</li>
+            <li>Seconda fase: lanci da angoli diversi.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">MATERIALE</div>
+        <div class="section-content">2-3 palloni, porta, eventuali ostacoli</div>
+      </div>
+      <div class="nota-mister">
+        <div class="nota-label">NOTA MISTER</div>
+        <div class="nota-testo">Incoraggiare il dialogo tra compagni e l'autonomia.</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">myvivaio.app · 064-mani-di-ferro.html</div>
+</div>
+</body>
+</html>
