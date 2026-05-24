@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm run build"
+  command = "pnpm run build && cp -r artifacts/fieldos/sessioni-ufficiali artifacts/fieldos/dist/public/"
   publish = "artifacts/fieldos/dist/public"
 
 # Proxy: tutte le chiamate /api/* vengono inoltrate al server Railway
@@ -8,6 +8,13 @@
   to = "https://workspacefieldos-production.up.railway.app/api/:splat"
   status = 200
   force = true
+
+# Sessioni ufficiali: serve i file statici HTML direttamente (bypassa SPA routing)
+[[redirects]]
+  from = "/sessioni-ufficiali/*"
+  to = "/sessioni-ufficiali/:splat"
+  status = 200
+  force = false
 
 # SPA fallback: tutte le altre rotte servono index.html
 [[redirects]]
