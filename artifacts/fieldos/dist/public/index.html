@@ -4871,7 +4871,8 @@ function migraChatAdmin(user) {
 
 function renderDemoWaBanner() {
   const existing = document.getElementById('demo-wa-banner');
-  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true;
+  // Omaggio = clienti comped da noi: subscription_status rimane 'demo' in DB ma non sono in trial
+  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true && currentSocietyMeta.billingMode !== 'omaggio';
   const shouldShow = !!(me && isAccountOwner() && isDemo);
 
   if (!shouldShow) {
@@ -15305,6 +15306,7 @@ function _closePickSessione() {
 
 function _renderPickHome() {
   return '<div style="padding:4px 0;">'
+    + '<div class="all-pick-card" onclick="_pickFromLibreria(\'ufficiali\')"><div class="pick-ic">📘</div><div><div style="font-weight:800;">Libreria MyVivaio</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni ufficiali per la tua leva</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'personale\')"><div class="pick-ic">📚</div><div><div style="font-weight:800;">Dalla mia libreria</div><div style="font-size:.8rem;color:var(--text2);">Scegli una delle tue sessioni salvate</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'community\')"><div class="pick-ic">🌍</div><div><div style="font-weight:800;">Dalla community</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni condivise da altri mister</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickScrivi()"><div class="pick-ic">✏️</div><div><div style="font-weight:800;">Scrivi a mano</div><div style="font-size:.8rem;color:var(--text2);">Crea una sessione personalizzata</div></div></div>'
@@ -15323,7 +15325,7 @@ async function _pickFromLibreria(ambito) {
     const d = await r.json();
     const items = d.items || [];
     let html = '<button class="btn btn-g btn-sm" onclick="document.getElementById(\'_pickView\').innerHTML=_renderPickHome()" style="margin-bottom:12px;">← Indietro</button>'
-      + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':'Sessioni community') + '</div>';
+      + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':ambito==='ufficiali'?'Libreria Ufficiale MyVivaio':'Sessioni community') + '</div>';
     if (items.length) {
       html += items.map(function(s) {
         const cat = _ALL_CAT_IT[s.categoria]||s.categoria;
