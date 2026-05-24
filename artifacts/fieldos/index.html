@@ -7429,13 +7429,39 @@ function upcomingPartiteEvents(leveFilter) {
       if (!e.leve || !e.leve.length) return false;
       return e.leve.some(l => leveFilter.includes(l));
     });
-  const fromTornei = (Array.isArray(tornei) ? tornei : [])
-    .filter(t => t.dataInizio && (t.dataFine || t.dataInizio) >= today)
+  const fromTornei = [];
+  (Array.isArray(tornei) ? tornei : [])
     .filter(t => {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(t.leva);
     })
-    .map(t => ({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio, leve: [t.leva], luogo: t.luogo || '', start: '', end: '' }));
+    .forEach(t => {
+      if (t.convocazioniPerPartita) {
+        // New schema (tornei importati/creati dopo il fix): enumera singole partite delle squadre mie
+        const myTeams = t.squadreMieFlag || [];
+        (t.fasi || []).forEach(f => {
+          (f.partite || [])
+            .filter(m => !m.played && m.data && m.data >= today && myTeams.some(team => m.casa === team || m.ospite === team))
+            .forEach(m => {
+              fromTornei.push({
+                id: `torneo_${t.id}_${f.id}_${m.id}`,
+                type: 'partita',
+                title: `🏆 ${m.casa} vs ${m.ospite}`,
+                date: m.data,
+                leve: [t.leva],
+                luogo: m.luogo || t.luogo || '',
+                start: m.orario || '',
+                end: '',
+              });
+            });
+        });
+      } else {
+        // Legacy schema: torneo come evento singolo (comportamento originale)
+        if (t.dataInizio && (t.dataFine || t.dataInizio) >= today) {
+          fromTornei.push({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio, leve: [t.leva], luogo: t.luogo || '', start: '', end: '' });
+        }
+      }
+    });
   const fromCampionato = [];
   Object.entries(campionato || {}).forEach(([lv, camp]) => {
     if (!camp?.partite) return;
@@ -18186,7 +18212,7 @@ function importPdfSave() {
     })),
   }));
   const allSq=[...new Set((_importPdfData.gironi||[]).flatMap(g=>g.squadre||[]))];
-  tornei.push({
+  const _newTorneo = {
     id:'t'+nextTorneoId++,
     nome:_importPdfData.nome||'Torneo importato',
     leva:currentLeva,
@@ -18200,11 +18226,31 @@ function importPdfSave() {
     convocati:[],
     archiviato:false,
     squadreMieFlag,
+    convocazioniPerPartita: squadreMieFlag.length > 0,
     _migrated_gironi_v1:true,
-  });
+  };
+  tornei.push(_newTorneo);
+
+  // Crea convocazione automatica per ogni partita delle squadre mie
+  if (squadreMieFlag.length > 0) {
+    _newTorneo.fasi.forEach(f => {
+      f.partite.forEach(m => {
+        if (!m.data) {
+          console.warn('[importPdf] skip convocazione: partita senza data', m.casa, 'vs', m.ospite);
+          return;
+        }
+        const isMia = squadreMieFlag.some(team => m.casa === team || m.ospite === team);
+        if (!isMia) return;
+        // Scontro interno (entrambe squadre mie): 1 solo eventId → 1 convocazione
+        autoCreateConvocazione(`torneo_${_newTorneo.id}_${f.id}_${m.id}`, currentLeva);
+      });
+    });
+  }
+
   window.__fieldosSaveState();
   closeM('mImportPdf');
   renderGestComp(); renderPartite(); renderCal();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   toast(`✅ Torneo "${_importPdfData.nome||'importato'}" salvato!`);
 }
 
@@ -18915,6 +18961,8 @@ function saveGcTorneo() {
       t.tipo=tipo; t.spareggio=spareggio;
       t.squadrePartecipanti = [..._gcTorneoSquadre];
       t.squadreMieFlag = [..._gcTorneoSquadreMie];
+      // Aggiorna flag solo se già presente (tornei legacy senza flag → invariati)
+      if (t.convocazioniPerPartita !== undefined) t.convocazioniPerPartita = t.squadreMieFlag.length > 0;
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
@@ -18924,7 +18972,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie]};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie], convocazioniPerPartita: _gcTorneoSquadreMie.length > 0};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
