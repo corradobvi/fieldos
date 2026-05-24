@@ -90355,7 +90355,7 @@ import path2 from "path";
 import fs2 from "fs";
 var router32 = (0, import_express32.Router)();
 function checkAuth(req, res) {
-  const secret = req.headers["x-sa-secret"];
+  const secret = req.headers["x-admin-secret"];
   const saSecret = process.env.ADMIN_RESET_SECRET;
   if (!saSecret || secret !== saSecret) {
     res.status(401).json({ error: "unauthorized" });
