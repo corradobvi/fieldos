@@ -7460,6 +7460,7 @@ function upcomingPartiteEvents(leveFilter) {
 }
 
 // All competitive events (past + future) for given leve — used by Partite Genitore tab.
+// Each event includes _sourceType, _matchRef, _leva, _isHome, _golCasa, _golOspiti for detail rendering.
 function getAllCompetitiveEventsForLeve(leveFilter) {
   const fromEvents = events
     .filter(e => (e.type === 'partita' || e.type === 'torneo' || e.type === 'amichevole'))
@@ -7468,13 +7469,18 @@ function getAllCompetitiveEventsForLeve(leveFilter) {
       if (!leveFilter || !leveFilter.length) return true;
       if (!e.leve || !e.leve.length) return false;
       return e.leve.some(l => leveFilter.includes(l));
-    });
+    })
+    .map(e => ({ ...e, _sourceType: 'calendar', _leva: (e.leve||[])[0]||'' }));
   const fromTornei = (Array.isArray(tornei) ? tornei : [])
     .filter(t => {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(t.leva);
     })
-    .map(t => ({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' }));
+    .map(t => ({
+      id: t.id, type: 'torneo', title: '🏆 ' + t.nome,
+      date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '',
+      _sourceType: 'torneo', _matchRef: t, _leva: t.leva, _isHome: false,
+    }));
   const fromCampionato = [];
   Object.entries(campionato || {}).forEach(([lv, camp]) => {
     if (!camp?.partite) return;
@@ -7485,7 +7491,14 @@ function getAllCompetitiveEventsForLeve(leveFilter) {
       .forEach(m => {
         const isHome = m.casa === polis;
         const avv = (isHome ? m.ospite : m.casa) || '—';
-        fromCampionato.push({ id: `camp_${lv}_${m.id}`, type: 'partita', title: `⚽ ${polis} vs ${avv}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '', played: !!m.played, risultato: m.golCasa != null ? `${m.golCasa}-${m.golOspite}` : null, isHome });
+        fromCampionato.push({
+          id: `camp_${lv}_${m.id}`, type: 'partita',
+          title: `⚽ ${polis} vs ${avv}`,
+          date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '',
+          played: !!m.played,
+          _sourceType: 'campionato', _matchRef: m, _leva: lv, _isHome: isHome,
+          _golCasa: m.golCasa, _golOspiti: m.golOspiti,
+        });
       });
   });
   const fromAmichevoli = (Array.isArray(amichevoli) ? amichevoli : [])
@@ -7493,10 +7506,37 @@ function getAllCompetitiveEventsForLeve(leveFilter) {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(m.leva);
     })
-    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data || '', leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '', played: !!m.played, risultato: m.golCasa != null ? `${m.golCasa}-${m.golOspite}` : null }; });
+    .map(m => {
+      const polis = polisName(m.leva);
+      const isH = (m.tipo||'casa') === 'casa';
+      return {
+        id: 'amich_' + m.id, type: 'partita',
+        title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`,
+        date: m.data || '', leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '',
+        played: !!m.played,
+        _sourceType: 'amichevole', _matchRef: m, _leva: m.leva, _isHome: isH,
+        _golCasa: m.golCasa, _golOspiti: m.golOspiti,
+      };
+    });
   return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
     .filter(e => e.date)
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
+}
+
+// Navigate to pg-partite with the correct tab/leva — used by Partite Genitore card tap (FIX 1)
+function _pgfOpenEvent(sourceType, leva) {
+  if (leva) switchLeva(leva);
+  if (sourceType === 'amichevole') {
+    ptCurrentTab = 'amichevoli';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'amichevoli'); });
+  } else if (sourceType === 'campionato') {
+    ptCurrentTab = 'campionato';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'campionato'); });
+  } else if (sourceType === 'torneo') {
+    ptCurrentTab = 'tornei';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'tornei'); });
+  }
+  goTo(sourceType === 'calendar' ? 'calendario' : 'partite');
 }
 
 let _pgfChip = 'prossime';
@@ -7510,35 +7550,84 @@ function renderPartiteGenitore() {
   if (!c) return;
   const myPlayers = getMyPlayers();
   const leveFilter = myPlayers.map(p => p.leva).filter(Boolean);
+  // Respect selected figlio for multi-child families
+  const _scKey = 'gen_sel_' + (me ? me.id : 0);
+  let selectedPlayer = myPlayers[0] || null;
+  if (myPlayers.length >= 2) {
+    const _savedId = localStorage.getItem(_scKey);
+    if (_savedId) { const _sf = myPlayers.find(p => String(p.id) === _savedId); if (_sf) selectedPlayer = _sf; }
+  }
   const today = ymd(new Date());
   const allEvs = getAllCompetitiveEventsForLeve(leveFilter.length ? leveFilter : null);
+  const prossime = allEvs.filter(e => e.date >= today);
+  const concluse = allEvs.filter(e => e.date < today).reverse();
   const _DOW = ['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
-  const prossime = allEvs.filter(e => e.date >= today).reverse().reverse(); // keep asc
-  const concluse = allEvs.filter(e => e.date < today).reverse(); // most recent first
 
-  function evCard(ev) {
+  function evCard(ev, isPast) {
     const d = parseYmd(ev.date);
     const dayNum = d.getDate() + '/' + (d.getMonth()+1);
     const dow = _DOW[d.getDay()];
-    const tipoIcon = ev.type === 'torneo' ? '🏆' : ev.id && String(ev.id).startsWith('amich_') ? '🤝' : '⚽';
-    const tipoLabel = ev.type === 'torneo' ? 'Torneo' : ev.id && String(ev.id).startsWith('amich_') ? 'Amichevole' : 'Partita';
-    const tipoColor = ev.type === 'torneo' ? '#92400e' : ev.id && String(ev.id).startsWith('amich_') ? '#1d4ed8' : 'var(--cp)';
-    const tipoBg = ev.type === 'torneo' ? '#fef3c7' : ev.id && String(ev.id).startsWith('amich_') ? '#dbeafe' : 'var(--cp-light,#dcfce7)';
+    const src = ev._sourceType || 'calendar';
+    const tipoIcon = src === 'torneo' ? '🏆' : src === 'amichevole' ? '🤝' : '⚽';
+    const tipoLabel = src === 'torneo' ? 'Torneo' : src === 'amichevole' ? 'Amichevole' : src === 'campionato' ? 'Campionato' : (ev.type === 'torneo' ? 'Torneo' : 'Partita');
     const ora = ev.start ? ' · ' + ev.start : '';
     const luogo = ev.luogo ? ' · ' + escapeHtml(ev.luogo) : '';
-    const conv = !ev.type || ev.type !== 'torneo' ? getConvocazione(ev.id) : null;
-    let convBadge = '';
-    if (conv && conv.playerIds && myPlayers.length) {
-      const convocato = myPlayers.some(p => (conv.playerIds || []).includes(p.id));
-      convBadge = convocato
-        ? '<span class="pgf-card-badge" style="background:#dcfce7;color:#166534;">🟢 CONVOCATO</span>'
-        : '<span class="pgf-card-badge" style="background:var(--border);color:var(--text2);">⚪ NON CONVOCATO</span>';
+    const _leva = ev._leva || (ev.leve||[])[0] || '';
+    const clickAttr = `onclick="_pgfOpenEvent('${src}','${escapeHtml(_leva)}')" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.07);"`;
+
+    let extraHtml = '';
+    if (!isPast) {
+      // FIX 2: convocazione badge for future events
+      const conv = getConvocazione(ev.id);
+      if (conv && conv.playerIds && selectedPlayer) {
+        const inList = (conv.playerIds || []).includes(selectedPlayer.id);
+        extraHtml = inList
+          ? '<span class="pgf-card-badge" style="background:#dcfce7;color:#166534;">🟢 CONVOCATO</span>'
+          : '<span class="pgf-card-badge" style="background:#f1f5f9;color:var(--text2);">⚪ NON CONVOCATO</span>';
+      } else if (selectedPlayer) {
+        extraHtml = '<span class="pgf-card-badge" style="background:#fef9c3;color:#854d0e;">🟡 IN ATTESA</span>';
+      }
+    } else {
+      // FIX 3: result + player stats for past events
+      if (src === 'torneo') {
+        // Tornei: no single score — just label
+        extraHtml = '<span style="font-size:.74rem;color:var(--text3);">Torneo concluso</span>';
+      } else {
+        const gc = ev._golCasa, go = ev._golOspiti;
+        // FIX 4: guard against undefined scores
+        if (gc != null && !isNaN(gc) && go != null && !isNaN(go)) {
+          const polisScore = ev._isHome ? gc : go;
+          const oppScore   = ev._isHome ? go : gc;
+          const esito = polisScore > oppScore ? 'V' : polisScore < oppScore ? 'P' : 'N';
+          const esitoColor = esito === 'V' ? '#166534' : esito === 'P' ? '#9f1239' : '#854d0e';
+          const esitoBg   = esito === 'V' ? '#dcfce7' : esito === 'P' ? '#ffe4e6' : '#fef9c3';
+          extraHtml = `<span class="pgf-card-badge" style="background:${esitoBg};color:${esitoColor};">${gc}–${go} (${esito})</span>`;
+          // Player stats (only if mister enabled showStatsToFamily for this leva)
+          if (selectedPlayer && ev._matchRef) {
+            const lss = levaStatsSettings[_leva] || {};
+            if (lss.showStatsToFamily) {
+              const stat = (ev._matchRef.stats || []).find(s => s.playerId === selectedPlayer.id);
+              if (stat) {
+                const adv = advStats(_leva);
+                const parts = [];
+                if (adv) {
+                  if (stat.gol > 0)    parts.push(stat.gol + ' gol');
+                  if (stat.assist > 0) parts.push(stat.assist + ' assist');
+                  if (stat.minuti > 0) parts.push(stat.minuti + ' min');
+                }
+                extraHtml += ` <span style="font-size:.73rem;color:var(--text2);">${escapeHtml(selectedPlayer.nome)}: ${parts.length ? parts.join(' · ') : 'presente'}</span>`;
+              } else {
+                extraHtml += ` <span style="font-size:.73rem;color:var(--text3);">${escapeHtml(selectedPlayer.nome)}: assente</span>`;
+              }
+            }
+          }
+        } else {
+          extraHtml = '<span style="font-size:.74rem;color:var(--text3);">Risultato non disponibile</span>';
+        }
+      }
     }
-    let risultatoBadge = '';
-    if (ev.risultato) {
-      risultatoBadge = `<span class="pgf-card-badge" style="background:#f1f5f9;color:var(--text);font-size:.72rem;">${ev.risultato}</span> `;
-    }
-    return `<div class="pgf-card">
+
+    return `<div class="pgf-card" ${clickAttr}>
       <div class="pgf-card-date">
         <div class="pgf-card-day">${dayNum}</div>
         <div class="pgf-card-dow">${dow}</div>
@@ -7546,7 +7635,7 @@ function renderPartiteGenitore() {
       <div class="pgf-card-body">
         <div class="pgf-card-title">${escapeHtml(ev.title || '')}</div>
         <div class="pgf-card-sub">${tipoIcon} ${tipoLabel}${ora}${luogo}</div>
-        ${risultatoBadge}${convBadge}
+        <div style="margin-top:5px;">${extraHtml}</div>
       </div>
     </div>`;
   }
@@ -7558,17 +7647,13 @@ function renderPartiteGenitore() {
 
   let body = '';
   if (_pgfChip === 'prossime') {
-    if (!prossime.length) {
-      body = `<div class="pgf-empty"><div class="pgf-empty-ic">⚽</div><div class="pgf-empty-txt">Nessuna partita in programma</div><div class="pgf-empty-sub">Le prossime partite appariranno qui.</div></div>`;
-    } else {
-      body = prossime.map(evCard).join('');
-    }
+    body = prossime.length
+      ? prossime.map(ev => evCard(ev, false)).join('')
+      : `<div class="pgf-empty"><div class="pgf-empty-ic">⚽</div><div class="pgf-empty-txt">Nessuna partita in programma</div><div class="pgf-empty-sub">Le prossime partite appariranno qui.</div></div>`;
   } else {
-    if (!concluse.length) {
-      body = `<div class="pgf-empty"><div class="pgf-empty-ic">📋</div><div class="pgf-empty-txt">Nessuna partita conclusa</div><div class="pgf-empty-sub">I risultati delle partite giocate appariranno qui.</div></div>`;
-    } else {
-      body = concluse.map(evCard).join('');
-    }
+    body = concluse.length
+      ? concluse.map(ev => evCard(ev, true)).join('')
+      : `<div class="pgf-empty"><div class="pgf-empty-ic">📋</div><div class="pgf-empty-txt">Nessuna partita conclusa</div><div class="pgf-empty-sub">I risultati delle partite giocate appariranno qui.</div></div>`;
   }
 
   c.innerHTML = chipBar + body;
