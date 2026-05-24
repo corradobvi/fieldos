@@ -408,7 +408,13 @@ ALTER TABLE events ADD INDEX idx_events_tipo (tipo);
 ALTER TABLE events ADD INDEX idx_events_recur_group (recur_group_id);
 ALTER TABLE allenamenti ADD COLUMN event_id INT NULL;
 ALTER TABLE allenamenti ADD CONSTRAINT fk_allenamenti_event FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL;
-ALTER TABLE allenamenti ADD INDEX idx_allenamenti_event (event_id)
+ALTER TABLE allenamenti ADD INDEX idx_allenamenti_event (event_id);
+ALTER TABLE users ADD COLUMN utm_source VARCHAR(100) NULL;
+ALTER TABLE users ADD COLUMN utm_medium VARCHAR(100) NULL;
+ALTER TABLE users ADD COLUMN utm_campaign VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN utm_content VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN utm_term VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN fbclid VARCHAR(500) NULL
 `;
 
 export const SEED_SQL = `

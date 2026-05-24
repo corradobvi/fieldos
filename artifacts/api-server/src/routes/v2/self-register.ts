@@ -21,7 +21,7 @@ const PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
   const { nome, cognome, email, password, phone, nomeSocieta, citta, piano,
-          privacyAccepted, marketingConsent } =
+          privacyAccepted, marketingConsent, utm_data } =
     req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
@@ -43,6 +43,22 @@ router.post("/auth/self-register", async (req, res) => {
 
   const normalizedEmail  = email.trim().toLowerCase();
   const pianoNorm        = VALID_PIANI.has(piano ?? "") ? (piano as string) : "mister";
+
+  // Parse UTM data (silent fail — never blocks registration)
+  let utmSource:   string | null = null;
+  let utmMedium:   string | null = null;
+  let utmCampaign: string | null = null;
+  let utmContent:  string | null = null;
+  let utmTerm:     string | null = null;
+  let fbclid:      string | null = null;
+  if (utm_data && typeof utm_data === "object") {
+    utmSource   = typeof utm_data.utm_source   === "string" ? utm_data.utm_source.slice(0, 100)   : null;
+    utmMedium   = typeof utm_data.utm_medium   === "string" ? utm_data.utm_medium.slice(0, 100)   : null;
+    utmCampaign = typeof utm_data.utm_campaign === "string" ? utm_data.utm_campaign.slice(0, 255) : null;
+    utmContent  = typeof utm_data.utm_content  === "string" ? utm_data.utm_content.slice(0, 255)  : null;
+    utmTerm     = typeof utm_data.utm_term     === "string" ? utm_data.utm_term.slice(0, 255)     : null;
+    fbclid      = typeof utm_data.fbclid       === "string" ? utm_data.fbclid.slice(0, 500)       : null;
+  }
   const demoDays         = DEMO_DAYS[pianoNorm] ?? 14;
   const demoExpires      = new Date(Date.now() + demoDays * 24 * 60 * 60 * 1000);
   const codice           = _generateCode(nomeSocieta.trim());
@@ -78,11 +94,12 @@ router.post("/auth/self-register", async (req, res) => {
       `INSERT INTO users
          (society_id, nome, cognome, email, password_hash, ruolo, stato, phone,
           whatsapp_number, privacy_accepted_at, marketing_consent, marketing_consent_at,
-          is_account_owner)
+          is_account_owner, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid)
        VALUES (?, ?, ?, ?, ?, 'admin', 'attivo', ?,
-               ?, NOW(), ?, ?, 1)`,
+               ?, NOW(), ?, ?, 1, ?, ?, ?, ?, ?, ?)`,
       [societyId, nome.trim(), cognome.trim(), normalizedEmail, hash, phoneNorm,
-       phoneNorm, mktConsent, mktConsent ? new Date() : null]
+       phoneNorm, mktConsent, mktConsent ? new Date() : null,
+       utmSource, utmMedium, utmCampaign, utmContent, utmTerm, fbclid]
     )) as [any, any];
     const userId: number = userRes.insertId;
 

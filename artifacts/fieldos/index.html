@@ -20961,6 +20961,25 @@ function _updatePianoBadge(piano) {
   }
 }
 
+function _captureUtm() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'];
+    if (!UTM_KEYS.some(k => p.get(k))) return;
+    try {
+      const existing = localStorage.getItem('myvivaio_utm');
+      if (existing) {
+        const parsed = JSON.parse(existing);
+        if (parsed.captured_at && (Date.now() - new Date(parsed.captured_at).getTime()) < 30*24*60*60*1000) return;
+      }
+    } catch(_) {}
+    const utm = {};
+    UTM_KEYS.forEach(k => { utm[k] = p.get(k) || null; });
+    utm.captured_at = new Date().toISOString();
+    localStorage.setItem('myvivaio_utm', JSON.stringify(utm));
+  } catch(_) {}
+}
+
 function openRegisterScreen() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('registerScreen').classList.add('on');
@@ -22316,6 +22335,17 @@ async function doSelfRegister() {
   const btn = document.getElementById('btnRegister');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Registrazione in corso…'; }
 
+  let utm_data = null;
+  try {
+    const _utmRaw = localStorage.getItem('myvivaio_utm');
+    if (_utmRaw) {
+      const _utmParsed = JSON.parse(_utmRaw);
+      if (_utmParsed.captured_at && (Date.now() - new Date(_utmParsed.captured_at).getTime()) < 30*24*60*60*1000) {
+        utm_data = _utmParsed;
+      }
+    }
+  } catch(_) {}
+
   try {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
@@ -22324,6 +22354,7 @@ async function doSelfRegister() {
         nome, cognome: cogn, email, password: pass,
         phone, nomeSocieta: societa, citta, piano,
         privacyAccepted: true, marketingConsent,
+        utm_data,
       }),
     });
 
@@ -23065,6 +23096,79 @@ async function doSaResetPassword() {
   }
 }
 
+async function saOpenUtmStats() {
+  const el = document.getElementById('saContent');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:32px;color:#94a3b8;text-align:center;">Carico statistiche UTM…</div>';
+
+  const _saUtmFrom = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0,10);
+  const _saUtmTo   = new Date().toISOString().slice(0,10);
+
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/admin/utm-stats?from=' + _saUtmFrom + '&to=' + _saUtmTo, {
+      headers: { 'X-SA-Secret': SA_PASS }
+    });
+    if (!resp.ok) { el.innerHTML = '<div style="padding:24px;color:#f87171;">Errore caricamento UTM stats.</div>'; return; }
+    const d = await resp.json();
+
+    const kpiStyle = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 20px;text-align:center;min-width:110px;';
+    const kpiVal   = 'font-size:2rem;font-weight:800;';
+    const kpiLbl   = 'font-size:.75rem;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.4px;';
+
+    const campaignRows = (d.by_campaign||[]).map(c =>
+      `<tr><td style="color:#e2e8f0;font-weight:600;">${escapeHtml(c.utm_campaign||'—')}</td><td style="color:#4ade80;font-weight:700;text-align:center;">${c.count}</td></tr>`
+    ).join('') || '<tr><td colspan="2" style="color:#64748b;padding:12px;text-align:center;">Nessuna campagna</td></tr>';
+
+    const contentRows = (d.by_content||[]).map(c =>
+      `<tr><td style="color:#e2e8f0;">${escapeHtml(c.utm_content||'—')}</td><td style="color:#60a5fa;font-weight:700;text-align:center;">${c.count}</td></tr>`
+    ).join('') || '<tr><td colspan="2" style="color:#64748b;padding:12px;text-align:center;">Nessuna creatività</td></tr>';
+
+    const regRows = (d.registrations||[]).map(r =>
+      `<tr>
+        <td style="color:#94a3b8;font-size:.78rem;">${r.registered_at ? new Date(r.registered_at).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'}</td>
+        <td style="color:#e2e8f0;font-size:.8rem;">${escapeHtml(r.email||'—')}</td>
+        <td style="color:#4ade80;font-size:.78rem;">${escapeHtml(r.utm_source||'—')}</td>
+        <td style="color:#fbbf24;font-size:.78rem;">${escapeHtml(r.utm_campaign||'—')}</td>
+        <td style="color:#60a5fa;font-size:.78rem;">${escapeHtml(r.utm_content||'—')}</td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" style="color:#64748b;padding:12px;text-align:center;">Nessuna registrazione nel periodo</td></tr>';
+
+    el.innerHTML = `
+      <div style="padding-bottom:10px;display:flex;align-items:center;gap:12px;">
+        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="renderSaPanel()">← Torna</button>
+        <span style="color:#94a3b8;font-size:.8rem;">Ultimi 30 giorni: ${_saUtmFrom} → ${_saUtmTo}</span>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+        <div style="${kpiStyle}"><div style="${kpiVal}">${d.total_registrations}</div><div style="${kpiLbl}">Registrazioni</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#4ade80;">${d.from_meta}</div><div style="${kpiLbl}">Da Meta Ads</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#94a3b8;">${d.from_organic}</div><div style="${kpiLbl}">Organici</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#fbbf24;">${(d.by_campaign||[]).length}</div><div style="${kpiLbl}">Campagne</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div>
+          <div class="sa-section-hd" style="margin-bottom:8px;"><span>📣 Per campagna</span></div>
+          <table class="sa-table"><thead><tr><th>Campagna</th><th style="text-align:center;">Reg.</th></tr></thead><tbody>${campaignRows}</tbody></table>
+        </div>
+        <div>
+          <div class="sa-section-hd" style="margin-bottom:8px;"><span>🎨 Per creatività (utm_content)</span></div>
+          <table class="sa-table"><thead><tr><th>Creatività</th><th style="text-align:center;">Reg.</th></tr></thead><tbody>${contentRows}</tbody></table>
+        </div>
+      </div>
+
+      <div class="sa-section-hd" style="margin-bottom:8px;"><span>📋 Ultime registrazioni Meta</span></div>
+      <div class="sa-table-wrap">
+        <table class="sa-table">
+          <thead><tr><th>Data</th><th>Email</th><th>Fonte</th><th>Campagna</th><th>Creatività</th></tr></thead>
+          <tbody>${regRows}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:#f87171;padding:24px;">Errore: ${escapeHtml(String(e))}<br><button class="sa-btn" onclick="renderSaPanel()" style="margin-top:12px;">← Torna</button></div>`;
+  }
+}
+
 function renderSaPanel() {
   try { _renderSaPanelInner(); } catch(e) {
     console.error('[renderSaPanel]', e);
@@ -23278,6 +23382,7 @@ function _renderSaPanelInner() {
       <span>🏢 Società — ${filteredSocs.length} ${_saFilter!=='tutti'||_saSearch?'filtrate':'totali'}</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <span id="saSyncAllBtn" style="display:none;"></span>
+        <button class="sa-btn" style="background:#1A7A4A;border-color:#147040;color:#fff;" onclick="saOpenUtmStats()">📊 Campagne UTM</button>
         <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()">🔄 Verifica</button>
         <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova</button>
       </div>
@@ -26617,6 +26722,7 @@ function tryRestoreSession() {
 
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
+  _captureUtm();
   // Widget password: occhio + barra forza + requisiti + match conferma
   initPwField('rPass',      null);          // registrazione nuova società (no confirm)
   initPwField('srPass',     'srPass2');     // registrazione genitore con codice
