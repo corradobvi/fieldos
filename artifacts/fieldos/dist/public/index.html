@@ -3855,6 +3855,7 @@ let gcCurrentTab = 'campionato';
 let _gcCampSquadre = [];
 let _gcCampGiornateUI = [];
 let _gcTorneoSquadre = [];
+let _gcTorneoSquadreMie = [];
 let _gcTorneoFasiUI = [];
 let _gcTorneoTipo = 1;
 let _gcTorneoGironiQUI = [];
@@ -9970,24 +9971,28 @@ function removePlayerPrevSeason(playerId, idx) {
   toast('🗑 Stagione rimossa');
 }
 
+function _getMieSquadre(t) {
+  return (t.squadreMieFlag && t.squadreMieFlag.length) ? t.squadreMieFlag : [polisName(t.leva)];
+}
+
 // ── Statistiche tornei (solo allenatore) ─────────────────────────
 function wasTorneoPlayer(torneo, playerId){
   return (torneo.fasi||[]).some(f=>(f.partite||[]).some(m=>(m.stats||[]).some(s=>s.playerId===playerId&&((s.gol||0)+(s.assist||0)>0))));
 }
 function computeTorneoRisultato(t){
-  const polis = polisName(t.leva);
-  const partiteNostre = (t.fasi||[]).flatMap(f=>f.partite||[]).filter(m=>m.played&&(m.casa===polis||m.ospite===polis));
+  const mieSquadre = _getMieSquadre(t);
+  const partiteNostre = (t.fasi||[]).flatMap(f=>f.partite||[]).filter(m=>m.played&&(mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)));
   if (!partiteNostre.length) return {badge:'<span style="color:var(--text3);">—</span>',tipo:'nc'};
   // Identifica la fase più avanzata raggiunta
   const fasiNomi = (t.fasi||[]).map(f=>(f.nome||'').toLowerCase());
   const hasFinale = fasiNomi.some(n=>n.includes('final'));
   const hasSemi   = fasiNomi.some(n=>n.includes('semi'));
   const hasQuarti = fasiNomi.some(n=>n.includes('quart'));
-  // Ultima partita giocata dal nostro team
+  // Ultima partita giocata dal nostro team (usa prima squadra in mieSquadre per direzione punteggio)
   const ultima = partiteNostre.reduce((best,m)=>(!best||(m.data||'')>=(best.data||''))?m:best, null);
   if (hasFinale && ultima) {
-    const gF = ultima.casa===polis?ultima.golCasa:ultima.golOspiti;
-    const gC = ultima.casa===polis?ultima.golOspiti:ultima.golCasa;
+    const gF = mieSquadre.includes(ultima.casa)?ultima.golCasa:ultima.golOspiti;
+    const gC = mieSquadre.includes(ultima.casa)?ultima.golOspiti:ultima.golCasa;
     if (gF!=null&&gC!=null) {
       if (gF>gC) return {badge:'<span style="font-size:.95rem;">🏆 Vittoria</span>',tipo:'vittoria'};
       return {badge:'<span style="font-size:.95rem;">🥈 2° posto</span>',tipo:'secondo'};
@@ -9998,7 +10003,7 @@ function computeTorneoRisultato(t){
   // Solo gironi: conta W/D/L
   let v=0,p=0,s=0;
   partiteNostre.forEach(m=>{
-    const gF=m.casa===polis?m.golCasa:m.golOspiti, gC=m.casa===polis?m.golOspiti:m.golCasa;
+    const gF=mieSquadre.includes(m.casa)?m.golCasa:m.golOspiti, gC=mieSquadre.includes(m.casa)?m.golOspiti:m.golCasa;
     if(gF!=null&&gC!=null){if(gF>gC)v++;else if(gF===gC)p++;else s++;}
   });
   return {badge:`<span style="font-size:.78rem;">${v}V ${p}P ${s}S</span>`,tipo:'gironi'};
@@ -11936,9 +11941,11 @@ function panoNextMatchForLeva(lv) {
   });
   // Tornei
   (tornei||[]).filter(t => t.leva === lv).forEach(t => {
-    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
-      const avv = (m.casa===polis ? m.ospite : m.casa) || '—';
-      cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
+    const mieSquadre = _getMieSquadre(t);
+    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m => {
+      const mia = mieSquadre.includes(m.casa) ? m.casa : m.ospite;
+      const avv = (mieSquadre.includes(m.casa) ? m.ospite : m.casa) || '—';
+      cands.push({ date: m.data, start: m.orario||'', title: mia + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
     }));
   });
   // Fallback a eventi calendario se nessun dato strutturato
@@ -11986,8 +11993,9 @@ function panoAllNextMatchesAcrossLeve(leveArr) {
       results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||'', giornata: m.giornata, visibilitaSubito: !!m.visibilitaSubito });
     });
     (tornei||[]).filter(t => t.leva === lv).forEach(t => {
-      (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
-        const isHome = m.casa === polis;
+      const mieSquadre = _getMieSquadre(t);
+      (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m => {
+        const isHome = mieSquadre.includes(m.casa);
         results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome, visibilitaSubito: !!(m.visibilitaSubito || t.visibilitaSubito) });
       }));
     });
@@ -12030,7 +12038,8 @@ function panoLastResultForLeva(lv) {
     results.push({ tipo:'campionato', data:m.data, casa:m.casa, ospite:m.ospite, golCasa:m.golCasa, golOspiti:m.golOspiti, giornata:m.giornata });
   });
   tornei.filter(t => t.leva === lv).forEach(t => {
-    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => m.played && (m.casa === polis || m.ospite === polis)).forEach(m => {
+    const mieSquadre = _getMieSquadre(t);
+    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => m.played && (mieSquadre.includes(m.casa) || mieSquadre.includes(m.ospite))).forEach(m => {
       results.push({ tipo:'torneo', torneoNome:t.nome, data:m.data, casa:m.casa, ospite:m.ospite, golCasa:m.golCasa, golOspiti:m.golOspiti });
     }));
   });
@@ -18245,22 +18254,22 @@ function _gcFaseStanding(t, f) {
   const opts = {spareggio: t.spareggio||['scontro_diretto','dr_generale','gf_generale']};
   const standings = computeStandings(f.squadre||[], f.partite||[], opts);
   if (!standings.length) return '';
-  const polis = polisName(t.leva);
-  const rows = standings.map((sq,i)=>{const ip=sq.nome===polis;const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${sq.gf}</td><td>${sq.gs}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('');
+  const mieSquadre = _getMieSquadre(t);
+  const rows = standings.map((sq,i)=>{const ip=mieSquadre.includes(sq.nome);const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${sq.gf}</td><td>${sq.gs}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('');
   return `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>DR</th><th>Pt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function _gcFaseMatches(t, f) {
-  const polis = polisName(t.leva);
+  const mieSquadre = _getMieSquadre(t);
   const canEdit = canEditPt(t.leva);
   const sorted = [...(f.partite||[])].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const polisHtml = sorted.filter(m=>m.casa===polis||m.ospite===polis).map(m=>{
+  const polisHtml = sorted.filter(m=>mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)).map(m=>{
     const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
     const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
-  const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>m.casa!==polis&&m.ospite!==polis), t.leva, t.id, f.id);
+  const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
   return polisHtml + altriHtml + addBtn;
 }
@@ -18299,7 +18308,7 @@ function _gcRenderTorneoTipo2(t) {
 
 function _gcRenderTorneoTipo3(t) {
   const canEdit = canEditPt(t.leva);
-  const polis = polisName(t.leva);
+  const mieSquadre = _getMieSquadre(t);
   const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket');
   const fBracket = (t.fasi||[]).find(f=>f.tipo==='bracket');
   const gHtml = fGironi.length ? fGironi.map(f=>`<div class="fase-sep">${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone configurato.</div>';
@@ -18312,7 +18321,7 @@ function _gcRenderTorneoTipo3(t) {
       const mHtml = rounds[r].map(m => {
         const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
         const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-        const ip=m.casa===polis||m.ospite===polis;
+        const ip=mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite);
         return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div><div class="mc-actions">${rb}</div></div>`;
       }).join('');
       return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
@@ -18701,6 +18710,13 @@ function openGcTorneoEdit(id) {
   document.getElementById('gcTorneoDataF').value = t?.dataFine||today;
   const leva = levSel.value;
   _gcTorneoSquadre = t?.squadrePartecipanti ? [...t.squadrePartecipanti] : [polisName(leva)];
+  // Inizializza mia squadra: da dati salvati oppure pre-seleziona polisName per tornei nuovi/legacy
+  if (t?.squadreMieFlag && t.squadreMieFlag.length) {
+    _gcTorneoSquadreMie = [...t.squadreMieFlag];
+  } else {
+    const defaultPolis = polisName(leva);
+    _gcTorneoSquadreMie = _gcTorneoSquadre.includes(defaultPolis) ? [defaultPolis] : [];
+  }
   gcTorneoRenderSquadre();
   // Tipo
   _gcTorneoTipo = t?.tipo || 1;
@@ -18747,9 +18763,18 @@ function gcTorneoRenderSquadre() {
   const el = document.getElementById('gcTorneoSquadreList'); if(!el) return;
   const polis = polisName(document.getElementById('gcTorneoLeva').value);
   el.innerHTML = _gcTorneoSquadre.map((s,i)=>{
-    const ip=s===polis;
-    return `<span style="background:${ip?'var(--cl)':'var(--bg)'};color:${ip?'var(--cp)':'var(--text)'};padding:3px 9px;border-radius:12px;font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(s)}${!ip?`<span onclick="gcTorneoRemoveSquadra(${i})" style="cursor:pointer;opacity:.7;">✕</span>`:''}</span>`;
+    const isMia = _gcTorneoSquadreMie.includes(s);
+    const isPolis = s === polis;
+    const starChk = `<label style="display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:.68rem;color:${isMia?'var(--cp)':'var(--text3)'};margin-left:1px;" title="Squadra mia (⭐)"><input type="checkbox" style="width:11px;height:11px;accent-color:var(--cp);cursor:pointer;" ${isMia?'checked':''} onchange="gcTorneoToggleMia(${i},this.checked)">⭐</label>`;
+    const rmBtn = !isPolis ? `<span onclick="gcTorneoRemoveSquadra(${i})" style="cursor:pointer;opacity:.6;font-size:.7rem;margin-left:1px;">✕</span>` : '';
+    return `<span style="background:${isMia?'var(--cl)':'var(--bg)'};color:${isMia?'var(--cp)':'var(--text)'};padding:3px 9px;border-radius:12px;font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(s)}${starChk}${rmBtn}</span>`;
   }).join('');
+}
+function gcTorneoToggleMia(i, checked) {
+  const sq = _gcTorneoSquadre[i];
+  if (checked) { if (!_gcTorneoSquadreMie.includes(sq)) _gcTorneoSquadreMie.push(sq); }
+  else { _gcTorneoSquadreMie = _gcTorneoSquadreMie.filter(s => s !== sq); }
+  gcTorneoRenderSquadre();
 }
 function gcTorneoAddSquadra() {
   const v = document.getElementById('gcTorneoNewSquadra').value.trim(); if(!v) return;
@@ -18763,6 +18788,7 @@ function gcTorneoRemoveSquadra(i) {
   if (_gcTorneoSquadre[i]===polis) return;
   const rem = _gcTorneoSquadre[i];
   _gcTorneoSquadre.splice(i,1);
+  _gcTorneoSquadreMie = _gcTorneoSquadreMie.filter(s => s !== rem);
   [_gcTorneoFasiUI,_gcTorneoGironiQUI,_gcTorneoGironiFUI,_gcTorneoGironiUI].forEach(arr=>arr.forEach(g=>{if(Array.isArray(g.squadre))g.squadre=g.squadre.filter(s=>s!==rem);}));
   gcTorneoRenderSquadre();
   gcTorneoRenderFasi(); gcTorneoRenderGironi2Q(); gcTorneoRenderGironi2F(); gcTorneoRenderGironi3();
@@ -18888,6 +18914,7 @@ function saveGcTorneo() {
       t.nome=nome; t.leva=leva; t.luogo=luogo; t.dataInizio=di; t.dataFine=df;
       t.tipo=tipo; t.spareggio=spareggio;
       t.squadrePartecipanti = [..._gcTorneoSquadre];
+      t.squadreMieFlag = [..._gcTorneoSquadreMie];
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
@@ -18897,7 +18924,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[]};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie]};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
@@ -18951,13 +18978,15 @@ function getPtVirtualEvents(dateStr) {
           }
         }
       }
-      (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m=>{
+      const mieSquadre = _getMieSquadre(t);
+      (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m=>{
         if (family) {
           const fase = getFasePartitaTorneo(m, t, lv);
           if (fase === 'none') return;
           if (fase === 'fase1') { out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:'🏆 Partita torneo',color:'#e03055',priority:3}); return; }
         }
-        const avv=m.casa===polis?m.ospite:m.casa;
+        const miaCasa = mieSquadre.includes(m.casa);
+        const avv=miaCasa?m.ospite:m.casa;
         const sc=m.played?` ${m.golCasa}–${m.golOspiti}`:'';
         out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:`🏆 ${t.nome}: vs ${avv}${sc}`,color:'#e03055',priority:3});
       }));

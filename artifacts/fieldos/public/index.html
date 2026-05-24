@@ -1121,10 +1121,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   padding:0 3px;line-height:1;border:2px solid var(--white);
 }
 /* Bell icon (topbar, mister-only) */
-.tb-bell-btn{display:none;position:relative;width:38px;height:38px;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;font-size:1.25rem;border-radius:50%;-webkit-tap-highlight-color:transparent;padding:0;flex-shrink:0;}
+.tb-bell-btn{display:flex;position:relative;width:38px;height:38px;background:none;border:none;cursor:pointer;align-items:center;justify-content:center;font-size:1.25rem;border-radius:50%;-webkit-tap-highlight-color:transparent;padding:0;flex-shrink:0;}
 .tb-bell-btn:active{background:var(--cl);}
-.tb-bell-dot{position:absolute;top:5px;right:5px;width:9px;height:9px;background:var(--red);border-radius:50%;border:2px solid var(--white);display:none;}
-.tb-bell-btn.on{display:flex;}
+.tb-bell-dot{display:none;position:absolute;top:3px;right:2px;min-width:16px;height:16px;padding:0 3px;background:var(--red);border-radius:999px;border:2px solid var(--white);font-size:9px;font-weight:700;color:#fff;line-height:12px;text-align:center;box-sizing:border-box;}
 /* Giocatori sub-tab nav (mister mobile) */
 .gioc-subnav{display:none;gap:0;margin:-12px -16px 14px;border-bottom:2px solid var(--border);background:var(--white);overflow:hidden;}
 .gioc-subnav .gsnb{flex:1;border:none;background:none;padding:11px 4px 10px;font-size:.78rem;font-weight:700;color:var(--text3);cursor:pointer;letter-spacing:.2px;transition:color .12s;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;-webkit-tap-highlight-color:transparent;}
@@ -1545,6 +1544,84 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-badge-conv{background:#dcfce7;color:#166534;}
 .cgm-badge-noconv{background:var(--border);color:var(--text2);}
 .cgm-badge-wait{background:#fef9c3;color:#854d0e;}
+/* ── Allenamenti calendar view ─────────── */
+.all-cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.all-cal-mlbl{font-weight:800;font-size:.95rem;min-width:130px;text-align:center;color:var(--text1);}
+.all-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:24px;}
+.all-cal-head{text-align:center;font-size:.63rem;font-weight:700;color:var(--text3);padding:3px 0 6px;text-transform:uppercase;}
+.all-cal-cell{min-height:72px;border-radius:8px;padding:5px 4px;border:1.5px solid var(--border);background:var(--white);display:flex;flex-direction:column;gap:2px;}
+.all-cal-cell.ac-today{border-color:var(--cp) !important;border-width:2px;}
+.all-cal-cell.ac-other{opacity:.22;background:var(--bg);pointer-events:none;}
+.all-cal-dn{font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:1px;}
+.all-cal-cell.ac-today .all-cal-dn{color:var(--cp);}
+.all-cal-slot{border-radius:5px;padding:3px 5px;font-size:.6rem;cursor:pointer;border:1px solid transparent;transition:background .1s;margin-bottom:1px;-webkit-tap-highlight-color:transparent;line-height:1.3;}
+.all-cal-slot.ac-filled{background:#d1fae5;border-color:#6ee7b7;color:#065f46;}
+.all-cal-slot.ac-filled:hover{background:#a7f3d0;}
+.all-cal-slot.ac-empty{background:var(--bg);border-color:var(--border);color:var(--text3);border-style:dashed;}
+.all-cal-slot.ac-empty:hover{background:var(--cl);border-color:var(--cp);color:var(--cp);}
+.all-cal-viewsel{display:flex;gap:4px;margin-bottom:12px;}
+.all-cal-viewsel-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:7px;padding:5px 14px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;}
+.all-cal-viewsel-btn.ac-active{background:var(--cp);color:#fff;border-color:var(--cp);}
+.all-cal-week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:24px;}
+.all-cal-week-col{border-radius:8px;border:1.5px solid var(--border);background:var(--white);padding:5px 4px;min-height:90px;display:flex;flex-direction:column;gap:2px;}
+.all-cal-week-col.ac-today{border-color:var(--cp) !important;border-width:2px;}
+.all-cal-week-head{text-align:center;font-size:.63rem;font-weight:700;color:var(--text2);padding:2px 0 5px;text-transform:uppercase;}
+.all-cal-week-head.ac-today{color:var(--cp);}
+.all-cal-week-agenda{display:none;}
+.all-cal-week-agenda-day{border-radius:8px;border:1.5px solid var(--border);background:var(--white);padding:8px 10px;margin-bottom:6px;}
+.all-cal-week-agenda-day.ac-today{border-color:var(--cp);}
+.all-cal-week-agenda-head{font-size:.78rem;font-weight:800;margin-bottom:5px;color:var(--text1);}
+.all-cal-week-agenda-day.ac-today .all-cal-week-agenda-head{color:var(--cp);}
+.all-cal-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+.all-cal-list-card{border-radius:10px;border:1.5px solid var(--border);background:var(--white);padding:10px 14px;cursor:pointer;transition:box-shadow .1s;}
+.all-cal-list-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+@media(max-width:600px){.all-cal-week-grid{display:none;}.all-cal-week-agenda{display:block;}}
+.all-cal-cell.ac-past,.all-cal-week-col.ac-past{background:#f4f4f4;}
+.all-cal-cell.ac-past .all-cal-dn,.all-cal-week-col.ac-past .all-cal-week-head{opacity:.52;}
+.all-cal-cell.ac-past .all-cal-slot,.all-cal-week-col.ac-past .all-cal-slot{opacity:.78;}
+.all-cal-cell.ac-weekend,.all-cal-week-col.ac-weekend{background:#fafaf6;}
+.all-cal-cell.ac-today{background:#f0fdf4 !important;}
+.all-cal-week-col.ac-today{background:#f0fdf4 !important;}
+.all-cal-cell.ac-today .all-cal-dn{color:#1a7a4a;font-weight:800;}
+.all-cal-slot-time{font-size:.62rem;font-weight:600;letter-spacing:.01em;margin-bottom:1px;}
+.all-cal-slot-title{font-size:.64rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:1px;}
+.all-cal-slot-obj{font-size:.58rem;color:#047857;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-style:italic;}
+.all-cal-slot-meta{font-size:.57rem;color:#065f46;display:flex;gap:3px;align-items:center;flex-wrap:wrap;line-height:1.4;}
+.all-cal-slot-empty-lbl{font-size:.59rem;}
+.all-cal-slot.ac-filled{padding:4px 6px;}
+.all-cal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.all-cal-stat{border-radius:10px;border:.5px solid var(--border);background:var(--bg);padding:12px 14px;}
+.all-cal-stat-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--text3);margin-bottom:4px;letter-spacing:.04em;}
+.all-cal-stat-val{font-size:1.3rem;font-weight:500;color:var(--text1);}
+@media(max-width:500px){.all-cal-stats{grid-template-columns:1fr;}}
+.all-cal-filters{margin-bottom:14px;}
+.all-cal-filters-toggle{display:none;align-items:center;gap:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:8px;padding:5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;margin-bottom:8px;}
+.all-cal-filters-toggle.ac-active{border-color:var(--cp);color:var(--cp);}
+.all-cal-filters-badge{background:var(--cp);color:#fff;border-radius:10px;padding:1px 6px;font-size:.65rem;font-weight:700;}
+.all-cal-filters-inner{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+.all-cal-fgroup{display:flex;flex-direction:column;gap:5px;}
+.all-cal-fgroup-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.05em;}
+.all-cal-fgroup-chips{display:flex;gap:4px;flex-wrap:wrap;}
+.all-cal-fchip{border:1.5px solid var(--border);background:var(--white);color:var(--text2);border-radius:20px;padding:4px 10px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.all-cal-fchip.ac-active{background:var(--cp);color:#fff;border-color:var(--cp);}
+.all-cal-fchip:hover:not(.ac-active){border-color:var(--cp);color:var(--cp);}
+.all-bozze-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.all-bozze-card{border-radius:12px;border:1.5px dashed var(--border2);background:var(--white);padding:14px;display:flex;flex-direction:column;transition:border .15s;}
+.all-bozze-card:hover{border-style:solid;border-color:var(--cp);}
+.all-bozze-badge{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;}
+.all-bozze-menu-btn{border:none;background:none;cursor:pointer;font-size:1.1rem;color:var(--text2);padding:2px 6px;border-radius:4px;line-height:1;transition:background .1s;}
+.all-bozze-menu-btn:hover{background:var(--bg);}
+.all-bozze-menu{position:absolute;right:0;top:100%;background:var(--white);border:1px solid var(--border2);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;min-width:140px;}
+.all-bozze-menu-item{padding:8px 14px;font-size:.82rem;cursor:pointer;white-space:nowrap;}
+.all-bozze-menu-item:hover{background:var(--bg);}
+.aggancia-modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9100;display:flex;align-items:center;justify-content:center;}
+.aggancia-modal-ov .modal{max-width:560px;width:94vw;}
+.aggancia-slot-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-top:8px;}
+.aggancia-slot-card{border-radius:8px;border:1.5px solid var(--border);background:var(--bg);padding:10px 14px;cursor:pointer;transition:all .1s;}
+.aggancia-slot-card:hover{border-color:var(--cp);background:var(--cl);}
+@media(max-width:900px){.all-bozze-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.all-bozze-grid{grid-template-columns:1fr;}}
+@media(max-width:768px){.all-cal-filters-toggle{display:inline-flex;}.all-cal-filters-panel{display:none;}.all-cal-filters-panel.open{display:block;}.all-cal-filters-inner{flex-direction:column;gap:12px;}}
 
 /* ═══════════════════════════════════════════
    PWA — SPLASH + INSTALL BANNER
@@ -1724,6 +1801,35 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .users-desktop-table{display:none!important;}
   .users-mob-list{display:block;}
 }
+
+/* ── Demo WA banner ── */
+.demo-wa-banner{position:sticky;top:0;width:100%;background:var(--cp);color:#fff;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+.demo-wa-banner__inner{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;}
+.demo-wa-banner__icon{font-size:18px;}
+.demo-wa-banner__text{font-weight:600;font-size:14px;}
+.demo-wa-banner__cta{background:var(--ca);color:#1a1a1a;padding:6px 14px;border-radius:999px;font-weight:700;text-decoration:none;font-size:13px;transition:transform .15s ease;}
+.demo-wa-banner__cta:hover{transform:translateY(-1px);}
+@media(max-width:480px){
+  .demo-wa-banner__text{font-size:13px;}
+  .demo-wa-banner__cta{padding:5px 12px;font-size:12px;}
+}
+/* ─── Partite Genitore page ─── */
+.pgf-chips{display:flex;gap:8px;padding:12px 14px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.pgf-chip{flex-shrink:0;padding:6px 16px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.pgf-chip.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.pgf-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:10px 14px 4px;}
+.pgf-card{background:var(--card);border-radius:10px;margin:0 12px 10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;gap:12px;align-items:flex-start;}
+.pgf-card-date{flex-shrink:0;text-align:center;min-width:38px;}
+.pgf-card-day{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1;color:var(--cp);}
+.pgf-card-dow{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-top:2px;}
+.pgf-card-body{flex:1;min-width:0;}
+.pgf-card-title{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.pgf-card-sub{font-size:.76rem;color:var(--text2);margin-top:3px;}
+.pgf-card-badge{display:inline-block;font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:99px;margin-top:5px;}
+.pgf-empty{text-align:center;padding:40px 20px;color:var(--text2);}
+.pgf-empty-ic{font-size:2.2rem;margin-bottom:8px;}
+.pgf-empty-txt{font-weight:700;color:var(--text);margin-bottom:4px;}
+.pgf-empty-sub{font-size:.82rem;}
 </style>
 </head>
 <body>
@@ -2025,7 +2131,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
     <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;">(min. 8 car.)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
-    <div class="fg"><label class="fl">📱 WhatsApp *</label><input class="fi" type="tel" id="rPhone" placeholder="+39 333 000 0000" autocomplete="tel"></div>
+    <div class="fg">
+      <label class="fl">📱 Cellulare (per WhatsApp) *</label>
+      <div class="fi-wrap" style="height:40px;">
+        <span style="padding:0 10px;font-size:.88rem;color:var(--text2);font-weight:700;white-space:nowrap;border-right:1.5px solid var(--border);display:flex;align-items:center;flex-shrink:0;">+39</span>
+        <input class="fi" type="tel" id="rPhoneNum" placeholder="3471234567" maxlength="10" pattern="[0-9]{9,10}" autocomplete="tel" inputmode="numeric" style="border-radius:0 9px 9px 0!important;border:none!important;box-shadow:none!important;background:transparent;flex:1;min-width:0;">
+      </div>
+      <div style="font-size:.77rem;color:var(--text2);margin-top:4px;">Riceverai gli aggiornamenti della tua prova via WhatsApp</div>
+    </div>
     <div class="rf-row2">
       <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
       <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
@@ -2587,6 +2700,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </nav>
         <div class="sec-h"><div class="sec-t">📋 Convocazioni</div><div id="convActions"></div></div>
         <div id="convContent"></div>
+      </div>
+
+      <!-- PARTITE GENITORE -->
+      <div class="page" id="pg-partite-gen">
+        <div id="pgPartiteGenContent"></div>
       </div>
 
       <!-- PRESENZE -->
@@ -3737,6 +3855,7 @@ let gcCurrentTab = 'campionato';
 let _gcCampSquadre = [];
 let _gcCampGiornateUI = [];
 let _gcTorneoSquadre = [];
+let _gcTorneoSquadreMie = [];
 let _gcTorneoFasiUI = [];
 let _gcTorneoTipo = 1;
 let _gcTorneoGironiQUI = [];
@@ -3745,6 +3864,8 @@ let _gcTorneoGironiUI = [];
 let _gcTorneiEspansi = new Set();
 let _gcShowArchiviati = false;
 let _ptMostraArchiviati = false;
+let _importPdfStep = 1;
+let _importPdfData = null;
 const GC_FASE_NAMES = ['Fase a gironi','Platino','Oro','Argento','Bronzo','Semifinale','Finale','Coppa'];
 const GC_SPAREGGIO_OPTIONS = [
   {k:'scontro_diretto',label:'Scontro diretto'},
@@ -3825,6 +3946,7 @@ let eventTypes = [
 let nextEventTypeId = 100;
 let events = [];
 let nextEventId = 1;
+let _calLeveMap = {}; // leva nome→id da GET /api/v2/leve, per chiamate API
 let campi = [];
 let nextCampoId = 1;
 let convocazioni = [];
@@ -4598,6 +4720,7 @@ async function doLogin() {
       currentSocietyMeta = {
         piano:          data.societyPiano            || null,
         billingMode:    data.societyBillingMode      || null,
+        isDemo:         data.societyIsDemo           ?? null,
         logoUrl:        data.societyLogoUrl          || null,
         colorePrimario: data.societyColorePrimario   || null,
         coloreAccento:  data.societyColoreAccento    || null,
@@ -4684,6 +4807,8 @@ async function doLogin() {
 function logout() {
   localStorage.removeItem('mv_session');
   me = null;
+  const _wb = document.getElementById('demo-wa-banner');
+  if (_wb) _wb.remove();
   document.getElementById('app').classList.remove('on');
   const ls = document.getElementById('loginScreen');
   ls.style.display = 'flex';
@@ -4737,6 +4862,36 @@ function migraChatAdmin(user) {
   if (changed) {
     window.__fieldosSaveState && window.__fieldosSaveState();
   }
+}
+
+function renderDemoWaBanner() {
+  const existing = document.getElementById('demo-wa-banner');
+  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true;
+  const shouldShow = !!(me && isAccountOwner() && isDemo);
+
+  if (!shouldShow) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return; // già presente, non duplicare
+
+  const nome     = (me.nome || me.email || '').trim();
+  const societa  = (currentSocietyMeta && currentSocietyMeta.nomeSocieta) || '';
+  const waMsg    = encodeURIComponent('Ciao Vivi, sono ' + nome + (societa ? ' di ' + societa : ''));
+  const waUrl    = 'https://wa.me/393793827922?text=' + waMsg;
+
+  const banner = document.createElement('div');
+  banner.id = 'demo-wa-banner';
+  banner.className = 'demo-wa-banner';
+  banner.setAttribute('role', 'region');
+  banner.setAttribute('aria-label', 'Supporto WhatsApp');
+  banner.innerHTML =
+    '<div class="demo-wa-banner__inner">' +
+      '<span class="demo-wa-banner__icon">📱</span>' +
+      '<span class="demo-wa-banner__text">Hai bisogno di aiuto? Scrivici su WhatsApp</span>' +
+      '<a class="demo-wa-banner__cta" href="' + waUrl + '" target="_blank" rel="noopener">Scrivimi</a>' +
+    '</div>';
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 function bootApp(user) {
@@ -4804,11 +4959,13 @@ function bootApp(user) {
     const _bootSoc = saSocieties.find(x => x.id === currentSocietaId);
     checkPianoOnBoot(_bootSoc);
     _syncSubscriptionStatus();
+    renderDemoWaBanner();
     // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
     if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+    setTimeout(function() { _loadCalEvents(); }, 400);
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
@@ -4836,17 +4993,14 @@ function buildMobNav(role) {
   const nav = document.getElementById('mobNav');
   if (!nav) return;
   nav.innerHTML = '';
-  // Bell icon: show only for mister roles (Avvisi moved to bell in header)
-  const bell = document.getElementById('tbBell');
   const isMister = role === 'allenatore' || role === 'mister_admin';
   const isAdminMister = role === 'admin' && isAdminMisterForLeva(currentLeva);
-  if (bell) bell.classList.toggle('on', isMister || isAdminMister);
   let items;
   if (role === 'genitore' || role === 'nonno') {
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
       {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'🔔', lb:'Avvisi', badge:'mn-comm'},
+      {id:'partite-gen',  ic:'⚽', lb:'Partite'},
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
@@ -4893,9 +5047,16 @@ function refreshMobBadges() {
   const mnComm = document.getElementById('mn-comm');
   if (mnChat) { mnChat.textContent = chatN > 99 ? '99+' : chatN||''; mnChat.style.display = chatN>0?'':'none'; }
   if (mnComm) { mnComm.textContent = commN > 99 ? '99+' : commN||''; mnComm.style.display = commN>0?'':'none'; }
-  // Bell dot in topbar (mister only)
+  // Bell badge in topbar — tutti i ruoli
   const bellDot = document.getElementById('tbBellDot');
-  if (bellDot) bellDot.style.display = commN > 0 ? '' : 'none';
+  if (bellDot) {
+    if (commN > 0) {
+      bellDot.textContent = commN > 99 ? '99+' : String(commN);
+      bellDot.style.display = '';
+    } else {
+      bellDot.style.display = 'none';
+    }
+  }
 }
 
 function buildSidebar(role) {
@@ -4987,6 +5148,7 @@ function goTo(pgId) {
     if (pgId === 'statistiche')  renderStats();
   }
   if (pgId === 'convocazioni') renderConvocazioni();
+  if (pgId === 'partite-gen') renderPartiteGenitore();
   if (pgId === 'giocatori') renderGiocatori();
   // Gioc-subnav: show for mister on presenze/convocazioni/rosa
   const _gsnPages = ['presenze','convocazioni','rosa'];
@@ -7298,6 +7460,214 @@ function upcomingPartiteEvents(leveFilter) {
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
 }
 
+// All competitive events (past + future) for given leve — used by Partite Genitore tab.
+// Each event includes _sourceType, _matchRef, _leva, _isHome, _golCasa, _golOspiti for detail rendering.
+function getAllCompetitiveEventsForLeve(leveFilter) {
+  const fromEvents = events
+    .filter(e => (e.type === 'partita' || e.type === 'torneo' || e.type === 'amichevole'))
+    .filter(e => !e.recur || e.recur === 'none')
+    .filter(e => {
+      if (!leveFilter || !leveFilter.length) return true;
+      if (!e.leve || !e.leve.length) return false;
+      return e.leve.some(l => leveFilter.includes(l));
+    })
+    .map(e => ({ ...e, _sourceType: 'calendar', _leva: (e.leve||[])[0]||'' }));
+  const fromTornei = (Array.isArray(tornei) ? tornei : [])
+    .filter(t => {
+      if (!leveFilter || !leveFilter.length) return true;
+      return leveFilter.includes(t.leva);
+    })
+    .map(t => ({
+      id: t.id, type: 'torneo', title: '🏆 ' + t.nome,
+      date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '',
+      _sourceType: 'torneo', _matchRef: t, _leva: t.leva, _isHome: false,
+    }));
+  const fromCampionato = [];
+  Object.entries(campionato || {}).forEach(([lv, camp]) => {
+    if (!camp?.partite) return;
+    if (leveFilter && leveFilter.length && !leveFilter.includes(lv)) return;
+    const polis = _campPolis(lv);
+    camp.partite
+      .filter(m => m.data && (m.casa === polis || m.ospite === polis))
+      .forEach(m => {
+        const isHome = m.casa === polis;
+        const avv = (isHome ? m.ospite : m.casa) || '—';
+        fromCampionato.push({
+          id: `camp_${lv}_${m.id}`, type: 'partita',
+          title: `⚽ ${polis} vs ${avv}`,
+          date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '',
+          played: !!m.played,
+          _sourceType: 'campionato', _matchRef: m, _leva: lv, _isHome: isHome,
+          _golCasa: m.golCasa, _golOspiti: m.golOspiti,
+        });
+      });
+  });
+  const fromAmichevoli = (Array.isArray(amichevoli) ? amichevoli : [])
+    .filter(m => {
+      if (!leveFilter || !leveFilter.length) return true;
+      return leveFilter.includes(m.leva);
+    })
+    .map(m => {
+      const polis = polisName(m.leva);
+      const isH = (m.tipo||'casa') === 'casa';
+      return {
+        id: 'amich_' + m.id, type: 'partita',
+        title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`,
+        date: m.data || '', leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '',
+        played: !!m.played,
+        _sourceType: 'amichevole', _matchRef: m, _leva: m.leva, _isHome: isH,
+        _golCasa: m.golCasa, _golOspiti: m.golOspiti,
+      };
+    });
+  return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
+    .filter(e => e.date)
+    .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
+}
+
+// Navigate to pg-partite showing the specific event detail — used by Partite Genitore card tap.
+// For tornei: pre-expands the specific torneo (by ID) and collapses others.
+// For amichevoli/campionato: navigates to the correct tab; the match card IS the detail.
+// evId: raw event ID — torneo string ('t1'), numeric match ID, etc.
+function _pgfOpenEvent(sourceType, leva, evId) {
+  if (leva) switchLeva(leva);
+  if (sourceType === 'torneo') {
+    // Pre-expand this torneo only; collapse all others so it's in focus
+    _gcTorneiEspansi.clear();
+    if (evId != null && evId !== '') _gcTorneiEspansi.add('pt-' + evId);
+    ptCurrentTab = 'tornei';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'tornei'); });
+  } else if (sourceType === 'amichevole') {
+    ptCurrentTab = 'amichevoli';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'amichevoli'); });
+  } else if (sourceType === 'campionato') {
+    ptCurrentTab = 'campionato';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'campionato'); });
+  }
+  goTo(sourceType === 'calendar' ? 'calendario' : 'partite');
+}
+
+let _pgfChip = 'prossime';
+function _pgfSetChip(chip) {
+  _pgfChip = chip;
+  renderPartiteGenitore();
+}
+
+function renderPartiteGenitore() {
+  const c = document.getElementById('pgPartiteGenContent');
+  if (!c) return;
+  const myPlayers = getMyPlayers();
+  const leveFilter = myPlayers.map(p => p.leva).filter(Boolean);
+  // Respect selected figlio for multi-child families
+  const _scKey = 'gen_sel_' + (me ? me.id : 0);
+  let selectedPlayer = myPlayers[0] || null;
+  if (myPlayers.length >= 2) {
+    const _savedId = localStorage.getItem(_scKey);
+    if (_savedId) { const _sf = myPlayers.find(p => String(p.id) === _savedId); if (_sf) selectedPlayer = _sf; }
+  }
+  const today = ymd(new Date());
+  const allEvs = getAllCompetitiveEventsForLeve(leveFilter.length ? leveFilter : null);
+  const prossime = allEvs.filter(e => e.date >= today);
+  const concluse = allEvs.filter(e => e.date < today).reverse();
+  const _DOW = ['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+
+  function evCard(ev, isPast) {
+    const d = parseYmd(ev.date);
+    const dayNum = d.getDate() + '/' + (d.getMonth()+1);
+    const dow = _DOW[d.getDay()];
+    const src = ev._sourceType || 'calendar';
+    const tipoIcon = src === 'torneo' ? '🏆' : src === 'amichevole' ? '🤝' : '⚽';
+    const tipoLabel = src === 'torneo' ? 'Torneo' : src === 'amichevole' ? 'Amichevole' : src === 'campionato' ? 'Campionato' : (ev.type === 'torneo' ? 'Torneo' : 'Partita');
+    const ora = ev.start ? ' · ' + ev.start : '';
+    const luogo = ev.luogo ? ' · ' + escapeHtml(ev.luogo) : '';
+    const _leva = ev._leva || (ev.leve||[])[0] || '';
+    const _evIdSafe = String(ev.id ?? '').replace(/'/g, "\\'");
+    const clickAttr = `onclick="_pgfOpenEvent('${src}','${escapeHtml(_leva)}','${_evIdSafe}')" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.07);"`;
+
+
+    let extraHtml = '';
+    if (!isPast) {
+      // FIX 2: convocazione badge for future events
+      const conv = getConvocazione(ev.id);
+      if (conv && conv.playerIds && selectedPlayer) {
+        const inList = (conv.playerIds || []).includes(selectedPlayer.id);
+        extraHtml = inList
+          ? '<span class="pgf-card-badge" style="background:#dcfce7;color:#166534;">🟢 CONVOCATO</span>'
+          : '<span class="pgf-card-badge" style="background:#f1f5f9;color:var(--text2);">⚪ NON CONVOCATO</span>';
+      } else if (selectedPlayer) {
+        extraHtml = '<span class="pgf-card-badge" style="background:#fef9c3;color:#854d0e;">🟡 IN ATTESA</span>';
+      }
+    } else {
+      // FIX 3: result + player stats for past events
+      if (src === 'torneo') {
+        // Tornei: no single score — just label
+        extraHtml = '<span style="font-size:.74rem;color:var(--text3);">Torneo concluso</span>';
+      } else {
+        const gc = ev._golCasa, go = ev._golOspiti;
+        // FIX 4: guard against undefined scores
+        if (gc != null && !isNaN(gc) && go != null && !isNaN(go)) {
+          const polisScore = ev._isHome ? gc : go;
+          const oppScore   = ev._isHome ? go : gc;
+          const esito = polisScore > oppScore ? 'V' : polisScore < oppScore ? 'P' : 'N';
+          const esitoColor = esito === 'V' ? '#166534' : esito === 'P' ? '#9f1239' : '#854d0e';
+          const esitoBg   = esito === 'V' ? '#dcfce7' : esito === 'P' ? '#ffe4e6' : '#fef9c3';
+          extraHtml = `<span class="pgf-card-badge" style="background:${esitoBg};color:${esitoColor};">${gc}–${go} (${esito})</span>`;
+          // Player stats (only if mister enabled showStatsToFamily for this leva)
+          if (selectedPlayer && ev._matchRef) {
+            const lss = levaStatsSettings[_leva] || {};
+            if (lss.showStatsToFamily) {
+              const stat = (ev._matchRef.stats || []).find(s => s.playerId === selectedPlayer.id);
+              if (stat) {
+                const adv = advStats(_leva);
+                const parts = [];
+                if (adv) {
+                  if (stat.gol > 0)    parts.push(stat.gol + ' gol');
+                  if (stat.assist > 0) parts.push(stat.assist + ' assist');
+                  if (stat.minuti > 0) parts.push(stat.minuti + ' min');
+                }
+                extraHtml += ` <span style="font-size:.73rem;color:var(--text2);">${escapeHtml(selectedPlayer.nome)}: ${parts.length ? parts.join(' · ') : 'presente'}</span>`;
+              } else {
+                extraHtml += ` <span style="font-size:.73rem;color:var(--text3);">${escapeHtml(selectedPlayer.nome)}: assente</span>`;
+              }
+            }
+          }
+        } else {
+          extraHtml = '<span style="font-size:.74rem;color:var(--text3);">Risultato non disponibile</span>';
+        }
+      }
+    }
+
+    return `<div class="pgf-card" ${clickAttr}>
+      <div class="pgf-card-date">
+        <div class="pgf-card-day">${dayNum}</div>
+        <div class="pgf-card-dow">${dow}</div>
+      </div>
+      <div class="pgf-card-body">
+        <div class="pgf-card-title">${escapeHtml(ev.title || '')}</div>
+        <div class="pgf-card-sub">${tipoIcon} ${tipoLabel}${ora}${luogo}</div>
+        <div style="margin-top:5px;">${extraHtml}</div>
+      </div>
+    </div>`;
+  }
+
+  const chipBar = `<div class="pgf-chips">
+    <span class="pgf-chip${_pgfChip==='prossime'?' on':''}" onclick="_pgfSetChip('prossime')">⏳ Prossime (${prossime.length})</span>
+    <span class="pgf-chip${_pgfChip==='concluse'?' on':''}" onclick="_pgfSetChip('concluse')">✅ Concluse (${concluse.length})</span>
+  </div>`;
+
+  let body = '';
+  if (_pgfChip === 'prossime') {
+    body = prossime.length
+      ? prossime.map(ev => evCard(ev, false)).join('')
+      : `<div class="pgf-empty"><div class="pgf-empty-ic">⚽</div><div class="pgf-empty-txt">Nessuna partita in programma</div><div class="pgf-empty-sub">Le prossime partite appariranno qui.</div></div>`;
+  } else {
+    body = concluse.length
+      ? concluse.map(ev => evCard(ev, true)).join('')
+      : `<div class="pgf-empty"><div class="pgf-empty-ic">📋</div><div class="pgf-empty-txt">Nessuna partita conclusa</div><div class="pgf-empty-sub">I risultati delle partite giocate appariranno qui.</div></div>`;
+  }
+
+  c.innerHTML = chipBar + body;
+}
+
 // Pulisce i riferimenti a un giocatore eliminato (convocazioni + disponibilità)
 function purgePlayerRefs(playerId) {
   convocazioni.forEach(c => {
@@ -9601,24 +9971,28 @@ function removePlayerPrevSeason(playerId, idx) {
   toast('🗑 Stagione rimossa');
 }
 
+function _getMieSquadre(t) {
+  return (t.squadreMieFlag && t.squadreMieFlag.length) ? t.squadreMieFlag : [polisName(t.leva)];
+}
+
 // ── Statistiche tornei (solo allenatore) ─────────────────────────
 function wasTorneoPlayer(torneo, playerId){
   return (torneo.fasi||[]).some(f=>(f.partite||[]).some(m=>(m.stats||[]).some(s=>s.playerId===playerId&&((s.gol||0)+(s.assist||0)>0))));
 }
 function computeTorneoRisultato(t){
-  const polis = polisName(t.leva);
-  const partiteNostre = (t.fasi||[]).flatMap(f=>f.partite||[]).filter(m=>m.played&&(m.casa===polis||m.ospite===polis));
+  const mieSquadre = _getMieSquadre(t);
+  const partiteNostre = (t.fasi||[]).flatMap(f=>f.partite||[]).filter(m=>m.played&&(mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)));
   if (!partiteNostre.length) return {badge:'<span style="color:var(--text3);">—</span>',tipo:'nc'};
   // Identifica la fase più avanzata raggiunta
   const fasiNomi = (t.fasi||[]).map(f=>(f.nome||'').toLowerCase());
   const hasFinale = fasiNomi.some(n=>n.includes('final'));
   const hasSemi   = fasiNomi.some(n=>n.includes('semi'));
   const hasQuarti = fasiNomi.some(n=>n.includes('quart'));
-  // Ultima partita giocata dal nostro team
+  // Ultima partita giocata dal nostro team (usa prima squadra in mieSquadre per direzione punteggio)
   const ultima = partiteNostre.reduce((best,m)=>(!best||(m.data||'')>=(best.data||''))?m:best, null);
   if (hasFinale && ultima) {
-    const gF = ultima.casa===polis?ultima.golCasa:ultima.golOspiti;
-    const gC = ultima.casa===polis?ultima.golOspiti:ultima.golCasa;
+    const gF = mieSquadre.includes(ultima.casa)?ultima.golCasa:ultima.golOspiti;
+    const gC = mieSquadre.includes(ultima.casa)?ultima.golOspiti:ultima.golCasa;
     if (gF!=null&&gC!=null) {
       if (gF>gC) return {badge:'<span style="font-size:.95rem;">🏆 Vittoria</span>',tipo:'vittoria'};
       return {badge:'<span style="font-size:.95rem;">🥈 2° posto</span>',tipo:'secondo'};
@@ -9629,7 +10003,7 @@ function computeTorneoRisultato(t){
   // Solo gironi: conta W/D/L
   let v=0,p=0,s=0;
   partiteNostre.forEach(m=>{
-    const gF=m.casa===polis?m.golCasa:m.golOspiti, gC=m.casa===polis?m.golOspiti:m.golCasa;
+    const gF=mieSquadre.includes(m.casa)?m.golCasa:m.golOspiti, gC=mieSquadre.includes(m.casa)?m.golOspiti:m.golCasa;
     if(gF!=null&&gC!=null){if(gF>gC)v++;else if(gF===gC)p++;else s++;}
   });
   return {badge:`<span style="font-size:.78rem;">${v}V ${p}P ${s}S</span>`,tipo:'gironi'};
@@ -11567,9 +11941,11 @@ function panoNextMatchForLeva(lv) {
   });
   // Tornei
   (tornei||[]).filter(t => t.leva === lv).forEach(t => {
-    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
-      const avv = (m.casa===polis ? m.ospite : m.casa) || '—';
-      cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
+    const mieSquadre = _getMieSquadre(t);
+    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m => {
+      const mia = mieSquadre.includes(m.casa) ? m.casa : m.ospite;
+      const avv = (mieSquadre.includes(m.casa) ? m.ospite : m.casa) || '—';
+      cands.push({ date: m.data, start: m.orario||'', title: mia + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
     }));
   });
   // Fallback a eventi calendario se nessun dato strutturato
@@ -11617,8 +11993,9 @@ function panoAllNextMatchesAcrossLeve(leveArr) {
       results.push({ leva: lv, tipo: 'campionato', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||'', giornata: m.giornata, visibilitaSubito: !!m.visibilitaSubito });
     });
     (tornei||[]).filter(t => t.leva === lv).forEach(t => {
-      (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa===polis||m.ospite===polis)).forEach(m => {
-        const isHome = m.casa === polis;
+      const mieSquadre = _getMieSquadre(t);
+      (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m => {
+        const isHome = mieSquadre.includes(m.casa);
         results.push({ leva: lv, tipo: 'torneo', data: m.data, orario: m.orario||'', avversario: (isHome ? m.ospite : m.casa) || '—', casa: isHome, luogo: m.luogo||t.luogo||'', torneoNome: t.nome, visibilitaSubito: !!(m.visibilitaSubito || t.visibilitaSubito) });
       }));
     });
@@ -11661,7 +12038,8 @@ function panoLastResultForLeva(lv) {
     results.push({ tipo:'campionato', data:m.data, casa:m.casa, ospite:m.ospite, golCasa:m.golCasa, golOspiti:m.golOspiti, giornata:m.giornata });
   });
   tornei.filter(t => t.leva === lv).forEach(t => {
-    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => m.played && (m.casa === polis || m.ospite === polis)).forEach(m => {
+    const mieSquadre = _getMieSquadre(t);
+    (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => m.played && (mieSquadre.includes(m.casa) || mieSquadre.includes(m.ospite))).forEach(m => {
       results.push({ tipo:'torneo', torneoNome:t.nome, data:m.data, casa:m.casa, ospite:m.ospite, golCasa:m.golCasa, golOspiti:m.golOspiti });
     }));
   });
@@ -13590,9 +13968,11 @@ const ALL_AI_ENABLED = false;
 let _allSt = {
   tab: 'lista',
   lista: { periodo: '30g', stato: 'tutti', items: null },
+  cal: { anno: new Date().getFullYear(), mese: new Date().getMonth(), leva: '', events: [], bozze: [], viewMode: '', weekStart: null, listRange: '30g' },
+  filters: { tipo: 'tutti', stato: 'tutti', visibilita: 'tutti', _open: false },
   lib: { ambito: 'personale', categoria: '', etaLeva: '', q: '', items: null, _deb: null },
   _nsTags: [],
-  _costruttore: { id: null, sessioni: [], _editIdx: null },
+  _costruttore: { id: null, sessioni: [], _editIdx: null, eventId: null },
   _aiBudget: null,
   _aiAbilitato: false,
 };
@@ -13700,36 +14080,69 @@ function _renderAllLista(cont) {
       <div style="font-size:.82rem;color:var(--text2);margin-top:3px;">Condivisi dalla società — visibili 24h dopo la creazione</div>
     </div>`;
   } else {
+    if (!_allSt.cal.leva) _allSt.cal.leva = currentLeva;
+    if (!_allSt.cal.viewMode) { try { _allSt.cal.viewMode = sessionStorage.getItem('mv_all_view') || 'week'; } catch(_) { _allSt.cal.viewMode = 'week'; } }
+    if (!_allSt.filters.tipo) { try { const _sf = JSON.parse(sessionStorage.getItem('mv_all_filters')||'{}'); Object.assign(_allSt.filters, _sf); } catch(_) {} }
+    if (!_allSt.cal.weekStart) {
+      const _td = new Date(); const _dw = _td.getDay(); const _di = _dw===0?-6:1-_dw;
+      const _mn = new Date(_td); _mn.setDate(_mn.getDate()+_di);
+      _allSt.cal.weekStart = _mn.toISOString().slice(0,10);
+    }
     const multiLeva = leve.length > 1;
     const levaSel = multiLeva
-      ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allChangeLeva(this.value)">
-           ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===currentLeva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
+      ? `<select class="fi" style="max-width:160px;font-size:.85rem;padding:6px 10px;" onchange="_allCalChangeLeva(this.value)">
+           ${leve.map(l=>`<option value="${escapeHtml(l)}" ${l===_allSt.cal.leva?'selected':''}>${escapeHtml(l)}</option>`).join('')}
          </select>`
       : `<span style="font-size:.9rem;font-weight:700;color:var(--cp);">${escapeHtml(currentLeva)}</span>`;
+    const vm = _allSt.cal.viewMode || 'week';
+    const viewSel = `<div class="all-cal-viewsel">
+      <button class="all-cal-viewsel-btn${vm==='month'?' ac-active':''}" onclick="_allCalChangeView('month')">Mese</button>
+      <button class="all-cal-viewsel-btn${vm==='week'?' ac-active':''}" onclick="_allCalChangeView('week')">Settimana</button>
+      <button class="all-cal-viewsel-btn${vm==='list'?' ac-active':''}" onclick="_allCalChangeView('list')">Lista</button>
+    </div>`;
+    let navBar = '';
+    if (vm === 'month') {
+      navBar = `<div class="all-cal-nav">
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(-1)">◀</button>
+        <span class="all-cal-mlbl" id="allCalMonthLbl">${_AC_MESI[_allSt.cal.mese]} ${_allSt.cal.anno}</span>
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeMese(1)">▶</button>
+      </div>`;
+    } else if (vm === 'week') {
+      navBar = `<div class="all-cal-nav">
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeWeek(-1)">◀</button>
+        <span class="all-cal-mlbl" id="allCalWeekLbl">${_allWeekLabel()}</span>
+        <button class="btn btn-g btn-sm" onclick="_allCalChangeWeek(1)">▶</button>
+      </div>`;
+    } else {
+      const lr = _allSt.cal.listRange || '30g';
+      navBar = `<div class="all-cal-nav">
+        <select class="fi" style="max-width:180px;font-size:.82rem;padding:5px 10px;" onchange="_allCalChangeListRange(this.value)">
+          <option value="30g"${lr==='30g'?' selected':''}>Prossimi 30 giorni</option>
+          <option value="90g"${lr==='90g'?' selected':''}>Prossimi 90 giorni</option>
+          <option value="365g"${lr==='365g'?' selected':''}>Prossimi 12 mesi</option>
+          <option value="passati"${lr==='passati'?' selected':''}>Passati (30 gg)</option>
+        </select>
+      </div>`;
+    }
     hdr = `<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
       <div style="flex:1;">
         <div style="font-size:1.1rem;font-weight:800;">Allenamenti</div>
-        <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Pianifica e gestisci le sedute della tua leva</div>
+        <div style="font-size:.82rem;color:var(--text2);margin-top:2px;">Pianifica le sedute della tua leva</div>
       </div>
       ${levaSel}
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangePeriodo(this.value)">
-        <option value="30g" ${_allSt.lista.periodo==='30g'?'selected':''}>Prossimi 30 giorni</option>
-        <option value="mese_corrente" ${_allSt.lista.periodo==='mese_corrente'?'selected':''}>Mese corrente</option>
-        <option value="mese_scorso" ${_allSt.lista.periodo==='mese_scorso'?'selected':''}>Mese scorso</option>
-        <option value="tutti" ${_allSt.lista.periodo==='tutti'?'selected':''}>Tutti</option>
-      </select>
-      <select class="fi" style="font-size:.83rem;padding:6px 10px;" onchange="_allChangeStato(this.value)">
-        <option value="tutti" ${_allSt.lista.stato==='tutti'?'selected':''}>Tutti</option>
-        <option value="futuri" ${_allSt.lista.stato==='futuri'?'selected':''}>Futuri</option>
-        <option value="passati" ${_allSt.lista.stato==='passati'?'selected':''}>Passati</option>
-      </select>
-    </div>`;
+    ${viewSel}
+    ${navBar}`;
   }
 
-  cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allListItems"></div>`;
-  _loadAllLista();
+  if (isGenitore) {
+    cont.innerHTML = hdr + `<div id="allListItems"></div>`;
+    _loadAllLista();
+  } else {
+    cont.innerHTML = hdr + `<div id="_aiBudgetBarCont" style="margin-bottom:10px;"></div><div id="allCalFilters"></div><div id="allCalStats"></div><div id="allCalGrid"></div><div id="allCalBozze"></div>`;
+    _allCalLoadEvents();
+    _allCalLoadBozze();
+  }
 }
 
 async function _loadAllLista() {
@@ -13825,6 +14238,594 @@ function _allChangePeriodo(v) { _allSt.lista.periodo = v; _loadAllLista(); }
 function _allChangeStato(v)   { _allSt.lista.stato   = v; _renderAllListItems(document.getElementById('allListItems')); }
 function _allChangeLeva(v)    { currentLeva = v; _loadAllLista(); }
 
+// ── VISTA CALENDARIO ALLENAMENTI ──────────────────────────────────────────
+
+const _AC_MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const _AC_DAYS = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+async function _allCalLoadEvents() {
+  const gridEl = document.getElementById('allCalGrid');
+  if (!gridEl) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) { gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato.</div>'; return; }
+
+  const leva = _allSt.cal.leva || currentLeva;
+  const pad2 = n => String(n).padStart(2,'0');
+  const vm = _allSt.cal.viewMode || 'week';
+  let da, a;
+  if (vm === 'month') {
+    const { anno, mese } = _allSt.cal;
+    da = anno + '-' + pad2(mese+1) + '-01';
+    const lastDay = new Date(anno, mese+1, 0).getDate();
+    a  = anno + '-' + pad2(mese+1) + '-' + pad2(lastDay);
+  } else if (vm === 'week') {
+    da = _allSt.cal.weekStart;
+    const _sunD = new Date(da + 'T00:00:00'); _sunD.setDate(_sunD.getDate() + 6);
+    a = _sunD.toISOString().slice(0, 10);
+  } else {
+    const _lr = _allSt.cal.listRange || '30g'; const _t = new Date();
+    if (_lr === 'passati') { const _p = new Date(_t); _p.setDate(_p.getDate()-30); da = _p.toISOString().slice(0,10); a = _t.toISOString().slice(0,10); }
+    else { da = _t.toISOString().slice(0,10); const _e = new Date(_t); _e.setDate(_e.getDate()+(_lr==='365g'?365:_lr==='90g'?90:30)); a = _e.toISOString().slice(0,10); }
+  }
+  const levaId = _calLeveMap[leva] || '';
+
+  gridEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Caricamento…</div>';
+
+  const _ft = (_allSt.filters && _allSt.filters.tipo && _allSt.filters.tipo !== 'tutti') ? _allSt.filters.tipo : 'allenamento,allenamento_portieri';
+  const evParams = new URLSearchParams({ da, a, tipi: _ft, expand_recurrences: 'true' });
+  if (levaId) evParams.set('leva_id', levaId);
+  const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+
+  try {
+    const evResp = await fetch(API_BASE + '/api/v2/events?' + evParams, { headers: hdrs });
+    _allSt.cal.events = evResp.ok ? (await evResp.json()) : [];
+    _allCalRender();
+  } catch(e) {
+    if (gridEl) gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">❌ Errore caricamento. <a style="cursor:pointer;text-decoration:underline;" onclick="_allCalLoadEvents()">Riprova</a></div>';
+  }
+}
+
+async function _allCalLoadBozze() {
+  const bozzeEl = document.getElementById('allCalBozze');
+  if (!bozzeEl) return;
+  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) return;
+  const leva = _allSt.cal.leva || currentLeva;
+  const levaId = _calLeveMap[leva] || '';
+  const hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+  const params = new URLSearchParams({ event_id: 'null' });
+  if (levaId) params.set('leva_id', levaId);
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti?' + params, { headers: hdrs });
+    _allSt.cal.bozze = resp.ok ? ((await resp.json()).items || []) : [];
+  } catch(e) { _allSt.cal.bozze = []; }
+  _allCalRenderBozze(bozzeEl);
+}
+
+function _allCalRender() {
+  const gridEl    = document.getElementById('allCalGrid');
+  const bozzeEl   = document.getElementById('allCalBozze');
+  const statsEl   = document.getElementById('allCalStats');
+  const filtersEl = document.getElementById('allCalFilters');
+  if (!gridEl) return;
+  if (filtersEl) _allCalRenderFilters(filtersEl);
+  if (statsEl)   _allCalRenderStats(statsEl, _allSt.cal.events || []);
+  const vm = _allSt.cal.viewMode || 'week';
+  if (vm === 'week') _allCalRenderWeek(gridEl);
+  else if (vm === 'list') _allCalRenderList(gridEl);
+  else _allCalRenderMonth(gridEl);
+  if (bozzeEl) _allCalRenderBozze(bozzeEl);
+}
+
+function _allSlotHtml(ev, mode) {
+  const isFilled = !!ev.allenamento_id;
+  const startT = (ev.ora_inizio || '').slice(0,5);
+  const endT   = (ev.ora_fine   || '').slice(0,5);
+  const ts = startT ? startT + (endT ? '–' + endT : '') : '';
+  const onclick = '_allCalClickSlot(' + ev.event_id + ',' + (ev.allenamento_id || 'null') + ')';
+  if (!isFilled) {
+    return '<div class="all-cal-slot ac-empty" onclick="' + onclick + '">'
+      + (ts ? '<div class="all-cal-slot-time">' + ts + '</div>' : '')
+      + '<div class="all-cal-slot-empty-lbl">➕ Crea</div>'
+      + '</div>';
+  }
+  const titolo  = ev.allenamento_titolo   ? escapeHtml(ev.allenamento_titolo)   : '✅ Creato';
+  const durata  = ev.allenamento_durata_totale_minuti || 0;
+  const nSess   = ev.allenamento_num_sessioni || 0;
+  const visG    = ev.allenamento_visibilita_genitori;
+  const obiett  = ev.allenamento_obiettivo || '';
+  let h = '<div class="all-cal-slot ac-filled" onclick="' + onclick + '">';
+  if (ts) h += '<div class="all-cal-slot-time">' + ts + '</div>';
+  h += '<div class="all-cal-slot-title">' + titolo + '</div>';
+  if (mode === 'full') {
+    if (obiett) h += '<div class="all-cal-slot-obj">' + escapeHtml(obiett) + '</div>';
+    const parts = [];
+    if (durata) parts.push('🕐 ' + durata + ' min');
+    if (nSess)  parts.push(nSess + ' sess.');
+    parts.push(visG ? '👨‍👩‍👧' : '🔒');
+    h += '<div class="all-cal-slot-meta">' + parts.join(' · ') + '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function _allCalRenderStats(el, events) {
+  const total  = (events || []).length;
+  const creati = (events || []).filter(function(ev) { return !!ev.allenamento_id; }).length;
+  const durataTot = (events || []).reduce(function(sum, ev) {
+    return sum + (ev.allenamento_id ? (ev.allenamento_durata_totale_minuti || 0) : 0);
+  }, 0);
+  const ore = Math.floor(durataTot / 60); const min = durataTot % 60;
+  const durStr = ore > 0 ? ore + 'h' + (min > 0 ? ' ' + min + 'min' : '') : (min > 0 ? min + ' min' : '0 min');
+  el.innerHTML = '<div class="all-cal-stats">'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Programmati</div><div class="all-cal-stat-val">' + total + '</div></div>'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Creati</div><div class="all-cal-stat-val">' + creati + '</div></div>'
+    + '<div class="all-cal-stat"><div class="all-cal-stat-lbl">Durata totale</div><div class="all-cal-stat-val">' + durStr + '</div></div>'
+    + '</div>';
+}
+
+function _allCalRenderMonth(gridEl) {
+  const { anno, mese } = _allSt.cal;
+  const events = _allCalApplyFilters(_allSt.cal.events || []);
+  const todayStr = new Date().toISOString().slice(0,10);
+  const pad2 = n => String(n).padStart(2,'0');
+
+  const byDate = {};
+  (events || []).forEach(function(ev) {
+    const d = (ev.data || '').slice(0,10);
+    if (d) { if (!byDate[d]) byDate[d] = []; byDate[d].push(ev); }
+  });
+
+  const firstDow = new Date(anno, mese, 1).getDay();
+  const offset = firstDow === 0 ? 6 : firstDow - 1;
+  const daysInMonth = new Date(anno, mese+1, 0).getDate();
+  const prevDays = new Date(anno, mese, 0).getDate();
+
+  let html = '<div class="all-cal-grid">';
+  _AC_DAYS.forEach(function(d) { html += '<div class="all-cal-head">' + d + '</div>'; });
+
+  for (let i = 0; i < offset; i++) {
+    html += '<div class="all-cal-cell ac-other"><div class="all-cal-dn">' + (prevDays - offset + i + 1) + '</div></div>';
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = anno + '-' + pad2(mese+1) + '-' + pad2(day);
+    const isToday   = ds === todayStr;
+    const isPast    = !isToday && ds < todayStr;
+    const dow       = new Date(ds + 'T00:00:00').getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const dayEvs = byDate[ds] || [];
+    let cls = 'all-cal-cell';
+    if (isToday)   cls += ' ac-today';
+    if (isPast)    cls += ' ac-past';
+    if (isWeekend) cls += ' ac-weekend';
+    html += '<div class="' + cls + '">';
+    html += '<div class="all-cal-dn">' + day + '</div>';
+    dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'compact'); });
+    html += '</div>';
+  }
+
+  const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
+  for (let i = 1; i <= trailing; i++) {
+    html += '<div class="all-cal-cell ac-other"><div class="all-cal-dn">' + i + '</div></div>';
+  }
+  html += '</div>';
+  gridEl.innerHTML = html;
+}
+
+function _allCalRenderBozze(el) {
+  const bozze = _allSt.cal.bozze || [];
+  const canEdit = isAdminLike() || hasPerm('modifica_piano_allenamento');
+  if (!bozze.length || !canEdit) { el.innerHTML = ''; return; }
+  const pad = n => String(n).padStart(2,'0');
+  let html = '<div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">';
+  html += '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">';
+  html += '<div style="font-size:.95rem;font-weight:800;">Allenamenti in bozza</div>';
+  html += '<div style="font-size:.78rem;color:var(--text3);">' + bozze.length + ' allenament' + (bozze.length===1?'o':'i') + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:16px;">Preparati in anticipo, non ancora legati a uno slot del calendario</div>';
+  html += '<div class="all-bozze-grid">';
+  bozze.forEach(function(b) {
+    const d   = b.data ? new Date(b.data.slice(0,10)+'T00:00:00') : null;
+    const dtS = d ? 'Creata il ' + pad(d.getDate()) + '/' + pad(d.getMonth()+1) : '';
+    const dur  = b.durata_totale_minuti || 0;
+    const sess = b.num_sessioni || 0;
+    const bid  = b.id;
+    html += '<div class="all-bozze-card">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+    html += '<span class="all-bozze-badge">BOZZA</span>';
+    html += '<div style="position:relative;">';
+    html += '<button class="all-bozze-menu-btn" onclick="event.stopPropagation();_toggleBozzaMenu(\'' + bid + '\')">⋯</button>';
+    html += '<div class="all-bozze-menu" id="bm_' + bid + '" style="display:none;">';
+    html += '<div class="all-bozze-menu-item" onclick="document.querySelectorAll(\'.all-bozze-menu\').forEach(m=>m.style.display=\'none\');_openCostruisciAllenamento(\'' + bid + '\')">✏️ Modifica</div>';
+    html += '<div class="all-bozze-menu-item" onclick="_duplicaBozza(\'' + bid + '\')">📋 Duplica</div>';
+    html += '<div class="all-bozze-menu-item" style="color:#c0392b;" onclick="_eliminaBozza(\'' + bid + '\')">🗑️ Elimina</div>';
+    html += '</div></div></div>';
+    html += '<div style="cursor:pointer;flex:1;" onclick="_openAllenamentiDetail(\'' + bid + '\')">';
+    html += '<div style="font-size:.88rem;font-weight:600;margin-bottom:4px;line-height:1.3;">' + escapeHtml(b.titolo) + '</div>';
+    if (b.obiettivo) html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">' + escapeHtml(b.obiettivo) + '</div>';
+    const metaP = []; if (dur) metaP.push('🕐 '+dur+' min'); if (sess) metaP.push(sess+' sessioni');
+    if (metaP.length) html += '<div style="font-size:.72rem;color:var(--text3);margin-bottom:6px;">' + metaP.join(' · ') + '</div>';
+    if (dtS) html += '<div style="font-size:.67rem;color:var(--text3);margin-bottom:10px;">' + dtS + '</div>';
+    html += '</div>';
+    html += '<button class="btn btn-p btn-sm" style="width:100%;margin-top:6px;" onclick="event.stopPropagation();_openAgganciaModal(\'' + bid + '\')">📅 Aggancia a slot</button>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function _toggleBozzaMenu(id) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { if (m.id !== 'bm_'+id) m.style.display='none'; });
+  const menu = document.getElementById('bm_'+id);
+  if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(function() {
+      document.addEventListener('click', function _cl() { if(menu) menu.style.display='none'; document.removeEventListener('click',_cl); }, {once:true});
+    }, 0);
+  }
+}
+
+function _allCalApplyFilters(events) {
+  const f = _allSt.filters || {};
+  let res = events || [];
+  if (f.stato === 'vuoti')       res = res.filter(function(ev) { return !ev.allenamento_id; });
+  else if (f.stato === 'pieni')  res = res.filter(function(ev) { return !!ev.allenamento_id; });
+  if (f.visibilita === 'visibili')   res = res.filter(function(ev) { return !ev.allenamento_id || ev.allenamento_visibilita_genitori; });
+  else if (f.visibilita === 'solo_staff') res = res.filter(function(ev) { return !ev.allenamento_id || !ev.allenamento_visibilita_genitori; });
+  return res;
+}
+
+function _allCalSetFilter(key, val) {
+  if (!_allSt.filters) _allSt.filters = { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  _allSt.filters[key] = (_allSt.filters[key] === val) ? 'tutti' : val;
+  try { sessionStorage.setItem('mv_all_filters', JSON.stringify({tipo:_allSt.filters.tipo, stato:_allSt.filters.stato, visibilita:_allSt.filters.visibilita})); } catch(_) {}
+  if (key === 'tipo') { _allCalLoadEvents(); } else { _allCalRender(); }
+}
+
+function _allCalToggleFilters() {
+  if (!_allSt.filters) _allSt.filters = { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  _allSt.filters._open = !_allSt.filters._open;
+  const panel = document.querySelector('#allCalFilters .all-cal-filters-panel');
+  const btn   = document.querySelector('#allCalFilters .all-cal-filters-toggle');
+  if (panel) panel.classList.toggle('open', _allSt.filters._open);
+  if (btn)   btn.classList.toggle('ac-active', _allSt.filters._open);
+}
+
+function _allCalRenderFilters(el) {
+  const f = _allSt.filters || { tipo:'tutti', stato:'tutti', visibilita:'tutti', _open:false };
+  const n = [f.tipo, f.stato, f.visibilita].filter(function(v) { return v !== 'tutti'; }).length;
+  function fc(key, val, lbl) {
+    return '<button class="all-cal-fchip'+(f[key]===val?' ac-active':'')+'" onclick="_allCalSetFilter(\''+key+'\',\''+val+'\')">'+lbl+'</button>';
+  }
+  const inner = '<div class="all-cal-filters-inner">'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Tipo evento</div><div class="all-cal-fgroup-chips">'
+    + fc('tipo','tutti','Tutti') + fc('tipo','allenamento','Allenamento') + fc('tipo','allenamento_portieri','Portieri')
+    + '</div></div>'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Stato slot</div><div class="all-cal-fgroup-chips">'
+    + fc('stato','tutti','Tutti') + fc('stato','vuoti','Vuoti') + fc('stato','pieni','Pieni')
+    + '</div></div>'
+    + '<div class="all-cal-fgroup"><div class="all-cal-fgroup-lbl">Visibilità</div><div class="all-cal-fgroup-chips">'
+    + fc('visibilita','tutti','Tutti') + fc('visibilita','visibili','👨‍👩‍👧 Famiglie') + fc('visibilita','solo_staff','🔒 Staff')
+    + '</div></div>'
+    + '</div>';
+  el.innerHTML = '<div class="all-cal-filters">'
+    + '<button class="all-cal-filters-toggle'+(f._open?' ac-active':'')+'" onclick="_allCalToggleFilters()">🔧 Filtri'+(n?' <span class="all-cal-filters-badge">'+n+'</span>':'')+'</button>'
+    + '<div class="all-cal-filters-panel'+(f._open?' open':'')+'">' + inner + '</div>'
+    + '</div>';
+}
+
+let _agganciaState = null;
+
+async function _openAgganciaModal(allenId) {
+  if (!_v2Token) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!resp.ok) { toast('❌ Errore caricamento bozza'); return; }
+    const bozza = await resp.json();
+    const levaId = bozza.leva_id;
+    const lEntry = Object.entries(_calLeveMap).find(function(e) { return String(e[1]) === String(levaId); });
+    _agganciaState = { bozza, levaId: levaId, levaNome: lEntry ? lEntry[0] : '', range: '30g' };
+    _renderAgganciaModal();
+    _loadAgganciaSlots();
+  } catch(e) { toast('❌ Errore apertura modal'); }
+}
+
+function _closeAgganciaModal() {
+  const el = document.getElementById('_agganciaOv');
+  if (el) { el.parentNode && el.parentNode.removeChild(el); document.body.style.overflow = ''; }
+  _agganciaState = null;
+}
+
+function _renderAgganciaModal() {
+  let ov = document.getElementById('_agganciaOv');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = '_agganciaOv';
+    ov.className = 'aggancia-modal-ov';
+    ov.addEventListener('click', function(e) { if (e.target === ov) _closeAgganciaModal(); });
+    document.body.appendChild(ov);
+    document.body.style.overflow = 'hidden';
+  }
+  const st = _agganciaState;
+  if (!st) return;
+  const b = st.bozza;
+  const rOpts = [['7g','7 giorni'],['30g','30 giorni'],['tutti','Tutti i futuri']];
+  const metaP = [];
+  if (b.durata_totale_minuti) metaP.push('🕐 '+b.durata_totale_minuti+' min');
+  if (b.num_sessioni) metaP.push(b.num_sessioni+' sessioni');
+  if (st.levaNome) metaP.push('🏷️ '+escapeHtml(st.levaNome));
+  let html = '<div class="modal">';
+  html += '<div class="mh"><div class="mt">📅 Aggancia bozza a uno slot</div><button class="mx" onclick="_closeAgganciaModal()">✕</button></div>';
+  html += '<div style="background:var(--bg);border-radius:10px;padding:10px 14px;margin:12px 0 14px;">';
+  html += '<div style="font-size:.82rem;font-weight:700;">' + escapeHtml(b.titolo) + '</div>';
+  if (metaP.length) html += '<div style="font-size:.72rem;color:var(--text2);margin-top:3px;">' + metaP.join(' · ') + '</div>';
+  html += '</div>';
+  html += '<div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;">Slot disponibili in:</div>';
+  html += '<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">';
+  rOpts.forEach(function(r) { html += '<button class="all-cal-fchip'+(st.range===r[0]?' ac-active':'')+'" onclick="_agganciaChangeRange(\''+r[0]+'\')">'+r[1]+'</button>'; });
+  html += '</div>';
+  html += '<div id="_agganciaSlotList"><div style="text-align:center;padding:20px;color:var(--text2);font-size:.85rem;">Caricamento…</div></div>';
+  html += '<div style="margin-top:16px;text-align:right;"><button class="btn btn-g" onclick="_closeAgganciaModal()">Annulla</button></div>';
+  html += '</div>';
+  ov.innerHTML = html;
+}
+
+async function _loadAgganciaSlots() {
+  const listEl = document.getElementById('_agganciaSlotList');
+  if (!listEl || !_agganciaState) return;
+  listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.85rem;">Caricamento…</div>';
+  const st = _agganciaState;
+  const today = new Date().toISOString().slice(0,10);
+  const endD = new Date();
+  if (st.range==='7g') endD.setDate(endD.getDate()+7);
+  else if (st.range==='30g') endD.setDate(endD.getDate()+30);
+  else endD.setFullYear(endD.getFullYear()+2);
+  const a = endD.toISOString().slice(0,10);
+  const params = new URLSearchParams({ da: today, a, tipi: 'allenamento,allenamento_portieri', expand_recurrences: 'true' });
+  if (st.levaId) params.set('leva_id', String(st.levaId));
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/events?' + params, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    const evs = resp.ok ? (await resp.json()) : [];
+    const vuoti = evs.filter(function(ev) { return !ev.allenamento_id; });
+    _renderAgganciaSlotList(listEl, vuoti, st.levaNome);
+  } catch(e) { listEl.innerHTML = '<div style="color:#c0392b;padding:12px;font-size:.85rem;">❌ Errore caricamento slot.</div>'; }
+}
+
+function _renderAgganciaSlotList(el, slots, levaNome) {
+  if (!slots.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:.84rem;line-height:1.5;">Nessuno slot vuoto disponibile per la leva <strong>' + escapeHtml(levaNome||'') + '</strong> nel periodo selezionato.<br><span style="font-size:.8rem;">Crea uno slot dal Calendario prima di agganciare.</span></div>';
+    return;
+  }
+  let html = '<div class="aggancia-slot-list">';
+  slots.forEach(function(ev) {
+    const ds = (ev.data||'').slice(0,10);
+    const d  = ds ? new Date(ds+'T00:00:00') : null;
+    const dStr = d ? _AC_DAYS[(d.getDay()+6)%7]+' '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear() : ds;
+    const st2 = (ev.ora_inizio||'').slice(0,5); const et2 = (ev.ora_fine||'').slice(0,5);
+    const ts  = st2 ? st2+(et2?'–'+et2:'') : '';
+    html += '<div class="aggancia-slot-card" onclick="_agganciaSlot('+ev.event_id+',\''+dStr+'\')"> ';
+    html += '<div style="font-size:.85rem;font-weight:600;">' + dStr + '</div>';
+    if (ts) html += '<div style="font-size:.78rem;color:var(--text2);">' + ts + '</div>';
+    if (ev.titolo) html += '<div style="font-size:.72rem;color:var(--text3);">' + escapeHtml(ev.titolo) + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function _agganciaChangeRange(range) {
+  if (!_agganciaState) return;
+  _agganciaState.range = range;
+  _renderAgganciaModal();
+  _loadAgganciaSlots();
+}
+
+async function _agganciaSlot(eventId, dateLabel) {
+  if (!_agganciaState || !_agganciaState.bozza) return;
+  const allenId = _agganciaState.bozza.id;
+  if (!confirm('Agganciare "' + _agganciaState.bozza.titolo + '" allo slot del ' + dateLabel + '?')) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, {
+      method: 'PATCH', headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_id: eventId })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    _closeAgganciaModal();
+    toast('✅ Agganciato al ' + dateLabel);
+    _allCalLoadEvents();
+    _allCalLoadBozze();
+  } catch(e) { toast('❌ Errore durante l\'aggancio. Riprova.'); }
+}
+
+async function _duplicaBozza(allenId) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { m.style.display='none'; });
+  if (!_v2Token) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    if (!resp.ok) { toast('❌ Errore caricamento allenamento'); return; }
+    const b = await resp.json();
+    const sessioni = (b.sessioni||[]).map(function(s) {
+      return s.sessione_libreria_id
+        ? { sessione_libreria_id: s.sessione_libreria_id }
+        : { titolo: s.titolo_snapshot, descrizione: s.descrizione_snapshot, durata_minuti: s.durata_minuti_snapshot, categoria: s.categoria_snapshot, tag: s.tag_snapshot||[] };
+    });
+    const body = { leva_id: b.leva_id, titolo: 'Copia di '+b.titolo, obiettivo: b.obiettivo||null, ...(b.data ? { data: b.data.slice(0,10) } : {}), visibilita_genitori: !!b.visibilita_genitori, note_testo: b.note_testo||null, sessioni, event_id: null };
+    const cr = await fetch(API_BASE + '/api/v2/allenamenti', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!cr.ok) { const er = await cr.json().catch(()=>({})); toast('❌ Errore: '+(er.message||er.error||cr.status)); return; }
+    toast('📋 Allenamento duplicato!');
+    _allCalLoadBozze();
+  } catch(e) { toast('❌ Errore durante la duplicazione.'); }
+}
+
+async function _eliminaBozza(allenId) {
+  document.querySelectorAll('.all-bozze-menu').forEach(function(m) { m.style.display='none'; });
+  const bozza = (_allSt.cal.bozze||[]).find(function(b) { return b.id === allenId; });
+  const titolo = bozza ? bozza.titolo : 'questo allenamento';
+  if (!confirm('Eliminare "' + titolo + '"? L\'azione non è reversibile.')) return;
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/allenamenti/' + allenId, {
+      method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!resp.ok && resp.status !== 404) { toast('❌ Errore eliminazione (HTTP '+resp.status+')'); return; }
+    toast('🗑️ Allenamento eliminato');
+    _allCalLoadBozze();
+  } catch(e) { toast('❌ Errore durante l\'eliminazione.'); }
+}
+
+function _allCalChangeMese(dir) {
+  _allSt.cal.mese += dir;
+  if (_allSt.cal.mese > 11) { _allSt.cal.mese = 0; _allSt.cal.anno++; }
+  if (_allSt.cal.mese < 0)  { _allSt.cal.mese = 11; _allSt.cal.anno--; }
+  const lbl = document.getElementById('allCalMonthLbl');
+  if (lbl) lbl.textContent = _AC_MESI[_allSt.cal.mese] + ' ' + _allSt.cal.anno;
+  _allCalLoadEvents();
+}
+
+function _allCalChangeLeva(v) {
+  currentLeva = v;
+  _allSt.cal.leva = v;
+  _allCalLoadEvents();
+  _allCalLoadBozze();
+}
+
+function _allCalChangeView(mode) {
+  _allSt.cal.viewMode = mode;
+  try { sessionStorage.setItem('mv_all_view', mode); } catch(_) {}
+  _renderAllTabContent();
+}
+
+function _allWeekLabel() {
+  const ws = _allSt.cal.weekStart;
+  if (!ws) return '';
+  const mon = new Date(ws + 'T00:00:00');
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.getDate() + '/' + (d.getMonth()+1);
+  return _AC_DAYS[0] + ' ' + fmt(mon) + ' – ' + _AC_DAYS[6] + ' ' + fmt(sun);
+}
+
+function _allCalChangeWeek(dir) {
+  const ws = new Date((_allSt.cal.weekStart || new Date().toISOString().slice(0,10)) + 'T00:00:00');
+  ws.setDate(ws.getDate() + dir * 7);
+  _allSt.cal.weekStart = ws.toISOString().slice(0,10);
+  const lbl = document.getElementById('allCalWeekLbl');
+  if (lbl) lbl.textContent = _allWeekLabel();
+  _allCalLoadEvents();
+}
+
+function _allCalChangeListRange(v) {
+  _allSt.cal.listRange = v;
+  _allCalLoadEvents();
+}
+
+function _allCalRenderWeek(gridEl) {
+  const ws = _allSt.cal.weekStart;
+  if (!ws) { gridEl.innerHTML = ''; return; }
+  const events = _allCalApplyFilters(_allSt.cal.events || []);
+  const todayStr = new Date().toISOString().slice(0,10);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(ws + 'T00:00:00'); d.setDate(d.getDate() + i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const byDate = {};
+  (events || []).forEach(function(ev) {
+    const d = (ev.data || '').slice(0,10);
+    if (d) { if (!byDate[d]) byDate[d] = []; byDate[d].push(ev); }
+  });
+  Object.keys(byDate).forEach(function(d) {
+    byDate[d].sort(function(a,b) { return (a.ora_inizio||'').localeCompare(b.ora_inizio||''); });
+  });
+  function _wDayCls(ds, base) {
+    const isToday = ds === todayStr;
+    const isPast  = !isToday && ds < todayStr;
+    const dow = new Date(ds+'T00:00:00').getDay();
+    const isWE = dow===0||dow===6;
+    let c = base;
+    if (isToday) c += ' ac-today';
+    if (isPast)  c += ' ac-past';
+    if (isWE)    c += ' ac-weekend';
+    return c;
+  }
+  let html = '<div class="all-cal-week-grid">';
+  days.forEach(function(ds, i) {
+    const isToday = ds === todayStr;
+    const dayEvs = byDate[ds] || [];
+    const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
+    html += '<div class="' + _wDayCls(ds,'all-cal-week-col') + '">';
+    html += '<div class="all-cal-week-head'+(isToday?' ac-today':'')+'">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
+    dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'full'); });
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div class="all-cal-week-agenda">';
+  days.forEach(function(ds, i) {
+    const dayEvs = byDate[ds] || [];
+    const dn = parseInt(ds.slice(8),10); const mn = parseInt(ds.slice(5,7),10);
+    html += '<div class="' + _wDayCls(ds,'all-cal-week-agenda-day') + '">';
+    html += '<div class="all-cal-week-agenda-head">' + _AC_DAYS[i] + ' ' + dn + '/' + mn + '</div>';
+    if (dayEvs.length) { dayEvs.forEach(function(ev) { html += _allSlotHtml(ev, 'full'); }); }
+    else { html += '<div style="font-size:.72rem;color:var(--text3);">Nessun slot</div>'; }
+    html += '</div>';
+  });
+  html += '</div>';
+  gridEl.innerHTML = html;
+}
+
+function _allCalRenderList(gridEl) {
+  const evs = _allCalApplyFilters((_allSt.cal.events)||[]).filter(function(ev) { return !!ev.allenamento_id; });
+  evs.sort(function(a,b) {
+    const da=(a.data||'').slice(0,10), db=(b.data||'').slice(0,10);
+    if (da!==db) return da.localeCompare(db);
+    return (a.ora_inizio||'').localeCompare(b.ora_inizio||'');
+  });
+  if (!evs.length) {
+    gridEl.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text2);font-size:.88rem;">Nessun allenamento nel periodo selezionato.</div>';
+    return;
+  }
+  let html = '<div class="all-cal-list">';
+  evs.forEach(function(ev) {
+    const ds = (ev.data||'').slice(0,10);
+    const st=(ev.ora_inizio||'').slice(0,5); const et=(ev.ora_fine||'').slice(0,5);
+    const ts = st?st+(et?'–'+et:''):'';
+    const d = ds ? new Date(ds+'T00:00:00') : null;
+    const dateStr = d ? _AC_DAYS[(d.getDay()+6)%7]+' '+d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear() : '';
+    const titolo  = ev.allenamento_titolo ? escapeHtml(ev.allenamento_titolo) : 'Allenamento';
+    const durata  = ev.allenamento_durata_totale_minuti || 0;
+    const nSess   = ev.allenamento_num_sessioni || 0;
+    const visG    = ev.allenamento_visibilita_genitori;
+    const obiett  = ev.allenamento_obiettivo || '';
+    const onclick = '_allCalClickSlot('+ev.event_id+','+(ev.allenamento_id||'null')+')';
+    html += '<div class="all-cal-list-card" onclick="' + onclick + '">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px;">';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-size:.75rem;color:var(--text2);margin-bottom:3px;">' + dateStr + (ts ? ' · ' + ts : '') + '</div>';
+    html += '<div style="font-size:.93rem;font-weight:700;margin-bottom:2px;">✅ ' + titolo + '</div>';
+    if (obiett) html += '<div style="font-size:.78rem;color:var(--text2);font-style:italic;margin-bottom:3px;">' + escapeHtml(obiett) + '</div>';
+    const parts = [];
+    if (durata) parts.push('🕐 ' + durata + ' min');
+    if (nSess)  parts.push(nSess + ' sessioni');
+    parts.push(visG ? '👨‍👩‍👧 Famiglie' : '🔒 Solo staff');
+    html += '<div style="font-size:.75rem;color:var(--text3);">' + parts.join(' · ') + '</div>';
+    html += '</div></div></div>';
+  });
+  html += '</div>';
+  gridEl.innerHTML = html;
+}
+
+function _allCalClickSlot(eventId, allenId) {
+  if (allenId) {
+    _openAllenamentiDetail(String(allenId));
+  } else {
+    _openCostruisciAllenamento(null, eventId);
+  }
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // AI BUDGET — carica e mostra
 // ══════════════════════════════════════════════════════════════════════════
@@ -13909,19 +14910,26 @@ function _canUseAI() {
 
 function _openNuovoAllenamento() { _openCostruisciAllenamento(null); }
 
-function _openCostruisciAllenamento(allenamentoId) {
-  _allSt._costruttore = { id: allenamentoId, sessioni: [], _editIdx: null };
+function _openCostruisciAllenamento(allenamentoId, eventId) {
+  _allSt._costruttore = { id: allenamentoId, sessioni: [], _editIdx: null, eventId: eventId || null };
   const isNew = !allenamentoId;
   const el = document.getElementById('_allFsModal');
   if (!el) return;
 
   document.getElementById('_allFsTitolo').value = '';
   document.getElementById('_allFsObiettivo').value = '';
-  document.getElementById('_allFsData').value = new Date().toISOString().slice(0,10);
+  document.getElementById('_allFsData').value = '';
   document.getElementById('_allFsVisG').checked = false;
   document.getElementById('_allFsNoteTesto').value = '';
   document.getElementById('_allFsTitle').textContent = isNew ? 'Nuovo allenamento' : 'Modifica allenamento';
   document.getElementById('_allFsErr').textContent = '';
+  // Hide data field for new creates; show for edit
+  const _dataGrp = document.getElementById('_allFsDataGroup');
+  const _dataGrid = document.getElementById('_allFsDataGrid');
+  const _infoEl = document.getElementById('_allFsEventInfo');
+  if (_dataGrp) _dataGrp.style.display = isNew ? 'none' : '';
+  if (_dataGrid) _dataGrid.style.gridTemplateColumns = isNew ? '1fr' : '1fr 1fr';
+  if (_infoEl) { _infoEl.innerHTML = ''; _infoEl.style.display = 'none'; }
 
   const levaEl = document.getElementById('_allFsLeva');
   if (leve.length === 1) {
@@ -13933,6 +14941,32 @@ function _openCostruisciAllenamento(allenamentoId) {
   if (allenamentoId) {
     _loadAllenamientoPerModifica(allenamentoId);
   } else {
+    if (eventId) {
+      // Pre-popola dal evento calendario
+      const ev = (_allSt.cal.events || []).find(function(e) { return e.event_id === eventId; });
+      if (ev) {
+        const dateStr = (ev.data || '').slice(0,10);
+        // Imposta titolo automatico
+        if (dateStr) {
+          const _dp = dateStr.split('-').map(Number);
+          const _dt = new Date(_dp[0], _dp[1]-1, _dp[2]);
+          const _GG = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+          document.getElementById('_allFsTitolo').value = 'Allenamento ' + _GG[_dt.getDay()] + ' ' + _dp[2] + '/' + _dp[1];
+          // Mostra pill info evento
+          if (_infoEl) {
+            const startT = (ev.ora_inizio||'').slice(0,5);
+            const endT   = (ev.ora_fine||'').slice(0,5);
+            const levaNome = ev.leve && ev.leve[0] ? ev.leve[0].nome : '';
+            const dtLabel = _GG[_dt.getDay()] + ' ' + _dp[2] + '/' + _dp[1] + '/' + _dp[0];
+            _infoEl.innerHTML = '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;font-size:.83rem;color:#1d4ed8;margin-bottom:10px;">📅 <strong>' + dtLabel + (startT ? ' · ' + startT + (endT ? '–' + endT : '') : '') + '</strong>' + (levaNome ? ' &nbsp;<span style="color:#64748b;">' + escapeHtml(levaNome) + '</span>' : '') + '</div>';
+            _infoEl.style.display = '';
+          }
+        }
+        // Imposta leva
+        const levaNome = ev.leve && ev.leve[0] ? ev.leve[0].nome : currentLeva;
+        if (levaEl) { for (let o of levaEl.options) { if (o.value === levaNome) { o.selected = true; break; } } }
+      }
+    }
     _renderCostruisciSessioni();
   }
 
@@ -14088,14 +15122,15 @@ async function _salvaAllenamento() {
   const data      = document.getElementById('_allFsData') ? document.getElementById('_allFsData').value : '';
   const levaEl    = document.getElementById('_allFsLeva');
   const leva_nome = levaEl ? levaEl.value : '';
+  const leva_id   = leva_nome ? (_calLeveMap[leva_nome] || null) : null;
   const visG      = !!(document.getElementById('_allFsVisG') && document.getElementById('_allFsVisG').checked);
   const noteTesto = (document.getElementById('_allFsNoteTesto') ? document.getElementById('_allFsNoteTesto').value : '').trim();
   const errEl     = document.getElementById('_allFsErr');
   if (errEl) errEl.textContent = '';
 
   if (titolo.length < 3 || titolo.length > 200) { if (errEl) errEl.textContent = '⚠️ Titolo: 3-200 caratteri.'; return; }
-  if (!data) { if (errEl) errEl.textContent = '⚠️ Seleziona una data.'; return; }
   if (!leva_nome) { if (errEl) errEl.textContent = '⚠️ Seleziona la leva.'; return; }
+  if (!leva_id)   { if (errEl) errEl.textContent = '⚠️ Leva non valida. Ricarica la pagina.'; return; }
 
   if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
@@ -14104,8 +15139,8 @@ async function _salvaAllenamento() {
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '⏳ Salvataggio…'; }
 
   const body = {
-    titolo: titolo, obiettivo: obiettivo || null, data: data, leva_nome: leva_nome, visibilita_genitori: visG,
-    note_testo: noteTesto || null,
+    titolo: titolo, obiettivo: obiettivo || null, leva_id: leva_id, visibilita_genitori: visG,
+    note_testo: noteTesto || null, ...(data ? { data } : {}),
     sessioni: _allSt._costruttore.sessioni.map(function(s) {
       return {
         sessione_libreria_id: s.sessione_libreria_id || null,
@@ -14116,10 +15151,12 @@ async function _salvaAllenamento() {
       };
     }),
   };
+  if (_allSt._costruttore.eventId) body.event_id = _allSt._costruttore.eventId;
 
   const id = _allSt._costruttore.id;
   const url  = id ? `${API_BASE}/api/v2/allenamenti/${id}` : `${API_BASE}/api/v2/allenamenti`;
   const method = id ? 'PATCH' : 'POST';
+  const _wasFromEvent = !!_allSt._costruttore.eventId;
 
   try {
     const resp = await fetch(url, {
@@ -14133,7 +15170,7 @@ async function _salvaAllenamento() {
     }
     _closeCostruisciAllenamento();
     toast('✅ Allenamento salvato');
-    _loadAllLista();
+    if (_wasFromEvent) { _allCalLoadEvents(); } else { _allCalLoadBozze(); }
   } catch(e) {
     if (errEl) errEl.textContent = '❌ ' + e.message;
   } finally {
@@ -15339,6 +16376,61 @@ function userLeve(){
   if (l === 'Tutte' || l === 'tutte') return leve.slice();
   return l ? [l] : [];
 }
+// ── API calendario: normalizza evento REST → formato frontend ─────────────────
+function _normalizeApiEvent(ev) {
+  // data può arrivare come "2026-05-26T00:00:00.000Z" — prendi solo i primi 10 char
+  var _date = (ev.data || '').slice(0, 10);
+  // ora_inizio/ora_fine possono avere secondi "10:00:00" — tieni solo "HH:MM"
+  var _start = (ev.ora_inizio || '').slice(0, 5);
+  var _end   = (ev.ora_fine   || '').slice(0, 5);
+  return {
+    id: ev.event_id,
+    title: ev.titolo || '',
+    type: ev.tipo || 'evento',
+    date: _date,
+    start: _start,
+    end: _end,
+    luogo: ev.luogo || '',
+    note: ev.note || '',
+    leve: (ev.leve || []).map(function(l) { return l.nome; }),
+    recur: 'none',
+    recurUntil: null,
+    recurGroupId: ev.recur_group_id || null,
+    visibilitaMode: 'default',
+    visibilitaFase1Days: null,
+    visibilitaFase2Days: null,
+    createdBy: ev.created_by || '',
+    _fromApi: true
+  };
+}
+
+// ── Carica eventi dal server REST e aggiorna l'array events ──────────────────
+function _loadCalEvents() {
+  if (!_v2Token) return;
+  var _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+  if (_isDemoSoc) return;
+  var _hdrs = { 'Authorization': 'Bearer ' + _v2Token };
+  var _leveP = fetch(API_BASE + '/api/v2/leve', { headers: _hdrs })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .catch(function() { return []; });
+  var _da = new Date(); _da.setMonth(_da.getMonth() - 3);
+  var _a  = new Date(); _a.setMonth(_a.getMonth() + 12);
+  var _evP = fetch(API_BASE + '/api/v2/events?da=' + ymd(_da) + '&a=' + ymd(_a), { headers: _hdrs })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .catch(function() { return []; });
+  Promise.all([_leveP, _evP]).then(function(res) {
+    var leveData = res[0], apiEvents = res[1];
+    _calLeveMap = {};
+    (leveData || []).forEach(function(l) { _calLeveMap[l.nome] = l.id; });
+    // Mantieni partita/torneo dal blob (gestiti da campionato/tornei/amichevoli)
+    var _blobPT = events.filter(function(e) { return !e._fromApi && (e.type === 'partita' || e.type === 'torneo'); });
+    events.length = 0;
+    (apiEvents || []).forEach(function(ev) { events.push(_normalizeApiEvent(ev)); });
+    _blobPT.forEach(function(ev) { events.push(ev); });
+    if (typeof renderCal === 'function') renderCal();
+  });
+}
+
 function canEditCalendar(){ return me && (isAdminLike() || me.role === 'allenatore' || me.role === 'preparatore_portieri' || isAdminMisterForLeva(currentLeva)); }
 function canEditEvent(ev){
   if (!me) return false;
@@ -15943,20 +17035,50 @@ function saveEvento(){
       return;
     }
     if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
-    toast('✅ Evento aggiornato');
+    if (ev._fromApi) {
+      // Evento API: aggiorna via REST
+      const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+      closeM('mEvento');
+      fetch(API_BASE + '/api/v2/events/' + ev.id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ tipo: type, titolo: title, dataInizio: date, oraInizio: start || null, oraFine: end || null, luogo: luogo || null, note: note || null, leve: _leveIds })
+      }).then(function(r) {
+        if (!r.ok) { toast('⛔ Errore aggiornamento evento'); return; }
+        toast('✅ Evento aggiornato');
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    } else {
+      // Evento blob (es. partita/torneo): aggiorna in memoria
+      Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
+      toast('✅ Evento aggiornato');
+      closeM('mEvento');
+      renderCal();
+      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+    }
+    return;
   } else {
+    // Crea nuovo evento via API
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
-    const _newEv = { id: nextEventId++, title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days, createdBy: me.email };
-    events.push(_newEv);
-    // Notifica ai genitori/nonni delle leve coinvolte
+    const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+    // Notifica ai genitori/nonni delle leve coinvolte (ottimistica, prima della risposta API)
     (function(){
       const _tl = { allenamento:'🏃 Allenamento aggiunto', allenamento_portieri:'🧤 Allenamento portieri', partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
       const _pids = new Set();
       USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
-      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId:_newEv.id }); });
+      _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
     })();
-    toast('✅ Evento creato');
+    closeM('mEvento');
+    fetch(API_BASE + '/api/v2/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ tipo: type, titolo: title, leve: _leveIds, dataInizio: date, oraInizio: start || null, oraFine: end || null, luogo: luogo || null, note: note || null, ricorrente: false })
+    }).then(function(r) {
+      if (!r.ok) { return r.json().then(function(e) { toast('⛔ Errore creazione: ' + (e.error || r.status)); }); }
+      toast('✅ Evento creato');
+      _loadCalEvents();
+    }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
   }
   closeM('mEvento');
   renderCal();
@@ -15980,6 +17102,17 @@ function deleteCurrentEvento(){
     return;
   }
   if (!confirm('Eliminare l\'evento "' + ev.title + '"?')) return;
+  if (ev._fromApi) {
+    closeM('mEvento');
+    fetch(API_BASE + '/api/v2/events/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token } })
+      .then(function(r) {
+        if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
+        purgeEventRefs(id);
+        toast('🗑 Evento eliminato');
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
+  }
   purgeEventRefs(id);
   events = events.filter(e => e.id !== id);
   closeM('mEvento'); renderCal();
@@ -15991,6 +17124,31 @@ function applyDeleteChoice() {
   const choice = (document.querySelector('#mDeleteChoice input[name="delChoice"]:checked') || {}).value || 'solo';
   const ev = events.find(e => e.id === _deleteTargetId);
   if (!ev) { _deleteTargetId = null; closeM('mDeleteChoice'); return; }
+
+  if (ev._fromApi) {
+    // Conta per il messaggio di conferma
+    const serie = events.filter(e => e.recurGroupId === ev.recurGroupId);
+    const fut   = serie.filter(e => e.date >= ev.date).length;
+    const n = choice === 'solo' ? 1 : choice === 'futuri' ? fut : serie.length;
+    const label = choice === 'solo' ? 'questo evento' : choice === 'futuri'
+      ? `${n} event${n===1?'o':'i'} (questo e i successivi)` : `tutta la serie (${n} event${n===1?'o':'i'})`;
+    if (!confirm(`Eliminare ${label}?\n\nQuesta azione non può essere annullata.`)) return;
+    const _url = choice === 'solo'
+      ? API_BASE + '/api/v2/events/' + ev.id
+      : choice === 'futuri'
+        ? API_BASE + '/api/v2/events/' + ev.id + '/series/from-here'
+        : API_BASE + '/api/v2/events/' + ev.id + '/series';
+    _deleteTargetId = null;
+    closeM('mDeleteChoice');
+    fetch(_url, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token } })
+      .then(function(r) {
+        if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
+        purgeEventRefs(ev.id);
+        toast('🗑 Eliminat' + (n===1?'o':'i') + ' ' + n + ' event' + (n===1?'o':'i'));
+        _loadCalEvents();
+      }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
+  }
 
   let toDelete = [];
   if (choice === 'solo') {
@@ -16035,6 +17193,35 @@ function applyEditChoice() {
   if (newCampoId && newCampoId !== oldCampoId) {
     const c = campi.find(x => x.id === newCampoId);
     if (c) c.usageCount = (c.usageCount || 0) + 1;
+  }
+
+  if (ev._fromApi) {
+    const _leveIds = (fields.leve || []).map(n => _calLeveMap[n]).filter(Boolean);
+    const _body = {
+      tipo: fields.type, titolo: fields.title,
+      dataInizio: fields.date, oraInizio: fields.start || null, oraFine: fields.end || null,
+      luogo: fields.luogo || null, note: fields.note || null, leve: _leveIds
+    };
+    const _url = choice === 'solo'
+      ? API_BASE + '/api/v2/events/' + evId
+      : choice === 'futuri'
+        ? API_BASE + '/api/v2/events/' + evId + '/series/from-here'
+        : API_BASE + '/api/v2/events/' + evId + '/series';
+    _editPendingData = null;
+    closeM('mEditChoice');
+    fetch(_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(_body)
+    }).then(function(r) {
+      if (!r.ok) { toast('⛔ Errore aggiornamento'); return; }
+      const _msg = choice === 'solo' ? '✅ Evento aggiornato'
+        : choice === 'futuri' ? '✅ Aggiornati eventi successivi'
+        : '✅ Tutta la serie aggiornata';
+      toast(_msg);
+      _loadCalEvents();
+    }).catch(function() { toast('⛔ Errore di rete'); });
+    return;
   }
 
   if (choice === 'solo') {
@@ -16134,17 +17321,31 @@ function creaAllenamentiRicorrenti(){
   if (!giorni.length) { toast('⚠️ Seleziona almeno un giorno della settimana'); return; }
   if (!da || !a)      { toast('⚠️ Imposta data inizio e fine'); return; }
   if (a < da)         { toast('⚠️ La data di fine deve essere dopo quella di inizio'); return; }
-  const groupId = Date.now();
-  const cur = parseYmd(da), fin = parseYmd(a);
-  const dates = [];
-  while (cur <= fin) { if (giorni.includes(cur.getDay())) dates.push(ymd(new Date(cur))); cur.setDate(cur.getDate()+1); }
-  if (!dates.length) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
-  if (dates.length > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
-  dates.forEach(d => events.push({ id:nextEventId++, title, type, date:d, start, end, luogo, campoId:campoIdSel||undefined, note, recur:'none', recurUntil:null, leve:leveSel.slice(), visibilitaMode, createdBy:me.email, recurGroupId:groupId }));
-  if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+dates.length; }
-  closeM('mEvento'); renderCal();
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast('✅ Creati ' + dates.length + ' allenament' + (dates.length===1?'o':'i'));
+  // Stima locale per validazione max 200
+  const _cur = parseYmd(da), _fin = parseYmd(a);
+  let _cnt = 0;
+  while (_cur <= _fin && _cnt <= 201) { if (giorni.includes(_cur.getDay())) _cnt++; _cur.setDate(_cur.getDate()+1); }
+  if (_cnt === 0) { toast('⚠️ Nessuna data corrisponde ai giorni selezionati'); return; }
+  if (_cnt > 200) { toast('⚠️ Troppi allenamenti (max 200). Riduci il periodo.'); return; }
+  if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+_cnt; }
+  const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
+  closeM('mEvento');
+  fetch(API_BASE + '/api/v2/events', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+    body: JSON.stringify({
+      tipo: type, titolo: title, leve: _leveIds,
+      dataInizio: da, oraInizio: start || null, oraFine: end || null,
+      luogo: luogo || null, note: note || null,
+      ricorrente: true, freq: 'weekly', giorni: giorni.join(','), finoAl: a
+    })
+  }).then(function(r) {
+    if (!r.ok) { return r.json().then(function(e) { toast('⛔ Errore: ' + (e.error || r.status)); }); }
+    return r.json().then(function(data) {
+      toast('✅ Creati ' + data.total_created + ' allenament' + (data.total_created===1?'o':'i'));
+      _loadCalEvents();
+    });
+  }).catch(function() { toast('⛔ Errore di rete'); });
 }
 
 // ── Gestione campi ───────────────────────────────
@@ -16706,6 +17907,7 @@ function renderGestComp() {
     }
     if (gcCurrentTab === 'tornei' && isAdmin) {
       const b = document.createElement('button'); b.className='btn btn-p btn-sm'; b.textContent='+ Nuovo torneo'; b.onclick=()=>openGcTorneoEdit(null); actEl.appendChild(b);
+      const b2 = document.createElement('button'); b2.className='btn btn-s btn-sm'; b2.style.marginLeft='6px'; b2.textContent='📄 Importa da PDF'; b2.onclick=()=>openImportTorneoPdf(); actEl.appendChild(b2);
     }
     if (gcCurrentTab === 'amichevoli' && canAll) {
       const b = document.createElement('button'); b.className='btn btn-p btn-sm'; b.textContent='+ Amichevole'; b.onclick=()=>openPtAmich(null); actEl.appendChild(b);
@@ -16823,6 +18025,189 @@ function gcArchiviaTorneo(id, val) {
   renderGestComp();
   toast(val ? '📦 Torneo archiviato' : '↩ Torneo ripristinato');
 }
+// ─── Import Torneo da PDF ────────────────────────────────────────────────────
+function openImportTorneoPdf() {
+  _importPdfStep = 1; _importPdfData = null;
+  _ipRenderStep();
+  const fi = document.getElementById('ipFile'); if (fi) fi.value = '';
+  _ipShowErr(''); _ipShowSpinner(false);
+  const fn = document.getElementById('ipFileName'); if (fn) fn.textContent = '';
+  openM('mImportPdf');
+}
+function _ipOnFileChange() {
+  const file = document.getElementById('ipFile')?.files?.[0];
+  const fn = document.getElementById('ipFileName');
+  if (fn) fn.textContent = file ? `${file.name} (${Math.round(file.size/1024)} KB)` : '';
+  _ipShowErr('');
+}
+function _ipShowErr(msg) {
+  const el = document.getElementById('ipErr'); if (!el) return;
+  el.style.display = msg ? '' : 'none'; el.textContent = msg;
+}
+function _ipShowSpinner(on) {
+  const s = document.getElementById('ipSpinner'); const b = document.getElementById('ipBtnAnalyze');
+  if (s) s.style.display = on ? '' : 'none'; if (b) b.disabled = on;
+}
+function _ipRenderStep() {
+  const bar = document.getElementById('ipStepBar');
+  const lbls = ['1. Carica PDF','2. Verifica dati','3. Squadre mie'];
+  if (bar) bar.innerHTML = [1,2,3].map(n => {
+    const active=n===_importPdfStep, done=n<_importPdfStep;
+    return `<div style="flex:1;text-align:center;padding:6px 4px;font-size:.73rem;font-weight:${active?700:400};color:${active?'var(--cl)':done?'#16a34a':'var(--text3)'};border-bottom:2px solid ${active?'var(--cl)':done?'#16a34a':'transparent'};">${done?'✓ ':''}${lbls[n-1]}</div>`;
+  }).join('');
+  ['ipStep1','ipStep2','ipStep3'].forEach((id,i)=>{ const el=document.getElementById(id); if(el) el.style.display=(_importPdfStep===i+1)?'':'none'; });
+  if (_importPdfStep===2 && _importPdfData) _ipPopulateStep2();
+  if (_importPdfStep===3 && _importPdfData) _ipPopulateStep3();
+}
+function _ipPopulateStep2() {
+  const d=_importPdfData;
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val||'';};
+  set('ipNome',d.nome); set('ipDataI',d.dataInizio); set('ipDataF',d.dataFine); set('ipLuogo',d.luogo);
+  _ipRenderGironi(); _ipRenderPartite();
+}
+function _ipRenderGironi() {
+  const el=document.getElementById('ipGironiList'); if(!el||!_importPdfData) return;
+  el.innerHTML=(_importPdfData.gironi||[]).map((g,gi)=>{
+    const sqPills=(g.squadre||[]).map((s,si)=>
+      `<span style="background:var(--cl);color:var(--cp);padding:2px 8px;border-radius:10px;font-size:.74rem;display:inline-flex;align-items:center;gap:3px;">${escapeHtml(s)}<button onclick="_ipRemoveSquadra(${gi},${si})" style="background:none;border:none;cursor:pointer;color:inherit;padding:0 0 0 1px;line-height:1;font-size:.68rem;">✕</button></span>`
+    ).join('');
+    return `<div style="background:var(--bg2,#f3f4f6);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+        <input value="${escapeHtml(g.nome)}" placeholder="Nome girone" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_importPdfData.gironi[${gi}].nome=this.value">
+        <button class="btn btn-r btn-sm" onclick="_ipRemoveGirone(${gi})" title="Elimina girone">🗑</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;">${sqPills}<button onclick="_ipAddSquadra(${gi})" style="border:1px dashed var(--border);background:none;border-radius:10px;padding:2px 8px;font-size:.72rem;cursor:pointer;color:var(--text2);">+ squadra</button></div>
+    </div>`;
+  }).join('')||'<div style="color:var(--text3);font-size:.8rem;padding:4px;">Nessun girone.</div>';
+}
+function _ipRenderPartite() {
+  const el=document.getElementById('ipPartiteList'); const cnt=document.getElementById('ipPartiteCount');
+  if(!el||!_importPdfData) return;
+  const partite=_importPdfData.partite||[];
+  if(cnt) cnt.textContent=`(${partite.length})`;
+  if(!partite.length){el.innerHTML='<div style="color:var(--text3);font-size:.8rem;padding:8px 4px;">Nessuna partita estratta.</div>';return;}
+  const gironiNomi=(_importPdfData.gironi||[]).map(g=>g.nome);
+  const is='padding:2px 4px;border:1px solid var(--border);border-radius:4px;font-size:.72rem;width:100%;min-width:0;';
+  el.innerHTML=partite.map((p,pi)=>{
+    const opts=gironiNomi.map(n=>`<option${n===p.girone?' selected':''}>${escapeHtml(n)}</option>`).join('');
+    return `<div style="display:grid;grid-template-columns:90px 64px 80px 1fr 1fr 26px;gap:3px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+      <input type="date" value="${escapeHtml(p.data||'')}" style="${is}" oninput="_importPdfData.partite[${pi}].data=this.value||null">
+      <input value="${escapeHtml(p.orario||'')}" placeholder="HH:MM" style="${is}" oninput="_importPdfData.partite[${pi}].orario=this.value||null">
+      <select style="padding:2px 3px;border:1px solid var(--border);border-radius:4px;font-size:.7rem;width:100%;min-width:0;" onchange="_importPdfData.partite[${pi}].girone=this.value">${opts||'<option></option>'}</select>
+      <input value="${escapeHtml(p.casa||'')}" placeholder="Casa" style="${is}" oninput="_importPdfData.partite[${pi}].casa=this.value">
+      <input value="${escapeHtml(p.ospite||'')}" placeholder="Ospite" style="${is}" oninput="_importPdfData.partite[${pi}].ospite=this.value">
+      <button onclick="_ipRemovePartita(${pi})" style="border:none;background:var(--rbg,#fef2f2);color:var(--red,#dc2626);border-radius:4px;cursor:pointer;padding:2px 4px;font-size:.7rem;" title="Elimina">🗑</button>
+    </div>`;
+  }).join('');
+}
+function _ipRemoveGirone(gi) { if(!_importPdfData) return; _importPdfData.gironi.splice(gi,1); _ipRenderGironi(); _ipRenderPartite(); }
+function _ipAddGirone() {
+  if(!_importPdfData) return;
+  if(!Array.isArray(_importPdfData.gironi)) _importPdfData.gironi=[];
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  _importPdfData.gironi.push({nome:letters[_importPdfData.gironi.length]||'Nuovo',squadre:[]});
+  _ipRenderGironi();
+}
+function _ipRemoveSquadra(gi,si) { if(!_importPdfData) return; _importPdfData.gironi[gi].squadre.splice(si,1); _ipRenderGironi(); }
+function _ipAddSquadra(gi) {
+  const nome=prompt('Nome squadra:'); if(!nome||!nome.trim()) return;
+  if(!Array.isArray(_importPdfData.gironi[gi].squadre)) _importPdfData.gironi[gi].squadre=[];
+  _importPdfData.gironi[gi].squadre.push(nome.trim().toUpperCase()); _ipRenderGironi();
+}
+function _ipRemovePartita(pi) { if(!_importPdfData) return; _importPdfData.partite.splice(pi,1); _ipRenderPartite(); }
+function _ipAddPartita() {
+  if(!_importPdfData) return;
+  if(!Array.isArray(_importPdfData.partite)) _importPdfData.partite=[];
+  const primoGirone=(_importPdfData.gironi||[])[0]?.nome||'';
+  _importPdfData.partite.push({data:null,orario:null,girone:primoGirone,casa:'',ospite:'',luogo:null});
+  _ipRenderPartite();
+}
+function _ipGoToStep3() {
+  if(!_importPdfData) return;
+  const nome=document.getElementById('ipNome')?.value?.trim();
+  if(!nome){toast('⚠️ Inserisci il nome del torneo');return;}
+  _importPdfData.nome=nome;
+  _importPdfData.dataInizio=document.getElementById('ipDataI')?.value||null;
+  _importPdfData.dataFine=document.getElementById('ipDataF')?.value||null;
+  _importPdfData.luogo=document.getElementById('ipLuogo')?.value?.trim()||null;
+  _importPdfStep=3; _ipRenderStep();
+}
+function _ipPopulateStep3() {
+  const el=document.getElementById('ipSquadreList'); if(!el||!_importPdfData) return;
+  const all=new Set();
+  (_importPdfData.gironi||[]).forEach(g=>(g.squadre||[]).forEach(s=>all.add(s)));
+  (_importPdfData.partite||[]).forEach(p=>{if(p.casa)all.add(p.casa);if(p.ospite)all.add(p.ospite);});
+  const teams=[...all].sort();
+  if(!teams.length){el.innerHTML='<div style="color:var(--text3);font-size:.83rem;">Nessuna squadra trovata. Torna indietro e verifica i gironi.</div>';return;}
+  el.innerHTML=teams.map(t=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);"><input type="checkbox" class="ip-sq-chk" value="${escapeHtml(t)}" style="width:17px;height:17px;flex-shrink:0;"><span style="font-size:.86rem;">${escapeHtml(t)}</span></label>`).join('');
+}
+async function importPdfAnalyze() {
+  const fileEl=document.getElementById('ipFile'); const file=fileEl?.files?.[0];
+  if(!file){_ipShowErr('Seleziona un file PDF prima di continuare');return;}
+  if(!file.name.toLowerCase().endsWith('.pdf')){_ipShowErr('Il file deve essere un PDF');return;}
+  if(file.size>5*1024*1024){_ipShowErr('Il PDF supera il limite di 5 MB');return;}
+  _ipShowSpinner(true); _ipShowErr('');
+  const fd=new FormData(); fd.append('file',file); fd.append('leva',currentLeva||'');
+  try {
+    const resp=await fetch(API_BASE+'/api/v2/ai/import-torneo-pdf',{method:'POST',headers:{'Authorization':'Bearer '+_v2Token},body:fd});
+    const json=await resp.json().catch(()=>({}));
+    if(!resp.ok){
+      const msg=json.message||json.motivo||json.error||"Errore durante l'analisi";
+      _ipShowErr(resp.status===402?'Budget AI esaurito: '+msg:msg);
+      _ipShowSpinner(false); return;
+    }
+    _importPdfData=json.data;
+    if(!Array.isArray(_importPdfData?.gironi)) _importPdfData.gironi=[];
+    if(!Array.isArray(_importPdfData?.partite)) _importPdfData.partite=[];
+    _importPdfStep=2; _ipRenderStep();
+  } catch(e) { _ipShowErr('Errore di rete — verifica la connessione'); }
+  _ipShowSpinner(false);
+}
+function importPdfSave() {
+  if(!_importPdfData) return;
+  const chks=document.querySelectorAll('#ipSquadreList .ip-sq-chk:checked');
+  const squadreMieFlag=Array.from(chks).map(c=>c.value);
+  const fasi=(_importPdfData.gironi||[]).map(g=>({
+    id:'f'+nextFaseId++,
+    nome:g.nome,
+    tipo:'girone',
+    faseGruppo:null,
+    squadre:[...(g.squadre||[])],
+    partite:(_importPdfData.partite||[]).filter(p=>p.girone===g.nome).map(p=>({
+      id:'tm'+nextTornMatchId++,
+      data:p.data||null,
+      casa:p.casa||'',
+      ospite:p.ospite||'',
+      played:false,
+      golCasa:0,
+      golOspiti:0,
+      stats:[],
+      visibilitaSubito:false,
+    })),
+  }));
+  const allSq=[...new Set((_importPdfData.gironi||[]).flatMap(g=>g.squadre||[]))];
+  tornei.push({
+    id:'t'+nextTorneoId++,
+    nome:_importPdfData.nome||'Torneo importato',
+    leva:currentLeva,
+    luogo:_importPdfData.luogo||'',
+    dataInizio:_importPdfData.dataInizio||'',
+    dataFine:_importPdfData.dataFine||'',
+    tipo:3,
+    spareggio:['scontro_diretto','dr_generale','gf_generale'],
+    squadrePartecipanti:allSq,
+    fasi,
+    convocati:[],
+    archiviato:false,
+    squadreMieFlag,
+    _migrated_gironi_v1:true,
+  });
+  window.__fieldosSaveState();
+  closeM('mImportPdf');
+  renderGestComp(); renderPartite(); renderCal();
+  toast(`✅ Torneo "${_importPdfData.nome||'importato'}" salvato!`);
+}
+
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
   const all = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
@@ -16869,22 +18254,22 @@ function _gcFaseStanding(t, f) {
   const opts = {spareggio: t.spareggio||['scontro_diretto','dr_generale','gf_generale']};
   const standings = computeStandings(f.squadre||[], f.partite||[], opts);
   if (!standings.length) return '';
-  const polis = polisName(t.leva);
-  const rows = standings.map((sq,i)=>{const ip=sq.nome===polis;const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${sq.gf}</td><td>${sq.gs}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('');
+  const mieSquadre = _getMieSquadre(t);
+  const rows = standings.map((sq,i)=>{const ip=mieSquadre.includes(sq.nome);const dr=sq.dr>=0?'+'+sq.dr:String(sq.dr);return `<tr${ip?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${ip?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${sq.gf}</td><td>${sq.gs}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;}).join('');
   return `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>GF</th><th>GS</th><th>DR</th><th>Pt</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function _gcFaseMatches(t, f) {
-  const polis = polisName(t.leva);
+  const mieSquadre = _getMieSquadre(t);
   const canEdit = canEditPt(t.leva);
   const sorted = [...(f.partite||[])].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
-  const polisHtml = sorted.filter(m=>m.casa===polis||m.ospite===polis).map(m=>{
+  const polisHtml = sorted.filter(m=>mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)).map(m=>{
     const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
     const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
-  const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>m.casa!==polis&&m.ospite!==polis), t.leva, t.id, f.id);
+  const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
   return polisHtml + altriHtml + addBtn;
 }
@@ -16923,7 +18308,7 @@ function _gcRenderTorneoTipo2(t) {
 
 function _gcRenderTorneoTipo3(t) {
   const canEdit = canEditPt(t.leva);
-  const polis = polisName(t.leva);
+  const mieSquadre = _getMieSquadre(t);
   const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket');
   const fBracket = (t.fasi||[]).find(f=>f.tipo==='bracket');
   const gHtml = fGironi.length ? fGironi.map(f=>`<div class="fase-sep">${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone configurato.</div>';
@@ -16936,7 +18321,7 @@ function _gcRenderTorneoTipo3(t) {
       const mHtml = rounds[r].map(m => {
         const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
         const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-        const ip=m.casa===polis||m.ospite===polis;
+        const ip=mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite);
         return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div><div class="mc-actions">${rb}</div></div>`;
       }).join('');
       return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
@@ -17023,7 +18408,8 @@ function saveGcGiornate() {
   campionato[leva].giornate = _gcCampGiornateUI.map(g=>({num:g.num,data:g.data||''}));
   closeM('mGcGiornate');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Giornate salvate!');
 }
 
@@ -17074,7 +18460,8 @@ function saveGcAssegnaFinali() {
   });
   closeM('mGcAssegnaFinali');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Squadre assegnate!');
 }
 
@@ -17140,7 +18527,8 @@ function saveGcBracketEdit() {
   document.getElementById('gcBracketFaseId').value = fBracket.id;
   closeM('mGcBracketEdit');
   window.__fieldosSaveState();
-  renderGestComp();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Tabellone salvato!');
 }
 
@@ -17322,6 +18710,13 @@ function openGcTorneoEdit(id) {
   document.getElementById('gcTorneoDataF').value = t?.dataFine||today;
   const leva = levSel.value;
   _gcTorneoSquadre = t?.squadrePartecipanti ? [...t.squadrePartecipanti] : [polisName(leva)];
+  // Inizializza mia squadra: da dati salvati oppure pre-seleziona polisName per tornei nuovi/legacy
+  if (t?.squadreMieFlag && t.squadreMieFlag.length) {
+    _gcTorneoSquadreMie = [...t.squadreMieFlag];
+  } else {
+    const defaultPolis = polisName(leva);
+    _gcTorneoSquadreMie = _gcTorneoSquadre.includes(defaultPolis) ? [defaultPolis] : [];
+  }
   gcTorneoRenderSquadre();
   // Tipo
   _gcTorneoTipo = t?.tipo || 1;
@@ -17368,9 +18763,18 @@ function gcTorneoRenderSquadre() {
   const el = document.getElementById('gcTorneoSquadreList'); if(!el) return;
   const polis = polisName(document.getElementById('gcTorneoLeva').value);
   el.innerHTML = _gcTorneoSquadre.map((s,i)=>{
-    const ip=s===polis;
-    return `<span style="background:${ip?'var(--cl)':'var(--bg)'};color:${ip?'var(--cp)':'var(--text)'};padding:3px 9px;border-radius:12px;font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(s)}${!ip?`<span onclick="gcTorneoRemoveSquadra(${i})" style="cursor:pointer;opacity:.7;">✕</span>`:''}</span>`;
+    const isMia = _gcTorneoSquadreMie.includes(s);
+    const isPolis = s === polis;
+    const starChk = `<label style="display:inline-flex;align-items:center;gap:2px;cursor:pointer;font-size:.68rem;color:${isMia?'var(--cp)':'var(--text3)'};margin-left:1px;" title="Squadra mia (⭐)"><input type="checkbox" style="width:11px;height:11px;accent-color:var(--cp);cursor:pointer;" ${isMia?'checked':''} onchange="gcTorneoToggleMia(${i},this.checked)">⭐</label>`;
+    const rmBtn = !isPolis ? `<span onclick="gcTorneoRemoveSquadra(${i})" style="cursor:pointer;opacity:.6;font-size:.7rem;margin-left:1px;">✕</span>` : '';
+    return `<span style="background:${isMia?'var(--cl)':'var(--bg)'};color:${isMia?'var(--cp)':'var(--text)'};padding:3px 9px;border-radius:12px;font-size:.74rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">${escapeHtml(s)}${starChk}${rmBtn}</span>`;
   }).join('');
+}
+function gcTorneoToggleMia(i, checked) {
+  const sq = _gcTorneoSquadre[i];
+  if (checked) { if (!_gcTorneoSquadreMie.includes(sq)) _gcTorneoSquadreMie.push(sq); }
+  else { _gcTorneoSquadreMie = _gcTorneoSquadreMie.filter(s => s !== sq); }
+  gcTorneoRenderSquadre();
 }
 function gcTorneoAddSquadra() {
   const v = document.getElementById('gcTorneoNewSquadra').value.trim(); if(!v) return;
@@ -17384,6 +18788,7 @@ function gcTorneoRemoveSquadra(i) {
   if (_gcTorneoSquadre[i]===polis) return;
   const rem = _gcTorneoSquadre[i];
   _gcTorneoSquadre.splice(i,1);
+  _gcTorneoSquadreMie = _gcTorneoSquadreMie.filter(s => s !== rem);
   [_gcTorneoFasiUI,_gcTorneoGironiQUI,_gcTorneoGironiFUI,_gcTorneoGironiUI].forEach(arr=>arr.forEach(g=>{if(Array.isArray(g.squadre))g.squadre=g.squadre.filter(s=>s!==rem);}));
   gcTorneoRenderSquadre();
   gcTorneoRenderFasi(); gcTorneoRenderGironi2Q(); gcTorneoRenderGironi2F(); gcTorneoRenderGironi3();
@@ -17509,6 +18914,7 @@ function saveGcTorneo() {
       t.nome=nome; t.leva=leva; t.luogo=luogo; t.dataInizio=di; t.dataFine=df;
       t.tipo=tipo; t.spareggio=spareggio;
       t.squadrePartecipanti = [..._gcTorneoSquadre];
+      t.squadreMieFlag = [..._gcTorneoSquadreMie];
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
@@ -17518,7 +18924,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[]};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie]};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
@@ -17572,13 +18978,15 @@ function getPtVirtualEvents(dateStr) {
           }
         }
       }
-      (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(m.casa===polis||m.ospite===polis)).forEach(m=>{
+      const mieSquadre = _getMieSquadre(t);
+      (t.fasi||[]).forEach(f=>(f.partite||[]).filter(m=>m.data===dateStr&&(mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m=>{
         if (family) {
           const fase = getFasePartitaTorneo(m, t, lv);
           if (fase === 'none') return;
           if (fase === 'fase1') { out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:'🏆 Partita torneo',color:'#e03055',priority:3}); return; }
         }
-        const avv=m.casa===polis?m.ospite:m.casa;
+        const miaCasa = mieSquadre.includes(m.casa);
+        const avv=miaCasa?m.ospite:m.casa;
         const sc=m.played?` ${m.golCasa}–${m.golOspiti}`:'';
         out.push({_virt:true,_tipo:'torneo',_ref:`${t.id}__${f.id}__${m.id}`,_leva:lv,title:`🏆 ${t.nome}: vs ${avv}${sc}`,color:'#e03055',priority:3});
       }));
@@ -17643,7 +19051,8 @@ function saveQuickResult(tipo, ref, idC, idO) {
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
-  window.__fieldosSaveState(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
 }
 
 // ─── MODALI AMICHEVOLE ───
@@ -17717,7 +19126,8 @@ function savePtAmich() {
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  renderGestComp(); renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
 }
 
@@ -17820,7 +19230,8 @@ function saveCampSetup() {
   campionato[currentLeva].squadre = [..._campSetupSquadre];
   campionato[currentLeva].partite = _campSetupMatches.map(m => ({...m}));
   closeM('mCampSetup');
-  window.__fieldosSaveState(); renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Campionato configurato!');
 }
 
@@ -18100,7 +19511,8 @@ function savePtRisultato() {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
-  window.__fieldosSaveState(); renderPartite(); renderCal();
+  // fix: rerender completo dopo save (audit 21/05)
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Risultato salvato!');
 }
 
@@ -20876,7 +22288,7 @@ function _rejectParentalConsent() {
   logout();
 }
 
-const _WA_REGEX = /^\+\d{1,4}\d{6,14}$/;
+const _PHONE_IT_REGEX = /^\d{9,10}$/;
 
 async function doSelfRegister() {
   _rClearErr();
@@ -20885,8 +22297,8 @@ async function doSelfRegister() {
   const cogn            = (document.getElementById('rCogn').value || '').trim();
   const email           = (document.getElementById('rEmail').value || '').trim().toLowerCase();
   const pass            = document.getElementById('rPass').value || '';
-  const phone           = (document.getElementById('rPhone').value || '').trim();
-  const whatsappNumber  = phone.replace(/\s/g, '');
+  const phoneDigits     = (document.getElementById('rPhoneNum').value || '').replace(/\D/g, '');
+  const phone           = phoneDigits ? '+39' + phoneDigits : '';
   const societa         = (document.getElementById('rSocieta').value || '').trim();
   const citta           = (document.getElementById('rCitta').value || '').trim();
   const piano           = document.getElementById('rPiano').value || 'mister';
@@ -20897,7 +22309,7 @@ async function doSelfRegister() {
   if (!cogn)                                { _rShowErr('⚠️ Inserisci il cognome'); return; }
   if (!email || !email.includes('@'))       { _rShowErr('⚠️ Email non valida'); return; }
   if (pass.length < 8)                      { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
-  if (!_WA_REGEX.test(whatsappNumber))      { _rShowErr('⚠️ Inserisci un numero WhatsApp valido con prefisso internazionale (es. +39 333 0000000)'); return; }
+  if (!_PHONE_IT_REGEX.test(phoneDigits))   { _rShowErr('⚠️ Inserisci il numero di cellulare (9-10 cifre, es. 3471234567)'); return; }
   if (!societa)                             { _rShowErr('⚠️ Inserisci il nome della società'); return; }
   if (!privacyAccepted)                     { _rShowErr('⚠️ Devi accettare la Privacy Policy per registrarti'); return; }
 
@@ -20910,7 +22322,7 @@ async function doSelfRegister() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome, cognome: cogn, email, password: pass,
-        phone, whatsappNumber, nomeSocieta: societa, citta, piano,
+        phone, nomeSocieta: societa, citta, piano,
         privacyAccepted: true, marketingConsent,
       }),
     });
@@ -20921,7 +22333,8 @@ async function doSelfRegister() {
     if (resp.status === 400) {
       const msg = data.error === 'invalid_email'       ? '⚠️ Email non valida'
                 : data.error === 'password_too_short'  ? '⚠️ Password troppo corta (min. 8 caratteri)'
-                : data.error === 'invalid_whatsapp'    ? '⚠️ Numero WhatsApp non valido — usa il formato +39 333 0000000'
+                : data.error === 'phone_required'      ? '⚠️ Inserisci un numero di cellulare italiano valido (es. 3471234567)'
+                : data.error === 'invalid_whatsapp'    ? '⚠️ Numero di cellulare non valido'
                 : data.error === 'privacy_required'    ? '⚠️ Devi accettare la Privacy Policy'
                 : '⚠️ Compila tutti i campi obbligatori';
       _rShowErr(msg); return;
@@ -23314,6 +24727,7 @@ async function doRejoinSocieta() {
       });
       // Migrazione idempotente: aggiunge archiviato:false ai tornei esistenti
       if (Array.isArray(tornei)) tornei.forEach(t => { if (t.archiviato === undefined) t.archiviato = false; });
+      if (Array.isArray(tornei)) tornei.forEach(t => { if (t.squadreMieFlag === undefined) t.squadreMieFlag = []; });
       if (typeof s.nextTorneoId === 'number') nextTorneoId = s.nextTorneoId;
       if (typeof s.nextFaseId === 'number') nextFaseId = s.nextFaseId;
       if (typeof s.nextTornMatchId === 'number') nextTornMatchId = s.nextTornMatchId;
@@ -23983,6 +25397,63 @@ async function doRejoinSocieta() {
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcAddMatch')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="saveGcAddMatch()">💾 Aggiungi partita</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Importa Torneo da PDF ── -->
+<div class="ov" id="mImportPdf">
+  <div class="modal" style="width:680px;max-width:96vw;max-height:92vh;overflow-y:auto;">
+    <div class="mh" style="position:sticky;top:0;background:var(--white);z-index:2;">
+      <div class="mt">📄 Importa torneo da PDF</div>
+      <button class="mx" onclick="closeM('mImportPdf')">✕</button>
+    </div>
+    <div id="ipStepBar" style="display:flex;padding:0 16px 12px;border-bottom:1px solid var(--border);"></div>
+    <!-- Step 1 -->
+    <div id="ipStep1" style="padding:16px;">
+      <div style="text-align:center;padding:24px 0;">
+        <div style="font-size:2.8rem;margin-bottom:12px;">📄</div>
+        <div style="font-size:.88rem;color:var(--text2);margin-bottom:18px;">Carica il PDF del tabellone.<br>Claude estrarrà gironi, squadre e partite automaticamente.</div>
+        <label for="ipFile" style="display:inline-block;cursor:pointer;padding:12px 24px;border:2px dashed var(--border);border-radius:10px;font-size:.88rem;color:var(--text2);background:var(--bg);">📂 Scegli PDF</label>
+        <input type="file" id="ipFile" accept=".pdf" style="display:none;" onchange="_ipOnFileChange()">
+        <div id="ipFileName" style="margin-top:8px;font-size:.8rem;color:var(--text3);min-height:1.2em;"></div>
+        <div id="ipErr" style="display:none;margin-top:10px;padding:8px 12px;background:var(--rbg,#fef2f2);color:var(--red,#dc2626);border-radius:7px;font-size:.83rem;"></div>
+        <div id="ipSpinner" style="display:none;margin-top:14px;color:var(--text2);font-size:.85rem;">⏳ Claude sta analizzando il PDF…</div>
+        <button id="ipBtnAnalyze" class="btn btn-p" style="margin-top:16px;width:100%;max-width:260px;" onclick="importPdfAnalyze()">🔍 Analizza PDF</button>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div id="ipStep2" style="display:none;padding:16px;">
+      <div style="font-weight:700;font-size:.83rem;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em;">Dati torneo</div>
+      <div class="fg"><label class="fl">Nome torneo *</label><input class="fi" id="ipNome" placeholder="Es. Torneo Primavera" oninput="_importPdfData.nome=this.value"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="fg"><label class="fl">Data inizio</label><input class="fi" type="date" id="ipDataI" oninput="_importPdfData.dataInizio=this.value||null"></div>
+        <div class="fg"><label class="fl">Data fine</label><input class="fi" type="date" id="ipDataF" oninput="_importPdfData.dataFine=this.value||null"></div>
+      </div>
+      <div class="fg"><label class="fl">Luogo</label><input class="fi" id="ipLuogo" placeholder="Es. Stadio Comunale" oninput="_importPdfData.luogo=this.value.trim()||null"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;">
+        <div style="font-weight:700;font-size:.83rem;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;flex:1;">Gironi e squadre</div>
+        <button class="btn btn-s btn-sm" onclick="_ipAddGirone()">+ Girone</button>
+      </div>
+      <div id="ipGironiList"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px;">
+        <div style="font-weight:700;font-size:.83rem;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;flex:1;">Partite <span id="ipPartiteCount" style="font-weight:400;text-transform:none;font-size:.78rem;"></span></div>
+        <button class="btn btn-s btn-sm" onclick="_ipAddPartita()">+ Partita</button>
+      </div>
+      <div id="ipPartiteList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:7px;padding:4px 8px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=1;_ipRenderStep()">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;" onclick="_ipGoToStep3()">Avanti → Seleziona squadre</button>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div id="ipStep3" style="display:none;padding:16px;">
+      <div style="font-size:.88rem;color:var(--text2);margin-bottom:14px;">Seleziona le squadre <strong>della tua società</strong> che partecipano al torneo.</div>
+      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow-y:auto;padding-right:4px;"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=2;_ipRenderStep()">← Indietro</button>
+        <button class="btn btn-p" style="flex:1;" onclick="importPdfSave()">✅ Salva torneo</button>
+      </div>
     </div>
   </div>
 </div>
@@ -25347,10 +26818,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="all-fs-grid">
       <div>
         <div style="font-weight:700;margin-bottom:12px;font-size:.92rem;color:var(--text2);">DATI ALLENAMENTO</div>
+        <div id="_allFsEventInfo" style="display:none;"></div>
         <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="_allFsTitolo" maxlength="200" placeholder="Es. Allenamento tecnica martedì"></div>
         <div class="fg"><label class="fl">Obiettivo</label><input class="fi" id="_allFsObiettivo" maxlength="300" placeholder="Es. Migliorare la pressione alta"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="fg" style="margin-bottom:0;"><label class="fl">Data *</label><input class="fi" id="_allFsData" type="date"></div>
+        <div id="_allFsDataGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fg" id="_allFsDataGroup" style="margin-bottom:0;"><label class="fl">Data</label><input class="fi" id="_allFsData" type="date"></div>
           <div class="fg" style="margin-bottom:0;"><label class="fl">Leva *</label><select class="fi" id="_allFsLeva"></select></div>
         </div>
         <div class="fg" style="margin-top:10px;"><label class="fl">Note seduta</label><textarea class="fi" id="_allFsNoteTesto" rows="3" placeholder="Istruzioni per lo staff, condizioni meteo..."></textarea></div>
