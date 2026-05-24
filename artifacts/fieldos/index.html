@@ -17598,6 +17598,26 @@ function canEnterResult(leva) {
 }
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
 
+function renderMatchEvents(m, leva) {
+  const isAdv = advStats(leva);
+  const items = [];
+  (m.stats||[]).filter(s=>s.gol>0).forEach(s=>{
+    const p=players.find(x=>x.id===s.playerId);
+    const nm=p?p.cogn:('#'+s.playerId);
+    items.push('⚽ '+escapeHtml(nm)+(s.gol>1?' ×'+s.gol:''));
+  });
+  if (isAdv) {
+    (m.stats||[]).filter(s=>s.gialli>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟨 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+    (m.stats||[]).filter(s=>s.rossi>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟥 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+    (m.cambi||[]).sort((a,b)=>(a.min||0)-(b.min||0)).forEach(c=>{
+      const pEn=players.find(x=>x.id===c.en),pUs=players.find(x=>x.id===c.us);
+      items.push('🔄 Esce '+escapeHtml(pUs?pUs.cogn:'#'+c.us)+' → Entra '+escapeHtml(pEn?pEn.cogn:'#'+c.en)+(c.min?' ('+c.min+"')": ''));
+    });
+  }
+  if (!items.length) return '';
+  return '<div style="font-size:.68rem;color:var(--text2);padding:4px 0 2px;line-height:1.7;">'+items.join(' · ')+'</div>';
+}
+
 // Stats aggregate per giocatore (amichevoli + campionato + tornei per una leva)
 function playerMatchStats(playerId, leva) {
   const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
@@ -17778,7 +17798,7 @@ function renderPtAmichevoli() {
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const risBtn = (!m.annullata && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}</div></div>`;
   };
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
@@ -17876,7 +17896,7 @@ function renderPtCampionato() {
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
     const risBtn = canEnterResult(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">✏️ Modifica risultato</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${renderMatchEvents(m,currentLeva)}<div class="mc-actions">${risBtn}</div></div>`;
   }).join('');
   let polisSchedHtml;
   if (isFamily()) {
@@ -18405,7 +18425,7 @@ function _gcFaseMatches(t, f) {
     const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
     const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}${db}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
@@ -18460,7 +18480,7 @@ function _gcRenderTorneoTipo3(t) {
         const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
         const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
         const ip=mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite);
-        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div><div class="mc-actions">${rb}</div></div>`;
+        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div>${ip&&m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}</div></div>`;
       }).join('');
       return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
     }).join('');
