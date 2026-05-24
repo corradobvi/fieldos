@@ -1813,6 +1813,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .demo-wa-banner__text{font-size:13px;}
   .demo-wa-banner__cta{padding:5px 12px;font-size:12px;}
 }
+/* ─── Partite Genitore page ─── */
+.pgf-chips{display:flex;gap:8px;padding:12px 14px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.pgf-chip{flex-shrink:0;padding:6px 16px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+.pgf-chip.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.pgf-section-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:10px 14px 4px;}
+.pgf-card{background:var(--card);border-radius:10px;margin:0 12px 10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;gap:12px;align-items:flex-start;}
+.pgf-card-date{flex-shrink:0;text-align:center;min-width:38px;}
+.pgf-card-day{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1;color:var(--cp);}
+.pgf-card-dow{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-top:2px;}
+.pgf-card-body{flex:1;min-width:0;}
+.pgf-card-title{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.pgf-card-sub{font-size:.76rem;color:var(--text2);margin-top:3px;}
+.pgf-card-badge{display:inline-block;font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:99px;margin-top:5px;}
+.pgf-empty{text-align:center;padding:40px 20px;color:var(--text2);}
+.pgf-empty-ic{font-size:2.2rem;margin-bottom:8px;}
+.pgf-empty-txt{font-weight:700;color:var(--text);margin-bottom:4px;}
+.pgf-empty-sub{font-size:.82rem;}
 </style>
 </head>
 <body>
@@ -2683,6 +2700,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </nav>
         <div class="sec-h"><div class="sec-t">📋 Convocazioni</div><div id="convActions"></div></div>
         <div id="convContent"></div>
+      </div>
+
+      <!-- PARTITE GENITORE -->
+      <div class="page" id="pg-partite-gen">
+        <div id="pgPartiteGenContent"></div>
       </div>
 
       <!-- PRESENZE -->
@@ -4977,7 +4999,7 @@ function buildMobNav(role) {
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
       {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'🔔', lb:'Avvisi', badge:'mn-comm'},
+      {id:'partite-gen',  ic:'⚽', lb:'Partite'},
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
@@ -5125,6 +5147,7 @@ function goTo(pgId) {
     if (pgId === 'statistiche')  renderStats();
   }
   if (pgId === 'convocazioni') renderConvocazioni();
+  if (pgId === 'partite-gen') renderPartiteGenitore();
   if (pgId === 'giocatori') renderGiocatori();
   // Gioc-subnav: show for mister on presenze/convocazioni/rosa
   const _gsnPages = ['presenze','convocazioni','rosa'];
@@ -7434,6 +7457,121 @@ function upcomingPartiteEvents(leveFilter) {
     .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data, leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '', visibilitaSubito: !!m.visibilitaSubito }; });
   return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
+}
+
+// All competitive events (past + future) for given leve — used by Partite Genitore tab.
+function getAllCompetitiveEventsForLeve(leveFilter) {
+  const fromEvents = events
+    .filter(e => (e.type === 'partita' || e.type === 'torneo' || e.type === 'amichevole'))
+    .filter(e => !e.recur || e.recur === 'none')
+    .filter(e => {
+      if (!leveFilter || !leveFilter.length) return true;
+      if (!e.leve || !e.leve.length) return false;
+      return e.leve.some(l => leveFilter.includes(l));
+    });
+  const fromTornei = (Array.isArray(tornei) ? tornei : [])
+    .filter(t => {
+      if (!leveFilter || !leveFilter.length) return true;
+      return leveFilter.includes(t.leva);
+    })
+    .map(t => ({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' }));
+  const fromCampionato = [];
+  Object.entries(campionato || {}).forEach(([lv, camp]) => {
+    if (!camp?.partite) return;
+    if (leveFilter && leveFilter.length && !leveFilter.includes(lv)) return;
+    const polis = _campPolis(lv);
+    camp.partite
+      .filter(m => m.data && (m.casa === polis || m.ospite === polis))
+      .forEach(m => {
+        const isHome = m.casa === polis;
+        const avv = (isHome ? m.ospite : m.casa) || '—';
+        fromCampionato.push({ id: `camp_${lv}_${m.id}`, type: 'partita', title: `⚽ ${polis} vs ${avv}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '', played: !!m.played, risultato: m.golCasa != null ? `${m.golCasa}-${m.golOspite}` : null, isHome });
+      });
+  });
+  const fromAmichevoli = (Array.isArray(amichevoli) ? amichevoli : [])
+    .filter(m => {
+      if (!leveFilter || !leveFilter.length) return true;
+      return leveFilter.includes(m.leva);
+    })
+    .map(m => { const polis = polisName(m.leva); const isH = (m.tipo||'casa')==='casa'; return { id: 'amich_' + m.id, type: 'partita', title: `🤝 ${isH?polis:m.avversario} vs ${isH?m.avversario:polis}`, date: m.data || '', leve: [m.leva], luogo: m.luogo || '', start: m.orario || '', end: '', played: !!m.played, risultato: m.golCasa != null ? `${m.golCasa}-${m.golOspite}` : null }; });
+  return [...fromEvents, ...fromTornei, ...fromCampionato, ...fromAmichevoli]
+    .filter(e => e.date)
+    .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
+}
+
+let _pgfChip = 'prossime';
+function _pgfSetChip(chip) {
+  _pgfChip = chip;
+  renderPartiteGenitore();
+}
+
+function renderPartiteGenitore() {
+  const c = document.getElementById('pgPartiteGenContent');
+  if (!c) return;
+  const myPlayers = getMyPlayers();
+  const leveFilter = myPlayers.map(p => p.leva).filter(Boolean);
+  const today = ymd(new Date());
+  const allEvs = getAllCompetitiveEventsForLeve(leveFilter.length ? leveFilter : null);
+  const _DOW = ['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+  const prossime = allEvs.filter(e => e.date >= today).reverse().reverse(); // keep asc
+  const concluse = allEvs.filter(e => e.date < today).reverse(); // most recent first
+
+  function evCard(ev) {
+    const d = parseYmd(ev.date);
+    const dayNum = d.getDate() + '/' + (d.getMonth()+1);
+    const dow = _DOW[d.getDay()];
+    const tipoIcon = ev.type === 'torneo' ? '🏆' : ev.id && String(ev.id).startsWith('amich_') ? '🤝' : '⚽';
+    const tipoLabel = ev.type === 'torneo' ? 'Torneo' : ev.id && String(ev.id).startsWith('amich_') ? 'Amichevole' : 'Partita';
+    const tipoColor = ev.type === 'torneo' ? '#92400e' : ev.id && String(ev.id).startsWith('amich_') ? '#1d4ed8' : 'var(--cp)';
+    const tipoBg = ev.type === 'torneo' ? '#fef3c7' : ev.id && String(ev.id).startsWith('amich_') ? '#dbeafe' : 'var(--cp-light,#dcfce7)';
+    const ora = ev.start ? ' · ' + ev.start : '';
+    const luogo = ev.luogo ? ' · ' + escapeHtml(ev.luogo) : '';
+    const conv = !ev.type || ev.type !== 'torneo' ? getConvocazione(ev.id) : null;
+    let convBadge = '';
+    if (conv && conv.playerIds && myPlayers.length) {
+      const convocato = myPlayers.some(p => (conv.playerIds || []).includes(p.id));
+      convBadge = convocato
+        ? '<span class="pgf-card-badge" style="background:#dcfce7;color:#166534;">🟢 CONVOCATO</span>'
+        : '<span class="pgf-card-badge" style="background:var(--border);color:var(--text2);">⚪ NON CONVOCATO</span>';
+    }
+    let risultatoBadge = '';
+    if (ev.risultato) {
+      risultatoBadge = `<span class="pgf-card-badge" style="background:#f1f5f9;color:var(--text);font-size:.72rem;">${ev.risultato}</span> `;
+    }
+    return `<div class="pgf-card">
+      <div class="pgf-card-date">
+        <div class="pgf-card-day">${dayNum}</div>
+        <div class="pgf-card-dow">${dow}</div>
+      </div>
+      <div class="pgf-card-body">
+        <div class="pgf-card-title">${escapeHtml(ev.title || '')}</div>
+        <div class="pgf-card-sub">${tipoIcon} ${tipoLabel}${ora}${luogo}</div>
+        ${risultatoBadge}${convBadge}
+      </div>
+    </div>`;
+  }
+
+  const chipBar = `<div class="pgf-chips">
+    <span class="pgf-chip${_pgfChip==='prossime'?' on':''}" onclick="_pgfSetChip('prossime')">⏳ Prossime (${prossime.length})</span>
+    <span class="pgf-chip${_pgfChip==='concluse'?' on':''}" onclick="_pgfSetChip('concluse')">✅ Concluse (${concluse.length})</span>
+  </div>`;
+
+  let body = '';
+  if (_pgfChip === 'prossime') {
+    if (!prossime.length) {
+      body = `<div class="pgf-empty"><div class="pgf-empty-ic">⚽</div><div class="pgf-empty-txt">Nessuna partita in programma</div><div class="pgf-empty-sub">Le prossime partite appariranno qui.</div></div>`;
+    } else {
+      body = prossime.map(evCard).join('');
+    }
+  } else {
+    if (!concluse.length) {
+      body = `<div class="pgf-empty"><div class="pgf-empty-ic">📋</div><div class="pgf-empty-txt">Nessuna partita conclusa</div><div class="pgf-empty-sub">I risultati delle partite giocate appariranno qui.</div></div>`;
+    } else {
+      body = concluse.map(evCard).join('');
+    }
+  }
+
+  c.innerHTML = chipBar + body;
 }
 
 // Pulisce i riferimenti a un giocatore eliminato (convocazioni + disponibilità)
