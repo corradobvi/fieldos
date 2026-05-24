@@ -26,9 +26,11 @@ function primoMeseSuccessivo(): string {
 
 async function getPiano(societaId: number): Promise<string> {
   const [rows] = (await pool.execute(
-    "SELECT piano FROM societies WHERE id = ? LIMIT 1",
+    "SELECT piano, billing_mode FROM societies WHERE id = ? LIMIT 1",
     [societaId]
   )) as [any[], any];
+  // Società omaggio (Polis, partner) → trattata come 'societa' per budget AI
+  if (rows[0]?.billing_mode === "omaggio") return "societa";
   return normPiano(rows[0]?.piano ?? "mister");
 }
 

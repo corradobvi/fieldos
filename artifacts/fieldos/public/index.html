@@ -3850,6 +3850,10 @@ let nextTorneoId = 1;
 let nextFaseId = 1;
 let nextTornMatchId = 1;
 let ptCurrentTab = 'campionato';
+// Focused-view state: when genitore taps a card, show only that event in pg-partite
+let _pgfFromGenitore = false;
+let _pgfFocusEvId = null;
+let _pgfFocusSourceType = null;
 // UI Gestione Competizioni
 let gcCurrentTab = 'campionato';
 let _gcCampSquadre = [];
@@ -5127,6 +5131,12 @@ function renderSbLeve() {
 function goTo(pgId) {
   if (_mustChangePass) { setTimeout(() => openM('mChangePass'), 50); return; }
   if (pgId === 'gestcomp' && (!me || !['admin','dirigente','allenatore'].includes(me.role))) pgId = 'partite';
+  // Exit partite-gen focused view when navigating anywhere except pg-partite itself
+  if (pgId !== 'partite' && _pgfFromGenitore) {
+    _pgfFromGenitore = false;
+    _pgfFocusEvId = null;
+    _pgfFocusSourceType = null;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
   const pg = document.getElementById('pg-' + pgId);
@@ -5178,12 +5188,12 @@ function goTo(pgId) {
     // Non usare saSocieties blob come fonte per mostrare: potrebbe avere dati stale.
     const _pianoCerto = pianoNorm(currentSocietyMeta?.piano);
     const _quoteShow = _isStaff && me.role !== 'allenatore' &&
-      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
+      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
     if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
     // BUG 5: "+ Aggiungi utente" disabilitato su piano Mister (non include collaboratori)
     const _btnAddUser = document.querySelector('#usersCard .ch button.btn-p');
     if (_btnAddUser) {
-      const _misterOnly = (_pianoCerto === 'mister');
+      const _misterOnly = (_pianoCerto === 'mister') && currentSocietyMeta?.billingMode !== 'omaggio';
       _btnAddUser.disabled = _misterOnly;
       _btnAddUser.title = _misterOnly ? 'Disponibile da Mister Pro' : '';
       _btnAddUser.style.cursor = _misterOnly ? 'not-allowed' : '';
@@ -5193,7 +5203,7 @@ function goTo(pgId) {
     const _aiCardEl = document.getElementById('aiAllowlistCard');
     if (_aiCardEl) {
       const _aiShow = ALL_AI_ENABLED &&
-        (_pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietaId === DEMO_STELLA_ID);
+        (_pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
       _aiCardEl.style.display = _aiShow ? '' : 'none';
     }
     const _codiceCardEl = document.getElementById('codiceCard');
@@ -6297,7 +6307,7 @@ function updateRosaLimitBar() {
   if (!el) return;
   const soc = saSocieties.find(x => x.id === currentSocietaId);
   const plan = getEffectivePlan(soc);
-  const maxGioc = (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
+  const maxGioc = soc?.billingMode === 'omaggio' ? Infinity : (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
   if (!isFinite(maxGioc)) { el.innerHTML = ''; el.style.marginBottom = ''; return; }
   const used = players.filter(p => p.leva === currentLeva).length;
   const pct = Math.min(100, Math.round(used / maxGioc * 100));
@@ -7429,13 +7439,39 @@ function upcomingPartiteEvents(leveFilter) {
       if (!e.leve || !e.leve.length) return false;
       return e.leve.some(l => leveFilter.includes(l));
     });
-  const fromTornei = (Array.isArray(tornei) ? tornei : [])
-    .filter(t => t.dataInizio && (t.dataFine || t.dataInizio) >= today)
+  const fromTornei = [];
+  (Array.isArray(tornei) ? tornei : [])
     .filter(t => {
       if (!leveFilter || !leveFilter.length) return true;
       return leveFilter.includes(t.leva);
     })
-    .map(t => ({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio, leve: [t.leva], luogo: t.luogo || '', start: '', end: '' }));
+    .forEach(t => {
+      if (t.convocazioniPerPartita) {
+        // New schema (tornei importati/creati dopo il fix): enumera singole partite delle squadre mie
+        const myTeams = t.squadreMieFlag || [];
+        (t.fasi || []).forEach(f => {
+          (f.partite || [])
+            .filter(m => !m.played && m.data && m.data >= today && myTeams.some(team => m.casa === team || m.ospite === team))
+            .forEach(m => {
+              fromTornei.push({
+                id: `torneo_${t.id}_${f.id}_${m.id}`,
+                type: 'partita',
+                title: `🏆 ${m.casa} vs ${m.ospite}`,
+                date: m.data,
+                leve: [t.leva],
+                luogo: m.luogo || t.luogo || '',
+                start: m.orario || '',
+                end: '',
+              });
+            });
+        });
+      } else {
+        // Legacy schema: torneo come evento singolo (comportamento originale)
+        if (t.dataInizio && (t.dataFine || t.dataInizio) >= today) {
+          fromTornei.push({ id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio, leve: [t.leva], luogo: t.luogo || '', start: '', end: '' });
+        }
+      }
+    });
   const fromCampionato = [];
   Object.entries(campionato || {}).forEach(([lv, camp]) => {
     if (!camp?.partite) return;
@@ -7524,26 +7560,30 @@ function getAllCompetitiveEventsForLeve(leveFilter) {
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
 }
 
-// Navigate to pg-partite showing the specific event detail — used by Partite Genitore card tap.
-// For tornei: pre-expands the specific torneo (by ID) and collapses others.
-// For amichevoli/campionato: navigates to the correct tab; the match card IS the detail.
-// evId: raw event ID — torneo string ('t1'), numeric match ID, etc.
+// Navigate from partite-gen card tap to focused detail in pg-partite.
+// Sets focus state so pg-partite shows ONLY the tapped event, with a back button to partite-gen.
 function _pgfOpenEvent(sourceType, leva, evId) {
+  _pgfFromGenitore = true;
+  _pgfFocusEvId = evId;
+  _pgfFocusSourceType = sourceType;
   if (leva) switchLeva(leva);
   if (sourceType === 'torneo') {
-    // Pre-expand this torneo only; collapse all others so it's in focus
     _gcTorneiEspansi.clear();
     if (evId != null && evId !== '') _gcTorneiEspansi.add('pt-' + evId);
     ptCurrentTab = 'tornei';
-    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'tornei'); });
   } else if (sourceType === 'amichevole') {
     ptCurrentTab = 'amichevoli';
-    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'amichevoli'); });
   } else if (sourceType === 'campionato') {
     ptCurrentTab = 'campionato';
-    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'campionato'); });
   }
   goTo(sourceType === 'calendar' ? 'calendario' : 'partite');
+}
+
+function _pgfReturnToGen() {
+  _pgfFromGenitore = false;
+  _pgfFocusEvId = null;
+  _pgfFocusSourceType = null;
+  goTo('partite-gen');
 }
 
 let _pgfChip = 'prossime';
@@ -7714,6 +7754,56 @@ function autoCreateConvocazione(eventId, leva) {
     playerIds: [],
     createdBy: me?.id || 0, createdAt: Date.now(), sentAt: Date.now()
   });
+}
+
+function _convTipoSwitcherHtml(evId) {
+  if (!canCreateConvocazione()) return '';
+  const tDirect = tornei.find(t => t.id === evId);
+  const mPp = /^torneo_([^_]+)_[^_]+_[^_]+$/.exec(evId);
+  const tPP = mPp ? tornei.find(t => t.id === mPp[1]) : null;
+  const t = tDirect || tPP;
+  if (!t || !(t.squadreMieFlag || []).length) return '';
+  const currPerPartita = t.convocazioniPerPartita === true;
+  const label = currPerPartita ? 'Per partita' : 'Unificata';
+  const toggleLabel = currPerPartita ? 'Unificata' : 'Per partita';
+  const toggleJs = currPerPartita
+    ? `_switchConvTipo('${t.id}',false)`
+    : `_switchConvTipo('${t.id}',true)`;
+  return `<div style="font-size:.75rem;color:var(--text2);margin-bottom:8px;">📋 Tipo: <strong>${label}</strong> &nbsp;<span style="color:var(--cp);cursor:pointer;text-decoration:underline;" onclick="${toggleJs}">→ ${toggleLabel}</span></div>`;
+}
+
+function _switchConvTipo(torneoId, toPerPartita) {
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t) return;
+  if (toPerPartita) {
+    if (!confirm('Convertire in "Per partita"? Verrà creata una convocazione separata per ogni partita delle squadre mie.')) return;
+    const unified = convocazioni.find(c => c.eventId === t.id);
+    const baseIds = unified ? [...(unified.playerIds||[])] : [];
+    const baseRitrovo = unified?.ritrovo||''; const baseDivisa = unified?.divisa||'';
+    if (unified) convocazioni = convocazioni.filter(c => c.eventId !== t.id);
+    (t.fasi||[]).forEach(f => {
+      (f.partite||[]).forEach(m => {
+        if (!m.data) return;
+        if (!(t.squadreMieFlag||[]).some(team => m.casa===team||m.ospite===team)) return;
+        const evId = `torneo_${t.id}_${f.id}_${m.id}`;
+        autoCreateConvocazione(evId, t.leva);
+        if (baseIds.length) { const c=convocazioni.find(x=>x.eventId===evId); if(c){c.playerIds=[...baseIds];if(baseRitrovo)c.ritrovo=baseRitrovo;if(baseDivisa)c.divisa=baseDivisa;} }
+      });
+    });
+    t.convocazioniPerPartita = true;
+  } else {
+    if (!confirm('⚠️ Convertire in convocazione unificata? Le convocazioni per singola partita saranno rimosse e sostituite con una unica per tutto il torneo.')) return;
+    const ppConvs = convocazioni.filter(c => { const m=/^torneo_([^_]+)_/.exec(c.eventId); return m&&m[1]===t.id; });
+    const first = ppConvs.find(c => c.playerIds&&c.playerIds.length) || ppConvs[0];
+    const baseIds = first ? [...(first.playerIds||[])] : [];
+    convocazioni = convocazioni.filter(c => { const m=/^torneo_([^_]+)_/.exec(c.eventId); return !(m&&m[1]===t.id); });
+    t.convocazioniPerPartita = false;
+    autoCreateConvocazione(t.id, t.leva);
+    if (baseIds.length) { const c=convocazioni.find(x=>x.eventId===t.id); if(c) c.playerIds=[...baseIds]; }
+  }
+  window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('✅ Tipo convocazioni aggiornato');
 }
 
 function disponBucket(ev) {
@@ -7918,6 +8008,7 @@ function renderConvocazioneCard(ev) {
       </div>`;
     }
 
+    body += _convTipoSwitcherHtml(ev.id);
     body += `<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-p btn-sm" onclick="openConvocazioneModal(${evIdJs})">${conv ? '📋 Gestisci convocazione' : '📋 Crea convocazione'}</button>
       <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.8rem;" onclick="openIndispPanel(${evIdJs})">⚠️ Indisponibilità${staffIndispCount ? `<span style="background:#dc2626;color:white;border-radius:99px;padding:0 5px;font-size:.7rem;margin-left:4px;display:inline-block;">${staffIndispCount}</span>` : ''}</button>
@@ -8158,6 +8249,17 @@ function saveConvocazione() {
     conv.fase1Days = fase1Days; conv.fase2Days = fase2Days;
   }
 
+  // Append playerIds al torneo padre → attiva/aggiorna chat torneo
+  const _tcMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  if (_tcMatch) {
+    const _tcT = tornei.find(x => x.id === _tcMatch[1]);
+    if (_tcT) {
+      _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
+      window.__fieldosSaveState();
+      renderChatList();
+    }
+  }
+
   // Notifica i destinatari (giocatore + genitori) per ciascun convocato
   notifyConvocazione(ev, conv);
 
@@ -8180,6 +8282,16 @@ function resendConvocazione(eventId) {
   const conv = getConvocazione(eventId);
   if (!ev || !conv) return;
   conv.sentAt = Date.now();
+  // Append playerIds al torneo padre → aggiorna chat torneo
+  const _tcMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  if (_tcMatchR) {
+    const _tcTR = tornei.find(x => x.id === _tcMatchR[1]);
+    if (_tcTR) {
+      _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
+      window.__fieldosSaveState();
+      renderChatList();
+    }
+  }
   notifyConvocazione(ev, conv);
   toast('📤 Notifica reinviata');
   refreshNotificheBadge();
@@ -12434,7 +12546,7 @@ function buildMobDashboardAllenatore(c) {
   // ── CARD 5: Allenamenti ───────────────────────────────────────────────────
   var _soc=(typeof saSocieties!=='undefined')?saSocieties.find(function(x){return x.id===currentSocietaId;}):null;
   var _plan=_soc?getEffectivePlan(_soc):'mister';
-  var isPro=_plan==='mister_pro'||_plan==='societa';
+  var isPro=_plan==='mister_pro'||_plan==='societa'||currentSocietyMeta?.billingMode==='omaggio';
   var allenCard='<div class="mob-dash-card"><div class="mob-dash-card-hd">🏃 Allenamenti</div>'
     +'<div style="text-align:center;padding:10px 0 4px;">'
     +'<div style="font-size:1.6rem;margin-bottom:6px;">🏃</div>'
@@ -13106,7 +13218,7 @@ function buildDashboard(role) {
     // Piano e card allenamenti
     const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
     const _planD=_socD?getEffectivePlan(_socD):'mister';
-    const isProD=_planD==='mister_pro'||_planD==='societa';
+    const isProD=_planD==='mister_pro'||_planD==='societa'||currentSocietyMeta?.billingMode==='omaggio';
     // Per pro: link reale ad allenamenti; per base: placeholder upgrade
     const allenCardD=isProD ? '' :
       `<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🔒</div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" onclick="openUpgradePopup('allenamenti')">🚀 Scopri Mister Pro →</button></div></div>`;
@@ -14069,7 +14181,7 @@ function _renderAllLista(cont) {
          <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
          ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>` : ''}
          ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>` : ''}
-         ${ALL_AI_ENABLED&&isAdminLike()&&['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
+         ${ALL_AI_ENABLED&&isAdminLike()&&(['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))||currentSocietyMeta?.billingMode==='omaggio')?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
        </div>` : '';
 
   let hdr = '';
@@ -14872,7 +14984,7 @@ function _renderAiBudgetBar() {
   const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
   if (isGenitore) { el.innerHTML = ''; return; }
 
-  if (piano === 'mister') {
+  if (piano === 'mister' && currentSocietyMeta?.billingMode !== 'omaggio') {
     el.innerHTML = '<div class="ai-budget-bar" style="margin-bottom:10px;"><span style="font-size:.85rem;">✨ AI disponibile con <strong>Mister Pro</strong></span> <button class="btn btn-p btn-sm" onclick="openAccountScreen(\'piano\')" style="font-size:.72rem;padding:4px 10px;">Scopri →</button></div>';
     return;
   }
@@ -14900,7 +15012,7 @@ function _renderAiBudgetBar() {
 
 function _canUseAI() {
   const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
-  if (piano === 'mister') return false;
+  if (piano === 'mister' && currentSocietyMeta?.billingMode !== 'omaggio') return false;
   return _allSt._aiAbilitato;
 }
 
@@ -15671,7 +15783,7 @@ function _aiAllInEditor(jsonStr, eta_leva) {
 
 async function _openAiAllowlist() {
   const piano = pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister');
-  if (!isAdminLike()||(piano!=='societa'&&piano!=='mister_pro')) { toast('⚠️ Funzione riservata agli admin di società e Mister Pro'); return; }
+  if (!isAdminLike()||((piano!=='societa'&&piano!=='mister_pro')&&currentSocietyMeta?.billingMode!=='omaggio')) { toast('⚠️ Funzione riservata agli admin di società e Mister Pro'); return; }
   const ov = document.getElementById('_aiAllowlistModal');
   if (!ov) return;
   document.getElementById('_aiAllowlistBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">Caricamento…</div>';
@@ -17507,6 +17619,26 @@ function canEnterResult(leva) {
 }
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
 
+function renderMatchEvents(m, leva) {
+  const isAdv = advStats(leva);
+  const items = [];
+  (m.stats||[]).filter(s=>s.gol>0).forEach(s=>{
+    const p=players.find(x=>x.id===s.playerId);
+    const nm=p?p.cogn:('#'+s.playerId);
+    items.push('⚽ '+escapeHtml(nm)+(s.gol>1?' ×'+s.gol:''));
+  });
+  if (isAdv) {
+    (m.stats||[]).filter(s=>s.gialli>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟨 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+    (m.stats||[]).filter(s=>s.rossi>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟥 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+    (m.cambi||[]).sort((a,b)=>(a.min||0)-(b.min||0)).forEach(c=>{
+      const pEn=players.find(x=>x.id===c.en),pUs=players.find(x=>x.id===c.us);
+      items.push('🔄 Esce '+escapeHtml(pUs?pUs.cogn:'#'+c.us)+' → Entra '+escapeHtml(pEn?pEn.cogn:'#'+c.en)+(c.min?' ('+c.min+"')": ''));
+    });
+  }
+  if (!items.length) return '';
+  return '<div style="font-size:.68rem;color:var(--text2);padding:4px 0 2px;line-height:1.7;">'+items.join(' · ')+'</div>';
+}
+
 // Stats aggregate per giocatore (amichevoli + campionato + tornei per una leva)
 function playerMatchStats(playerId, leva) {
   const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
@@ -17613,17 +17745,28 @@ function renderPartite() {
     } else { ltEl.innerHTML = ''; }
   }
 
-  // Actions — bottone Gestione Competizioni per manager (non più nel menu laterale)
+  // In focused view (from partite-gen): hide tabs, show back button; else normal mode
+  const _ptTabsEl = pg.querySelector('.pt-tabs');
+  if (_ptTabsEl) _ptTabsEl.style.display = _pgfFromGenitore ? 'none' : '';
+
   const actEl = document.getElementById('ptActions');
   if (actEl) {
     actEl.innerHTML = '';
-    const isManager = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
-    if (isManager) {
-      const gc = document.createElement('button');
-      gc.className = 'btn btn-p btn-sm';
-      gc.innerHTML = '⚙️ Gestione Competizioni';
-      gc.onclick = () => goTo('gestcomp');
-      actEl.appendChild(gc);
+    if (_pgfFromGenitore) {
+      const bk = document.createElement('button');
+      bk.className = 'btn btn-g btn-sm';
+      bk.textContent = '← Partite';
+      bk.onclick = _pgfReturnToGen;
+      actEl.appendChild(bk);
+    } else {
+      const isManager = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
+      if (isManager) {
+        const gc = document.createElement('button');
+        gc.className = 'btn btn-p btn-sm';
+        gc.innerHTML = '⚙️ Gestione Competizioni';
+        gc.onclick = () => goTo('gestcomp');
+        actEl.appendChild(gc);
+      }
     }
   }
 
@@ -17645,7 +17788,12 @@ function renderPtAmichevoli() {
   const c = document.getElementById('ptContent');
   if (!c) return;
   const today = ymd(new Date());
-  const all = amichevoli.filter(m => m.leva === currentLeva);
+  let all = amichevoli.filter(m => m.leva === currentLeva);
+  // When coming from partite-gen: show only the tapped amichevole
+  if (_pgfFromGenitore && _pgfFocusSourceType === 'amichevole' && _pgfFocusEvId != null) {
+    const _fRawId = parseInt(String(_pgfFocusEvId).replace(/^amich_/, ''));
+    if (!isNaN(_fRawId)) all = all.filter(m => m.id === _fRawId);
+  }
   const active = all.filter(m => !m.annullata);
   const annullate = all.filter(m => m.annullata);
   const future = active.filter(m => !m.played && m.data >= today).sort((a,b) => a.data.localeCompare(b.data));
@@ -17671,7 +17819,7 @@ function renderPtAmichevoli() {
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const risBtn = (!m.annullata && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}</div></div>`;
   };
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
@@ -17769,7 +17917,7 @@ function renderPtCampionato() {
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
     const risBtn = canEnterResult(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">✏️ Modifica risultato</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${renderMatchEvents(m,currentLeva)}<div class="mc-actions">${risBtn}</div></div>`;
   }).join('');
   let polisSchedHtml;
   if (isFamily()) {
@@ -17815,8 +17963,13 @@ function renderPtTornei() {
   const allSorted = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
   // For family users, filter out tornei in 'none' phase
   const visible = isFamily() ? allSorted.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allSorted;
-  const attivi = visible.filter(t => !t.archiviato);
-  const archiviati = visible.filter(t => t.archiviato);
+  let attivi = visible.filter(t => !t.archiviato);
+  let archiviati = visible.filter(t => t.archiviato);
+  // When coming from partite-gen: show only the tapped torneo
+  if (_pgfFromGenitore && _pgfFocusSourceType === 'torneo' && _pgfFocusEvId != null) {
+    attivi = attivi.filter(t => String(t.id) === String(_pgfFocusEvId));
+    archiviati = archiviati.filter(t => String(t.id) === String(_pgfFocusEvId));
+  }
   if (!attivi.length && !archiviati.length) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessun torneo disponibile. Crea un torneo dalla sezione Gestione Competizioni.</div></div>`;
     return;
@@ -18140,6 +18293,11 @@ function _ipPopulateStep3() {
   const teams=[...all].sort();
   if(!teams.length){el.innerHTML='<div style="color:var(--text3);font-size:.83rem;">Nessuna squadra trovata. Torna indietro e verifica i gironi.</div>';return;}
   el.innerHTML=teams.map(t=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);"><input type="checkbox" class="ip-sq-chk" value="${escapeHtml(t)}" style="width:17px;height:17px;flex-shrink:0;"><span style="font-size:.86rem;">${escapeHtml(t)}</span></label>`).join('');
+  // Default radio: multi-giorno → per partita, altrimenti unificata
+  const di=_importPdfData.dataInizio; const df=_importPdfData.dataFine;
+  const defPP=!!(di&&df&&di!==df);
+  const rEl=document.getElementById(defPP?'ipConvPerPartita':'ipConvUnificata');
+  if(rEl) rEl.checked=true;
 }
 async function importPdfAnalyze() {
   const fileEl=document.getElementById('ipFile'); const file=fileEl?.files?.[0];
@@ -18186,7 +18344,9 @@ function importPdfSave() {
     })),
   }));
   const allSq=[...new Set((_importPdfData.gironi||[]).flatMap(g=>g.squadre||[]))];
-  tornei.push({
+  const ipConvTipoEl = document.querySelector('input[name="ipConvTipo"]:checked');
+  const ipConvPerPartita = ipConvTipoEl ? ipConvTipoEl.value === 'per_partita' : (squadreMieFlag.length > 0);
+  const _newTorneo = {
     id:'t'+nextTorneoId++,
     nome:_importPdfData.nome||'Torneo importato',
     leva:currentLeva,
@@ -18200,11 +18360,30 @@ function importPdfSave() {
     convocati:[],
     archiviato:false,
     squadreMieFlag,
+    convocazioniPerPartita: ipConvPerPartita,
     _migrated_gironi_v1:true,
-  });
+  };
+  tornei.push(_newTorneo);
+
+  // Crea convocazioni automatiche in base al tipo scelto
+  if (squadreMieFlag.length > 0) {
+    if (ipConvPerPartita) {
+      _newTorneo.fasi.forEach(f => {
+        f.partite.forEach(m => {
+          if (!m.data) { console.warn('[importPdf] skip convocazione: partita senza data', m.casa, 'vs', m.ospite); return; }
+          if (!squadreMieFlag.some(team => m.casa === team || m.ospite === team)) return;
+          autoCreateConvocazione(`torneo_${_newTorneo.id}_${f.id}_${m.id}`, currentLeva);
+        });
+      });
+    } else {
+      autoCreateConvocazione(_newTorneo.id, currentLeva);
+    }
+  }
+
   window.__fieldosSaveState();
   closeM('mImportPdf');
   renderGestComp(); renderPartite(); renderCal();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   toast(`✅ Torneo "${_importPdfData.nome||'importato'}" salvato!`);
 }
 
@@ -18267,7 +18446,7 @@ function _gcFaseMatches(t, f) {
     const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
     const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${rb}${db}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
@@ -18322,7 +18501,7 @@ function _gcRenderTorneoTipo3(t) {
         const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
         const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
         const ip=mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite);
-        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div><div class="mc-actions">${rb}</div></div>`;
+        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div>${ip&&m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}</div></div>`;
       }).join('');
       return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
     }).join('');
@@ -18728,6 +18907,12 @@ function openGcTorneoEdit(id) {
     const el = document.getElementById('gcSpar_'+o.k);
     if (el) el.checked = spArr.includes(o.k);
   });
+  // Tipo convocazioni radio
+  const _gcDi = t?.dataInizio || document.getElementById('gcTorneoDataI').value;
+  const _gcDf = t?.dataFine   || document.getElementById('gcTorneoDataF').value;
+  const _gcDefPP = t ? (t.convocazioniPerPartita !== undefined ? t.convocazioniPerPartita : !!(_gcDi && _gcDf && _gcDi !== _gcDf)) : !!(_gcDi && _gcDf && _gcDi !== _gcDf);
+  const _gcRadio = document.getElementById(_gcDefPP ? 'gcConvPerPartita' : 'gcConvUnificata');
+  if (_gcRadio) _gcRadio.checked = true;
   // Tipo-specific config
   if (_gcTorneoTipo === 1) {
     _gcTorneoFasiUI = t ? (t.fasi||[]).map(f=>({id:f.id,nome:f.nome,tipo:f.tipo,faseGruppo:f.faseGruppo,squadre:[...(f.squadre||[])],partite:f.partite||[]})) : [];
@@ -18908,6 +19093,10 @@ function saveGcTorneo() {
     return {id:'f'+nextFaseId++, nome:def.nome, tipo:def.tipo, faseGruppo:def.faseGruppo||null, squadre:def.squadre, partite:def.partite||[]};
   };
 
+  const gcConvTipoEl = document.querySelector('input[name="gcConvTipo"]:checked');
+  const gcConvDefPP = !!(di && df && di !== df);
+  const gcConvPerPartita = gcConvTipoEl ? gcConvTipoEl.value === 'per_partita' : gcConvDefPP;
+
   if (id) {
     const t = tornei.find(x=>x.id===id);
     if (t) {
@@ -18915,6 +19104,8 @@ function saveGcTorneo() {
       t.tipo=tipo; t.spareggio=spareggio;
       t.squadrePartecipanti = [..._gcTorneoSquadre];
       t.squadreMieFlag = [..._gcTorneoSquadreMie];
+      // Aggiorna flag solo se già presente (tornei legacy senza flag → invariati)
+      if (t.convocazioniPerPartita !== undefined) t.convocazioniPerPartita = gcConvPerPartita;
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
@@ -18924,7 +19115,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie]};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie], convocazioniPerPartita: gcConvPerPartita};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
@@ -20343,6 +20534,7 @@ function getDemoGiorni(soc) {
   return Math.max(0, Math.ceil((soc.scadenzaDemo - Date.now()) / 86400000));
 }
 function getLimiti(soc) {
+  if (soc?.billingMode === 'omaggio') return PIANI_DEF.societa;
   return PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister;
 }
 function isLevaFrozen(soc, levaName, allLeve) {
@@ -20373,6 +20565,7 @@ function canAddPlayer(soc, levaName) {
 // Ritorna { allenatore, dirigente, preparatore_portieri, total } o null (illimitato)
 function getCollabLimiti(soc) {
   if (!soc) return null;
+  if (soc.billingMode === 'omaggio') return null;
   return (PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister).collab || null;
 }
 
@@ -20399,7 +20592,7 @@ function canAddCollab(soc, role) {
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
   if (!soc) return false;
-  if (currentSocietaId === DEMO_STELLA_ID) return false;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietyMeta?.billingMode === 'omaggio') return false;
   const lock = SECTION_LOCKS[sectionId];
   const tier = getEffectivePlan(soc);
   return PIANO_TIERS.indexOf(tier) < PIANO_TIERS.indexOf(lock.pianoMin);
@@ -20408,7 +20601,7 @@ function isSectionLocked(sectionId, soc) {
 // true se il piano corrente include la gestione certificato medico (Mister Pro+)
 function hasCertMedicoFeature(soc) {
   if (!soc) return true;
-  if (currentSocietaId === DEMO_STELLA_ID) return true;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietyMeta?.billingMode === 'omaggio') return true;
   return PIANO_TIERS.indexOf(getEffectivePlan(soc)) >= PIANO_TIERS.indexOf('mister_pro');
 }
 
@@ -20959,6 +21152,25 @@ function _updatePianoBadge(piano) {
   } else {
     badge.textContent = '⚽ Piano Mister — 14 giorni gratis';
   }
+}
+
+function _captureUtm() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const UTM_KEYS = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','fbclid'];
+    if (!UTM_KEYS.some(k => p.get(k))) return;
+    try {
+      const existing = localStorage.getItem('myvivaio_utm');
+      if (existing) {
+        const parsed = JSON.parse(existing);
+        if (parsed.captured_at && (Date.now() - new Date(parsed.captured_at).getTime()) < 30*24*60*60*1000) return;
+      }
+    } catch(_) {}
+    const utm = {};
+    UTM_KEYS.forEach(k => { utm[k] = p.get(k) || null; });
+    utm.captured_at = new Date().toISOString();
+    localStorage.setItem('myvivaio_utm', JSON.stringify(utm));
+  } catch(_) {}
 }
 
 function openRegisterScreen() {
@@ -22316,6 +22528,17 @@ async function doSelfRegister() {
   const btn = document.getElementById('btnRegister');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Registrazione in corso…'; }
 
+  let utm_data = null;
+  try {
+    const _utmRaw = localStorage.getItem('myvivaio_utm');
+    if (_utmRaw) {
+      const _utmParsed = JSON.parse(_utmRaw);
+      if (_utmParsed.captured_at && (Date.now() - new Date(_utmParsed.captured_at).getTime()) < 30*24*60*60*1000) {
+        utm_data = _utmParsed;
+      }
+    }
+  } catch(_) {}
+
   try {
     const resp = await fetch(API_BASE + '/api/v2/auth/self-register', {
       method: 'POST',
@@ -22324,6 +22547,7 @@ async function doSelfRegister() {
         nome, cognome: cogn, email, password: pass,
         phone, nomeSocieta: societa, citta, piano,
         privacyAccepted: true, marketingConsent,
+        utm_data,
       }),
     });
 
@@ -23065,6 +23289,79 @@ async function doSaResetPassword() {
   }
 }
 
+async function saOpenUtmStats() {
+  const el = document.getElementById('saContent');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:32px;color:#94a3b8;text-align:center;">Carico statistiche UTM…</div>';
+
+  const _saUtmFrom = new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0,10);
+  const _saUtmTo   = new Date().toISOString().slice(0,10);
+
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/admin/utm-stats?from=' + _saUtmFrom + '&to=' + _saUtmTo, {
+      headers: { 'X-SA-Secret': SA_PASS }
+    });
+    if (!resp.ok) { el.innerHTML = '<div style="padding:24px;color:#f87171;">Errore caricamento UTM stats.</div>'; return; }
+    const d = await resp.json();
+
+    const kpiStyle = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 20px;text-align:center;min-width:110px;';
+    const kpiVal   = 'font-size:2rem;font-weight:800;';
+    const kpiLbl   = 'font-size:.75rem;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.4px;';
+
+    const campaignRows = (d.by_campaign||[]).map(c =>
+      `<tr><td style="color:#e2e8f0;font-weight:600;">${escapeHtml(c.utm_campaign||'—')}</td><td style="color:#4ade80;font-weight:700;text-align:center;">${c.count}</td></tr>`
+    ).join('') || '<tr><td colspan="2" style="color:#64748b;padding:12px;text-align:center;">Nessuna campagna</td></tr>';
+
+    const contentRows = (d.by_content||[]).map(c =>
+      `<tr><td style="color:#e2e8f0;">${escapeHtml(c.utm_content||'—')}</td><td style="color:#60a5fa;font-weight:700;text-align:center;">${c.count}</td></tr>`
+    ).join('') || '<tr><td colspan="2" style="color:#64748b;padding:12px;text-align:center;">Nessuna creatività</td></tr>';
+
+    const regRows = (d.registrations||[]).map(r =>
+      `<tr>
+        <td style="color:#94a3b8;font-size:.78rem;">${r.registered_at ? new Date(r.registered_at).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—'}</td>
+        <td style="color:#e2e8f0;font-size:.8rem;">${escapeHtml(r.email||'—')}</td>
+        <td style="color:#4ade80;font-size:.78rem;">${escapeHtml(r.utm_source||'—')}</td>
+        <td style="color:#fbbf24;font-size:.78rem;">${escapeHtml(r.utm_campaign||'—')}</td>
+        <td style="color:#60a5fa;font-size:.78rem;">${escapeHtml(r.utm_content||'—')}</td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" style="color:#64748b;padding:12px;text-align:center;">Nessuna registrazione nel periodo</td></tr>';
+
+    el.innerHTML = `
+      <div style="padding-bottom:10px;display:flex;align-items:center;gap:12px;">
+        <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="renderSaPanel()">← Torna</button>
+        <span style="color:#94a3b8;font-size:.8rem;">Ultimi 30 giorni: ${_saUtmFrom} → ${_saUtmTo}</span>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+        <div style="${kpiStyle}"><div style="${kpiVal}">${d.total_registrations}</div><div style="${kpiLbl}">Registrazioni</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#4ade80;">${d.from_meta}</div><div style="${kpiLbl}">Da Meta Ads</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#94a3b8;">${d.from_organic}</div><div style="${kpiLbl}">Organici</div></div>
+        <div style="${kpiStyle}"><div style="${kpiVal};color:#fbbf24;">${(d.by_campaign||[]).length}</div><div style="${kpiLbl}">Campagne</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div>
+          <div class="sa-section-hd" style="margin-bottom:8px;"><span>📣 Per campagna</span></div>
+          <table class="sa-table"><thead><tr><th>Campagna</th><th style="text-align:center;">Reg.</th></tr></thead><tbody>${campaignRows}</tbody></table>
+        </div>
+        <div>
+          <div class="sa-section-hd" style="margin-bottom:8px;"><span>🎨 Per creatività (utm_content)</span></div>
+          <table class="sa-table"><thead><tr><th>Creatività</th><th style="text-align:center;">Reg.</th></tr></thead><tbody>${contentRows}</tbody></table>
+        </div>
+      </div>
+
+      <div class="sa-section-hd" style="margin-bottom:8px;"><span>📋 Ultime registrazioni Meta</span></div>
+      <div class="sa-table-wrap">
+        <table class="sa-table">
+          <thead><tr><th>Data</th><th>Email</th><th>Fonte</th><th>Campagna</th><th>Creatività</th></tr></thead>
+          <tbody>${regRows}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:#f87171;padding:24px;">Errore: ${escapeHtml(String(e))}<br><button class="sa-btn" onclick="renderSaPanel()" style="margin-top:12px;">← Torna</button></div>`;
+  }
+}
+
 function renderSaPanel() {
   try { _renderSaPanelInner(); } catch(e) {
     console.error('[renderSaPanel]', e);
@@ -23278,6 +23575,7 @@ function _renderSaPanelInner() {
       <span>🏢 Società — ${filteredSocs.length} ${_saFilter!=='tutti'||_saSearch?'filtrate':'totali'}</span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <span id="saSyncAllBtn" style="display:none;"></span>
+        <button class="sa-btn" style="background:#1A7A4A;border-color:#147040;color:#fff;" onclick="saOpenUtmStats()">📊 Campagne UTM</button>
         <button class="sa-btn" style="background:#334155;border-color:#475569;color:#94a3b8;" onclick="saCheckAllSync()">🔄 Verifica</button>
         <button class="sa-btn sa-btn-primary" onclick="saOpenNewSociety()">＋ Nuova</button>
       </div>
@@ -25449,7 +25747,12 @@ async function doRejoinSocieta() {
     <!-- Step 3 -->
     <div id="ipStep3" style="display:none;padding:16px;">
       <div style="font-size:.88rem;color:var(--text2);margin-bottom:14px;">Seleziona le squadre <strong>della tua società</strong> che partecipano al torneo.</div>
-      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow-y:auto;padding-right:4px;"></div>
+      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;padding-right:4px;"></div>
+      <div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;">
+        <div style="font-weight:700;font-size:.82rem;margin-bottom:8px;">📋 Tipo convocazioni</div>
+        <label style="display:block;font-size:.83rem;margin-bottom:6px;cursor:pointer;"><input type="radio" name="ipConvTipo" id="ipConvUnificata" value="unificata" style="accent-color:var(--cp);"> Convocazione unica per tutto il torneo</label>
+        <label style="display:block;font-size:.83rem;cursor:pointer;"><input type="radio" name="ipConvTipo" id="ipConvPerPartita" value="per_partita" style="accent-color:var(--cp);"> Una convocazione per ogni partita</label>
+      </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
         <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=2;_ipRenderStep()">← Indietro</button>
         <button class="btn btn-p" style="flex:1;" onclick="importPdfSave()">✅ Salva torneo</button>
@@ -25544,6 +25847,13 @@ async function doRejoinSocieta() {
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_gf_scontro" style="accent-color:var(--cp);">GF scontro diretto</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_sorteggio" style="accent-color:var(--cp);">Sorteggio</label>
       </div>
+    </div>
+
+    <!-- Tipo convocazioni -->
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">📋 Tipo convocazioni</div>
+      <label style="display:block;font-size:.83rem;margin-bottom:6px;cursor:pointer;"><input type="radio" name="gcConvTipo" id="gcConvUnificata" value="unificata" style="accent-color:var(--cp);"> Convocazione unica per tutto il torneo</label>
+      <label style="display:block;font-size:.83rem;cursor:pointer;"><input type="radio" name="gcConvTipo" id="gcConvPerPartita" value="per_partita" style="accent-color:var(--cp);"> Una convocazione per ogni partita</label>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:var(--white);padding-top:10px;">
@@ -26617,6 +26927,7 @@ function tryRestoreSession() {
 
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
+  _captureUtm();
   // Widget password: occhio + barra forza + requisiti + match conferma
   initPwField('rPass',      null);          // registrazione nuova società (no confirm)
   initPwField('srPass',     'srPass2');     // registrazione genitore con codice

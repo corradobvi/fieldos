@@ -5188,12 +5188,12 @@ function goTo(pgId) {
     // Non usare saSocieties blob come fonte per mostrare: potrebbe avere dati stale.
     const _pianoCerto = pianoNorm(currentSocietyMeta?.piano);
     const _quoteShow = _isStaff && me.role !== 'allenatore' &&
-      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
+      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
     if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
     // BUG 5: "+ Aggiungi utente" disabilitato su piano Mister (non include collaboratori)
     const _btnAddUser = document.querySelector('#usersCard .ch button.btn-p');
     if (_btnAddUser) {
-      const _misterOnly = (_pianoCerto === 'mister');
+      const _misterOnly = (_pianoCerto === 'mister') && currentSocietyMeta?.billingMode !== 'omaggio';
       _btnAddUser.disabled = _misterOnly;
       _btnAddUser.title = _misterOnly ? 'Disponibile da Mister Pro' : '';
       _btnAddUser.style.cursor = _misterOnly ? 'not-allowed' : '';
@@ -5203,7 +5203,7 @@ function goTo(pgId) {
     const _aiCardEl = document.getElementById('aiAllowlistCard');
     if (_aiCardEl) {
       const _aiShow = ALL_AI_ENABLED &&
-        (_pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietaId === DEMO_STELLA_ID);
+        (_pianoCerto === 'mister_pro' || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
       _aiCardEl.style.display = _aiShow ? '' : 'none';
     }
     const _codiceCardEl = document.getElementById('codiceCard');
@@ -6307,7 +6307,7 @@ function updateRosaLimitBar() {
   if (!el) return;
   const soc = saSocieties.find(x => x.id === currentSocietaId);
   const plan = getEffectivePlan(soc);
-  const maxGioc = (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
+  const maxGioc = soc?.billingMode === 'omaggio' ? Infinity : (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
   if (!isFinite(maxGioc)) { el.innerHTML = ''; el.style.marginBottom = ''; return; }
   const used = players.filter(p => p.leva === currentLeva).length;
   const pct = Math.min(100, Math.round(used / maxGioc * 100));
@@ -8249,6 +8249,17 @@ function saveConvocazione() {
     conv.fase1Days = fase1Days; conv.fase2Days = fase2Days;
   }
 
+  // Append playerIds al torneo padre → attiva/aggiorna chat torneo
+  const _tcMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  if (_tcMatch) {
+    const _tcT = tornei.find(x => x.id === _tcMatch[1]);
+    if (_tcT) {
+      _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
+      window.__fieldosSaveState();
+      renderChatList();
+    }
+  }
+
   // Notifica i destinatari (giocatore + genitori) per ciascun convocato
   notifyConvocazione(ev, conv);
 
@@ -8271,6 +8282,16 @@ function resendConvocazione(eventId) {
   const conv = getConvocazione(eventId);
   if (!ev || !conv) return;
   conv.sentAt = Date.now();
+  // Append playerIds al torneo padre → aggiorna chat torneo
+  const _tcMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  if (_tcMatchR) {
+    const _tcTR = tornei.find(x => x.id === _tcMatchR[1]);
+    if (_tcTR) {
+      _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
+      window.__fieldosSaveState();
+      renderChatList();
+    }
+  }
   notifyConvocazione(ev, conv);
   toast('📤 Notifica reinviata');
   refreshNotificheBadge();
@@ -12525,7 +12546,7 @@ function buildMobDashboardAllenatore(c) {
   // ── CARD 5: Allenamenti ───────────────────────────────────────────────────
   var _soc=(typeof saSocieties!=='undefined')?saSocieties.find(function(x){return x.id===currentSocietaId;}):null;
   var _plan=_soc?getEffectivePlan(_soc):'mister';
-  var isPro=_plan==='mister_pro'||_plan==='societa';
+  var isPro=_plan==='mister_pro'||_plan==='societa'||currentSocietyMeta?.billingMode==='omaggio';
   var allenCard='<div class="mob-dash-card"><div class="mob-dash-card-hd">🏃 Allenamenti</div>'
     +'<div style="text-align:center;padding:10px 0 4px;">'
     +'<div style="font-size:1.6rem;margin-bottom:6px;">🏃</div>'
@@ -13197,7 +13218,7 @@ function buildDashboard(role) {
     // Piano e card allenamenti
     const _socD=(typeof saSocieties!=='undefined')?saSocieties.find(x=>x.id===currentSocietaId):null;
     const _planD=_socD?getEffectivePlan(_socD):'mister';
-    const isProD=_planD==='mister_pro'||_planD==='societa';
+    const isProD=_planD==='mister_pro'||_planD==='societa'||currentSocietyMeta?.billingMode==='omaggio';
     // Per pro: link reale ad allenamenti; per base: placeholder upgrade
     const allenCardD=isProD ? '' :
       `<div class="card"><div class="ch"><div class="ct">🏃 Allenamenti</div></div><div style="text-align:center;padding:10px 0 4px;"><div style="font-size:1.6rem;margin-bottom:6px;">🔒</div><div style="font-size:.88rem;font-weight:700;margin-bottom:8px;">Disponibile con Mister Pro</div><button class="btn btn-p btn-sm" onclick="openUpgradePopup('allenamenti')">🚀 Scopri Mister Pro →</button></div></div>`;
@@ -14160,7 +14181,7 @@ function _renderAllLista(cont) {
          <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
          ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>` : ''}
          ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>` : ''}
-         ${ALL_AI_ENABLED&&isAdminLike()&&['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
+         ${ALL_AI_ENABLED&&isAdminLike()&&(['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))||currentSocietyMeta?.billingMode==='omaggio')?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
        </div>` : '';
 
   let hdr = '';
@@ -14963,7 +14984,7 @@ function _renderAiBudgetBar() {
   const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
   if (isGenitore) { el.innerHTML = ''; return; }
 
-  if (piano === 'mister') {
+  if (piano === 'mister' && currentSocietyMeta?.billingMode !== 'omaggio') {
     el.innerHTML = '<div class="ai-budget-bar" style="margin-bottom:10px;"><span style="font-size:.85rem;">✨ AI disponibile con <strong>Mister Pro</strong></span> <button class="btn btn-p btn-sm" onclick="openAccountScreen(\'piano\')" style="font-size:.72rem;padding:4px 10px;">Scopri →</button></div>';
     return;
   }
@@ -14991,7 +15012,7 @@ function _renderAiBudgetBar() {
 
 function _canUseAI() {
   const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
-  if (piano === 'mister') return false;
+  if (piano === 'mister' && currentSocietyMeta?.billingMode !== 'omaggio') return false;
   return _allSt._aiAbilitato;
 }
 
@@ -15762,7 +15783,7 @@ function _aiAllInEditor(jsonStr, eta_leva) {
 
 async function _openAiAllowlist() {
   const piano = pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister');
-  if (!isAdminLike()||(piano!=='societa'&&piano!=='mister_pro')) { toast('⚠️ Funzione riservata agli admin di società e Mister Pro'); return; }
+  if (!isAdminLike()||((piano!=='societa'&&piano!=='mister_pro')&&currentSocietyMeta?.billingMode!=='omaggio')) { toast('⚠️ Funzione riservata agli admin di società e Mister Pro'); return; }
   const ov = document.getElementById('_aiAllowlistModal');
   if (!ov) return;
   document.getElementById('_aiAllowlistBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">Caricamento…</div>';
@@ -20513,6 +20534,7 @@ function getDemoGiorni(soc) {
   return Math.max(0, Math.ceil((soc.scadenzaDemo - Date.now()) / 86400000));
 }
 function getLimiti(soc) {
+  if (soc?.billingMode === 'omaggio') return PIANI_DEF.societa;
   return PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister;
 }
 function isLevaFrozen(soc, levaName, allLeve) {
@@ -20543,6 +20565,7 @@ function canAddPlayer(soc, levaName) {
 // Ritorna { allenatore, dirigente, preparatore_portieri, total } o null (illimitato)
 function getCollabLimiti(soc) {
   if (!soc) return null;
+  if (soc.billingMode === 'omaggio') return null;
   return (PIANI_DEF[getEffectivePlan(soc)] || PIANI_DEF.mister).collab || null;
 }
 
@@ -20569,7 +20592,7 @@ function canAddCollab(soc, role) {
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
   if (!soc) return false;
-  if (currentSocietaId === DEMO_STELLA_ID) return false;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietyMeta?.billingMode === 'omaggio') return false;
   const lock = SECTION_LOCKS[sectionId];
   const tier = getEffectivePlan(soc);
   return PIANO_TIERS.indexOf(tier) < PIANO_TIERS.indexOf(lock.pianoMin);
@@ -20578,7 +20601,7 @@ function isSectionLocked(sectionId, soc) {
 // true se il piano corrente include la gestione certificato medico (Mister Pro+)
 function hasCertMedicoFeature(soc) {
   if (!soc) return true;
-  if (currentSocietaId === DEMO_STELLA_ID) return true;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietyMeta?.billingMode === 'omaggio') return true;
   return PIANO_TIERS.indexOf(getEffectivePlan(soc)) >= PIANO_TIERS.indexOf('mister_pro');
 }
 
