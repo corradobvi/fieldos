@@ -7742,6 +7742,56 @@ function autoCreateConvocazione(eventId, leva) {
   });
 }
 
+function _convTipoSwitcherHtml(evId) {
+  if (!canCreateConvocazione()) return '';
+  const tDirect = tornei.find(t => t.id === evId);
+  const mPp = /^torneo_([^_]+)_[^_]+_[^_]+$/.exec(evId);
+  const tPP = mPp ? tornei.find(t => t.id === mPp[1]) : null;
+  const t = tDirect || tPP;
+  if (!t || !(t.squadreMieFlag || []).length) return '';
+  const currPerPartita = t.convocazioniPerPartita === true;
+  const label = currPerPartita ? 'Per partita' : 'Unificata';
+  const toggleLabel = currPerPartita ? 'Unificata' : 'Per partita';
+  const toggleJs = currPerPartita
+    ? `_switchConvTipo('${t.id}',false)`
+    : `_switchConvTipo('${t.id}',true)`;
+  return `<div style="font-size:.75rem;color:var(--text2);margin-bottom:8px;">📋 Tipo: <strong>${label}</strong> &nbsp;<span style="color:var(--cp);cursor:pointer;text-decoration:underline;" onclick="${toggleJs}">→ ${toggleLabel}</span></div>`;
+}
+
+function _switchConvTipo(torneoId, toPerPartita) {
+  const t = tornei.find(x => x.id === torneoId);
+  if (!t) return;
+  if (toPerPartita) {
+    if (!confirm('Convertire in "Per partita"? Verrà creata una convocazione separata per ogni partita delle squadre mie.')) return;
+    const unified = convocazioni.find(c => c.eventId === t.id);
+    const baseIds = unified ? [...(unified.playerIds||[])] : [];
+    const baseRitrovo = unified?.ritrovo||''; const baseDivisa = unified?.divisa||'';
+    if (unified) convocazioni = convocazioni.filter(c => c.eventId !== t.id);
+    (t.fasi||[]).forEach(f => {
+      (f.partite||[]).forEach(m => {
+        if (!m.data) return;
+        if (!(t.squadreMieFlag||[]).some(team => m.casa===team||m.ospite===team)) return;
+        const evId = `torneo_${t.id}_${f.id}_${m.id}`;
+        autoCreateConvocazione(evId, t.leva);
+        if (baseIds.length) { const c=convocazioni.find(x=>x.eventId===evId); if(c){c.playerIds=[...baseIds];if(baseRitrovo)c.ritrovo=baseRitrovo;if(baseDivisa)c.divisa=baseDivisa;} }
+      });
+    });
+    t.convocazioniPerPartita = true;
+  } else {
+    if (!confirm('⚠️ Convertire in convocazione unificata? Le convocazioni per singola partita saranno rimosse e sostituite con una unica per tutto il torneo.')) return;
+    const ppConvs = convocazioni.filter(c => { const m=/^torneo_([^_]+)_/.exec(c.eventId); return m&&m[1]===t.id; });
+    const first = ppConvs.find(c => c.playerIds&&c.playerIds.length) || ppConvs[0];
+    const baseIds = first ? [...(first.playerIds||[])] : [];
+    convocazioni = convocazioni.filter(c => { const m=/^torneo_([^_]+)_/.exec(c.eventId); return !(m&&m[1]===t.id); });
+    t.convocazioniPerPartita = false;
+    autoCreateConvocazione(t.id, t.leva);
+    if (baseIds.length) { const c=convocazioni.find(x=>x.eventId===t.id); if(c) c.playerIds=[...baseIds]; }
+  }
+  window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('✅ Tipo convocazioni aggiornato');
+}
+
 function disponBucket(ev) {
   const roster = rosterForEvent(ev);
   const out = { disp: [], indisp: [], senza: [] };
@@ -7944,6 +7994,7 @@ function renderConvocazioneCard(ev) {
       </div>`;
     }
 
+    body += _convTipoSwitcherHtml(ev.id);
     body += `<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-p btn-sm" onclick="openConvocazioneModal(${evIdJs})">${conv ? '📋 Gestisci convocazione' : '📋 Crea convocazione'}</button>
       <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;font-size:.8rem;" onclick="openIndispPanel(${evIdJs})">⚠️ Indisponibilità${staffIndispCount ? `<span style="background:#dc2626;color:white;border-radius:99px;padding:0 5px;font-size:.7rem;margin-left:4px;display:inline-block;">${staffIndispCount}</span>` : ''}</button>
@@ -18166,6 +18217,11 @@ function _ipPopulateStep3() {
   const teams=[...all].sort();
   if(!teams.length){el.innerHTML='<div style="color:var(--text3);font-size:.83rem;">Nessuna squadra trovata. Torna indietro e verifica i gironi.</div>';return;}
   el.innerHTML=teams.map(t=>`<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);"><input type="checkbox" class="ip-sq-chk" value="${escapeHtml(t)}" style="width:17px;height:17px;flex-shrink:0;"><span style="font-size:.86rem;">${escapeHtml(t)}</span></label>`).join('');
+  // Default radio: multi-giorno → per partita, altrimenti unificata
+  const di=_importPdfData.dataInizio; const df=_importPdfData.dataFine;
+  const defPP=!!(di&&df&&di!==df);
+  const rEl=document.getElementById(defPP?'ipConvPerPartita':'ipConvUnificata');
+  if(rEl) rEl.checked=true;
 }
 async function importPdfAnalyze() {
   const fileEl=document.getElementById('ipFile'); const file=fileEl?.files?.[0];
@@ -18212,6 +18268,8 @@ function importPdfSave() {
     })),
   }));
   const allSq=[...new Set((_importPdfData.gironi||[]).flatMap(g=>g.squadre||[]))];
+  const ipConvTipoEl = document.querySelector('input[name="ipConvTipo"]:checked');
+  const ipConvPerPartita = ipConvTipoEl ? ipConvTipoEl.value === 'per_partita' : (squadreMieFlag.length > 0);
   const _newTorneo = {
     id:'t'+nextTorneoId++,
     nome:_importPdfData.nome||'Torneo importato',
@@ -18226,25 +18284,24 @@ function importPdfSave() {
     convocati:[],
     archiviato:false,
     squadreMieFlag,
-    convocazioniPerPartita: squadreMieFlag.length > 0,
+    convocazioniPerPartita: ipConvPerPartita,
     _migrated_gironi_v1:true,
   };
   tornei.push(_newTorneo);
 
-  // Crea convocazione automatica per ogni partita delle squadre mie
+  // Crea convocazioni automatiche in base al tipo scelto
   if (squadreMieFlag.length > 0) {
-    _newTorneo.fasi.forEach(f => {
-      f.partite.forEach(m => {
-        if (!m.data) {
-          console.warn('[importPdf] skip convocazione: partita senza data', m.casa, 'vs', m.ospite);
-          return;
-        }
-        const isMia = squadreMieFlag.some(team => m.casa === team || m.ospite === team);
-        if (!isMia) return;
-        // Scontro interno (entrambe squadre mie): 1 solo eventId → 1 convocazione
-        autoCreateConvocazione(`torneo_${_newTorneo.id}_${f.id}_${m.id}`, currentLeva);
+    if (ipConvPerPartita) {
+      _newTorneo.fasi.forEach(f => {
+        f.partite.forEach(m => {
+          if (!m.data) { console.warn('[importPdf] skip convocazione: partita senza data', m.casa, 'vs', m.ospite); return; }
+          if (!squadreMieFlag.some(team => m.casa === team || m.ospite === team)) return;
+          autoCreateConvocazione(`torneo_${_newTorneo.id}_${f.id}_${m.id}`, currentLeva);
+        });
       });
-    });
+    } else {
+      autoCreateConvocazione(_newTorneo.id, currentLeva);
+    }
   }
 
   window.__fieldosSaveState();
@@ -18774,6 +18831,12 @@ function openGcTorneoEdit(id) {
     const el = document.getElementById('gcSpar_'+o.k);
     if (el) el.checked = spArr.includes(o.k);
   });
+  // Tipo convocazioni radio
+  const _gcDi = t?.dataInizio || document.getElementById('gcTorneoDataI').value;
+  const _gcDf = t?.dataFine   || document.getElementById('gcTorneoDataF').value;
+  const _gcDefPP = t ? (t.convocazioniPerPartita !== undefined ? t.convocazioniPerPartita : !!(_gcDi && _gcDf && _gcDi !== _gcDf)) : !!(_gcDi && _gcDf && _gcDi !== _gcDf);
+  const _gcRadio = document.getElementById(_gcDefPP ? 'gcConvPerPartita' : 'gcConvUnificata');
+  if (_gcRadio) _gcRadio.checked = true;
   // Tipo-specific config
   if (_gcTorneoTipo === 1) {
     _gcTorneoFasiUI = t ? (t.fasi||[]).map(f=>({id:f.id,nome:f.nome,tipo:f.tipo,faseGruppo:f.faseGruppo,squadre:[...(f.squadre||[])],partite:f.partite||[]})) : [];
@@ -18954,6 +19017,10 @@ function saveGcTorneo() {
     return {id:'f'+nextFaseId++, nome:def.nome, tipo:def.tipo, faseGruppo:def.faseGruppo||null, squadre:def.squadre, partite:def.partite||[]};
   };
 
+  const gcConvTipoEl = document.querySelector('input[name="gcConvTipo"]:checked');
+  const gcConvDefPP = !!(di && df && di !== df);
+  const gcConvPerPartita = gcConvTipoEl ? gcConvTipoEl.value === 'per_partita' : gcConvDefPP;
+
   if (id) {
     const t = tornei.find(x=>x.id===id);
     if (t) {
@@ -18962,7 +19029,7 @@ function saveGcTorneo() {
       t.squadrePartecipanti = [..._gcTorneoSquadre];
       t.squadreMieFlag = [..._gcTorneoSquadreMie];
       // Aggiorna flag solo se già presente (tornei legacy senza flag → invariati)
-      if (t.convocazioniPerPartita !== undefined) t.convocazioniPerPartita = t.squadreMieFlag.length > 0;
+      if (t.convocazioniPerPartita !== undefined) t.convocazioniPerPartita = gcConvPerPartita;
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
@@ -18972,7 +19039,7 @@ function saveGcTorneo() {
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
-    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie], convocazioniPerPartita: _gcTorneoSquadreMie.length > 0};
+    const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie], convocazioniPerPartita: gcConvPerPartita};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
     tornei.push(newT);
@@ -25602,7 +25669,12 @@ async function doRejoinSocieta() {
     <!-- Step 3 -->
     <div id="ipStep3" style="display:none;padding:16px;">
       <div style="font-size:.88rem;color:var(--text2);margin-bottom:14px;">Seleziona le squadre <strong>della tua società</strong> che partecipano al torneo.</div>
-      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow-y:auto;padding-right:4px;"></div>
+      <div id="ipSquadreList" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;padding-right:4px;"></div>
+      <div style="margin-top:12px;padding:10px 12px;background:var(--bg);border-radius:8px;">
+        <div style="font-weight:700;font-size:.82rem;margin-bottom:8px;">📋 Tipo convocazioni</div>
+        <label style="display:block;font-size:.83rem;margin-bottom:6px;cursor:pointer;"><input type="radio" name="ipConvTipo" id="ipConvUnificata" value="unificata" style="accent-color:var(--cp);"> Convocazione unica per tutto il torneo</label>
+        <label style="display:block;font-size:.83rem;cursor:pointer;"><input type="radio" name="ipConvTipo" id="ipConvPerPartita" value="per_partita" style="accent-color:var(--cp);"> Una convocazione per ogni partita</label>
+      </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
         <button class="btn btn-g" style="padding:8px 16px;" onclick="_importPdfStep=2;_ipRenderStep()">← Indietro</button>
         <button class="btn btn-p" style="flex:1;" onclick="importPdfSave()">✅ Salva torneo</button>
@@ -25697,6 +25769,13 @@ async function doRejoinSocieta() {
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_gf_scontro" style="accent-color:var(--cp);">GF scontro diretto</label>
         <label style="display:flex;align-items:center;gap:5px;font-size:.82rem;cursor:pointer;"><input type="checkbox" id="gcSpar_sorteggio" style="accent-color:var(--cp);">Sorteggio</label>
       </div>
+    </div>
+
+    <!-- Tipo convocazioni -->
+    <div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px;">
+      <div style="font-weight:700;font-size:.83rem;margin-bottom:8px;color:var(--cp);">📋 Tipo convocazioni</div>
+      <label style="display:block;font-size:.83rem;margin-bottom:6px;cursor:pointer;"><input type="radio" name="gcConvTipo" id="gcConvUnificata" value="unificata" style="accent-color:var(--cp);"> Convocazione unica per tutto il torneo</label>
+      <label style="display:block;font-size:.83rem;cursor:pointer;"><input type="radio" name="gcConvTipo" id="gcConvPerPartita" value="per_partita" style="accent-color:var(--cp);"> Una convocazione per ogni partita</label>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:16px;position:sticky;bottom:0;background:var(--white);padding-top:10px;">
