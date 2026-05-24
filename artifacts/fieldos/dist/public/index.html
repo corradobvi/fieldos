@@ -15324,13 +15324,14 @@ async function _pickFromLibreria(ambito) {
     const r = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria?${p}`, { headers: { 'Authorization':'Bearer '+_v2Token } });
     const d = await r.json();
     const items = d.items || [];
+    window._libPickSessions = items;
     let html = '<button class="btn btn-g btn-sm" onclick="document.getElementById(\'_pickView\').innerHTML=_renderPickHome()" style="margin-bottom:12px;">← Indietro</button>'
       + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':ambito==='ufficiali'?'Libreria Ufficiale MyVivaio':'Sessioni community') + '</div>';
     if (items.length) {
-      html += items.map(function(s) {
+      html += items.map(function(s, idx) {
         const cat = _ALL_CAT_IT[s.categoria]||s.categoria;
         const catBg = (_ALL_CAT_BG||{})[s.categoria]||'#f3f4f6';
-        return '<div class="all-pick-card" onclick=\'_pickSelectSessione(' + JSON.stringify(JSON.stringify(s)) + ')\'>'
+        return '<div class="all-pick-card" onclick="_pickSelectSessioneByIdx(' + idx + ')">'
           + '<div style="flex:1;">'
           + '<div style="display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap;">'
           + '<span style="background:' + catBg + ';font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">' + cat + '</span>'
@@ -15354,6 +15355,11 @@ function _pickSelectSessione(jsonStr) {
     _closePickSessione();
     toast('✅ Sessione aggiunta');
   } catch(e) { toast('❌ Errore aggiunta sessione'); }
+}
+
+function _pickSelectSessioneByIdx(idx) {
+  const s = (window._libPickSessions || [])[idx];
+  if (s) _pickSelectSessione(JSON.stringify(s));
 }
 
 function _pickScrivi() {
