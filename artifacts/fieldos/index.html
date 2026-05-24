@@ -7523,18 +7523,24 @@ function getAllCompetitiveEventsForLeve(leveFilter) {
     .sort((a,b) => (a.date+(a.start||'')).localeCompare(b.date+(b.start||'')));
 }
 
-// Navigate to pg-partite with the correct tab/leva — used by Partite Genitore card tap (FIX 1)
-function _pgfOpenEvent(sourceType, leva) {
+// Navigate to pg-partite showing the specific event detail — used by Partite Genitore card tap.
+// For tornei: pre-expands the specific torneo (by ID) and collapses others.
+// For amichevoli/campionato: navigates to the correct tab; the match card IS the detail.
+// evId: raw event ID — torneo string ('t1'), numeric match ID, etc.
+function _pgfOpenEvent(sourceType, leva, evId) {
   if (leva) switchLeva(leva);
-  if (sourceType === 'amichevole') {
+  if (sourceType === 'torneo') {
+    // Pre-expand this torneo only; collapse all others so it's in focus
+    _gcTorneiEspansi.clear();
+    if (evId != null && evId !== '') _gcTorneiEspansi.add('pt-' + evId);
+    ptCurrentTab = 'tornei';
+    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'tornei'); });
+  } else if (sourceType === 'amichevole') {
     ptCurrentTab = 'amichevoli';
     document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'amichevoli'); });
   } else if (sourceType === 'campionato') {
     ptCurrentTab = 'campionato';
     document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'campionato'); });
-  } else if (sourceType === 'torneo') {
-    ptCurrentTab = 'tornei';
-    document.querySelectorAll('.pt-tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === 'tornei'); });
   }
   goTo(sourceType === 'calendar' ? 'calendario' : 'partite');
 }
@@ -7573,7 +7579,9 @@ function renderPartiteGenitore() {
     const ora = ev.start ? ' · ' + ev.start : '';
     const luogo = ev.luogo ? ' · ' + escapeHtml(ev.luogo) : '';
     const _leva = ev._leva || (ev.leve||[])[0] || '';
-    const clickAttr = `onclick="_pgfOpenEvent('${src}','${escapeHtml(_leva)}')" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.07);"`;
+    const _evIdSafe = String(ev.id ?? '').replace(/'/g, "\\'");
+    const clickAttr = `onclick="_pgfOpenEvent('${src}','${escapeHtml(_leva)}','${_evIdSafe}')" style="cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.07);"`;
+
 
     let extraHtml = '';
     if (!isPast) {
