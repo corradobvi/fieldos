@@ -8,7 +8,7 @@ const router = Router();
 
 function checkAuth(req: any, res: any): boolean {
   const secret   = req.headers["x-sa-secret"];
-  const saSecret = process.env.SA_SECRET;
+  const saSecret = process.env.ADMIN_RESET_SECRET;
   if (!saSecret || secret !== saSecret) {
     res.status(401).json({ error: "unauthorized" });
     return false;
