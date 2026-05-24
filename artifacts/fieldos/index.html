@@ -2088,11 +2088,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <strong style="color:#1a3f8f;">⭐ Demo Stella Azzurra ASD — accesso rapido:</strong>
           <div class="demo-row" style="margin-top:8px;gap:6px;">
             <button class="db" onclick="loginDemoAs('admin')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🛡️ Admin</button>
-            <button class="db" onclick="loginDemoAs('allenatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">⚽ Mister U12</button>
+            <button class="db" onclick="loginDemoAs('allenatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">⚽ Mister U10</button>
             <button class="db" onclick="loginDemoAs('genitore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">👨‍👧 Genitore</button>
             <button class="db" onclick="loginDemoAs('giocatore')" style="background:#1a3f8f;color:#fff;border-color:#1a3f8f;touch-action:manipulation;">🏃 Giocatore U14</button>
           </div>
-          <div style="font-size:.69rem;color:#64748b;margin-top:6px;">18 giocatori U12 · Campionato in corso · Chat attive · Dati resettati ogni 24h</div>
+          <div style="font-size:.69rem;color:#64748b;margin-top:6px;">58 giocatori · 4 leve (U6/U10/U14/U18) · Campionati · Tornei · Chat · Quote · Cert. Medici</div>
         </div>
         <div class="lf-hint">
           <strong>🎮 Demo rapida (Polis ASD):</strong>
@@ -4578,17 +4578,18 @@ async function doLogin() {
   }
 
   // ── 0. Demo Stella Azzurra — intercept prima del server ──
-  // Le credenziali Stella Azzurra non esistono sul server (demo locale).
-  // Le intercettiamo qui per far funzionare anche il form normale.
-  const _stellaEmails = new Set([
-    'demo.admin@stellaazzurra.it',
-    'demo.mister@stellaazzurra.it',
-    'mister.u14@stellaazzurra.it',
-    'demo.genitore@stellaazzurra.it',
-    'demo.giocatore@stellaazzurra.it'
-  ]);
-  if (_stellaEmails.has(email) && pass === DEMO_PASS) {
-    ensureDemoStellaState();
+  // Tutte le email @stellaazzurra.it sono utenti demo — server-first per multi-device.
+  if (email.endsWith('@stellaazzurra.it') && pass === DEMO_PASS) {
+    try {
+      toast('⏳ Caricamento demo…');
+      const _dresp = await fetch(API_BASE + '/api/state/' + DEMO_STELLA_KEY);
+      if (!_dresp.ok) { toast('❌ Demo non inizializzata. Contattare il supporto.'); return; }
+      const _ddata = await _dresp.json();
+      if (!_ddata.stateJson) { toast('❌ Dati demo mancanti.'); return; }
+      localStorage.setItem(DEMO_STELLA_KEY, _ddata.stateJson);
+    } catch(_de) {
+      toast('❌ Errore connessione. Riprovare.'); return;
+    }
     saLoadState();
     if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
       saSocieties.push({...STELLA_AZZ_SOC_DEF});
@@ -4597,10 +4598,10 @@ async function doLogin() {
     if (typeof window.__fieldosSetSocietaKey === 'function') {
       window.__fieldosSetSocietaKey(DEMO_STELLA_KEY);
     }
-    const _raw = localStorage.getItem(DEMO_STELLA_KEY);
-    const _state = _raw ? JSON.parse(_raw) : {};
-    me = (_state.USERS_DB || []).find(u => u.email === email);
-    if (!me) { toast('❌ Errore caricamento demo'); return; }
+    const _draw = localStorage.getItem(DEMO_STELLA_KEY);
+    const _dstate = _draw ? JSON.parse(_draw) : {};
+    me = (_dstate.USERS_DB || []).find(u => u.email === email);
+    if (!me) { toast('❌ Utente demo non trovato'); return; }
     bootApp(me);
     return;
   }
@@ -21088,7 +21089,25 @@ function ensureDemoStellaState() {
 }
 
 async function loginDemoAs(role) {
-  ensureDemoStellaState();
+  // Server-first: carica lo stato demo da MySQL per coerenza multi-device
+  const emailMap = {
+    admin:     'demo.admin@stellaazzurra.it',
+    allenatore:'demo.mister@stellaazzurra.it',
+    genitore:  'demo.genitore@stellaazzurra.it',
+    giocatore: 'demo.giocatore@stellaazzurra.it'
+  };
+  const email = emailMap[role];
+  if (!email) { toast('❌ Ruolo non valido'); return; }
+  try {
+    toast('⏳ Caricamento demo…');
+    const resp = await fetch(API_BASE + '/api/state/' + DEMO_STELLA_KEY);
+    if (!resp.ok) { toast('❌ Demo non inizializzata. Contattare il supporto.'); return; }
+    const data = await resp.json();
+    if (!data.stateJson) { toast('❌ Dati demo mancanti.'); return; }
+    localStorage.setItem(DEMO_STELLA_KEY, data.stateJson);
+  } catch(e) {
+    toast('❌ Errore connessione. Riprovare.'); return;
+  }
   saLoadState();
   if (!saSocieties.find(x => x.id === DEMO_STELLA_ID)) {
     saSocieties.push({...STELLA_AZZ_SOC_DEF});
@@ -21097,16 +21116,10 @@ async function loginDemoAs(role) {
   if (typeof window.__fieldosSetSocietaKey === 'function') {
     window.__fieldosSetSocietaKey(DEMO_STELLA_KEY);
   }
-  const raw = localStorage.getItem(DEMO_STELLA_KEY);
+  const raw   = localStorage.getItem(DEMO_STELLA_KEY);
   const state = raw ? JSON.parse(raw) : {};
-  const emailMap = {
-    admin:'demo.admin@stellaazzurra.it',
-    allenatore:'demo.mister@stellaazzurra.it',
-    genitore:'demo.genitore@stellaazzurra.it',
-    giocatore:'demo.giocatore@stellaazzurra.it'
-  };
-  me = (state.USERS_DB||[]).find(u => u.email === emailMap[role]) || (state.USERS_DB||[])[0];
-  if (!me) { toast('❌ Errore caricamento demo'); return; }
+  me = (state.USERS_DB || []).find(u => u.email === email);
+  if (!me) { toast('❌ Utente demo non trovato'); return; }
   bootApp(me);
 }
 

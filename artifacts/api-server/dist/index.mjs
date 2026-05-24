@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router33;
+    module.exports = Router34;
     module.exports.Route = Route;
-    function Router33(options) {
-      if (!(this instanceof Router33)) {
-        return new Router33(options);
+    function Router34(options) {
+      if (!(this instanceof Router34)) {
+        return new Router34(options);
       }
       const opts = options || {};
-      function router33(req, res, next) {
-        router33.handle(req, res, next);
+      function router34(req, res, next) {
+        router34.handle(req, res, next);
       }
-      Object.setPrototypeOf(router33, this);
-      router33.caseSensitive = opts.caseSensitive;
-      router33.mergeParams = opts.mergeParams;
-      router33.params = {};
-      router33.strict = opts.strict;
-      router33.stack = [];
-      return router33;
+      Object.setPrototypeOf(router34, this);
+      router34.caseSensitive = opts.caseSensitive;
+      router34.mergeParams = opts.mergeParams;
+      router34.params = {};
+      router34.strict = opts.strict;
+      router34.stack = [];
+      return router34;
     }
-    Router33.prototype = function() {
+    Router34.prototype = function() {
     };
-    Router33.prototype.param = function param(name, fn) {
+    Router34.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router33.prototype.handle = function handle(req, res, callback) {
+    Router34.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router33.prototype.use = function use(handler) {
+    Router34.prototype.use = function use(handler) {
       let offset = 0;
       let path3 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router33.prototype.route = function route(path3) {
+    Router34.prototype.route = function route(path3) {
       const route2 = new Route(path3);
       const layer = new Layer(path3, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router33.prototype[method] = function(path3) {
+      Router34.prototype[method] = function(path3) {
         const route = this.route(path3);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router33 = require_router();
+    var Router34 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router33 = null;
+      var router34 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router33 === null) {
-            router33 = new Router33({
+          if (router34 === null) {
+            router34 = new Router34({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router33;
+          return router34;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router33 = this.router;
+      var router34 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router33.use(path3, fn2);
+          return router34.use(path3, fn2);
         }
         debug(".use app under %s", path3);
         fn2.mountpath = path3;
         fn2.parent = this;
-        router33.use(path3, function mounted_app(req, res, next) {
+        router34.use(path3, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router33 = require_router();
+    var Router34 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router33.Route;
-    exports.Router = Router33;
+    exports.Route = Router34.Route;
+    exports.Router = Router34;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express33 = __toESM(require_express2(), 1);
+var import_express34 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path2 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express32 = __toESM(require_express2(), 1);
+var import_express33 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78359,7 +78359,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express31 = __toESM(require_express2(), 1);
+var import_express32 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -89696,8 +89696,659 @@ function _maskEmail(email) {
 }
 var utm_stats_default = router30;
 
-// src/routes/v2/index.ts
+// src/routes/v2/admin-reset-demo.ts
+var import_express31 = __toESM(require_express2(), 1);
+
+// src/lib/stella-demo-seed.ts
+function buildStellaDemoState() {
+  const now = Date.now();
+  const DAY = 864e5;
+  function toYmd(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function lastN(n, dow) {
+    const r = [];
+    const d = /* @__PURE__ */ new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - 1);
+    while (r.length < n) {
+      if (d.getDay() === dow) r.unshift(toYmd(new Date(d)));
+      d.setDate(d.getDate() - 1);
+    }
+    return r;
+  }
+  function nextDow(dow, after) {
+    const d = after ? new Date(after) : /* @__PURE__ */ new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 1);
+    while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+    return toYmd(d);
+  }
+  function addDays2(base, n) {
+    return toYmd(new Date(new Date(base).getTime() + n * DAY));
+  }
+  function pr(s) {
+    const x = Math.sin(s + 1) * 1e4;
+    return x - Math.floor(x);
+  }
+  const pastSat = lastN(16, 6);
+  const pastTue = lastN(18, 2);
+  const pastThu = lastN(18, 4);
+  const nxtTue = nextDow(2);
+  const nxtThu = nextDow(4);
+  const nxtSat = nextDow(6);
+  const nxtSat2 = nextDow(6, new Date(nxtSat));
+  const nxtSat3 = nextDow(6, new Date(nxtSat2));
+  const trainDates = [...pastTue, ...pastThu].sort();
+  function mkPresAll(id, n, prob) {
+    return trainDates.slice(-n).map((date2, i) => {
+      const r = pr(id * 100 + i);
+      return { date: date2, status: r < prob ? "p" : r < prob + 0.06 ? "j" : "a" };
+    });
+  }
+  function mkPresPartite(id, dates) {
+    return dates.map((date2, i) => ({ date: date2, status: pr(id * 200 + i) < 0.88 ? "p" : "a" }));
+  }
+  function mkPartiteStats(id, n, ruolo) {
+    const gp = ruolo === "A" ? 0.32 : ruolo === "C" ? 0.13 : ruolo === "D" ? 0.04 : 0;
+    const ap = ruolo === "A" ? 0.1 : ruolo === "C" ? 0.18 : ruolo === "D" ? 0.05 : 0;
+    return Array.from({ length: n }, (_, i) => ({
+      gol: pr(id * 13 + i * 7) < gp ? pr(id * 17 + i) < 0.15 ? 2 : 1 : 0,
+      ass: pr(id * 11 + i * 5) < ap ? 1 : 0
+    }));
+  }
+  function pp(id) {
+    return 0.72 + pr(id * 7) * 0.22;
+  }
+  function mkPlayer(id, nome, cogn, num, ruolo, anno, leva, matchDates, trainN) {
+    return {
+      id,
+      nome,
+      cogn,
+      soprannome: "",
+      num,
+      ruolo,
+      anno,
+      tel: "",
+      leva,
+      partite: mkPartiteStats(id, matchDates.length, ruolo),
+      presAll: mkPresAll(id, trainN, pp(id)),
+      presPartite: mkPresPartite(id, matchDates),
+      assenzeAvvisate: []
+    };
+  }
+  const dU6 = pastSat.slice(-6);
+  const dU10 = pastSat.slice(-9);
+  const dU14 = pastSat.slice(-14);
+  const dU18 = pastSat.slice(-11);
+  const players = [
+    // U6 (IDs 1–14, nati 2019–2020)
+    mkPlayer(1, "Giovanni", "Piccoli", "1", "P", 2020, "U6", dU6, 12),
+    mkPlayer(2, "Luca", "Verdi", "2", "D", 2020, "U6", dU6, 12),
+    mkPlayer(3, "Marco", "Blu", "3", "D", 2019, "U6", dU6, 12),
+    mkPlayer(4, "Simone", "Neri", "4", "C", 2020, "U6", dU6, 12),
+    mkPlayer(5, "Matteo", "Rosa", "5", "C", 2019, "U6", dU6, 12),
+    mkPlayer(6, "Andrea", "Gialli", "6", "C", 2020, "U6", dU6, 12),
+    mkPlayer(7, "Filippo", "Marini", "7", "A", 2019, "U6", dU6, 12),
+    mkPlayer(8, "Lorenzo", "Pili", "8", "A", 2020, "U6", dU6, 12),
+    mkPlayer(9, "Daniele", "Conti", "9", "D", 2019, "U6", dU6, 12),
+    // figlio di utente 7
+    mkPlayer(10, "Riccardo", "Amato", "10", "C", 2020, "U6", dU6, 12),
+    mkPlayer(11, "Cristian", "Bello", "11", "A", 2019, "U6", dU6, 12),
+    mkPlayer(12, "Thomas", "Galli", "12", "D", 2020, "U6", dU6, 12),
+    mkPlayer(13, "Kevin", "Moro", "13", "C", 2020, "U6", dU6, 12),
+    mkPlayer(14, "Davide", "Santi", "14", "A", 2019, "U6", dU6, 12),
+    // U10 (IDs 15–28, nati 2015–2016)
+    mkPlayer(15, "Marco", "Ferretti", "8", "C", 2015, "U10", dU10, 18),
+    // figlio di utente 6
+    mkPlayer(16, "Giovanni", "Mancini", "1", "P", 2015, "U10", dU10, 18),
+    mkPlayer(17, "Matteo", "Ricci", "12", "P", 2015, "U10", dU10, 18),
+    mkPlayer(18, "Andrea", "Esposito", "2", "D", 2015, "U10", dU10, 18),
+    mkPlayer(19, "Davide", "Romano", "3", "D", 2016, "U10", dU10, 18),
+    mkPlayer(20, "Lorenzo", "Colombo", "4", "D", 2015, "U10", dU10, 18),
+    mkPlayer(21, "Federico", "Costa", "5", "D", 2015, "U10", dU10, 18),
+    mkPlayer(22, "Nicol\xF2", "Gallo", "6", "D", 2016, "U10", dU10, 18),
+    mkPlayer(23, "Riccardo", "Barbieri", "7", "C", 2015, "U10", dU10, 18),
+    mkPlayer(24, "Simone", "Martinelli", "10", "C", 2016, "U10", dU10, 18),
+    mkPlayer(25, "Tommaso", "De Luca", "13", "C", 2015, "U10", dU10, 18),
+    mkPlayer(26, "Alessandro", "Greco", "14", "A", 2015, "U10", dU10, 18),
+    mkPlayer(27, "Filippo", "Lombardi", "15", "A", 2016, "U10", dU10, 18),
+    mkPlayer(28, "Mattia", "Fontana", "9", "A", 2015, "U10", dU10, 18),
+    // U14 (IDs 29–43, nati 2011–2012)
+    mkPlayer(29, "Luca", "Marino", "10", "C", 2011, "U14", dU14, 28),
+    // demo.giocatore + figlio di utente 8
+    mkPlayer(30, "Giorgio", "Santoro", "1", "P", 2011, "U14", dU14, 28),
+    mkPlayer(31, "Paolo", "Amato", "9", "A", 2011, "U14", dU14, 28),
+    mkPlayer(32, "Sergio", "Marini", "2", "D", 2012, "U14", dU14, 28),
+    mkPlayer(33, "Antonio", "Ferrara", "3", "D", 2011, "U14", dU14, 28),
+    mkPlayer(34, "Roberto", "Moreno", "11", "A", 2012, "U14", dU14, 28),
+    mkPlayer(35, "Carlo", "Riva", "7", "C", 2011, "U14", dU14, 28),
+    mkPlayer(36, "Stefano", "Mele", "6", "D", 2011, "U14", dU14, 28),
+    mkPlayer(37, "Giuseppe", "Neri", "5", "D", 2012, "U14", dU14, 28),
+    mkPlayer(38, "Mario", "Conte", "4", "D", 2011, "U14", dU14, 28),
+    mkPlayer(39, "Fabio", "Guerra", "8", "C", 2012, "U14", dU14, 28),
+    mkPlayer(40, "Enzo", "Palma", "12", "C", 2011, "U14", dU14, 28),
+    mkPlayer(41, "Bruno", "Serra", "14", "A", 2012, "U14", dU14, 28),
+    mkPlayer(42, "Claudio", "Villa", "13", "C", 2011, "U14", dU14, 28),
+    mkPlayer(43, "Leonardo", "Fabbri", "15", "A", 2012, "U14", dU14, 28),
+    // U18 (IDs 44–58, nati 2007–2008)
+    mkPlayer(44, "Alessandro", "Rossi", "9", "A", 2007, "U18", dU18, 22),
+    // figlio di utente 9
+    mkPlayer(45, "Matteo", "Bianchi", "1", "P", 2007, "U18", dU18, 22),
+    mkPlayer(46, "Luca", "Conti", "4", "D", 2008, "U18", dU18, 22),
+    mkPlayer(47, "Marco", "Greco", "5", "D", 2007, "U18", dU18, 22),
+    mkPlayer(48, "Andrea", "Serra", "7", "C", 2008, "U18", dU18, 22),
+    mkPlayer(49, "Federico", "Neri", "8", "C", 2007, "U18", dU18, 22),
+    mkPlayer(50, "Davide", "Ricci", "10", "C", 2007, "U18", dU18, 22),
+    mkPlayer(51, "Simone", "Ferrari", "11", "A", 2008, "U18", dU18, 22),
+    mkPlayer(52, "Lorenzo", "Costa", "6", "D", 2007, "U18", dU18, 22),
+    mkPlayer(53, "Roberto", "Mele", "3", "D", 2008, "U18", dU18, 22),
+    mkPlayer(54, "Claudio", "Barbieri", "2", "D", 2007, "U18", dU18, 22),
+    mkPlayer(55, "Francesco", "Martini", "13", "C", 2008, "U18", dU18, 22),
+    mkPlayer(56, "Gianni", "Moreno", "14", "A", 2007, "U18", dU18, 22),
+    mkPlayer(57, "Enrico", "Riva", "15", "A", 2008, "U18", dU18, 22),
+    mkPlayer(58, "Nicola", "Verde", "16", "C", 2007, "U18", dU18, 22)
+  ];
+  const playerPhotos = {};
+  players.forEach((p) => {
+    playerPhotos[String(p.id)] = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(p.nome + "_" + p.cogn)}`;
+  });
+  let _mId = 1;
+  function buildLeague(teamName, rivals, playedDates, futureDates, levaPlayerIds, ourGoals, theirGoals, baseId) {
+    _mId = baseId;
+    const total = playedDates.length + futureDates.length;
+    const matches = [];
+    for (let g = 1; g <= total; g++) {
+      const played = g <= playedDates.length;
+      const date2 = played ? playedDates[g - 1] : futureDates[g - playedDates.length - 1];
+      const ri = (g - 1) % rivals.length;
+      const rival = rivals[ri];
+      const isHome = g % 2 === 1;
+      const seed0 = baseId * 1e3 + g * 17;
+      const golOur = played ? ourGoals[g - 1] ?? Math.floor(pr(seed0) * 4) : 0;
+      const golRiv = played ? theirGoals[g - 1] ?? Math.floor(pr(seed0 + 3) * 3) : 0;
+      const stats = [];
+      if (played) {
+        levaPlayerIds.forEach((pid) => {
+          const p = players.find((x) => x.id === pid);
+          if (!p) return;
+          const s = p.partite[g - 1];
+          if (s && (s.gol > 0 || s.ass > 0)) stats.push({ playerId: pid, gol: s.gol, assist: s.ass });
+        });
+      }
+      matches.push({
+        id: _mId++,
+        giornata: g,
+        data: date2,
+        orario: isHome ? "10:30" : "09:00",
+        casa: isHome ? teamName : rival,
+        ospite: isHome ? rival : teamName,
+        luogo: isHome ? "Campo Via Larga 12, Milano" : `Campo ${rival}`,
+        played,
+        golCasa: isHome ? golOur : golRiv,
+        golOspiti: isHome ? golRiv : golOur,
+        stats
+      });
+      for (let k = 1; k <= 2; k++) {
+        const r1 = rivals[(ri + k) % rivals.length];
+        const r2 = rivals[(ri + k + 2) % rivals.length];
+        const s22 = baseId * 1e3 + g * 17 + k * 100;
+        matches.push({
+          id: _mId++,
+          giornata: g,
+          data: date2,
+          orario: k === 1 ? "11:30" : "15:00",
+          casa: r1,
+          ospite: r2,
+          luogo: `Campo ${r1}`,
+          played,
+          golCasa: played ? Math.floor(pr(s22 + 1) * 4) : 0,
+          golOspiti: played ? Math.floor(pr(s22 + 5) * 3) : 0,
+          stats: []
+        });
+      }
+    }
+    return matches;
+  }
+  const u6R = ["ASD Aquile Piccole", "CS Junior Milano", "Calcio Amici U6", "FC Piccoli Leoni", "GS Primaleva"];
+  const u10R = ["Falchi SC", "Aquile FC", "Leoni ASD", "Pantere 2012", "Tigri Calcio"];
+  const u14R = ["FC Giovanissimi", "Atletico U14", "Sporting Junior", "Real Calcio", "Panthers U14"];
+  const u18R = ["FC Allievi", "Atletico Senior", "Sporting U18", "Real Calcio U18", "Juniores Elite"];
+  const campionato = {
+    U6: {
+      nome: "Torneo Primavera U6 2025/26",
+      stagione: "2025/26",
+      squadre: ["Stella Azzurra ASD U6", ...u6R],
+      partite: buildLeague(
+        "Stella Azzurra ASD U6",
+        u6R,
+        dU6,
+        [nxtSat],
+        Array.from({ length: 14 }, (_, i) => i + 1),
+        [2, 1, 3, 2, 4, 1],
+        [1, 1, 0, 2, 0, 2],
+        1
+      )
+    },
+    U10: {
+      nome: "Campionato Provinciale U10 Girone B",
+      stagione: "2025/26",
+      squadre: ["Stella Azzurra ASD U10", ...u10R],
+      partite: buildLeague(
+        "Stella Azzurra ASD U10",
+        u10R,
+        dU10,
+        [nxtSat],
+        Array.from({ length: 14 }, (_, i) => i + 15),
+        [3, 2, 4, 1, 2, 3, 1, 2, 3],
+        [1, 2, 0, 2, 0, 1, 2, 0, 1],
+        100
+      )
+    },
+    U14: {
+      nome: "Campionato Regionale U14 Girone C",
+      stagione: "2025/26",
+      squadre: ["Stella Azzurra ASD U14", ...u14R],
+      partite: buildLeague(
+        "Stella Azzurra ASD U14",
+        u14R,
+        dU14,
+        [nxtSat2, nxtSat3],
+        Array.from({ length: 15 }, (_, i) => i + 29),
+        [2, 3, 1, 2, 4, 0, 3, 2, 1, 3, 2, 1, 4, 2],
+        [0, 1, 1, 0, 1, 2, 1, 1, 2, 0, 1, 1, 0, 1],
+        300
+      )
+    },
+    U18: {
+      nome: "Campionato Provinciale U18 Girone A",
+      stagione: "2025/26",
+      squadre: ["Stella Azzurra ASD U18", ...u18R],
+      partite: buildLeague(
+        "Stella Azzurra ASD U18",
+        u18R,
+        dU18,
+        [nxtSat2, nxtSat3],
+        Array.from({ length: 15 }, (_, i) => i + 44),
+        [2, 1, 3, 0, 2, 3, 1, 2, 0, 3, 2],
+        [1, 2, 1, 1, 0, 1, 2, 1, 1, 1, 0],
+        500
+      )
+    }
+  };
+  let torneoId = 1;
+  let faseId = 1;
+  let tornMatchN = 700;
+  function tm(casa, ospite, date2, played, gc, go) {
+    return { id: "tm" + tornMatchN++, data: date2, casa, ospite, played, golCasa: gc, golOspiti: go, stats: [], visibilitaSubito: played };
+  }
+  function mkTorneo(nome, leva, luogo, di, df, squads, partite, archiviato) {
+    const myTeam = `Stella Azzurra ASD ${leva}`;
+    return {
+      id: "t" + torneoId++,
+      nome,
+      leva,
+      luogo,
+      dataInizio: di,
+      dataFine: df,
+      tipo: 2,
+      spareggio: ["scontro_diretto", "dr_generale", "gf_generale"],
+      squadrePartecipanti: squads,
+      fasi: [{ id: "f" + faseId++, nome: "Girone Unico", tipo: "girone", faseGruppo: null, squads, partite }],
+      convocati: [],
+      archiviato,
+      squadreMieFlag: [myTeam],
+      convocazioniPerPartita: false
+    };
+  }
+  const s0 = pastSat[0] ?? addDays2(nxtSat, -77);
+  const s1 = pastSat[1] ?? addDays2(nxtSat, -70);
+  const s2 = pastSat[2] ?? addDays2(nxtSat, -63);
+  const s3 = pastSat[3] ?? addDays2(nxtSat, -56);
+  const s4 = pastSat[4] ?? addDays2(nxtSat, -49);
+  const s5 = pastSat[5] ?? addDays2(nxtSat, -42);
+  const s6 = pastSat[6] ?? addDays2(nxtSat, -35);
+  const u6Sq = ["Stella Azzurra ASD U6", "Falchi Mini", "Aquile Piccole", "Leoni Baby"];
+  const u10Sq = ["Stella Azzurra ASD U10", "Falchi SC", "Aquile FC", "Leoni ASD"];
+  const u14Sq = ["Stella Azzurra ASD U14", "FC Giovanissimi", "Atletico U14", "Sporting Junior"];
+  const u18Sq = ["Stella Azzurra ASD U18", "FC Allievi", "Atletico Senior", "Sporting U18"];
+  const tornei = [
+    mkTorneo("Torneo Invernale U6", "U6", "Milano", s0, s2, u6Sq, [
+      tm("Stella Azzurra ASD U6", "Falchi Mini", s0, true, 3, 1),
+      tm("Aquile Piccole", "Leoni Baby", s0, true, 1, 2),
+      tm("Falchi Mini", "Leoni Baby", s1, true, 0, 2),
+      tm("Stella Azzurra ASD U6", "Aquile Piccole", s1, true, 2, 0),
+      tm("Leoni Baby", "Stella Azzurra ASD U6", s2, true, 1, 2),
+      tm("Falchi Mini", "Aquile Piccole", s2, true, 1, 0)
+    ], true),
+    mkTorneo("Coppa Primavera U6", "U6", "Milano", nxtSat, nxtSat2, u6Sq, [
+      tm("Stella Azzurra ASD U6", "Leoni Baby", nxtSat, false, 0, 0),
+      tm("Falchi Mini", "Aquile Piccole", nxtSat, false, 0, 0),
+      tm("Aquile Piccole", "Stella Azzurra ASD U6", nxtSat2, false, 0, 0),
+      tm("Leoni Baby", "Falchi Mini", nxtSat2, false, 0, 0)
+    ], false),
+    mkTorneo("Torneo di Pasqua U10", "U10", "Milano", s1, s3, u10Sq, [
+      tm("Stella Azzurra ASD U10", "Falchi SC", s1, true, 2, 1),
+      tm("Aquile FC", "Leoni ASD", s1, true, 0, 2),
+      tm("Falchi SC", "Leoni ASD", s2, true, 1, 1),
+      tm("Stella Azzurra ASD U10", "Aquile FC", s2, true, 3, 0),
+      tm("Leoni ASD", "Stella Azzurra ASD U10", s3, true, 0, 3),
+      tm("Falchi SC", "Aquile FC", s3, true, 2, 1)
+    ], true),
+    mkTorneo("Torneo Citt\xE0 di Milano U10", "U10", "Milano", nxtSat, nxtSat3, u10Sq, [
+      tm("Stella Azzurra ASD U10", "Leoni ASD", nxtSat, false, 0, 0),
+      tm("Falchi SC", "Aquile FC", nxtSat, false, 0, 0),
+      tm("Aquile FC", "Stella Azzurra ASD U10", nxtSat2, false, 0, 0),
+      tm("Leoni ASD", "Falchi SC", nxtSat2, false, 0, 0),
+      tm("Stella Azzurra ASD U10", "Falchi SC", nxtSat3, false, 0, 0),
+      tm("Aquile FC", "Leoni ASD", nxtSat3, false, 0, 0)
+    ], false),
+    mkTorneo("Torneo Provinciale U14 Primavera", "U14", "Milano", s2, s5, u14Sq, [
+      tm("Stella Azzurra ASD U14", "FC Giovanissimi", s2, true, 3, 1),
+      tm("Atletico U14", "Sporting Junior", s2, true, 1, 2),
+      tm("FC Giovanissimi", "Sporting Junior", s3, true, 0, 1),
+      tm("Stella Azzurra ASD U14", "Atletico U14", s3, true, 2, 0),
+      tm("Sporting Junior", "Stella Azzurra ASD U14", s4, true, 1, 2),
+      tm("FC Giovanissimi", "Atletico U14", s4, true, 3, 2),
+      tm("Stella Azzurra ASD U14", "Sporting Junior", s5, true, 4, 0),
+      tm("Atletico U14", "FC Giovanissimi", s5, true, 1, 1)
+    ], true),
+    mkTorneo("Coppa Giovani U14", "U14", "Monza", nxtSat, nxtSat2, u14Sq, [
+      tm("Stella Azzurra ASD U14", "Atletico U14", nxtSat, false, 0, 0),
+      tm("FC Giovanissimi", "Sporting Junior", nxtSat, false, 0, 0),
+      tm("Sporting Junior", "Stella Azzurra ASD U14", nxtSat2, false, 0, 0),
+      tm("Atletico U14", "FC Giovanissimi", nxtSat2, false, 0, 0)
+    ], false),
+    mkTorneo("Memorial Rossi U18", "U18", "Milano", s3, s6, u18Sq, [
+      tm("Stella Azzurra ASD U18", "FC Allievi", s3, true, 2, 0),
+      tm("Atletico Senior", "Sporting U18", s3, true, 1, 1),
+      tm("FC Allievi", "Sporting U18", s4, true, 0, 2),
+      tm("Stella Azzurra ASD U18", "Atletico Senior", s4, true, 3, 1),
+      tm("Sporting U18", "Stella Azzurra ASD U18", s5, true, 0, 1),
+      tm("FC Allievi", "Atletico Senior", s5, true, 2, 2)
+    ], true),
+    mkTorneo("Torneo Fine Stagione U18", "U18", "Bergamo", nxtSat2, nxtSat3, u18Sq, [
+      tm("Stella Azzurra ASD U18", "Sporting U18", nxtSat2, false, 0, 0),
+      tm("FC Allievi", "Atletico Senior", nxtSat2, false, 0, 0),
+      tm("Atletico Senior", "Stella Azzurra ASD U18", nxtSat3, false, 0, 0),
+      tm("Sporting U18", "FC Allievi", nxtSat3, false, 0, 0)
+    ], false)
+  ];
+  const events = [
+    { id: 1, title: "Allenamento U6/U10", type: "allenamento", date: nxtTue, start: "17:30", end: "18:30", luogo: "Campo Via Larga 12, Milano", note: "", recur: "none", recurUntil: null, leve: ["U6", "U10"], createdBy: "demo.mister@stellaazzurra.it" },
+    { id: 2, title: "Allenamento U14/U18", type: "allenamento", date: nxtTue, start: "18:30", end: "20:00", luogo: "Campo Via Larga 12, Milano", note: "", recur: "none", recurUntil: null, leve: ["U14", "U18"], createdBy: "mister.u14@stellaazzurra.it" },
+    { id: 3, title: "Allenamento U6/U10", type: "allenamento", date: nxtThu, start: "17:30", end: "18:30", luogo: "Campo Via Larga 12, Milano", note: "", recur: "none", recurUntil: null, leve: ["U6", "U10"], createdBy: "demo.mister@stellaazzurra.it" },
+    { id: 4, title: "Allenamento U14/U18", type: "allenamento", date: nxtThu, start: "18:30", end: "20:00", luogo: "Campo Via Larga 12, Milano", note: "", recur: "none", recurUntil: null, leve: ["U14", "U18"], createdBy: "mister.u14@stellaazzurra.it" },
+    { id: 5, title: "Campionato G10 \u2014 Stella vs Tigri", type: "partita", date: nxtSat, start: "10:30", end: "12:00", luogo: "Campo Via Larga 12, Milano", note: "Partita in casa \u2014 porta i supporter!", recur: "none", recurUntil: null, leve: ["U10"], createdBy: "demo.admin@stellaazzurra.it" },
+    { id: 6, title: "Coppa Primavera \u2014 U6", type: "partita", date: nxtSat, start: "09:30", end: "11:00", luogo: "Campo Via Larga 12, Milano", note: "Prima partita del torneo! Portare tuta ufficiale.", recur: "none", recurUntil: null, leve: ["U6"], createdBy: "mister.u6@stellaazzurra.it" },
+    { id: 7, title: "Campionato G15 \u2014 U14 Trasferta", type: "partita", date: nxtSat2, start: "11:30", end: "13:00", luogo: "Campo FC Giovanissimi, Via Torino 8", note: "Trasferta. Ritrovo ore 10:30 al campo.", recur: "none", recurUntil: null, leve: ["U14"], createdBy: "mister.u14@stellaazzurra.it" },
+    { id: 8, title: "Campionato G12 \u2014 Stella vs Atletico Senior", type: "partita", date: nxtSat2, start: "14:30", end: "16:30", luogo: "Campo Via Larga 12, Milano", note: "Derby casalingo! Ingresso libero.", recur: "none", recurUntil: null, leve: ["U18"], createdBy: "mister.u18@stellaazzurra.it" }
+  ];
+  const convocazioni = [
+    {
+      id: 1,
+      eventId: 5,
+      leva: "U10",
+      ritrovo: "09:45",
+      divisa: "Casa",
+      note: "Partita decisiva per il secondo posto. Portare borraccia!",
+      playerIds: [15, 16, 18, 19, 20, 21, 23, 24, 26, 27, 28],
+      createdBy: 2,
+      createdAt: now - DAY,
+      sentAt: now - DAY
+    },
+    {
+      id: 2,
+      eventId: 7,
+      leva: "U14",
+      ritrovo: "10:30",
+      divisa: "Trasferta",
+      note: "Ritrovo alle 10:30 al campo. Tuta da gara obbligatoria.",
+      playerIds: [29, 30, 31, 32, 33, 34, 35, 36, 37, 39, 41, 43],
+      createdBy: 3,
+      createdAt: now - 2 * DAY,
+      sentAt: now - 2 * DAY
+    }
+  ];
+  const t7 = now - 7 * DAY, t4 = now - 4 * DAY, t3 = now - 3 * DAY, t2 = now - 2 * DAY, t1 = now - DAY;
+  const comunicazioni = [
+    { id: 1, scope: "pubblica", tipo: "info", titolo: "\u{1F3C6} Benvenuti nella stagione 2025/26!", testo: "Inizia ufficialmente la stagione 2025/26 per tutte le leve di Stella Azzurra ASD. Tante novit\xE0 in arrivo: nuovi tornei, campionati e attivit\xE0. Forza Stella! \u{1F499}\u2B50", mittente: "Marco Rossi", mittenteId: 1, ts: t7, readBy: [1, 2, 3, 4, 5, 6], commentiAbilitati: true, commenti: [{ id: 1, userId: 2, testo: "Grande stagione che ci aspetta! I ragazzi U10 sono carichi \u{1F4AA}", ts: t7 + 36e5 }], sondaggio: null },
+    { id: 2, scope: "leva:U10", tipo: "urgente", titolo: "\u26A0\uFE0F Cambio campo \u2014 Allenamento Marted\xEC", testo: "L'allenamento di marted\xEC si svolger\xE0 sul Campo B (lato via Roma) causa manutenzione sul Campo A. Stesso orario 17:30.", mittente: "Andrea Bianchi", mittenteId: 2, ts: t3, readBy: [1, 2, 6], commentiAbilitati: false, commenti: [], sondaggio: null },
+    { id: 3, scope: "leva:U14", tipo: "evento", titolo: "\u{1F3DF}\uFE0F Coppa Giovani U14 \u2014 Monza 21/22 Giugno", testo: "La nostra U14 \xE8 qualificata alla Coppa Giovani U14 a Monza! Registrazione entro 15 giugno. Dettagli dal mister Sofia.", mittente: "Sofia Ferrari", mittenteId: 3, ts: t2, readBy: [1, 3, 4, 14], commentiAbilitati: false, commenti: [], sondaggio: null },
+    { id: 4, scope: "leva:U10", tipo: "sondaggio", titolo: "\u{1F4CA} Disponibilit\xE0 allenamenti estivi", testo: "Stiamo pianificando gli allenamenti estivi (luglio). Confermate la disponibilit\xE0 della vostra famiglia.", mittente: "Andrea Bianchi", mittenteId: 2, ts: t1, readBy: [1, 2, 6], commentiAbilitati: false, commenti: [], sondaggio: { domanda: "Siete disponibili per allenamenti a luglio?", opzioni: ["S\xEC, tutte le settimane", "S\xEC, alcune settimane", "No, non saremo disponibili"], anonimo: false, scadenza: null, chiuso: false, voti: [{ userId: 1, opzioneIdx: 0, nome: "Marco Rossi" }, { userId: 2, opzioneIdx: 0, nome: "Andrea Bianchi" }, { userId: 6, opzioneIdx: 1, nome: "Claudia Romano" }] } },
+    { id: 5, scope: "leva:U18", tipo: "info", titolo: "\u{1F4CB} Rinnovo tessere FIGC \u2014 scadenza 30 giugno", testo: "Ricordiamo che le tessere FIGC scadono il 30 giugno. Portare documento d'identit\xE0 per il rinnovo. Contattare la segreteria.", mittente: "Marco Rossi", mittenteId: 1, ts: t4, readBy: [1, 5, 9, 12], commentiAbilitati: false, commenti: [], sondaggio: null },
+    { id: 6, scope: "leva:U6", tipo: "info", titolo: "\u{1F389} Sabato debutto alla Coppa Primavera!", testo: "Sabato la nostra U6 gioca la prima partita della Coppa Primavera! Arrivo ore 09:15. Scarpini, parastinchi e sorrisi \u{1F604} Sar\xE0 divertentissimo!", mittente: "Luca Colombo", mittenteId: 4, ts: t1, readBy: [1, 4, 7], commentiAbilitati: true, commenti: [{ id: 2, userId: 7, testo: "Tommy non stava nella pelle ieri sera! \u{1F973}", ts: t1 + 18e5 }], sondaggio: null },
+    { id: 7, scope: "leva:U14", tipo: "urgente", titolo: "\u26A0\uFE0F Quote mensili U14 \u2014 scadenza 31 maggio", testo: "Ricordiamo che le quote mensili per U14 scadono il 31 maggio. Pagate tramite app nella sezione Quote. Grazie.", mittente: "Marco Rossi", mittenteId: 1, ts: t3, readBy: [1, 3, 4, 8], commentiAbilitati: false, commenti: [], sondaggio: null },
+    { id: 8, scope: "leva:U18", tipo: "sondaggio", titolo: "\u{1F4CA} Disponibilit\xE0 trasferta Bergamo", testo: "Confermate la disponibilit\xE0 per il Torneo Fine Stagione a Bergamo (data da definire).", mittente: "Elena Martini", mittenteId: 5, ts: t2, readBy: [1, 5, 9, 11], commentiAbilitati: false, commenti: [], sondaggio: { domanda: "Partecipi alla trasferta di Bergamo?", opzioni: ["S\xEC", "No", "Devo confermare"], anonimo: false, scadenza: null, chiuso: false, voti: [{ userId: 1, opzioneIdx: 0, nome: "Marco Rossi" }, { userId: 5, opzioneIdx: 0, nome: "Elena Martini" }, { userId: 9, opzioneIdx: 2, nome: "Paolo Bianchi" }] } }
+  ];
+  const chatMessaggi = [
+    { id: 1, chatId: "allenatori", userId: 1, text: "Riunione tecnica venerd\xEC sera alle 20:00? Pianifichiamo le convocazioni di sabato.", ts: t7 + 36e5 },
+    { id: 2, chatId: "allenatori", userId: 2, text: "Ok! Ho gi\xE0 selezionato i 12 per U10 \u{1F4AA}", ts: t7 + 72e5 },
+    { id: 3, chatId: "allenatori", userId: 3, text: "Ci sono. Per U14 ho qualche dubbio su 2 ragazzi, ne parliamo venerd\xEC.", ts: t7 + 108e5 },
+    { id: 4, chatId: "allenatori", userId: 5, text: "U18 confermata. Buon lavoro a tutti!", ts: t7 + 144e5 },
+    { id: 5, chatId: "allenatori", userId: 1, text: "Ricordo: portare anche il prospetto quote \u2014 parecchie pendenti in U14.", ts: t3 },
+    { id: 6, chatId: "leva_U10", userId: 6, text: "Ciao! A che ora si gioca sabato?", ts: t2 + 36e5 },
+    { id: 7, chatId: "leva_U10", userId: 2, text: "Fischio 10:30. Ritrovo 09:45 al Campo Via Larga. Forza Stella! \u26BD", ts: t2 + 72e5 },
+    { id: 8, chatId: "leva_U10", userId: 6, text: "Grazie mister! Marco \xE8 carichissimo \u{1F604}", ts: t2 + 9e6 },
+    { id: 9, chatId: "leva_U10", userId: 2, text: "Convocazioni inviate. Controllate le notifiche nell'app.", ts: t1 },
+    { id: 10, chatId: "leva_U14", userId: 8, text: "Mister, mio figlio ha un leggero raffreddore \u2014 pu\xF2 allenarsi gioved\xEC?", ts: t3 + 36e5 },
+    { id: 11, chatId: "leva_U14", userId: 3, text: "Se non c'\xE8 febbre pu\xF2 venire, valutiamo sul campo. Porta k-way per sicurezza.", ts: t3 + 72e5 },
+    { id: 12, chatId: "leva_U14", userId: 8, text: "Perfetto, grazie Sofia!", ts: t3 + 9e6 },
+    { id: 13, chatId: "leva_U14", userId: 3, text: "Attenzione: ritrovo sabato alle 10:30, non 11:30! Trasferta!", ts: t1 + 36e5 },
+    { id: 14, chatId: "leva_U6", userId: 7, text: "Prima partita di Tommy! Che emozione! \u{1F389}", ts: t1 + 1e6 },
+    { id: 15, chatId: "leva_U6", userId: 4, text: "Sar\xE0 bellissimo! Portate le fotocamere \u2014 faremo ricordi indimenticabili.", ts: t1 + 36e5 },
+    { id: 16, chatId: "leva_U18", userId: 9, text: "Mister, possiamo sapere la formazione di sabato?", ts: t2 + 1e6 },
+    { id: 17, chatId: "leva_U18", userId: 5, text: "Formazione dopo allenamento venerd\xEC. Concentratevi sul recupero!", ts: t2 + 5e6 },
+    { id: 18, chatId: "amm_6", userId: 6, text: "Buonasera, quando si paga la quota mensile?", ts: t1 + 2e6 },
+    { id: 19, chatId: "amm_6", userId: 1, text: "Le quote scadono il 31 di ogni mese. Puoi pagarle dall'app nella sezione Quote. Grazie!", ts: t1 + 5e6 }
+  ];
+  const users = [
+    { id: 1, nome: "Marco", cogn: "Rossi", email: "demo.admin@stellaazzurra.it", pass: "Demo2025!", role: "admin", leva: "Tutte", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999, is_account_owner: true },
+    { id: 2, nome: "Andrea", cogn: "Bianchi", email: "demo.mister@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U10", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 3, nome: "Sofia", cogn: "Ferrari", email: "mister.u14@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U14", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 4, nome: "Luca", cogn: "Colombo", email: "mister.u6@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U6", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 5, nome: "Elena", cogn: "Martini", email: "mister.u18@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U18", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 6, nome: "Claudia", cogn: "Romano", email: "demo.genitore@stellaazzurra.it", pass: "Demo2025!", role: "genitore", leva: "U10", stato: "attivo", figli: ["Marco Ferretti"], figlio: "Marco Ferretti", anno: null, societaId: 99999 },
+    { id: 7, nome: "Roberto", cogn: "Conti", email: "genitore.u6@stellaazzurra.it", pass: "Demo2025!", role: "genitore", leva: "U6", stato: "attivo", figli: ["Daniele Conti"], figlio: "Daniele Conti", anno: null, societaId: 99999 },
+    { id: 8, nome: "Anna", cogn: "Ferretti", email: "genitore.u14@stellaazzurra.it", pass: "Demo2025!", role: "genitore", leva: "U14", stato: "attivo", figli: ["Luca Marino"], figlio: "Luca Marino", anno: null, societaId: 99999 },
+    { id: 9, nome: "Paolo", cogn: "Bianchi", email: "genitore.u18@stellaazzurra.it", pass: "Demo2025!", role: "genitore", leva: "U18", stato: "attivo", figli: ["Alessandro Rossi"], figlio: "Alessandro Rossi", anno: null, societaId: 99999 },
+    { id: 10, nome: "Luca", cogn: "Marino", email: "demo.giocatore@stellaazzurra.it", pass: "Demo2025!", role: "giocatore", leva: "U14", stato: "attivo", figli: [], figlio: null, anno: 2011, societaId: 99999 },
+    { id: 11, nome: "Alessandro", cogn: "Rossi", email: "giocatore.u18@stellaazzurra.it", pass: "Demo2025!", role: "giocatore", leva: "U18", stato: "attivo", figli: [], figlio: null, anno: 2007, societaId: 99999 },
+    { id: 12, nome: "Giorgio", cogn: "Russo", email: "dirigente@stellaazzurra.it", pass: "Demo2025!", role: "dirigente", leva: "Tutte", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 13, nome: "Davide", cogn: "Costa", email: "assistente.u10@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U10", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 14, nome: "Simone", cogn: "Verde", email: "assistente.u14@stellaazzurra.it", pass: "Demo2025!", role: "allenatore", leva: "U14", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 15, nome: "Valentina", cogn: "Neri", email: "segreteria@stellaazzurra.it", pass: "Demo2025!", role: "dirigente", leva: "Tutte", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 },
+    { id: 16, nome: "Federico", cogn: "Mele", email: "medico@stellaazzurra.it", pass: "Demo2025!", role: "dirigente", leva: "Tutte", stato: "attivo", figli: [], figlio: null, anno: null, societaId: 99999 }
+  ];
+  const mEnd = toYmd(new Date(now + 7 * DAY));
+  const mPast = toYmd(new Date(now - 25 * DAY));
+  const quotes = [];
+  let qId = 1;
+  function addQuotes(levaName, importo, levaPlayers, parentMap) {
+    levaPlayers.forEach((p, i) => {
+      const n = levaPlayers.length;
+      const stato = i < Math.floor(n * 0.6) ? "pagato" : i < Math.floor(n * 0.9) ? "attesa" : "scaduto";
+      quotes.push({
+        id: qId++,
+        playerId: p.id,
+        parentUserId: parentMap[p.id] ?? null,
+        leva: levaName,
+        importo,
+        scadenza: stato === "scaduto" ? mPast : mEnd,
+        nota: stato === "scaduto" ? "Quota scaduta \u2014 contattare famiglia" : "",
+        stato,
+        pagatoAt: stato === "pagato" ? now - Math.floor(pr(p.id * 3 + 7) * 20) * DAY : null,
+        createdBy: 1,
+        createdAt: now - 30 * DAY
+      });
+    });
+  }
+  addQuotes("U10", 60, players.filter((p) => p.leva === "U10"), { 15: 6 });
+  addQuotes("U14", 70, players.filter((p) => p.leva === "U14"), { 29: 8 });
+  addQuotes("U18", 80, players.filter((p) => p.leva === "U18").slice(0, 10), { 44: 9 });
+  const CERT_SVG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI2YwZjRmZiIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjE2IiBmaWxsPSIjMWEzZjhmIj5DZXJ0aWZpY2F0bzwvdGV4dD48dGV4dCB4PSIxMDAiIHk9IjEzMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzFhM2Y4ZiI+TWVkaWNvPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjEyIiBmaWxsPSIjNjY2Ij5bRGVtb108L3RleHQ+PC9zdmc+";
+  const exp1Y = toYmd(new Date(now + 365 * DAY));
+  const exp6M = toYmd(new Date(now + 180 * DAY));
+  const exp3M = toYmd(new Date(now + 90 * DAY));
+  const exp2W = toYmd(new Date(now + 14 * DAY));
+  const expPst = toYmd(new Date(now - 30 * DAY));
+  const expPst2 = toYmd(new Date(now - 5 * DAY));
+  const exps10 = [exp1Y, exp6M, exp1Y, exp3M, exp1Y, exp6M, exp1Y, exp2W, expPst, expPst2];
+  const documenti = [];
+  let docId = 1;
+  players.filter((p) => p.leva === "U10").slice(0, 10).forEach((p, i) => {
+    documenti.push({
+      id: docId++,
+      playerId: p.id,
+      tipo: "cert_medico",
+      tipoLabel: "Certificato medico sportivo",
+      nomeFile: `cert_${p.cogn.toLowerCase()}.jpg`,
+      data: CERT_SVG,
+      dataScadenza: exps10[i],
+      uploadedBy: 2,
+      uploadedAt: now - Math.floor(pr(p.id * 3) * 60) * DAY,
+      fileType: "img"
+    });
+  });
+  players.filter((p) => p.leva === "U14").slice(0, 10).forEach((p, i) => {
+    documenti.push({
+      id: docId++,
+      playerId: p.id,
+      tipo: "cert_medico",
+      tipoLabel: "Certificato medico sportivo",
+      nomeFile: `cert_${p.cogn.toLowerCase()}.jpg`,
+      data: CERT_SVG,
+      dataScadenza: exps10[i],
+      uploadedBy: 3,
+      uploadedAt: now - Math.floor(pr(p.id * 5) * 60) * DAY,
+      fileType: "img"
+    });
+  });
+  [15, 16, 18, 19].forEach((pid) => {
+    const p = players.find((x) => x.id === pid);
+    documenti.push({
+      id: docId++,
+      playerId: pid,
+      tipo: "modulo_iscrizione",
+      tipoLabel: "Modulo di iscrizione",
+      nomeFile: `iscrizione_${p.cogn.toLowerCase()}.pdf`,
+      data: CERT_SVG,
+      dataScadenza: null,
+      uploadedBy: 1,
+      uploadedAt: now - 180 * DAY,
+      fileType: "img"
+    });
+  });
+  return {
+    USERS_DB: users,
+    nextUserId: 17,
+    players,
+    nextPlayerId: 59,
+    leve: ["U6", "U10", "U14", "U18"],
+    currentLeva: "U14",
+    events,
+    eventTypes: [
+      { id: "allenamento", label: "\u{1F3C3} Allenamento", color: "#047857" },
+      { id: "partita", label: "\u26BD Partita", color: "#1a3f8f" },
+      { id: "evento", label: "\u{1F389} Evento", color: "#f59e0b" },
+      { id: "torneo", label: "\u{1F3C6} Torneo", color: "#e03055" }
+    ],
+    nextEventId: events.length + 1,
+    nextEventTypeId: 100,
+    convocazioni,
+    nextConvocazioneId: convocazioni.length + 1,
+    disponibilita: [],
+    nextDisponibilitaId: 1,
+    notifiche: [],
+    nextNotificaId: 1,
+    inviti: [],
+    codiceSocieta: "STELLA25",
+    pendingUsers: [],
+    nextPendingUserId: 1,
+    chatMessaggi,
+    nextChatMsgId: chatMessaggi.length + 1,
+    chatLastSeen: {},
+    torneoChats: {},
+    amichevoli: [],
+    nextAmichevoleId: 1,
+    campionato,
+    nextCampId: 5,
+    tornei,
+    nextTorneoId: torneoId,
+    nextFaseId: faseId,
+    nextTornMatchId: tornMatchN,
+    comunicazioni,
+    nextComunicazioneId: comunicazioni.length + 1,
+    nextCommentoId: 10,
+    mediaItems: [],
+    nextMediaId: 1,
+    playerPhotos,
+    squadFotos: {},
+    nomeSocieta: "Stella Azzurra ASD",
+    coloriPrimari: "#1a3f8f",
+    coloriAccento: "#FFD700",
+    quotes,
+    nextQuoteId: quotes.length + 1,
+    quoteSettings: { periodicitaGiorni: 30, scadenzaGiorni: 7 },
+    documenti,
+    nextDocId: documenti.length + 1,
+    campi: [
+      { id: 1, nome: "Campo Principale", indirizzo: "Via Larga 12, Milano", superficie: "Erba sintetica", capienza: 300, note: "", usageCount: 72 },
+      { id: 2, nome: "Campo B", indirizzo: "Via Roma 5, Milano", superficie: "Erba sintetica", capienza: 200, note: "Lato nord", usageCount: 38 }
+    ],
+    nextCampoId: 3,
+    indisponibilita: [],
+    nextIndispId: 1,
+    levaConvSettings: {},
+    adminAsMister: {},
+    demoResetAt: now + 7 * DAY
+  };
+}
+
+// src/routes/v2/admin-reset-demo.ts
 var router31 = (0, import_express31.Router)();
+var DEMO_KEY = "fieldos_demo_stella_v1";
+router31.post("/admin/reset-stella-demo", async (req, res) => {
+  const secret = req.headers["x-admin-secret"];
+  const adminSecret = process.env.ADMIN_RESET_SECRET;
+  if (!adminSecret || secret !== adminSecret) {
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  try {
+    const state = buildStellaDemoState();
+    const stateJson = JSON.stringify(state);
+    await pool.execute(
+      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`)
+       VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE \`state_json\` = ?, \`is_demo\` = 1`,
+      [DEMO_KEY, stateJson, stateJson]
+    );
+    const s = state;
+    logger.info(
+      { key: DEMO_KEY, players: s.players?.length, users: s.USERS_DB?.length },
+      "stella demo reset"
+    );
+    return res.json({
+      ok: true,
+      populatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+      key: DEMO_KEY,
+      leve: (s.leve ?? []).length,
+      giocatori: (s.players ?? []).length,
+      utenti: (s.USERS_DB ?? []).length,
+      quote: (s.quotes ?? []).length,
+      documenti: (s.documenti ?? []).length,
+      tornei: (s.tornei ?? []).length,
+      comunicazioni: (s.comunicazioni ?? []).length
+    });
+  } catch (e) {
+    logger.error({ err: e }, "stella demo reset failed");
+    return res.status(500).json({ error: e?.message ?? "server_error" });
+  }
+});
+var admin_reset_demo_default = router31;
+
+// src/routes/v2/index.ts
+var router32 = (0, import_express32.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -89881,7 +90532,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router31.use(async (_req, _res, next) => {
+router32.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -89890,7 +90541,7 @@ router31.use(async (_req, _res, next) => {
     next();
   }
 });
-router31.get("/schema-info", async (_req, res) => {
+router32.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -89908,7 +90559,7 @@ router31.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router31.get("/health/ai-key", (_req, res) => {
+router32.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -89919,7 +90570,7 @@ router31.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router31.get("/health/schema-budget", async (_req, res) => {
+router32.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -89934,45 +90585,46 @@ router31.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router31.use(auth_default2);
-router31.use(self_register_default);
-router31.use(society_default);
-router31.use(leve_default);
-router31.use(minors_default);
-router31.use(players_default);
-router31.use(users_default);
-router31.use(events_default);
-router31.use(presenze_default);
-router31.use(comunicazioni_default);
-router31.use(chat_default);
-router31.use(quote_default);
-router31.use(migrate_default);
-router31.use(stripe_default);
-router31.use(demo_wa_default);
-router31.use(superadmin_default);
-router31.use(account_default);
-router31.use(notification_preferences_default);
-router31.use(allenamenti_default);
-router31.use(ai_allenamenti_default);
-router31.use(ai_tornei_default);
-router31.use(utm_stats_default);
-var v2_default = router31;
+router32.use(auth_default2);
+router32.use(self_register_default);
+router32.use(society_default);
+router32.use(leve_default);
+router32.use(minors_default);
+router32.use(players_default);
+router32.use(users_default);
+router32.use(events_default);
+router32.use(presenze_default);
+router32.use(comunicazioni_default);
+router32.use(chat_default);
+router32.use(quote_default);
+router32.use(migrate_default);
+router32.use(stripe_default);
+router32.use(demo_wa_default);
+router32.use(superadmin_default);
+router32.use(account_default);
+router32.use(notification_preferences_default);
+router32.use(allenamenti_default);
+router32.use(ai_allenamenti_default);
+router32.use(ai_tornei_default);
+router32.use(utm_stats_default);
+router32.use(admin_reset_demo_default);
+var v2_default = router32;
 
 // src/routes/index.ts
-var router32 = (0, import_express32.Router)();
-router32.use(health_default);
-router32.use(login_default);
-router32.use(auth_default);
-router32.use(state_default);
-router32.use(assist_default);
-router32.use(push_default);
-router32.use(upload_default);
-router32.use(public_default);
-router32.use("/v2", v2_default);
-var routes_default = router32;
+var router33 = (0, import_express33.Router)();
+router33.use(health_default);
+router33.use(login_default);
+router33.use(auth_default);
+router33.use(state_default);
+router33.use(assist_default);
+router33.use(push_default);
+router33.use(upload_default);
+router33.use(public_default);
+router33.use("/v2", v2_default);
+var routes_default = router33;
 
 // src/app.ts
-var app = (0, import_express33.default)();
+var app = (0, import_express34.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -89993,17 +90645,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express33.default.json({
+app.use(import_express34.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express33.default.urlencoded({ extended: true }));
+app.use(import_express34.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path2.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express33.default.static(staticDir));
+  app.use(import_express34.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path2.join(staticDir, "index.html"));
   });
