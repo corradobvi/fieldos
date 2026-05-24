@@ -152,6 +152,7 @@ router.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT sl.id, sl.titolo, sl.descrizione, sl.durata_minuti, sl.categoria, sl.eta_leva,
               sl.tag, sl.visibilita, sl.ufficiale_myvivaio, sl.origine_ai, sl.usata_count, sl.created_at,
+              sl.grafica_url,
               CASE WHEN sl.ufficiale_myvivaio = TRUE THEN 'MyVivaio'
                    ELSE CONCAT(u.nome, ' ', u.cognome) END AS autore_nome
        FROM sessioni_libreria sl
