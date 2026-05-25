@@ -159,6 +159,23 @@ router.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       q8_simulate_privacy_check_baiardo: q8,
       q9_simulate_login_baiardo,
       q10_polis_blobs:   q10,
+      q11_full_users:    await (async () => {
+        const out: any = {};
+        for (const k of ['fieldos_state_soc_40', 'fieldos_state_soc_5', 'fieldos_state_v1']) {
+          try {
+            const [r] = await pool.execute(`SELECT state_json FROM society_state WHERE \`key\` = ? LIMIT 1`, [k]) as [any[], any];
+            if (!r.length) { out[k] = '(blob not found)'; continue; }
+            const state = JSON.parse(r[0].state_json);
+            const users = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+            out[k] = users.map((u: any) => ({
+              email: u.email, nome: u.nome, cogn: u.cogn, role: u.role,
+              has_pass: !!u.pass, pass_len: u.pass ? String(u.pass).length : 0,
+              nomeSocieta: state.nomeSocieta,
+            }));
+          } catch (e: any) { out[k] = { error: e?.message }; }
+        }
+        return out;
+      })(),
     });
   } catch (e: any) {
     logger.error({ err: e }, "admin: audit-users failed");
