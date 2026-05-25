@@ -90398,16 +90398,20 @@ router32.post("/_admin/populate-grafica-url", async (req, res) => {
     const manifest = JSON.parse(fs2.readFileSync(manifestPath, "utf8"));
     let updated = 0;
     let notFound = 0;
+    const missing = [];
     for (const entry of manifest) {
       const [result] = await pool.execute(
-        "UPDATE sessioni_libreria SET grafica_url = ? WHERE id = ?",
-        [entry.url_pubblico, entry.sessione_id]
+        "UPDATE sessioni_libreria SET grafica_url = ? WHERE titolo = ? AND eta_leva = ? AND ufficiale_myvivaio = TRUE",
+        [entry.url_pubblico, entry.titolo, entry.eta]
       );
       if ((result.affectedRows ?? 0) > 0) updated++;
-      else notFound++;
+      else {
+        notFound++;
+        if (missing.length < 10) missing.push({ titolo: entry.titolo, eta: entry.eta });
+      }
     }
     logger.info({ updated, notFound, total: manifest.length }, "admin: populate-grafica-url done");
-    return res.json({ ok: true, total: manifest.length, updated, notFound });
+    return res.json({ ok: true, total: manifest.length, updated, notFound, missing_sample: missing });
   } catch (e) {
     logger.error({ err: e }, "admin: populate-grafica-url failed");
     return res.status(500).json({ error: e?.message ?? "server_error" });
