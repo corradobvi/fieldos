@@ -90413,6 +90413,21 @@ router32.post("/_admin/populate-grafica-url", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
+router32.get("/_admin/whoami", (req, res) => {
+  const envSecret = process.env.ADMIN_RESET_SECRET;
+  const headerSecret = req.headers["x-admin-secret"];
+  res.json({
+    has_env: !!envSecret,
+    env_length: envSecret?.length ?? 0,
+    env_first8: envSecret?.substring(0, 8) ?? null,
+    env_last8: envSecret ? envSecret.substring(envSecret.length - 8) : null,
+    has_header: !!headerSecret,
+    header_length: headerSecret?.length ?? 0,
+    header_first8: headerSecret?.substring(0, 8) ?? null,
+    header_last8: headerSecret ? headerSecret.substring(headerSecret.length - 8) : null,
+    match: envSecret === headerSecret
+  });
+});
 var admin_populate_sessioni_default = router32;
 
 // src/routes/v2/index.ts

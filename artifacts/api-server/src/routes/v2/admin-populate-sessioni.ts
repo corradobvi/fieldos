@@ -71,4 +71,21 @@ router.post("/_admin/populate-grafica-url", async (req, res) => {
   }
 });
 
+// GET /api/v2/_admin/whoami — TEMP diagnostic, NO AUTH
+router.get("/_admin/whoami", (req, res) => {
+  const envSecret = process.env.ADMIN_RESET_SECRET;
+  const headerSecret = req.headers["x-admin-secret"] as string | undefined;
+  res.json({
+    has_env: !!envSecret,
+    env_length: envSecret?.length ?? 0,
+    env_first8: envSecret?.substring(0, 8) ?? null,
+    env_last8: envSecret ? envSecret.substring(envSecret.length - 8) : null,
+    has_header: !!headerSecret,
+    header_length: headerSecret?.length ?? 0,
+    header_first8: headerSecret?.substring(0, 8) ?? null,
+    header_last8: headerSecret ? headerSecret.substring(headerSecret.length - 8) : null,
+    match: envSecret === headerSecret,
+  });
+});
+
 export default router;
