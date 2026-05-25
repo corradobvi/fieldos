@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { signJWT } from "../../lib/auth";
+import { signJWT, hashPassword } from "../../lib/auth";
 
 const router = Router();
 
@@ -179,6 +179,65 @@ router.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
     });
   } catch (e: any) {
     logger.error({ err: e }, "admin: audit-users failed");
+    return res.status(500).json({ error: e?.message ?? "server_error" });
+  }
+});
+
+// POST /api/v2/_admin/migrate-polis
+// Migra società Polis Genova (blob soc_5) in tabelle MySQL societies + users
+// Idempotente: skip insert se row già esiste
+router.post("/_admin/migrate-polis", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  try {
+    const [blobRow] = await pool.execute(
+      `SELECT state_json FROM society_state WHERE \`key\` = ? LIMIT 1`,
+      ['fieldos_state_soc_5']
+    ) as [any[], any];
+    if (!blobRow.length) return res.status(404).json({ error: "blob soc_5 not found" });
+    const state = JSON.parse(blobRow[0].state_json);
+    const blobUsers = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+
+    // Step 1: insert society id=5 if missing
+    const [existSoc] = await pool.execute(
+      `SELECT id FROM societies WHERE id = 5 LIMIT 1`
+    ) as [any[], any];
+    let societyAction = 'already_exists';
+    if (!existSoc.length) {
+      await pool.execute(
+        `INSERT INTO societies (id, nome, citta, piano, subscription_status, stato)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [5, state.nomeSocieta || 'Polis Genova', state.cittaSocieta || null,
+         'mister_pro', 'demo', 'attiva']
+      );
+      societyAction = 'inserted';
+    }
+
+    // Step 2: insert users one-by-one (skip if email+society_id already exists)
+    const userResults: any[] = [];
+    for (const u of blobUsers) {
+      if (!u.email || !u.role) continue;
+      const email = String(u.email).toLowerCase().trim();
+      const [existU] = await pool.execute(
+        `SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ? LIMIT 1`,
+        [email, 5]
+      ) as [any[], any];
+      if (existU.length) {
+        userResults.push({ email, action: 'already_exists', id: existU[0].id });
+        continue;
+      }
+      const passHash = u.pass ? hashPassword(String(u.pass)) : hashPassword(Math.random().toString(36));
+      const [ins] = await pool.execute(
+        `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [5, u.nome || '', u.cogn || '', email, passHash, u.role, 'attivo']
+      ) as [any, any];
+      userResults.push({ email, action: 'inserted', id: ins.insertId, role: u.role });
+    }
+
+    logger.info({ society: societyAction, users: userResults.length }, "admin: migrate-polis done");
+    return res.json({ ok: true, society: societyAction, users: userResults });
+  } catch (e: any) {
+    logger.error({ err: e }, "admin: migrate-polis failed");
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });

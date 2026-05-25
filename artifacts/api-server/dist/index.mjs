@@ -90592,6 +90592,62 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
+router33.post("/_admin/migrate-polis", async (req, res) => {
+  if (!checkAuth2(req, res)) return;
+  try {
+    const [blobRow] = await pool.execute(
+      `SELECT state_json FROM society_state WHERE \`key\` = ? LIMIT 1`,
+      ["fieldos_state_soc_5"]
+    );
+    if (!blobRow.length) return res.status(404).json({ error: "blob soc_5 not found" });
+    const state = JSON.parse(blobRow[0].state_json);
+    const blobUsers = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+    const [existSoc] = await pool.execute(
+      `SELECT id FROM societies WHERE id = 5 LIMIT 1`
+    );
+    let societyAction = "already_exists";
+    if (!existSoc.length) {
+      await pool.execute(
+        `INSERT INTO societies (id, nome, citta, piano, subscription_status, stato)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          5,
+          state.nomeSocieta || "Polis Genova",
+          state.cittaSocieta || null,
+          "mister_pro",
+          "demo",
+          "attiva"
+        ]
+      );
+      societyAction = "inserted";
+    }
+    const userResults = [];
+    for (const u of blobUsers) {
+      if (!u.email || !u.role) continue;
+      const email = String(u.email).toLowerCase().trim();
+      const [existU] = await pool.execute(
+        `SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ? LIMIT 1`,
+        [email, 5]
+      );
+      if (existU.length) {
+        userResults.push({ email, action: "already_exists", id: existU[0].id });
+        continue;
+      }
+      const passHash = u.pass ? hashPassword(String(u.pass)) : hashPassword(Math.random().toString(36));
+      const [ins] = await pool.execute(
+        `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, stato)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [5, u.nome || "", u.cogn || "", email, passHash, u.role, "attivo"]
+      );
+      userResults.push({ email, action: "inserted", id: ins.insertId, role: u.role });
+    }
+    logger.info({ society: societyAction, users: userResults.length }, "admin: migrate-polis done");
+    return res.json({ ok: true, society: societyAction, users: userResults });
+  } catch (e) {
+    logger.error({ err: e }, "admin: migrate-polis failed");
+    return res.status(500).json({ error: e?.message ?? "server_error" });
+  }
+});
 var admin_audit_users_default = router33;
 
 // src/routes/v2/index.ts
