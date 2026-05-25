@@ -1136,6 +1136,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .gioc-lcard-body{flex:1;}
 .gioc-lcard-title{font-size:.95rem;font-weight:700;color:var(--text1);margin-bottom:2px;}
 .gioc-lcard-sub{font-size:.79rem;color:var(--text3);}
+/* Giocatori hub grid 2x2 (mister mobile landing) */
+.gioc-hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.gioc-hub-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:22px 14px;background:var(--white);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;font-family:inherit;-webkit-tap-highlight-color:transparent;min-height:122px;}
+.gioc-hub-card:active{transform:scale(.97);border-color:var(--cp);box-shadow:0 2px 12px rgba(var(--cp-rgb),.12);}
+.gioc-hub-ic{font-size:2.1rem;line-height:1;}
+.gioc-hub-title{font-size:.92rem;font-weight:800;color:var(--text1);}
+.gioc-hub-sub{font-size:.72rem;color:var(--text3);line-height:1.25;}
+/* Sotto-tab Giocatori a 4 colonne: stringe padding e font su iPhone SE per evitare overflow */
+@media(max-width:420px){
+  .gioc-subnav .gsnb{font-size:.72rem;padding:11px 2px 10px;letter-spacing:0;}
+}
 /* Mister home cards */
 .mi-hero{border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;position:relative;overflow:hidden;}
 .mi-hero-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;opacity:.82;margin-bottom:6px;font-weight:700;}
@@ -2684,6 +2695,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <button class="gsnb" data-gt="presenze" onclick="goTo('presenze')">✅ Presenze</button>
           <button class="gsnb" data-gt="convocazioni" onclick="goTo('convocazioni')">📋 Convocazioni</button>
           <button class="gsnb on" data-gt="rosa">👥 Rosa</button>
+          <button class="gsnb" data-gt="statistiche" onclick="goTo('statistiche')">📊 Statistiche</button>
         </nav>
         <div class="sec-h"><div class="sec-t">👥 Rosa Giocatori</div><div id="rosaActions"></div></div>
         <div id="rosaTabs"></div>
@@ -2697,6 +2709,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <button class="gsnb" data-gt="presenze" onclick="goTo('presenze')">✅ Presenze</button>
           <button class="gsnb on" data-gt="convocazioni">📋 Convocazioni</button>
           <button class="gsnb" data-gt="rosa" onclick="goTo('rosa')">👥 Rosa</button>
+          <button class="gsnb" data-gt="statistiche" onclick="goTo('statistiche')">📊 Statistiche</button>
         </nav>
         <div class="sec-h"><div class="sec-t">📋 Convocazioni</div><div id="convActions"></div></div>
         <div id="convContent"></div>
@@ -2713,6 +2726,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           <button class="gsnb on" data-gt="presenze">✅ Presenze</button>
           <button class="gsnb" data-gt="convocazioni" onclick="goTo('convocazioni')">📋 Convocazioni</button>
           <button class="gsnb" data-gt="rosa" onclick="goTo('rosa')">👥 Rosa</button>
+          <button class="gsnb" data-gt="statistiche" onclick="goTo('statistiche')">📊 Statistiche</button>
         </nav>
         <div class="sec-h">
           <div class="sec-t">✅ Registro Presenze</div>
@@ -2730,6 +2744,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
       <!-- STATISTICHE -->
       <div class="page" id="pg-statistiche">
+        <nav class="gioc-subnav" id="gsnStats">
+          <button class="gsnb" data-gt="presenze" onclick="goTo('presenze')">✅ Presenze</button>
+          <button class="gsnb" data-gt="convocazioni" onclick="goTo('convocazioni')">📋 Convocazioni</button>
+          <button class="gsnb" data-gt="rosa" onclick="goTo('rosa')">👥 Rosa</button>
+          <button class="gsnb on" data-gt="statistiche">📊 Statistiche</button>
+        </nav>
         <div class="sec-h"><div class="sec-t">📊 Statistiche</div></div>
         <div id="statsTabs"></div>
         <div id="statsSubTabs" style="margin-bottom:14px;"></div>
@@ -5043,7 +5063,7 @@ function buildMobNav(role) {
   });
 }
 function updateMobNav(pgId) {
-  const _giocPages = new Set(['giocatori','presenze','convocazioni','rosa']);
+  const _giocPages = new Set(['giocatori','presenze','convocazioni','rosa','statistiche']);
   document.querySelectorAll('#mobNav .mob-ni').forEach(n => {
     const match = n.dataset.pg === pgId ||
       (n.dataset.pg === 'giocatori' && _giocPages.has(pgId));
@@ -5085,6 +5105,8 @@ function buildSidebar(role) {
     } else {
       // Allenamenti per admin: visibile solo se adminAsMister è attivo sulla leva corrente
       if (item.id === 'allenamenti' && role === 'admin' && !isAdminMisterForLeva(currentLeva)) return;
+      // Statistiche per mister mobile: spostata dentro sotto-tab Giocatori, nasconde duplicato sidebar
+      if (item.id === 'statistiche' && (role === 'allenatore' || role === 'mister_admin') && window.innerWidth <= 640) return;
       let locked = false;
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       // Quote: nascondi completamente dalla nav se piano non include la feature
@@ -5167,8 +5189,8 @@ function goTo(pgId) {
   if (pgId === 'convocazioni') renderConvocazioni();
   if (pgId === 'partite-gen') renderPartiteGenitore();
   if (pgId === 'giocatori') renderGiocatori();
-  // Gioc-subnav: show for mister on presenze/convocazioni/rosa
-  const _gsnPages = ['presenze','convocazioni','rosa'];
+  // Gioc-subnav: show for mister on presenze/convocazioni/rosa/statistiche
+  const _gsnPages = ['presenze','convocazioni','rosa','statistiche'];
   const _isMisterRole = me && (me.role === 'allenatore' || me.role === 'mister_admin' ||
     (me.role === 'admin' && isAdminMisterForLeva(currentLeva)));
   const _showGsn = _isMisterRole && _gsnPages.includes(pgId);
@@ -5302,30 +5324,26 @@ function renderGiocatori() {
   const levaLabel = lv ? ' · Leva ' + lv : '';
   el.innerHTML = `
     <div style="font-size:.88rem;color:var(--text2);margin-bottom:20px;">Cosa vuoi fare?</div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <button class="gioc-lcard" onclick="goTo('presenze')">
-        <span class="gioc-lcard-ic">✅</span>
-        <div class="gioc-lcard-body">
-          <div class="gioc-lcard-title">Segna presenze</div>
-          <div class="gioc-lcard-sub">Allenamento o partita di oggi</div>
-        </div>
-        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+    <div class="gioc-hub-grid">
+      <button class="gioc-hub-card" onclick="goTo('presenze')">
+        <span class="gioc-hub-ic">✅</span>
+        <div class="gioc-hub-title">Presenze</div>
+        <div class="gioc-hub-sub">Allenamento o partita</div>
       </button>
-      <button class="gioc-lcard" onclick="goTo('convocazioni')">
-        <span class="gioc-lcard-ic">📋</span>
-        <div class="gioc-lcard-body">
-          <div class="gioc-lcard-title">Gestisci convocazioni</div>
-          <div class="gioc-lcard-sub">Convoca per prossimi eventi</div>
-        </div>
-        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+      <button class="gioc-hub-card" onclick="goTo('convocazioni')">
+        <span class="gioc-hub-ic">📋</span>
+        <div class="gioc-hub-title">Convocazioni</div>
+        <div class="gioc-hub-sub">Prossimi eventi</div>
       </button>
-      <button class="gioc-lcard" onclick="goTo('rosa')">
-        <span class="gioc-lcard-ic">👥</span>
-        <div class="gioc-lcard-body">
-          <div class="gioc-lcard-title">Gestisci rosa</div>
-          <div class="gioc-lcard-sub">${pLabel}${levaLabel}</div>
-        </div>
-        <span style="color:var(--text3);font-size:1.2rem;">›</span>
+      <button class="gioc-hub-card" onclick="goTo('rosa')">
+        <span class="gioc-hub-ic">👥</span>
+        <div class="gioc-hub-title">Rosa</div>
+        <div class="gioc-hub-sub">${pLabel}${levaLabel}</div>
+      </button>
+      <button class="gioc-hub-card" onclick="goTo('statistiche')">
+        <span class="gioc-hub-ic">📊</span>
+        <div class="gioc-hub-title">Statistiche</div>
+        <div class="gioc-hub-sub">Gol, assist, presenze</div>
       </button>
     </div>`;
 }
@@ -12729,7 +12747,7 @@ function buildMobDashboard(role, c) {
   const quickItems = role==='admin'
     ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
     : role==='allenatore'
-    ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'statistiche',ic:'📊',lb:'Statistiche',sub:'Stagione'}]
+    ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'}]
     : role==='dirigente'
     ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
     : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
