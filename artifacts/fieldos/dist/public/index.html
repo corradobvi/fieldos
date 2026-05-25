@@ -16088,8 +16088,20 @@ function _switchLibTab(ambito) {
 
 function _libFiltroCat(v) { _allSt.lib.categoria = v; _loadSessioni(); }
 function _libFiltroLeva(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
-function _libFiltroEtaTab(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
-function _libFiltroCatTab(v) { _allSt.lib.categoria = v; _loadSessioni(); }
+function _libFiltroEtaTab(v) {
+  _allSt.lib.etaLeva = v;
+  const _etaTabs = document.querySelectorAll('#libEtaTabs .lib-filter-tab');
+  const _etaVals = ['', ...Object.keys(_ALL_LEVA_IT)];
+  _etaTabs.forEach((t, i) => t.classList.toggle('on', _etaVals[i] === v));
+  _loadSessioni();
+}
+function _libFiltroCatTab(v) {
+  _allSt.lib.categoria = v;
+  const _catTabs = document.querySelectorAll('#libCatTabs .lib-filter-tab');
+  const _catVals = ['', ...Object.keys(_ALL_CAT_IT)];
+  _catTabs.forEach((t, i) => t.classList.toggle('on', _catVals[i] === v));
+  _loadSessioni();
+}
 function _libFiltroQ(v) {
   _allSt.lib.q = v;
   clearTimeout(_allSt.lib._deb);
