@@ -90519,6 +90519,36 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       }
     }
     logger.info({ q1: q1.length, q2: q2.length, q3: q3.length, q4: q4.length, q5: q5.length }, "admin: audit-users");
+    let q9_simulate_login_baiardo = null;
+    try {
+      const [r] = await pool.execute(
+        `SELECT id, society_id FROM users
+         WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo' LIMIT 1`,
+        ["info@baiardo.it", 40]
+      );
+      if (r.length) {
+        const token = signJWT({ userId: r[0].id, societyId: 40, role: "admin", email: "info@baiardo.it" });
+        q9_simulate_login_baiardo = {
+          would_receive_v2Token: !!token,
+          token_prefix: token ? token.slice(0, 25) + "..." : null,
+          token_length: token ? token.length : 0,
+          jwt_secret_present: !!process.env.JWT_SECRET,
+          jwt_secret_length: (process.env.JWT_SECRET || "").length
+        };
+      } else {
+        q9_simulate_login_baiardo = { error: "user not found in users MySQL" };
+      }
+    } catch (e) {
+      q9_simulate_login_baiardo = { error: e?.message };
+    }
+    const [q10] = await pool.execute(`
+      SELECT \`key\`, CHAR_LENGTH(state_json) AS blob_size
+      FROM society_state
+      WHERE state_json LIKE '%mister@polis.it%'
+         OR \`key\` LIKE '%polis%'
+         OR \`key\` = 'fieldos_state_v1'
+      LIMIT 20
+    `);
     return res.json({
       q1_test_misterpro: q1,
       q2_baiardo: q2,
@@ -90527,7 +90557,9 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       q5_blob_keys: q5,
       q6_blob_users: blobUsers,
       q7_baiardo_users_detail: q7,
-      q8_simulate_privacy_check_baiardo: q8
+      q8_simulate_privacy_check_baiardo: q8,
+      q9_simulate_login_baiardo,
+      q10_polis_blobs: q10
     });
   } catch (e) {
     logger.error({ err: e }, "admin: audit-users failed");
