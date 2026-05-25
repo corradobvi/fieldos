@@ -63,6 +63,23 @@ router.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       ORDER BY s.id
     `) as [any[], any];
 
+    // Q7: dettaglio utenti MySQL per Baiardo (stato esatto, password presente, privacy)
+    const [q7] = await pool.execute(`
+      SELECT id, email, nome, cognome, ruolo, society_id, stato,
+             CHAR_LENGTH(password_hash) AS pwd_len,
+             privacy_accepted_at, is_account_owner
+      FROM users WHERE society_id = 40
+    `) as [any[], any];
+
+    // Q8: simula esattamente la query del _mysqlPrivacyCheck per info@baiardo.it
+    const [q8] = await pool.execute(
+      `SELECT id, email, society_id, stato, privacy_accepted_at, is_account_owner
+       FROM users
+       WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo'
+       LIMIT 1`,
+      ['info@baiardo.it', 40]
+    ) as [any[], any];
+
     // Q5: blob state keys per identificare utenti legacy non migrati
     const [q5] = await pool.execute(`
       SELECT \`key\`, CHAR_LENGTH(state_json) AS blob_size, updated_at
@@ -103,6 +120,8 @@ router.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       q4_societies_counts: q4,
       q5_blob_keys:      q5,
       q6_blob_users:     blobUsers,
+      q7_baiardo_users_detail: q7,
+      q8_simulate_privacy_check_baiardo: q8,
     });
   } catch (e: any) {
     logger.error({ err: e }, "admin: audit-users failed");

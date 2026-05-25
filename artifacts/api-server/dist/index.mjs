@@ -90471,6 +90471,19 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       GROUP BY s.id, s.nome, s.piano, s.subscription_status, s.stato
       ORDER BY s.id
     `);
+    const [q7] = await pool.execute(`
+      SELECT id, email, nome, cognome, ruolo, society_id, stato,
+             CHAR_LENGTH(password_hash) AS pwd_len,
+             privacy_accepted_at, is_account_owner
+      FROM users WHERE society_id = 40
+    `);
+    const [q8] = await pool.execute(
+      `SELECT id, email, society_id, stato, privacy_accepted_at, is_account_owner
+       FROM users
+       WHERE LOWER(email) = ? AND society_id = ? AND stato = 'attivo'
+       LIMIT 1`,
+      ["info@baiardo.it", 40]
+    );
     const [q5] = await pool.execute(`
       SELECT \`key\`, CHAR_LENGTH(state_json) AS blob_size, updated_at
       FROM society_state
@@ -90512,7 +90525,9 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       q3_polis: q3,
       q4_societies_counts: q4,
       q5_blob_keys: q5,
-      q6_blob_users: blobUsers
+      q6_blob_users: blobUsers,
+      q7_baiardo_users_detail: q7,
+      q8_simulate_privacy_check_baiardo: q8
     });
   } catch (e) {
     logger.error({ err: e }, "admin: audit-users failed");
