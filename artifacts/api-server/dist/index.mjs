@@ -90471,12 +90471,48 @@ router33.get("/_admin/audit-users-baiardo-polis", async (req, res) => {
       GROUP BY s.id, s.nome, s.piano, s.subscription_status, s.stato
       ORDER BY s.id
     `);
-    logger.info({ q1: q1.length, q2: q2.length, q3: q3.length, q4: q4.length }, "admin: audit-users");
+    const [q5] = await pool.execute(`
+      SELECT \`key\`, CHAR_LENGTH(state_json) AS blob_size, updated_at
+      FROM society_state
+      WHERE \`key\` LIKE 'fieldos_state_soc_40%'
+         OR \`key\` LIKE '%polis%'
+         OR \`key\` = 'fieldos_state_v1'
+      ORDER BY \`key\`
+      LIMIT 30
+    `);
+    const blobUsers = { baiardo: [], polis: [] };
+    for (const r of q5) {
+      try {
+        const [stateRow] = await pool.execute(
+          `SELECT state_json FROM society_state WHERE \`key\` = ? LIMIT 1`,
+          [r.key]
+        );
+        if (!stateRow.length) continue;
+        const state = JSON.parse(stateRow[0].state_json);
+        const users = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+        const summary = users.map((u) => ({
+          id: u.id,
+          email: u.email,
+          nome: u.nome,
+          cogn: u.cogn,
+          role: u.role,
+          stato: u.stato,
+          password_hash_present: !!u.password_hash
+        }));
+        if (String(r.key).includes("soc_40")) blobUsers.baiardo.push({ key: r.key, users: summary });
+        else if (String(r.key).toLowerCase().includes("polis")) blobUsers.polis.push({ key: r.key, users: summary });
+        else blobUsers[r.key] = summary;
+      } catch (_) {
+      }
+    }
+    logger.info({ q1: q1.length, q2: q2.length, q3: q3.length, q4: q4.length, q5: q5.length }, "admin: audit-users");
     return res.json({
       q1_test_misterpro: q1,
       q2_baiardo: q2,
       q3_polis: q3,
-      q4_societies_counts: q4
+      q4_societies_counts: q4,
+      q5_blob_keys: q5,
+      q6_blob_users: blobUsers
     });
   } catch (e) {
     logger.error({ err: e }, "admin: audit-users failed");
