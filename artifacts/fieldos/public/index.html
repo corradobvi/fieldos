@@ -4871,7 +4871,8 @@ function migraChatAdmin(user) {
 
 function renderDemoWaBanner() {
   const existing = document.getElementById('demo-wa-banner');
-  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true;
+  // Omaggio = clienti comped da noi: subscription_status rimane 'demo' in DB ma non sono in trial
+  const isDemo = currentSocietyMeta && currentSocietyMeta.isDemo === true && currentSocietyMeta.billingMode !== 'omaggio';
   const shouldShow = !!(me && isAccountOwner() && isDemo);
 
   if (!shouldShow) {
@@ -4951,8 +4952,10 @@ function bootApp(user) {
     const _metaCA   = (currentSocietyMeta && currentSocietyMeta.coloreAccento)  || coloriAccento  || '#FFD93D';
     applyBranding(_metaNome, _metaCP, _metaCA);
     _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
-    // Mister/Allenatore: home operativa diretta, non la panoramica società
-    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
+    // MOBILE: tutti i ruoli atterrano sulla home (dashboard). DESKTOP: comportamento legacy (admin/dirigente → panoramica).
+    const _isMobileBoot = window.innerWidth <= 640;
+    const _toDashRoles  = me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    goTo((_isMobileBoot || _toDashRoles) ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
@@ -7417,6 +7420,18 @@ function getEventById(id) {
     const m = (campionato?.[lv]?.partite || []).find(x => x.id === mId);
     if (m) return { id: idStr, type: 'partita', title: `⚽ ${m.casa} vs ${m.ospite}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' };
   }
+  // torneo per-partita: 'torneo_tX_fY_mZ'
+  const torneoPartitaMatch = /^torneo_([^_]+)_([^_]+)_([^_]+)$/.exec(idStr);
+  if (torneoPartitaMatch) {
+    const _tpT = (Array.isArray(tornei) ? tornei : []).find(x => x.id === torneoPartitaMatch[1]);
+    if (_tpT) {
+      const _tpF = (_tpT.fasi || []).find(x => x.id === torneoPartitaMatch[2]);
+      if (_tpF) {
+        const _tpM = (_tpF.partite || []).find(x => String(x.id) === torneoPartitaMatch[3]);
+        if (_tpM) return { id: idStr, type: 'partita', title: `🏆 ${_tpM.casa} vs ${_tpM.ospite}`, date: _tpM.data || _tpT.dataInizio || '', leve: [_tpT.leva], luogo: _tpM.luogo || _tpT.luogo || '', start: _tpM.orario || '', end: '' };
+      }
+    }
+  }
   // torneo by id
   const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === id || String(x.id) === idStr);
   if (t) return { id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' };
@@ -8251,14 +8266,14 @@ function saveConvocazione() {
   }
 
   // Append playerIds al torneo padre → attiva/aggiorna chat torneo
-  const _tcMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
-  if (_tcMatch) {
-    const _tcT = tornei.find(x => x.id === _tcMatch[1]);
-    if (_tcT) {
-      _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
-      window.__fieldosSaveState();
-      renderChatList();
-    }
+  const _tcPpMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  const _tcT = _tcPpMatch
+    ? tornei.find(x => x.id === _tcPpMatch[1])
+    : tornei.find(x => x.id === eventId);
+  if (_tcT) {
+    _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
+    window.__fieldosSaveState();
+    renderChatList();
   }
 
   // Notifica i destinatari (giocatore + genitori) per ciascun convocato
@@ -8284,14 +8299,14 @@ function resendConvocazione(eventId) {
   if (!ev || !conv) return;
   conv.sentAt = Date.now();
   // Append playerIds al torneo padre → aggiorna chat torneo
-  const _tcMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
-  if (_tcMatchR) {
-    const _tcTR = tornei.find(x => x.id === _tcMatchR[1]);
-    if (_tcTR) {
-      _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
-      window.__fieldosSaveState();
-      renderChatList();
-    }
+  const _tcPpMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  const _tcTR = _tcPpMatchR
+    ? tornei.find(x => x.id === _tcPpMatchR[1])
+    : tornei.find(x => x.id === eventId);
+  if (_tcTR) {
+    _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
+    window.__fieldosSaveState();
+    renderChatList();
   }
   notifyConvocazione(ev, conv);
   toast('📤 Notifica reinviata');
@@ -15305,6 +15320,7 @@ function _closePickSessione() {
 
 function _renderPickHome() {
   return '<div style="padding:4px 0;">'
+    + '<div class="all-pick-card" onclick="_pickFromLibreria(\'ufficiali\')"><div class="pick-ic">📘</div><div><div style="font-weight:800;">Libreria MyVivaio</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni ufficiali per la tua leva</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'personale\')"><div class="pick-ic">📚</div><div><div style="font-weight:800;">Dalla mia libreria</div><div style="font-size:.8rem;color:var(--text2);">Scegli una delle tue sessioni salvate</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'community\')"><div class="pick-ic">🌍</div><div><div style="font-weight:800;">Dalla community</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni condivise da altri mister</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickScrivi()"><div class="pick-ic">✏️</div><div><div style="font-weight:800;">Scrivi a mano</div><div style="font-size:.8rem;color:var(--text2);">Crea una sessione personalizzata</div></div></div>'
@@ -15322,13 +15338,14 @@ async function _pickFromLibreria(ambito) {
     const r = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria?${p}`, { headers: { 'Authorization':'Bearer '+_v2Token } });
     const d = await r.json();
     const items = d.items || [];
+    window._libPickSessions = items;
     let html = '<button class="btn btn-g btn-sm" onclick="document.getElementById(\'_pickView\').innerHTML=_renderPickHome()" style="margin-bottom:12px;">← Indietro</button>'
-      + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':'Sessioni community') + '</div>';
+      + '<div style="font-weight:700;margin-bottom:10px;">' + (ambito==='personale'?'Mie sessioni':ambito==='ufficiali'?'Libreria Ufficiale MyVivaio':'Sessioni community') + '</div>';
     if (items.length) {
-      html += items.map(function(s) {
+      html += items.map(function(s, idx) {
         const cat = _ALL_CAT_IT[s.categoria]||s.categoria;
         const catBg = (_ALL_CAT_BG||{})[s.categoria]||'#f3f4f6';
-        return '<div class="all-pick-card" onclick=\'_pickSelectSessione(' + JSON.stringify(JSON.stringify(s)) + ')\'>'
+        return '<div class="all-pick-card" onclick="_pickSelectSessioneByIdx(' + idx + ')">'
           + '<div style="flex:1;">'
           + '<div style="display:flex;gap:5px;margin-bottom:4px;flex-wrap:wrap;">'
           + '<span style="background:' + catBg + ';font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">' + cat + '</span>'
@@ -15352,6 +15369,11 @@ function _pickSelectSessione(jsonStr) {
     _closePickSessione();
     toast('✅ Sessione aggiunta');
   } catch(e) { toast('❌ Errore aggiunta sessione'); }
+}
+
+function _pickSelectSessioneByIdx(idx) {
+  const s = (window._libPickSessions || [])[idx];
+  if (s) _pickSelectSessione(JSON.stringify(s));
 }
 
 function _pickScrivi() {
@@ -16068,8 +16090,20 @@ function _switchLibTab(ambito) {
 
 function _libFiltroCat(v) { _allSt.lib.categoria = v; _loadSessioni(); }
 function _libFiltroLeva(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
-function _libFiltroEtaTab(v) { _allSt.lib.etaLeva = v; _loadSessioni(); }
-function _libFiltroCatTab(v) { _allSt.lib.categoria = v; _loadSessioni(); }
+function _libFiltroEtaTab(v) {
+  _allSt.lib.etaLeva = v;
+  const _etaTabs = document.querySelectorAll('#libEtaTabs .lib-filter-tab');
+  const _etaVals = ['', ...Object.keys(_ALL_LEVA_IT)];
+  _etaTabs.forEach((t, i) => t.classList.toggle('on', _etaVals[i] === v));
+  _loadSessioni();
+}
+function _libFiltroCatTab(v) {
+  _allSt.lib.categoria = v;
+  const _catTabs = document.querySelectorAll('#libCatTabs .lib-filter-tab');
+  const _catVals = ['', ...Object.keys(_ALL_CAT_IT)];
+  _catTabs.forEach((t, i) => t.classList.toggle('on', _catVals[i] === v));
+  _loadSessioni();
+}
 function _libFiltroQ(v) {
   _allSt.lib.q = v;
   clearTimeout(_allSt.lib._deb);
@@ -16145,12 +16179,17 @@ function _renderSessioneCard(s, ambito) {
   const aiH    = s.origine_ai && ambito==='personale' ? `<span style="background:#ede9fe;color:#6d28d9;font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">✨ AI</span>` : '';
   const menuH  = ambito==='personale'
     ? `<button style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);padding:0 2px;line-height:1;" onclick="event.stopPropagation();_openSessioneMenu(this,'${s.id}')" title="Opzioni">···</button>` : '';
+  const _p = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const _isPro = _p === 'mister_pro' || _p === 'societa' || currentSocietyMeta?.billingMode === 'omaggio';
+  const graficaH = (s.grafica_url && _isPro)
+    ? `<button style="background:none;border:none;font-size:1.05rem;cursor:pointer;padding:0 3px;line-height:1;color:#0ea5e9;" onclick="event.stopPropagation();window.open('${s.grafica_url}','_blank')" title="Visualizza scheda completa">📄</button>`
+    : '';
   return `<div class="slib-card" onclick="_openSessionePreview('${s.id}','${ambito}')">
     <div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
       <span style="background:${catBg};font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">${cat}</span>
       <span style="background:var(--bg);border:1px solid var(--border);font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:10px;">${leva}</span>
       ${offH}${aiH}
-      <div style="flex:1;"></div>${menuH}
+      <div style="flex:1;"></div>${graficaH}${menuH}
     </div>
     <div style="font-size:.95rem;font-weight:800;line-height:1.3;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(s.titolo)}</div>
     ${autorH}
@@ -16255,6 +16294,14 @@ function _openSessionePreview(id, ambito) {
     ? `<button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev');_initNuovaSessioneModal('${s.id}')">✏️ Modifica</button>
        <button class="btn btn-r btn-sm" onclick="_deleteSessione('${s.id}')" style="margin-left:4px;">🗑️</button>` : '';
   document.getElementById('sessionePrevFooterEdit').innerHTML = editH;
+  const _p3 = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const _isPro3 = _p3 === 'mister_pro' || _p3 === 'societa' || currentSocietyMeta?.billingMode === 'omaggio';
+  const graficaEl = document.getElementById('sessionePrevGraficaBtn');
+  if (graficaEl) {
+    graficaEl.innerHTML = (s.grafica_url && _isPro3)
+      ? `<a href="${escapeHtml(s.grafica_url)}" target="_blank" rel="noopener" class="btn btn-sm" style="border:1.5px solid var(--cp);color:var(--cp);background:none;text-decoration:none;font-weight:700;">📄 Visualizza scheda</a>`
+      : '';
+  }
   openM('mSessionePrev');
 }
 
@@ -27122,7 +27169,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <div id="sessionePrevBody" style="max-height:55vh;overflow-y:auto;padding-right:4px;"></div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px;">
       <div id="sessionePrevFooterEdit" style="display:flex;align-items:center;gap:6px;"></div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div id="sessionePrevGraficaBtn"></div>
         <button class="btn btn-g btn-sm" onclick="toast('⚙️ Funzione disponibile nella Parte 2')">+ Aggiungi ad allenamento</button>
         <button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev')">Chiudi</button>
       </div>

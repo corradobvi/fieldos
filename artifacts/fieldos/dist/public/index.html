@@ -4952,8 +4952,10 @@ function bootApp(user) {
     const _metaCA   = (currentSocietyMeta && currentSocietyMeta.coloreAccento)  || coloriAccento  || '#FFD93D';
     applyBranding(_metaNome, _metaCP, _metaCA);
     _applySocLogo(currentSocietyMeta ? currentSocietyMeta.logoUrl : null);
-    // Mister/Allenatore: home operativa diretta, non la panoramica società
-    goTo(me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') ? 'dashboard' : 'panoramica');
+    // MOBILE: tutti i ruoli atterrano sulla home (dashboard). DESKTOP: comportamento legacy (admin/dirigente → panoramica).
+    const _isMobileBoot = window.innerWidth <= 640;
+    const _toDashRoles  = me && (me.role === 'allenatore' || me.role === 'mister_admin' || me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    goTo((_isMobileBoot || _toDashRoles) ? 'dashboard' : 'panoramica');
     if (me && me.stato === 'slegato') { setTimeout(() => showNoSocietaScreen(), 300); return; }
     refreshNotificheBadge();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
