@@ -7418,6 +7418,18 @@ function getEventById(id) {
     const m = (campionato?.[lv]?.partite || []).find(x => x.id === mId);
     if (m) return { id: idStr, type: 'partita', title: `⚽ ${m.casa} vs ${m.ospite}`, date: m.data, leve: [lv], luogo: m.luogo || '', start: m.orario || '', end: '' };
   }
+  // torneo per-partita: 'torneo_tX_fY_mZ'
+  const torneoPartitaMatch = /^torneo_([^_]+)_([^_]+)_([^_]+)$/.exec(idStr);
+  if (torneoPartitaMatch) {
+    const _tpT = (Array.isArray(tornei) ? tornei : []).find(x => x.id === torneoPartitaMatch[1]);
+    if (_tpT) {
+      const _tpF = (_tpT.fasi || []).find(x => x.id === torneoPartitaMatch[2]);
+      if (_tpF) {
+        const _tpM = (_tpF.partite || []).find(x => String(x.id) === torneoPartitaMatch[3]);
+        if (_tpM) return { id: idStr, type: 'partita', title: `🏆 ${_tpM.casa} vs ${_tpM.ospite}`, date: _tpM.data || _tpT.dataInizio || '', leve: [_tpT.leva], luogo: _tpM.luogo || _tpT.luogo || '', start: _tpM.orario || '', end: '' };
+      }
+    }
+  }
   // torneo by id
   const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === id || String(x.id) === idStr);
   if (t) return { id: t.id, type: 'torneo', title: '🏆 ' + t.nome, date: t.dataInizio || '', leve: [t.leva], luogo: t.luogo || '', start: '', end: '' };
@@ -8252,14 +8264,14 @@ function saveConvocazione() {
   }
 
   // Append playerIds al torneo padre → attiva/aggiorna chat torneo
-  const _tcMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
-  if (_tcMatch) {
-    const _tcT = tornei.find(x => x.id === _tcMatch[1]);
-    if (_tcT) {
-      _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
-      window.__fieldosSaveState();
-      renderChatList();
-    }
+  const _tcPpMatch = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  const _tcT = _tcPpMatch
+    ? tornei.find(x => x.id === _tcPpMatch[1])
+    : tornei.find(x => x.id === eventId);
+  if (_tcT) {
+    _tcT.convocati = [...new Set([...(_tcT.convocati || []), ...conv.playerIds])];
+    window.__fieldosSaveState();
+    renderChatList();
   }
 
   // Notifica i destinatari (giocatore + genitori) per ciascun convocato
@@ -8285,14 +8297,14 @@ function resendConvocazione(eventId) {
   if (!ev || !conv) return;
   conv.sentAt = Date.now();
   // Append playerIds al torneo padre → aggiorna chat torneo
-  const _tcMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
-  if (_tcMatchR) {
-    const _tcTR = tornei.find(x => x.id === _tcMatchR[1]);
-    if (_tcTR) {
-      _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
-      window.__fieldosSaveState();
-      renderChatList();
-    }
+  const _tcPpMatchR = /^torneo_([^_]+)(?:_[^_]+_[^_]+)?$/.exec(String(eventId));
+  const _tcTR = _tcPpMatchR
+    ? tornei.find(x => x.id === _tcPpMatchR[1])
+    : tornei.find(x => x.id === eventId);
+  if (_tcTR) {
+    _tcTR.convocati = [...new Set([...(_tcTR.convocati || []), ...conv.playerIds])];
+    window.__fieldosSaveState();
+    renderChatList();
   }
   notifyConvocazione(ev, conv);
   toast('📤 Notifica reinviata');
