@@ -87250,7 +87250,7 @@ var demo_wa_default = router23;
 // src/routes/v2/superadmin.ts
 var import_express24 = __toESM(require_express2(), 1);
 var router24 = (0, import_express24.Router)();
-var SA_SECRET = process.env.SA_SECRET ?? "super123";
+var SA_SECRET = process.env.SA_SECRET;
 var EXCLUDED_IDS = [99, 99999];
 function _generateTempPassword2() {
   const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -87272,7 +87272,7 @@ function _generateTempPassword2() {
   return chars.join("");
 }
 router24.post("/superadmin/societies", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const { nome, citta, piano, adminNome, adminCogn, adminEmail, adminPass } = req.body;
   if (!nome?.trim() || !adminNome?.trim() || !adminCogn?.trim() || !adminEmail?.trim() || !adminPass) {
     return res.status(400).json({ error: "missing_fields" });
@@ -87333,7 +87333,7 @@ router24.post("/superadmin/societies", async (req, res) => {
   }
 });
 router24.get("/superadmin/societies", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
   try {
@@ -87367,7 +87367,7 @@ router24.get("/superadmin/societies", async (req, res) => {
   }
 });
 router24.post("/superadmin/reset-password", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
   const { email } = req.body;
@@ -87418,7 +87418,7 @@ async function getSocietyAdmin(societyId) {
   return rows[0] ?? null;
 }
 router24.post("/superadmin/societies/:id/suspend", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { reason } = req.body;
@@ -87444,7 +87444,7 @@ router24.post("/superadmin/societies/:id/suspend", async (req, res) => {
   }
 });
 router24.post("/superadmin/societies/:id/reactivate", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   try {
@@ -87469,7 +87469,7 @@ router24.post("/superadmin/societies/:id/reactivate", async (req, res) => {
   }
 });
 router24.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { days, reason } = req.body;
@@ -87506,7 +87506,7 @@ router24.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
   }
 });
 router24.patch("/superadmin/societies/:id", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { nome, citta } = req.body;
@@ -87540,7 +87540,7 @@ router24.patch("/superadmin/societies/:id", async (req, res) => {
   }
 });
 router24.post("/superadmin/societies/:id/set-plan", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { piano } = req.body;
@@ -87578,7 +87578,7 @@ router24.post("/superadmin/societies/:id/set-plan", async (req, res) => {
   }
 });
 router24.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { mode, cancel_stripe_sub } = req.body;
@@ -87632,7 +87632,7 @@ router24.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => 
   }
 });
 router24.get("/superadmin/societies/:id/audit-log", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const rawLimit = parseInt(String(req.query.limit ?? "50"), 10);
@@ -89629,9 +89629,9 @@ var ai_tornei_default = router29;
 // src/routes/v2/utm-stats.ts
 var import_express30 = __toESM(require_express2(), 1);
 var router30 = (0, import_express30.Router)();
-var SA_SECRET2 = process.env.SA_SECRET ?? "super123";
+var SA_SECRET2 = process.env.SA_SECRET;
 router30.get("/admin/utm-stats", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET2) {
+  if (!SA_SECRET2 || req.headers["x-sa-secret"] !== SA_SECRET2) {
     return res.status(401).json({ error: "unauthorized" });
   }
   const toDate = req.query.to ? new Date(String(req.query.to)) : /* @__PURE__ */ new Date();

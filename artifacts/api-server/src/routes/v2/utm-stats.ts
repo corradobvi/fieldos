@@ -3,11 +3,11 @@ import { pool } from "@workspace/db";
 
 const router = Router();
 
-const SA_SECRET = process.env.SA_SECRET ?? "super123";
+const SA_SECRET = process.env.SA_SECRET;
 
 // GET /api/v2/admin/utm-stats — SuperAdmin only
 router.get("/admin/utm-stats", async (req, res) => {
-  if (req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
 
