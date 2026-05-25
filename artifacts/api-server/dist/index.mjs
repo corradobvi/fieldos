@@ -90547,6 +90547,24 @@ router33.get("/_admin/audit-sessioni-libreria", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
+router33.post("/_admin/delete-sessioni-libreria", async (req, res) => {
+  if (!checkAuth2(req, res)) return;
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  if (!ids.length) return res.status(400).json({ error: "ids array required" });
+  if (ids.length > 50) return res.status(400).json({ error: "max 50 ids per call" });
+  try {
+    const placeholders = ids.map(() => "?").join(",");
+    const [result] = await pool.execute(
+      `DELETE FROM sessioni_libreria WHERE id IN (${placeholders}) AND ufficiale_myvivaio = FALSE`,
+      ids
+    );
+    logger.info({ deleted: result.affectedRows, ids }, "admin: delete-sessioni-libreria");
+    return res.json({ ok: true, deleted: result.affectedRows, requested: ids.length });
+  } catch (e) {
+    logger.error({ err: e }, "admin: delete-sessioni-libreria failed");
+    return res.status(500).json({ error: e?.message ?? "server_error" });
+  }
+});
 var admin_audit_sessioni_default = router33;
 
 // src/routes/v2/index.ts

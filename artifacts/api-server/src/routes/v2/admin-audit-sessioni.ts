@@ -142,4 +142,26 @@ router.get("/_admin/audit-sessioni-libreria", async (req, res) => {
   }
 });
 
+// POST /api/v2/_admin/delete-sessioni-libreria
+// Body: { ids: string[] }  — cancella sessioni NON ufficiali per id
+router.post("/_admin/delete-sessioni-libreria", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  if (!ids.length) return res.status(400).json({ error: "ids array required" });
+  if (ids.length > 50) return res.status(400).json({ error: "max 50 ids per call" });
+  try {
+    const placeholders = ids.map(() => '?').join(',');
+    // Protezione: cancella solo sessioni NON ufficiali
+    const [result] = await pool.execute(
+      `DELETE FROM sessioni_libreria WHERE id IN (${placeholders}) AND ufficiale_myvivaio = FALSE`,
+      ids
+    ) as [any, any];
+    logger.info({ deleted: result.affectedRows, ids }, "admin: delete-sessioni-libreria");
+    return res.json({ ok: true, deleted: result.affectedRows, requested: ids.length });
+  } catch (e: any) {
+    logger.error({ err: e }, "admin: delete-sessioni-libreria failed");
+    return res.status(500).json({ error: e?.message ?? "server_error" });
+  }
+});
+
 export default router;
