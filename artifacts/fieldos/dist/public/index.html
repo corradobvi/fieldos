@@ -549,6 +549,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   /* Stats KPI cards stay 2-column on mobile for compactness */
   .g4{grid-template-columns:1fr 1fr;}
 
+  /* Rosa giocatori: 1 colonna full-width su mobile (sovrascrive .g4 via specificità ID) */
+  #rosaGrid{grid-template-columns:1fr;gap:14px;}
+
   /* Rank row further compressed */
   .rr{grid-template-columns:22px 1fr 24px 24px 44px;gap:4px;padding:8px 10px;font-size:.8rem;}
 
@@ -632,9 +635,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .main{padding:12px 10px;}
   .card{padding:14px 12px;}
   .modal{padding:18px 14px 24px;}
-
-  /* Rosa — 2 colonne su mobile */
-  #rosaGrid{grid-template-columns:repeat(2,1fr);}
 
   /* Tabs text */
   .pt-tab{padding:7px 11px;font-size:.78rem;}
