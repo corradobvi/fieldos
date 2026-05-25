@@ -27,6 +27,7 @@ import aiTorneiRouter          from "./ai-tornei";
 import utmStatsRouter          from "./utm-stats";
 import adminResetDemoRouter    from "./admin-reset-demo";
 import adminPopulateSessioniRouter from "./admin-populate-sessioni";
+import adminAuditUsersRouter      from "./admin-audit-users";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -324,4 +325,5 @@ router.use(aiTorneiRouter);
 router.use(utmStatsRouter);
 router.use(adminResetDemoRouter);
 router.use(adminPopulateSessioniRouter);
+router.use(adminAuditUsersRouter);
 export default router;
