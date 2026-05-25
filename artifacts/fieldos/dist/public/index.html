@@ -4746,9 +4746,10 @@ async function doLogin() {
       saLoadState();
       me = data.user;
       // Salva v2Token se presente (genitore/admin con riga MySQL)
+      // Usa localStorage (non sessionStorage) per sopravvivere a chiusura PWA mobile.
       if (data.v2Token) {
         _v2Token = data.v2Token;
-        try { sessionStorage.setItem('mv_v2_token', _v2Token); } catch(_) {}
+        try { localStorage.setItem('mv_v2_token', _v2Token); } catch(_) {}
       }
       // Privacy consent bloccante — mostra modal prima di bootApp
       if (data.privacyPending) {
@@ -4811,6 +4812,8 @@ async function doLogin() {
 
 function logout() {
   localStorage.removeItem('mv_session');
+  localStorage.removeItem('mv_v2_token');
+  _v2Token = null;
   me = null;
   const _wb = document.getElementById('demo-wa-banner');
   if (_wb) _wb.remove();
@@ -4972,7 +4975,7 @@ function bootApp(user) {
     if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
-    if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+    if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { _loadCalEvents(); }, 400);
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Carica FAQ apprese dal SA state
@@ -11643,7 +11646,7 @@ async function submitSelfReg(){
         _isV2: true
       };
       _v2Token = guardianToken;
-      try { sessionStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
+      try { localStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
       closeM('mSelfReg');
       setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
       me = newUser;
@@ -14276,7 +14279,7 @@ function _renderAllLista(cont) {
 async function _loadAllLista() {
   const el = document.getElementById('allListItems');
   if (!el) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) {
     el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.</div>`;
     return;
@@ -14374,7 +14377,7 @@ const _AC_DAYS = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 async function _allCalLoadEvents() {
   const gridEl = document.getElementById('allCalGrid');
   if (!gridEl) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_){} }
   if (!_v2Token) { gridEl.innerHTML = '<div style="background:#fee2e2;border-radius:10px;padding:14px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato.</div>'; return; }
 
   const leva = _allSt.cal.leva || currentLeva;
@@ -14416,7 +14419,7 @@ async function _allCalLoadEvents() {
 async function _allCalLoadBozze() {
   const bozzeEl = document.getElementById('allCalBozze');
   if (!bozzeEl) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_){} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_){} }
   if (!_v2Token) return;
   const leva = _allSt.cal.leva || currentLeva;
   const levaId = _calLeveMap[leva] || '';
@@ -14959,7 +14962,7 @@ function _allCalClickSlot(eventId, allenId) {
 // ══════════════════════════════════════════════════════════════════════════
 
 async function _loadAiBudget() {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   const piano = pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
   const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
@@ -15109,7 +15112,7 @@ function _closeCostruisciAllenamento() {
 }
 
 async function _loadAllenamientoPerModifica(id) {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   try {
     const r = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, { headers: { 'Authorization': 'Bearer ' + _v2Token } });
@@ -15260,7 +15263,7 @@ async function _salvaAllenamento() {
   if (!leva_nome) { if (errEl) errEl.textContent = '⚠️ Seleziona la leva.'; return; }
   if (!leva_id)   { if (errEl) errEl.textContent = '⚠️ Leva non valida. Ricarica la pagina.'; return; }
 
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
 
   const saveBtn = document.getElementById('_allFsSaveBtn');
@@ -15331,7 +15334,7 @@ function _renderPickHome() {
 async function _pickFromLibreria(ambito) {
   const pv = document.getElementById('_pickView');
   pv.innerHTML = '<div style="padding:10px 0;text-align:center;color:var(--text2);">Caricamento…</div>';
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { pv.innerHTML = '<div style="color:#c0392b;">Non autenticato.</div>'; return; }
   try {
     const p = new URLSearchParams({ ambito: ambito, limit: '50' });
@@ -15429,7 +15432,7 @@ async function _openAllenamentiDetail(id) {
   const isGenitore = me && (me.role==='genitore'||me.role==='nonno'||me.role==='giocatore');
   const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
 
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato'); return; }
 
   const ov   = document.getElementById('_allDetOv');
@@ -15560,7 +15563,7 @@ function _detToggleSess(i) {
 
 async function _deleteAllenamientoDet(id) {
   if (!confirm('Sei sicuro? Questa azione è irreversibile.')) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato'); return; }
   const r = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, { method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token} });
   if (r.ok) { _closeAllenamentiDetail(); toast('🗑 Allenamento eliminato'); _loadAllLista(); }
@@ -15586,7 +15589,7 @@ async function _callAiSpunto() {
   const domanda = (document.getElementById('_aiSpuntoDomanda') ? document.getElementById('_aiSpuntoDomanda').value : '').trim();
   const errEl   = document.getElementById('_aiSpuntoErr');
   if (domanda.length < 10) { if(errEl) errEl.textContent='⚠️ Minimo 10 caratteri.'; return; }
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
   const btn = document.getElementById('_aiSpuntoBtn');
   if (btn) { btn.disabled=true; btn.textContent='⏳ Chiedo all\'AI…'; }
@@ -15642,7 +15645,7 @@ async function _callAiSessione() {
   if (!eta_leva||!categoria||obiettivi.length<5||isNaN(durata)||durata<5) {
     if(errEl) errEl.textContent='⚠️ Compila tutti i campi obbligatori.'; return;
   }
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
 
   const btn = document.getElementById('_aiSessBtn');
@@ -15737,7 +15740,7 @@ async function _callAiAllenamento() {
   if (!eta_leva||obiettivo.length<5||isNaN(durata_totale)||durata_totale<30) {
     if(errEl) errEl.textContent='⚠️ Compila tutti i campi obbligatori.'; return;
   }
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if(errEl) errEl.textContent='⛔ Non autenticato.'; return; }
   const btn = document.getElementById('_aiAllBtn');
   if(btn) { btn.disabled=true; btn.textContent='⏳ Generazione (15-30 sec)…'; }
@@ -15811,7 +15814,7 @@ async function _openAiAllowlist() {
   if (!ov) return;
   document.getElementById('_aiAllowlistBody').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text2);">Caricamento…</div>';
   ov.classList.add('on');
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   try {
     const ra = await fetch(`${API_BASE}/api/v2/ai/allowlist`, { headers:{'Authorization':'Bearer '+_v2Token} });
@@ -15871,7 +15874,7 @@ function _renderAiAllowlist(data, budget, piano) {
 }
 
 async function _toggleAiAbilitato(misterId, abilitato, nome) {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   try {
     const r = await fetch(`${API_BASE}/api/v2/ai/allowlist`, {
@@ -15966,7 +15969,7 @@ async function _nvSalva(allenamentoId) {
   if (!blob) { toast('⚠️ Nessuna registrazione'); return; }
   const momentoEl = document.querySelector('input[name="nv_momento_' + allenamentoId + '"]:checked');
   const momento   = momentoEl ? momentoEl.value : 'durante';
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato'); return; }
   const fd  = new FormData();
   const ext = ((blob.type||'audio/webm').split('/')[1])||'webm';
@@ -15986,7 +15989,7 @@ async function _nvSalva(allenamentoId) {
 
 async function _deleteNotaVocale(nvId, allenamentoId) {
   if (!confirm('Eliminare questa nota vocale?')) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   const r = await fetch(`${API_BASE}/api/v2/allenamenti/note-vocali/${nvId}`, { method:'DELETE', headers:{'Authorization':'Bearer '+_v2Token} });
   if (r.ok) { toast('🗑 Nota eliminata'); _openAllenamentiDetail(allenamentoId); }
@@ -16018,7 +16021,7 @@ function _openAllMenu(btn, id) {
 
 async function _deleteAllenamento(id) {
   if (!confirm('Eliminare questo allenamento? L\'operazione non è reversibile.')) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/${id}`, {
@@ -16113,7 +16116,7 @@ function _libFiltroQ(v) {
 async function _loadSessioni() {
   const el = document.getElementById('libContent');
   if (!el) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) {
     el.innerHTML = `<div style="background:#fee2e2;border-radius:10px;padding:14px 16px;color:#c0392b;font-size:.88rem;">⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.</div>`;
     return;
@@ -16229,7 +16232,7 @@ function _openSessioneMenu(btn, id) {
 }
 
 async function _toggleSessionePubblica(id, pubblica) {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
@@ -16243,7 +16246,7 @@ async function _toggleSessionePubblica(id, pubblica) {
 
 async function _deleteSessione(id) {
   if (!confirm('Eliminare questa sessione?')) return;
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
   try {
     const resp = await fetch(`${API_BASE}/api/v2/allenamenti/sessioni-libreria/${id}`, {
@@ -16388,7 +16391,7 @@ async function saveSessione() {
   if (!eta_leva)                                 errs.push("Seleziona l'età/leva.");
   if (errs.length) { if (errEl) errEl.textContent = errs.join(' '); return; }
 
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { if (errEl) errEl.textContent = '⛔ Non autenticato. Ricarica la pagina.'; return; }
 
   const btn = fi('nsSaveBtn');
@@ -20354,7 +20357,7 @@ function resetColori() {
 
 async function saveImpostazioni() {
   if (!isAccountOwner()) { toast('⛔ Solo l\'admin titolare può modificare i colori'); return; }
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato'); return; }
   const pHex = document.getElementById('impSocColore')?.value || coloriPrimari;
   const aHex = document.getElementById('impAccento')?.value || coloriAccento;
@@ -20414,7 +20417,7 @@ function _impUpdateLogoPreview(url) {
 }
 
 function _impLoadLogoPreview() {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   fetch(API_BASE + '/api/v2/society', { headers: { 'Authorization': 'Bearer ' + _v2Token } })
     .then(function(r) { return r.ok ? r.json() : null; })
@@ -20465,7 +20468,7 @@ function _removeLogo() {
 }
 
 async function saveDatiSocieta() {
-  if (!_v2Token) { try { _v2Token = sessionStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) { toast('⛔ Non autenticato'); return; }
   const nome  = (document.getElementById('impSocNome')  ? document.getElementById('impSocNome').value  : '').trim();
   const citta = (document.getElementById('impSocCitta') ? document.getElementById('impSocCitta').value : '').trim();
