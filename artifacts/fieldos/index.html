@@ -11484,25 +11484,39 @@ function _srBuildIdentityFields() {
   const host = document.getElementById('srIdentityFields');
   if (!host) return;
   while (host.firstChild) host.removeChild(host.firstChild);
+  // Costruisce lista figli "da verificare": API player (dalla rosa server) o blob legacy con incomplete=true.
   const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
-  const selected = _selfRegSelectedIds.filter(id => typeof id === 'string' ? apiIds.has(id) : false);
-  if (selected.length === 0) {
-    // All selected are in-memory (old flow) — no identity needed
+  const toVerify = [];
+  _selfRegSelectedIds.forEach(function(sid) {
+    if (typeof sid === 'string' && apiIds.has(sid)) {
+      const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
+      if (ap) toVerify.push({
+        rawId:       String(ap.id),
+        displayName: ap.firstName + ' ' + ap.lastNameInitial + (ap.shirtNumber ? ' #' + ap.shirtNumber : '') + ' · ' + (ap.levaKey || '')
+      });
+    } else {
+      // In-memory player — verifica richiesta SOLO se incomplete (creato con form GDPR)
+      const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
+      if (bp && bp.incomplete === true) toVerify.push({
+        rawId:       String(bp.id),
+        displayName: (bp.nome || '') + ' ' + (bp.cogn_iniziale || bp.cogn || '') + ' · ' + (bp.leva || '')
+      });
+    }
+  });
+  if (toVerify.length === 0) {
     const note = document.createElement('div');
     note.style.cssText = 'font-size:.82rem;color:var(--text2);margin-bottom:12px;';
     note.textContent = 'Nessuna verifica richiesta per i giocatori selezionati.';
     host.appendChild(note);
     return;
   }
-  selected.forEach(function(sid) {
-    const apiPlayer = _srApiPlayers.find(p => 'api_' + p.id === sid);
-    if (!apiPlayer) return;
+  toVerify.forEach(function(it) {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--cl);';
-    wrap.innerHTML = '<div style="font-weight:700;margin-bottom:8px;">👶 ' + escapeHtml(apiPlayer.firstName) + ' ' + escapeHtml(apiPlayer.lastNameInitial) + (apiPlayer.shirtNumber ? ' #' + apiPlayer.shirtNumber : '') + ' · ' + escapeHtml(apiPlayer.levaKey) + '</div>' +
+    wrap.innerHTML = '<div style="font-weight:700;margin-bottom:8px;">👶 ' + escapeHtml(it.displayName) + '</div>' +
       '<div class="fr">' +
-        '<div class="fg"><label class="fl">Cognome completo *</label><input class="fi" id="srLastName_' + sid.replace('api_','') + '" placeholder="Cognome" style="min-height:44px;"></div>' +
-        '<div class="fg"><label class="fl">Data di nascita *</label><input class="fi" type="date" id="srBirth_' + sid.replace('api_','') + '" style="min-height:44px;"></div>' +
+        '<div class="fg"><label class="fl">Cognome completo *</label><input class="fi" id="srLastName_' + it.rawId + '" placeholder="Cognome" style="min-height:44px;"></div>' +
+        '<div class="fg"><label class="fl">Data di nascita *</label><input class="fi" type="date" id="srBirth_' + it.rawId + '" style="min-height:44px;"></div>' +
       '</div>';
     host.appendChild(wrap);
   });
@@ -11514,18 +11528,23 @@ function srStep3Next(){
     if (errEl) { errEl.style.display='block'; errEl.style.background='#fef2f2'; errEl.style.color='#c0392b'; errEl.textContent=msg; }
   }
   if (errEl) errEl.style.display='none';
-  // Validate GDPR consent for API players
+  // Validate: per ogni figlio "da verificare" (API o blob incomplete) richiede consenso GDPR + dati
   const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
-  const hasApiSelected = _selfRegSelectedIds.some(id => apiIds.has(id));
-  if (hasApiSelected) {
+  const toValidate = []; // array di rawId
+  _selfRegSelectedIds.forEach(function(sid) {
+    if (typeof sid === 'string' && apiIds.has(sid)) {
+      toValidate.push(sid.replace('api_',''));
+    } else {
+      const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
+      if (bp && bp.incomplete === true) toValidate.push(String(bp.id));
+    }
+  });
+  if (toValidate.length > 0) {
     if (!document.getElementById('srGdprConsent').checked) {
       _err('⚠️ Devi accettare il consenso GDPR per continuare.');
       return;
     }
-    // Validate identity fields
-    const selected = _selfRegSelectedIds.filter(id => apiIds.has(id));
-    for (const sid of selected) {
-      const rawId = sid.replace('api_','');
+    for (const rawId of toValidate) {
       const ln = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
       const bd = (document.getElementById('srBirth_' + rawId)?.value || '').trim();
       if (!ln || !bd) { _err('⚠️ Inserisci cognome e data di nascita per tutti i figli selezionati.'); return; }
