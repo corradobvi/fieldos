@@ -55,10 +55,31 @@ router.get("/players/public-incomplete", async (req, res) => {
   if (!code) return res.status(400).json({ error: "code_required" });
 
   try {
-    const [socRows] = (await pool.execute(
+    let [socRows] = (await pool.execute(
       "SELECT id FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
       [code]
     )) as [any[], any];
+    // Fallback blob: stesso pattern di guardian-register (admin può cambiare codice solo nel blob)
+    if (!socRows.length) {
+      const [blobRows] = (await pool.execute(
+        `SELECT \`key\`, state_json FROM society_state
+         WHERE \`key\` LIKE 'fieldos_state_soc_%' AND \`key\` NOT LIKE 'fieldos_demo%'`
+      )) as [any[], any];
+      for (const row of blobRows) {
+        let state: any;
+        try { state = JSON.parse(row.state_json as string); } catch { continue; }
+        const rowCode = String(state?.codiceSocieta || "").trim().toUpperCase();
+        if (!rowCode || rowCode !== code) continue;
+        const m = String(row.key).match(/fieldos_state_soc_(\d+)$/);
+        const blobSocId = m ? parseInt(m[1], 10) : 0;
+        if (!blobSocId) continue;
+        const [check] = (await pool.execute(
+          "SELECT id FROM societies WHERE id = ? AND stato = 'attiva' LIMIT 1",
+          [blobSocId]
+        )) as [any[], any];
+        if (check.length) { socRows = check; break; }
+      }
+    }
     if (!socRows.length) return res.status(404).json({ error: "society_not_found" });
     const societyId = (socRows[0] as any).id;
 
