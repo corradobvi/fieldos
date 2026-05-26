@@ -23347,15 +23347,18 @@ async function doSelfRegister() {
     const stateKey    = societyStorageKey(societyId);
 
     const adminUser = {
-      id: 1, nome, cogn, email, pass,
+      id: (data && data.user && data.user.id) ? Number(data.user.id) : 1,
+      nome, cogn, email, pass,
       role: 'admin', leva: 'Tutte', stato: 'attivo',
       figlio: null, figli: [], anno: null, societaId: societyId,
-      is_account_owner: true
+      is_account_owner: true,
+      _isV2: true,
+      v2Token: data.token || null
     };
 
     const initialState = {
       nomeSocieta: societa, coloriPrimari: '#047857', coloriAccento: '#FFD93D',
-      USERS_DB: [adminUser], nextUserId: 2,
+      USERS_DB: [adminUser], nextUserId: Math.max(2, adminUser.id + 1),
       players: [], nextPlayerId: 1, leve: ['Prima Squadra'], currentLeva: 'Prima Squadra',
       events: [], eventTypes: [
         {id:'partita',label:'⚽ Partita',color:'#0ea860'},
