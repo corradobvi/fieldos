@@ -73,6 +73,10 @@ router.get("/superadmin/_diag/genitore-debug", async (req, res) => {
           id: u.id, email: u.email, role: u.role, nome: u.nome, cogn: u.cogn,
           figli: u.figli, figliIds: u.figliIds, titoloFamiliare: u.titoloFamiliare,
           stato: u.stato,
+          has_pass:        !!u.pass,
+          pass_len:        u.pass ? String(u.pass).length : 0,
+          has_pwd_hash:    !!u.password_hash,
+          _isV2:           u._isV2 || false,
         }));
       } catch (_) {}
     }

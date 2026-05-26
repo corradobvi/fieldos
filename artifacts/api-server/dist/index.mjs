@@ -90735,7 +90735,11 @@ router34.get("/superadmin/_diag/genitore-debug", async (req, res) => {
           figli: u.figli,
           figliIds: u.figliIds,
           titoloFamiliare: u.titoloFamiliare,
-          stato: u.stato
+          stato: u.stato,
+          has_pass: !!u.pass,
+          pass_len: u.pass ? String(u.pass).length : 0,
+          has_pwd_hash: !!u.password_hash,
+          _isV2: u._isV2 || false
         }));
       } catch (_) {
       }
