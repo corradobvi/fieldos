@@ -77621,7 +77621,7 @@ function requireAuth(req, res, next) {
     return;
   }
   req.jwtUser = payload;
-  if (payload.societyPiano == null && !_pathBypassesPlanCheck(req.originalUrl)) {
+  if (payload.societyPiano === null && !_pathBypassesPlanCheck(req.originalUrl)) {
     res.status(403).json({ error: "plan_required" });
     return;
   }

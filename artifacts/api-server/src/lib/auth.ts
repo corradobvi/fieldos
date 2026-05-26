@@ -79,9 +79,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const payload = verifyJWT(auth.slice(7));
   if (!payload) { res.status(401).json({ error: "invalid_token" }); return; }
   req.jwtUser = payload;
-  // Plan-required gate: se l'utente non ha ancora scelto un piano (Step 2 del self-register flow)
-  // qualunque route protetta tranne /societies/select-plan ritorna 403 plan_required.
-  if (payload.societyPiano == null && !_pathBypassesPlanCheck(req.originalUrl)) {
+  // Plan-required gate: SOLO se il token ha societyPiano esplicitamente null (Step 1 self-register).
+  // Strict equality === null: i JWT del login standard hanno societyPiano=undefined (prop assente) e
+  // devono passare; solo i JWT di self-register Step 1 hanno societyPiano=null esplicito e vengono
+  // gated verso /societies/select-plan. Il `==` precedente catturava anche undefined e bloccava
+  // tutti gli utenti esistenti al login.
+  if (payload.societyPiano === null && !_pathBypassesPlanCheck(req.originalUrl)) {
     res.status(403).json({ error: "plan_required" });
     return;
   }
