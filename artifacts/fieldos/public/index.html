@@ -5279,11 +5279,12 @@ function goTo(pgId) {
     if (isAdminLike() && typeof window._backupUpdateStatus === 'function') window._backupUpdateStatus();
     const _impostSoc = saSocieties.find(x => x.id === currentSocietaId);
     const _quoteCardEl = document.getElementById('quoteCard');
-    // Mostra SOLO se MySQL ha confermato piano=societa, oppure demo stella (sempre sbloccata).
-    // Non usare saSocieties blob come fonte per mostrare: potrebbe avere dati stale.
+    // Mostra SOLO se piano=societa (le quote sono una feature del piano Società).
+    // Mister e Mister Pro non hanno gestione quote, anche se billing_mode='omaggio'.
+    // Demo stella resta sbloccata per test.
     const _pianoCerto = pianoNorm(currentSocietyMeta?.piano);
     const _quoteShow = _isStaff && me.role !== 'allenatore' &&
-      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
+      (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
     if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
     // BUG 5: "+ Aggiungi utente" disabilitato su piano Mister (non include collaboratori)
     const _btnAddUser = document.querySelector('#usersCard .ch button.btn-p');
