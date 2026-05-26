@@ -5461,8 +5461,16 @@ function renderProfilo() {
 }
 
 function renderProfiloFiglio(el) {
-  const figliNames = getFigliOf(me);
-  const figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
+  // Match figli: priorità a figliIds (robusto dopo claim GDPR, cognome blob può essere ancora iniziale),
+  // fallback al match per nome+cognome per utenti legacy.
+  let figliPlayers = [];
+  if (Array.isArray(me.figliIds) && me.figliIds.length) {
+    figliPlayers = players.filter(pl => me.figliIds.includes(pl.id));
+  }
+  if (!figliPlayers.length) {
+    const figliNames = getFigliOf(me);
+    figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn) || figliNames.includes(p.nome + ' ' + (p.cogn_iniziale||'')));
+  }
   const p = figliPlayers[0];
 
   if (!p) {
