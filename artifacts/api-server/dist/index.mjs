@@ -90786,10 +90786,50 @@ router34.get("/superadmin/_diag/genitore-debug", async (req, res) => {
       } catch (_) {
       }
     }
+    let userByEmail = null;
+    const emailQ = String(req.query.email || "").toLowerCase().trim();
+    if (emailQ) {
+      const [er] = await pool.execute(
+        `SELECT u.id, u.email, u.ruolo, u.society_id, u.leva, u.nome, u.cognome,
+                s.id AS soc_id, s.nome AS soc_nome, s.codice AS soc_codice, s.piano AS soc_piano
+         FROM users u
+         LEFT JOIN societies s ON s.id = u.society_id
+         WHERE LOWER(u.email) LIKE ?
+         ORDER BY u.id DESC LIMIT 5`,
+        [`%${emailQ}%`]
+      );
+      userByEmail = er;
+    }
+    let simulate = null;
+    const levaQ = req.query.leva ? String(req.query.leva) : null;
+    if (levaQ != null) {
+      let staffQuery = "SELECT id, email, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'";
+      const staffParams = [societyId];
+      if (levaQ) {
+        staffQuery += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))";
+        staffParams.push(levaQ);
+      }
+      const [staffRows] = await pool.execute(staffQuery, staffParams);
+      let guardianRows = [];
+      if (levaQ) {
+        const [gr] = await pool.execute(
+          `SELECT DISTINCT pg.user_id AS id, u.email, u.ruolo, u.leva
+           FROM player_guardians pg
+           JOIN players p ON p.id = pg.player_id
+           JOIN users u ON u.id = pg.user_id
+           WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`,
+          [societyId, levaQ]
+        );
+        guardianRows = gr;
+      }
+      simulate = { leva_query: levaQ, staff_rows: staffRows, guardian_rows: guardianRows };
+    }
     return res.json({
       society: society[0] || null,
       mysql: { players, users, guardians, user_players: userPlayers },
-      blob: { meta: blobRows[0] || null, codiceSocieta: blobCodice, players: blobPlayers, users: blobUsers }
+      blob: { meta: blobRows[0] || null, codiceSocieta: blobCodice, players: blobPlayers, users: blobUsers },
+      user_by_email: userByEmail,
+      simulate_getUsersForPush: simulate
     });
   } catch (e) {
     return res.status(500).json({ error: e?.message });
