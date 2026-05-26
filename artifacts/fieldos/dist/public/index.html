@@ -15752,7 +15752,27 @@ function _pickScrivi() {
   _initNuovaSessioneModal(null);
 }
 
+// Popup riusabile "Funzione AI in arrivo" — mostrato al click dei bottoni AI fino a quando
+// le feature di generazione (sessioni allenamento, import PDF tornei) non saranno pronte.
+function _aiComingSoon() {
+  const id = '_aiComingSoonModal';
+  const existing = document.getElementById(id); if (existing) existing.remove();
+  const ov = document.createElement('div');
+  ov.id = id; ov.className = 'ov'; ov.style.display = 'flex';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = '<div class="modal" style="width:400px;max-width:94vw;text-align:center;padding:30px 22px;">'
+    + '<div style="font-size:2.6rem;margin-bottom:10px;">⏳</div>'
+    + '<div style="font-size:1.1rem;font-weight:800;margin-bottom:6px;color:var(--text);">Funzione AI in arrivo</div>'
+    + '<div style="font-size:.86rem;color:var(--text2);margin-bottom:20px;line-height:1.45;">Stiamo perfezionando questa funzionalità. Sarà disponibile a breve.</div>'
+    + '<button class="btn btn-p" style="min-width:120px;" onclick="document.getElementById(\'' + id + '\').remove()">OK</button>'
+    + '</div>';
+  document.body.appendChild(ov);
+}
+
 function _pickAI() {
+  _closePickSessione();
+  _aiComingSoon();
+  return;
   if (!_canUseAI()) { toast('✨ AI non abilitata per il tuo account'); return; }
   _closePickSessione();
   _openAiSessioneSingola(true);
@@ -15939,6 +15959,8 @@ async function _deleteAllenamientoDet(id) {
 // ══════════════════════════════════════════════════════════════════════════
 
 function _openAiSpuntoRapido() {
+  _aiComingSoon();
+  return;
   if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
   const el = document.getElementById('_aiSpuntoModal');
   if (!el) return;
@@ -15985,6 +16007,8 @@ async function _callAiSpunto() {
 let _aiSessFromAll = false;
 
 function _openAiSessioneSingola(fromAll) {
+  _aiComingSoon();
+  return;
   _aiSessFromAll = !!fromAll;
   if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
   const el = document.getElementById('_aiSessModal');
@@ -16083,6 +16107,8 @@ function _aiSessAddToAll(jsonStr, eta_leva) {
 
 // Modal AI allenamento completo
 function _openAiAllenaCompleto() {
+  _aiComingSoon();
+  return;
   if (!_canUseAI()) { toast('✨ Funzionalità disponibile con AI abilitata'); return; }
   const el = document.getElementById('_aiAllModal');
   if (!el) return;
@@ -18702,6 +18728,8 @@ function gcArchiviaTorneo(id, val) {
 }
 // ─── Import Torneo da PDF ────────────────────────────────────────────────────
 function openImportTorneoPdf() {
+  _aiComingSoon();
+  return;
   _importPdfStep = 1; _importPdfData = null;
   _ipRenderStep();
   const fi = document.getElementById('ipFile'); if (fi) fi.value = '';
