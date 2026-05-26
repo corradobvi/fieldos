@@ -74,10 +74,19 @@
     body { background: white; padding: 0; }
     .quaderno { border: none; max-width: 100%; }
   }
+.back-bar{position:sticky;top:0;z-index:100;background:#fefdf8;border-bottom:1.5px solid #2D3748;padding:max(env(safe-area-inset-top),10px) 14px 10px;margin:-24px -24px 18px;display:flex;align-items:center;gap:10px;}
+@media(max-width:700px){.back-bar{margin:-16px -16px 12px;padding-left:10px;padding-right:10px;}}
+.back-btn{appearance:none;-webkit-appearance:none;background:#fff;border:1.5px solid #2D3748;color:#2D3748;border-radius:10px;width:44px;height:44px;min-width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;font-size:1.25rem;font-weight:800;padding:0;line-height:1;}
+.back-btn:active{background:#f5f4ee;}
+.back-bar-label{font-family:'Courier New',monospace;font-size:11px;color:#666;letter-spacing:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;font-weight:700;}
 </style>
 </head>
 <body>
 <div class="quaderno">
+  <div class="back-bar">
+    <button class="back-btn" type="button" aria-label="Indietro" onclick="(function(){try{if(window.opener&&!window.opener.closed){window.close();return;}}catch(e){}if(history.length>1){history.back();}else{window.location.href='/';}})()">←</button>
+    <div class="back-bar-label">← LIBRERIA SESSIONI</div>
+  </div>
   <div class="header">
     <div class="header-top">
       <div class="header-id">MYVIVAIO · SESSIONE N° 033</div>
