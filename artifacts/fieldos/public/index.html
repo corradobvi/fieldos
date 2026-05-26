@@ -335,6 +335,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mc-team.away{text-align:left;}
 .mc-score{font-family:'Barlow Condensed',sans-serif;font-size:1.45rem;font-weight:900;color:var(--cp);background:var(--bg);border-radius:7px;padding:3px 11px;min-width:56px;text-align:center;white-space:nowrap;}
 .mc-score.nd{color:var(--text3);font-size:.85rem;padding:5px 8px;}
+.mc-score.clickable{cursor:pointer;transition:background .12s,box-shadow .12s;}
+.mc-score.clickable:hover{background:var(--cl);box-shadow:0 0 0 1.5px var(--cp) inset;}
+.mc-scorers{font-size:12px;font-style:italic;color:var(--text2);padding:4px 12px 2px;line-height:1.45;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;}
+.mc-scorers span{flex:1;min-width:0;}
+.ptd-tab{flex:1;padding:11px 8px;background:none;border:none;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;font-size:.88rem;font-family:inherit;-webkit-tap-highlight-color:transparent;}
+.ptd-tab.on{color:var(--cp);border-bottom-color:var(--cp);}
+.ptd-sec-h{font-size:.78rem;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+.ptd-sec-list{font-size:.92rem;color:var(--text);display:flex;flex-direction:column;gap:5px;}
+.ptd-sec-list .item{padding:6px 10px;background:var(--bg);border-radius:7px;}
 .mc-tag{font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:9px;flex-shrink:0;white-space:nowrap;}
 .mc-tag.gior{background:var(--cl);color:var(--cp);}
 .mc-tag.amic{background:var(--gobg);color:var(--gold);}
@@ -7687,7 +7696,17 @@ function renderPartiteGenitore() {
           const esito = polisScore > oppScore ? 'V' : polisScore < oppScore ? 'P' : 'N';
           const esitoColor = esito === 'V' ? '#166534' : esito === 'P' ? '#9f1239' : '#854d0e';
           const esitoBg   = esito === 'V' ? '#dcfce7' : esito === 'P' ? '#ffe4e6' : '#fef9c3';
-          extraHtml = `<span class="pgf-card-badge" style="background:${esitoBg};color:${esitoColor};">${gc}–${go} (${esito})</span>`;
+          // Click sul badge → popup dettaglio partita; ricostruisco refKey dall'ev.id
+          const _evIdStr = String(ev.id || '');
+          let _dt = '', _dr = '';
+          const _mTor = /^torneo_([^_]+)_([^_]+)_([^_]+)$/.exec(_evIdStr);
+          const _mCamp = /^camp_(.+)_(\d+)$/.exec(_evIdStr);
+          const _mAmich = /^amich_(\d+)$/.exec(_evIdStr);
+          if (_mTor)  { _dt='torneo'; _dr=`${_mTor[1]}__${_mTor[2]}__${_mTor[3]}`; }
+          else if (_mCamp)  { _dt='camp';  _dr=`${_mCamp[1]}__${_mCamp[2]}`; }
+          else if (_mAmich) { _dt='amich'; _dr=_mAmich[1]; }
+          const _dettClick = _dt ? `onclick="event.stopPropagation();openPtDettaglio('${_dt}','${_dr}')" style="cursor:pointer;"` : '';
+          extraHtml = `<span class="pgf-card-badge" ${_dettClick} style="background:${esitoBg};color:${esitoColor};${_dt?'cursor:pointer;':''}">${gc}–${go} (${esito})</span>`;
           // Player stats (only if mister enabled showStatsToFamily for this leva)
           if (selectedPlayer && ev._matchRef) {
             const lss = levaStatsSettings[_leva] || {};
@@ -17953,23 +17972,130 @@ function canEnterResult(leva) {
 function polisName(leva) { return nomeSocieta + ' ' + leva; }
 
 function renderMatchEvents(m, leva) {
+  // Eventi extra (gialli/rossi/cambi) — solo leve advanced. I marcatori sono in renderMatchScorersCompact.
   const isAdv = advStats(leva);
+  if (!isAdv) return '';
   const items = [];
-  (m.stats||[]).filter(s=>s.gol>0).forEach(s=>{
-    const p=players.find(x=>x.id===s.playerId);
-    const nm=p?p.cogn:('#'+s.playerId);
-    items.push('⚽ '+escapeHtml(nm)+(s.gol>1?' ×'+s.gol:''));
+  (m.stats||[]).filter(s=>s.gialli>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟨 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+  (m.stats||[]).filter(s=>s.rossi>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟥 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
+  (m.cambi||[]).sort((a,b)=>(a.min||0)-(b.min||0)).forEach(c=>{
+    const pEn=players.find(x=>x.id===c.en),pUs=players.find(x=>x.id===c.us);
+    items.push('🔄 Esce '+escapeHtml(pUs?pUs.cogn:'#'+c.us)+' → Entra '+escapeHtml(pEn?pEn.cogn:'#'+c.en)+(c.min?' ('+c.min+"')": ''));
   });
-  if (isAdv) {
-    (m.stats||[]).filter(s=>s.gialli>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟨 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
-    (m.stats||[]).filter(s=>s.rossi>0).forEach(s=>{const p=players.find(x=>x.id===s.playerId);items.push('🟥 '+escapeHtml(p?p.cogn:'#'+s.playerId));});
-    (m.cambi||[]).sort((a,b)=>(a.min||0)-(b.min||0)).forEach(c=>{
-      const pEn=players.find(x=>x.id===c.en),pUs=players.find(x=>x.id===c.us);
-      items.push('🔄 Esce '+escapeHtml(pUs?pUs.cogn:'#'+c.us)+' → Entra '+escapeHtml(pEn?pEn.cogn:'#'+c.en)+(c.min?' ('+c.min+"')": ''));
-    });
-  }
   if (!items.length) return '';
   return '<div style="font-size:.68rem;color:var(--text2);padding:4px 0 2px;line-height:1.7;">'+items.join(' · ')+'</div>';
+}
+
+// Vista compatta marcatori sotto la riga partita. mieSquadre = array nomi squadre della propria società.
+// Mostra solo se la partita coinvolge una squadra mia e almeno un giocatore ha segnato.
+function renderMatchScorersCompact(m, leva, mieSquadre) {
+  if (!m || !m.played || !Array.isArray(m.stats) || !m.stats.length) return '';
+  const teams = Array.isArray(mieSquadre) ? mieSquadre.filter(Boolean) : [];
+  if (teams.length && !teams.includes(m.casa) && !teams.includes(m.ospite)) return '';
+  const scorers = m.stats.filter(s => (s.gol||0) > 0);
+  if (!scorers.length) return '';
+  const rows = scorers.map(s => {
+    const p = players.find(x => x.id === s.playerId);
+    const nome = p ? (p.nome + ' ' + p.cogn) : 'Ex giocatore';
+    const cogn = p ? p.cogn : 'zzz';
+    return { nome, cogn, gol: s.gol };
+  }).sort((a,b) => (b.gol - a.gol) || a.cogn.localeCompare(b.cogn));
+  const txt = rows.map(r => `${escapeHtml(r.nome)} (${r.gol})`).join(', ');
+  return `<div class="mc-scorers">⚽ <span>${txt}</span></div>`;
+}
+
+// Popup dettaglio partita (sola lettura). refKey: torneo='tId__fId__mId', camp='leva__mId', amich='mId'
+function openPtDettaglio(tipo, refKey) {
+  let match = null, leva = '', mieSquadre = [], labelTipo = '', dataStr = '', casa = '', ospite = '';
+  if (tipo === 'torneo') {
+    const parts = String(refKey).split('__');
+    if (parts.length < 3) return;
+    const [tid, fid, mid] = parts;
+    const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === tid); if (!t) return;
+    const f = (t.fasi || []).find(x => x.id === fid); if (!f) return;
+    match = (f.partite || []).find(x => x.id === mid); if (!match) return;
+    leva = t.leva;
+    mieSquadre = (typeof _getMieSquadre === 'function') ? _getMieSquadre(t) : [];
+    if (!mieSquadre.length) mieSquadre = [polisName(leva)];
+    labelTipo = `Torneo · ${t.nome}`;
+    dataStr = match.data ? fmtMatchDate(match.data) : '';
+  } else if (tipo === 'camp') {
+    const idx = String(refKey).lastIndexOf('__');
+    if (idx < 0) return;
+    const lv = String(refKey).slice(0, idx);
+    const mid = parseInt(String(refKey).slice(idx + 2));
+    match = ((campionato && campionato[lv] && campionato[lv].partite) || []).find(x => x.id === mid); if (!match) return;
+    leva = lv;
+    mieSquadre = [polisName(lv)];
+    labelTipo = `Campionato${match.giornata ? ' · G' + match.giornata : ''}`;
+    dataStr = match.data ? fmtMatchDate(match.data) : '';
+  } else if (tipo === 'amich') {
+    const mid = parseInt(refKey);
+    match = (Array.isArray(amichevoli) ? amichevoli : []).find(x => x.id === mid); if (!match) return;
+    leva = match.leva;
+    mieSquadre = [polisName(leva)];
+    labelTipo = `Amichevole`;
+    dataStr = match.data ? fmtMatchDate(match.data) : '';
+    const isH = (match.tipo || 'casa') === 'casa';
+    casa = isH ? polisName(leva) : match.avversario;
+    ospite = isH ? match.avversario : polisName(leva);
+  } else return;
+  if (!match || !match.played) return;
+  if (!casa) casa = match.casa || '';
+  if (!ospite) ospite = match.ospite || '';
+
+  // Popola header
+  document.getElementById('ptdMeta').textContent = labelTipo + (dataStr ? ' · ' + dataStr : '');
+  document.getElementById('ptdTeams').textContent = `${casa} vs ${ospite}`;
+  document.getElementById('ptdHomeName').textContent = casa;
+  document.getElementById('ptdAwayName').textContent = ospite;
+  document.getElementById('ptdHomeScore').textContent = (match.golCasa != null) ? match.golCasa : '–';
+  document.getElementById('ptdAwayScore').textContent = (match.golOspiti != null) ? match.golOspiti : '–';
+
+  // Sezione marcatori — solo MIA squadra (per stats inseriti, già implicito)
+  const stats = Array.isArray(match.stats) ? match.stats : [];
+  const scorers = stats.filter(s => (s.gol||0) > 0).map(s => {
+    const p = players.find(x => x.id === s.playerId);
+    return { nome: p ? (p.nome + ' ' + p.cogn) : 'Ex giocatore', cogn: p ? p.cogn : 'zzz', gol: s.gol };
+  }).sort((a,b) => (b.gol - a.gol) || a.cogn.localeCompare(b.cogn));
+  const scorersBox = document.getElementById('ptdScorers');
+  const scorersList = document.getElementById('ptdScorersList');
+  if (scorers.length) {
+    scorersBox.style.display = '';
+    scorersList.innerHTML = scorers.map(r => `<div class="item">${escapeHtml(r.nome)} <strong>×${r.gol}</strong></div>`).join('');
+  } else scorersBox.style.display = 'none';
+
+  // Sezione assist
+  const assisters = stats.filter(s => (s.assist||0) > 0).map(s => {
+    const p = players.find(x => x.id === s.playerId);
+    return { nome: p ? (p.nome + ' ' + p.cogn) : 'Ex giocatore', cogn: p ? p.cogn : 'zzz', assist: s.assist };
+  }).sort((a,b) => (b.assist - a.assist) || a.cogn.localeCompare(b.cogn));
+  const assistsBox = document.getElementById('ptdAssists');
+  const assistsList = document.getElementById('ptdAssistsList');
+  if (assisters.length) {
+    assistsBox.style.display = '';
+    assistsList.innerHTML = assisters.map(r => `<div class="item">${escapeHtml(r.nome)} <strong>×${r.assist}</strong></div>`).join('');
+  } else assistsBox.style.display = 'none';
+
+  // Cartellini: sezione SEMPRE nascosta finché non c'è UI input (placeholder pronto)
+  document.getElementById('ptdCards').style.display = 'none';
+
+  // Empty state
+  const isEmpty = !scorers.length && !assisters.length;
+  document.getElementById('ptdEmpty').style.display = isEmpty ? '' : 'none';
+
+  // Reset tab attiva su Dettagli
+  _switchPtdTab('dett');
+  openM('mPtDettaglio');
+}
+function _switchPtdTab(which) {
+  const dB = document.getElementById('ptdTabDettBtn'); const fB = document.getElementById('ptdTabFormBtn');
+  const dC = document.getElementById('ptdTabDett');     const fC = document.getElementById('ptdTabForm');
+  const on = which === 'form' ? 'form' : 'dett';
+  if (dB) dB.classList.toggle('on', on === 'dett');
+  if (fB) fB.classList.toggle('on', on === 'form');
+  if (dC) dC.style.display = on === 'dett' ? '' : 'none';
+  if (fC) fC.style.display = on === 'form' ? '' : 'none';
 }
 
 // Stats aggregate per giocatore (amichevoli + campionato + tornei per una leva)
@@ -18142,7 +18268,7 @@ function renderPtAmichevoli() {
     const away = isHome ? m.avversario : polis;
     const score = m.annullata
       ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
-      : m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+      : m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('amich','${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
     const tag = m.annullata
       ? '<span class="mc-tag" style="background:#fef2f2;color:var(--red);font-size:.65rem;">Annullata</span>'
       : isHome
@@ -18152,7 +18278,7 @@ function renderPtAmichevoli() {
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const risBtn = (!m.annullata && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchScorersCompact(m,m.leva,[polis])+renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}</div></div>`;
   };
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
@@ -18250,7 +18376,7 @@ function renderPtCampionato() {
   // ── Partite Polis
   const polisPlayedHtml = polisPlayed.map(m => {
     const risBtn = canEnterResult(currentLeva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id});event.stopPropagation();">✏️ Modifica risultato</button>` : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${renderMatchEvents(m,currentLeva)}<div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${renderMatchScorersCompact(m,currentLeva,[polisName(currentLeva)])}${renderMatchEvents(m,currentLeva)}<div class="mc-actions">${risBtn}</div></div>`;
   }).join('');
   let polisSchedHtml;
   if (isFamily()) {
@@ -18341,8 +18467,8 @@ function renderPtTornei() {
       const polisHtml = polisMatches.map(m => {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
-        const score = m.played ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}</div></div>`;
+        const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
       const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
@@ -18466,16 +18592,16 @@ function renderGcCampionato() {
   const gioNums = Object.keys(gioMap).map(Number).sort((a,b)=>a-b);
   const mkMc = (m) => {
     const isH=m.casa===polis; const tag=isH?'<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>':'<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
-    const score=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
     const timeStr=m.orario?` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>`:'';
     const luogoStr=m.luogo?` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>`:'';
     const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
     const delBtn=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">🗑</button>`:'';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,currentLeva,[polis]):''}<div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   };
   const mkOther = (m) => {
     const eC=`qrcc_${m.id}`,eO=`qrco_${m.id}`;
-    const score=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:(canEdit?`<span style="display:flex;align-items:center;gap:3px;"><input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><span style="color:var(--text3);font-size:.7rem;">–</span><input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><button class="btn btn-p btn-sm" onclick="saveQuickResult('campionato','${m.id}','${eC}','${eO}')">✓</button></span>`:`<span class="mc-score nd">Da giocare</span>`);
+    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:(canEdit?`<span style="display:flex;align-items:center;gap:3px;"><input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><span style="color:var(--text3);font-size:.7rem;">–</span><input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><button class="btn btn-p btn-sm" onclick="saveQuickResult('campionato','${m.id}','${eC}','${eO}')">✓</button></span>`:`<span class="mc-score nd">Da giocare</span>`);
     const editBtn=m.played&&canEdit?`<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id})">📊</button>`:'';
     return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}</div></div>`;
   };
@@ -18778,8 +18904,8 @@ function _gcFaseMatches(t, f) {
   const polisHtml = sorted.filter(m=>mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)).map(m=>{
     const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
-    const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
+    const sc=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre)+renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
@@ -18832,9 +18958,9 @@ function _gcRenderTorneoTipo3(t) {
     const bMatches = rOrder.filter(r=>rounds[r]).map(r => {
       const mHtml = rounds[r].map(m => {
         const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
-        const sc=m.played?`<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+        const sc=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${fBracket.id}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
         const ip=mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite);
-        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div>${ip&&m.played?renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}</div></div>`;
+        return `<div class="mc"${ip?' style="border-left:3px solid var(--cp);"':''}><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa||'TBD')}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite||'TBD')}</span></div>${ip&&m.played?renderMatchScorersCompact(m,t.leva,mieSquadre)+renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}</div></div>`;
       }).join('');
       return `<div class="fase-sep" style="background:#f0fdf4;">🏆 ${rLabels[r]||r}</div>${mHtml}`;
     }).join('');
@@ -18860,7 +18986,7 @@ function renderGcAmichevoli() {
   c.innerHTML = list.map(m => {
     const score = m.annullata
       ? `<span class="mc-score" style="color:var(--red);font-size:.72rem;">ANNULLATA</span>`
-      : m.played ? `<span class="mc-score">${m.golCasa}–${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
+      : m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('amich','${m.id}')">${m.golCasa}–${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
     const tag = m.annullata
       ? `<span class="mc-tag" style="background:#fef2f2;color:var(--red);">Annullata</span>`
       : `<span class="mc-tag amic">Amichevole</span>`;
@@ -18868,7 +18994,7 @@ function renderGcAmichevoli() {
     const delBtn  = canEditPt(m.leva)?`<button class="btn btn-r btn-sm" onclick="deletePtAmich(${m.id})" title="Elimina">🗑</button>`:'';
     const risBtn  = (!m.annullata && canEditPt(m.leva))?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('amichevole',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div><div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}</div>${tag}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(polis)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(m.avversario)}</span></div>${m.played&&!m.annullata?renderMatchScorersCompact(m,m.leva,[polis]):''}<div class="mc-actions">${editBtn}${delBtn}${risBtn}</div></div>`;
   }).join('');
 }
 
@@ -19532,8 +19658,9 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
   const rows = matches.map(m => {
     const eC = safeId(m)+'_c', eO = safeId(m)+'_o';
     const ref = refStr(m);
+    const _dettTipo = tipo === 'campionato' ? 'camp' : 'torneo';
     const score = m.played
-      ? `<span class="mc-score">${m.golCasa} – ${m.golOspiti}</span>`
+      ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('${_dettTipo}','${ref}')">${m.golCasa} – ${m.golOspiti}</span>`
       : (canEdit
           ? `<span style="display:flex;align-items:center;gap:3px;">
                <input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;">
@@ -25915,6 +26042,52 @@ async function doRejoinSocieta() {
     <div style="display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--border);margin-top:8px;flex-shrink:0;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtRisultato')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtRisultato()">Salva risultato</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Dettaglio partita (sola lettura) ── -->
+<div class="ov" id="mPtDettaglio" onclick="if(event.target===this)closeM('mPtDettaglio')">
+  <div class="modal" style="width:540px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+      <div style="flex:1;min-width:0;">
+        <div id="ptdMeta" style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;"></div>
+        <div id="ptdTeams" style="font-size:15px;font-weight:500;margin-top:4px;"></div>
+      </div>
+      <button class="mclose" onclick="closeM('mPtDettaglio')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text3);padding:0 4px;">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:18px;padding:18px 0;text-align:center;">
+      <div style="flex:1;min-width:0;">
+        <div id="ptdHomeName" style="font-size:13px;color:var(--text2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="ptdHomeScore" style="font-size:36px;font-weight:800;line-height:1;font-family:'Barlow Condensed',sans-serif;color:var(--cp);"></div>
+      </div>
+      <div style="font-size:24px;color:var(--text3);">—</div>
+      <div style="flex:1;min-width:0;">
+        <div id="ptdAwayName" style="font-size:13px;color:var(--text2);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        <div id="ptdAwayScore" style="font-size:36px;font-weight:800;line-height:1;font-family:'Barlow Condensed',sans-serif;color:var(--cp);"></div>
+      </div>
+    </div>
+    <div style="display:flex;border-bottom:1px solid var(--border);">
+      <button id="ptdTabDettBtn" class="ptd-tab on" onclick="_switchPtdTab('dett')">Dettagli</button>
+      <button id="ptdTabFormBtn" class="ptd-tab" onclick="_switchPtdTab('form')" style="display:none;">Formazione</button>
+    </div>
+    <div id="ptdTabDett" style="flex:1;overflow-y:auto;padding:14px 4px 4px;">
+      <div id="ptdScorers" style="display:none;margin-bottom:14px;">
+        <div class="ptd-sec-h">⚽ Marcatori</div>
+        <div id="ptdScorersList" class="ptd-sec-list"></div>
+      </div>
+      <div id="ptdAssists" style="display:none;margin-bottom:14px;">
+        <div class="ptd-sec-h">🎯 Assist</div>
+        <div id="ptdAssistsList" class="ptd-sec-list"></div>
+      </div>
+      <div id="ptdCards" class="dot-cards" style="display:none;margin-bottom:14px;">
+        <div class="ptd-sec-h">🟨🟥 Cartellini</div>
+        <div id="ptdCardsList" class="ptd-sec-list"></div>
+      </div>
+      <div id="ptdEmpty" style="display:none;color:var(--text3);font-size:13px;text-align:center;padding:24px 12px;">Nessun dettaglio inserito per questa partita.</div>
+    </div>
+    <div id="ptdTabForm" style="display:none;padding:14px 4px;color:var(--text3);font-size:13px;text-align:center;">
+      <!-- placeholder formazione, attivabile in futuro -->
     </div>
   </div>
 </div>
