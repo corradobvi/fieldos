@@ -11892,7 +11892,8 @@ async function submitSelfReg(){
       if (!regResp.ok) {
         if (regData.error === 'email_exists') { _err('⛔ Email già registrata. Usa il login per accedere.'); return; }
         if (regData.error === 'password_too_short') { _err('⚠️ Password troppo corta (min. 8 caratteri).'); return; }
-        _err('⛔ Errore durante la registrazione: ' + (regData.error || regResp.status)); return;
+        if (regData.error === 'invalid_code') { _err('⛔ Codice società non valido: "' + _activeCode + '". Torna allo Step 1 e rinserisci il codice esattamente.'); return; }
+        _err('⛔ Errore durante la registrazione: ' + (regData.error || regResp.status) + ' (code="' + _activeCode + '")'); return;
       }
       const guardianToken = regData.token;
 
