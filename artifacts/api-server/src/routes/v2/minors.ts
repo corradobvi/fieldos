@@ -236,6 +236,9 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
         .catch(() => {});
     }
 
+    // Propaga lo stato MySQL del player nel blob society_state (evita letture stale da altri device)
+    await syncPlayerFromMysqlToBlob(societyId, playerId);
+
     return res.json({
       ok: true,
       guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true },
@@ -281,6 +284,10 @@ router.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
       params
     );
     logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
+
+    // Propaga lo stato MySQL del player nel blob society_state (evita letture stale da altri device)
+    await syncPlayerFromMysqlToBlob(societyId, playerId);
+
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH players/:id/personal-data error");
@@ -457,5 +464,50 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
     return res.status(500).json({ error: "server_error" });
   }
 });
+
+// Helper: propaga lo stato MySQL del player nel blob society_state. Idempotente, fault-tolerant.
+// Chiamato dopo UPDATE su players in claim e personal-data per evitare letture stale da altri device.
+async function syncPlayerFromMysqlToBlob(societyId: number, playerId: number): Promise<void> {
+  if (!societyId || !playerId) return;
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT id, nome, cognome, cognome_iniziale, birth_date, incomplete, approval_status, numero, leva
+       FROM players WHERE id = ? AND society_id = ? LIMIT 1`,
+      [playerId, societyId]
+    )) as [any[], any];
+    if (!rows.length) return;
+    const m = rows[0];
+
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    )) as [any[], any];
+    if (!blobRows.length) return;
+
+    let state: any;
+    try { state = JSON.parse(blobRows[0].state_json as string); } catch { return; }
+    if (!Array.isArray(state.players)) return;
+
+    const idx = state.players.findIndex((p: any) => p && p.id === playerId);
+    if (idx < 0) return; // Out of scope: non creare entry mancanti
+
+    const blobPlayer = state.players[idx];
+    if (m.cognome != null) blobPlayer.cogn = m.cognome;
+    if (m.cognome_iniziale != null) blobPlayer.cogn_iniziale = m.cognome_iniziale;
+    if (m.birth_date != null) blobPlayer.birth_date = m.birth_date;
+    blobPlayer.incomplete = m.incomplete === 1;
+    if (m.approval_status != null) blobPlayer.approval_status = m.approval_status;
+    state.players[idx] = blobPlayer;
+
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e: any) {
+    logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
+    // Non rilanciare: l'endpoint chiamante deve riuscire comunque
+  }
+}
 
 export default router;

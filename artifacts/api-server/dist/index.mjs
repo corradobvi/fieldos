@@ -84990,6 +84990,7 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
       }).catch(() => {
       });
     }
+    await syncPlayerFromMysqlToBlob(societyId, playerId);
     return res.json({
       ok: true,
       guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true }
@@ -85033,6 +85034,7 @@ router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
       params
     );
     logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
+    await syncPlayerFromMysqlToBlob(societyId, playerId);
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e }, "PATCH players/:id/personal-data error");
@@ -85191,6 +85193,46 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
     return res.status(500).json({ error: "server_error" });
   }
 });
+async function syncPlayerFromMysqlToBlob(societyId, playerId) {
+  if (!societyId || !playerId) return;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, cognome_iniziale, birth_date, incomplete, approval_status, numero, leva
+       FROM players WHERE id = ? AND society_id = ? LIMIT 1`,
+      [playerId, societyId]
+    );
+    if (!rows.length) return;
+    const m = rows[0];
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.players)) return;
+    const idx = state.players.findIndex((p) => p && p.id === playerId);
+    if (idx < 0) return;
+    const blobPlayer = state.players[idx];
+    if (m.cognome != null) blobPlayer.cogn = m.cognome;
+    if (m.cognome_iniziale != null) blobPlayer.cogn_iniziale = m.cognome_iniziale;
+    if (m.birth_date != null) blobPlayer.birth_date = m.birth_date;
+    blobPlayer.incomplete = m.incomplete === 1;
+    if (m.approval_status != null) blobPlayer.approval_status = m.approval_status;
+    state.players[idx] = blobPlayer;
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
+  }
+}
 var minors_default = router14;
 
 // src/routes/v2/users.ts
