@@ -9,7 +9,15 @@ export interface JwtPayload {
   societyId: number;
   role: string;
   email: string;
+  societyPiano?: string | null;
   exp: number;
+}
+
+// Path che NON richiedono la scelta del piano (Step 2 self-register flow)
+const PLAN_BYPASS_SUFFIX = ["/societies/select-plan"];
+function _pathBypassesPlanCheck(originalUrl: string): boolean {
+  const path = (originalUrl || "").split("?")[0];
+  return PLAN_BYPASS_SUFFIX.some((s) => path.endsWith(s));
 }
 
 export function signJWT(payload: Omit<JwtPayload, "exp">): string {
@@ -71,6 +79,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const payload = verifyJWT(auth.slice(7));
   if (!payload) { res.status(401).json({ error: "invalid_token" }); return; }
   req.jwtUser = payload;
+  // Plan-required gate: se l'utente non ha ancora scelto un piano (Step 2 del self-register flow)
+  // qualunque route protetta tranne /societies/select-plan ritorna 403 plan_required.
+  if (payload.societyPiano == null && !_pathBypassesPlanCheck(req.originalUrl)) {
+    res.status(403).json({ error: "plan_required" });
+    return;
+  }
   next();
 }
 

@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS player_guardians (
 // Migrations: idempotent for existing databases
 // Note: no IF NOT EXISTS — error 1060 (duplicate column) is caught and ignored in the migration loop
 export const MIGRATIONS_SQL = `
+ALTER TABLE societies MODIFY COLUMN piano VARCHAR(50) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
 ALTER TABLE users ADD COLUMN phone VARCHAR(50);
 ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);

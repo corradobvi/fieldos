@@ -762,6 +762,35 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ra-titolo-btn{display:flex;align-items:center;gap:7px;padding:11px 14px;border:2px solid var(--border);border-radius:10px;cursor:pointer;font-size:.9rem;font-weight:600;transition:border-color .12s,background .12s;justify-content:center;}
 .ra-titolo-btn.on{border-color:var(--cp);background:rgba(var(--cp-rgb),.07);color:var(--cp);}
 /* Schermata registrazione autonoma */
+/* Step 2 — Scegli piano (dopo self-register) */
+#selectPlanScreen{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1100;background:var(--bg);overflow-y:auto;padding:24px 18px 36px;}
+#selectPlanScreen.on{display:flex;flex-direction:column;align-items:center;}
+.splan-wrap{width:100%;max-width:480px;}
+.splan-head{text-align:center;margin-bottom:24px;}
+.splan-head img{width:42px;height:42px;border-radius:10px;margin-bottom:10px;}
+.splan-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;color:var(--text);line-height:1.15;margin-bottom:4px;}
+.splan-sub{font-size:.85rem;color:var(--text2);line-height:1.45;}
+.splan-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:20px;}
+.splan-card{position:relative;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;display:flex;gap:14px;align-items:flex-start;transition:border-color .15s,background .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent;}
+.splan-card:active{transform:scale(.99);}
+.splan-card.on{border:2px solid #1A7A4A;background:#E8F3EE;padding:15.5px;box-shadow:0 4px 16px -4px rgba(26,122,74,.25);}
+.splan-card-ic{width:40px;height:40px;border-radius:50%;background:#E8F3EE;color:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;}
+.splan-card.on .splan-card-ic{background:#fff;}
+.splan-card-body{flex:1;min-width:0;}
+.splan-card-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:var(--text);line-height:1.2;margin-bottom:2px;}
+.splan-card-price{font-size:.78rem;color:var(--text2);font-weight:700;margin-bottom:6px;}
+.splan-card-feats{font-size:.78rem;color:var(--text2);line-height:1.45;}
+.splan-card-check{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;align-self:center;color:transparent;font-weight:900;font-size:.85rem;transition:all .15s;}
+.splan-card.on .splan-card-check{background:#1A7A4A;border-color:#1A7A4A;color:#fff;}
+.splan-card.featured::before{content:"⭐ Consigliato";position:absolute;top:-9px;right:14px;background:#FFD93D;color:#2D3748;font-size:.66rem;font-weight:900;letter-spacing:.04em;padding:3px 9px;border-radius:10px;text-transform:uppercase;}
+.splan-card.featured{border-color:#1A7A4A;}
+.splan-foot{display:flex;flex-direction:column;gap:8px;}
+.splan-btn{width:100%;padding:14px;background:#1A7A4A;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.96rem;font-weight:900;cursor:pointer;transition:all .2s;}
+.splan-btn:disabled{opacity:.45;cursor:not-allowed;}
+.splan-btn:not(:disabled):hover{background:#155c37;transform:translateY(-1px);}
+.splan-btn:not(:disabled):active{transform:translateY(0);}
+.splan-note{text-align:center;font-size:.74rem;color:var(--text3);line-height:1.4;}
+
 #registerScreen{
   display:none;height:100vh;background:var(--bg);
   overflow:hidden;
@@ -2142,13 +2171,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div class="rf-sub">Nessuna carta di credito · i tuoi dati restano tuoi</div>
       </div>
     </div>
-    <div class="rf-piano-badge" id="rfPianoBadge">⚽ Piano Mister — 14 giorni gratis</div>
-    <input type="hidden" id="rPiano" value="mister">
-
     <div class="rf-row2">
       <div class="fg"><label class="fl">Nome *</label><input class="fi" type="text" id="rNome" placeholder="Mario" autocomplete="given-name" autocapitalize="words"></div>
       <div class="fg"><label class="fl">Cognome *</label><input class="fi" type="text" id="rCogn" placeholder="Rossi" autocomplete="family-name" autocapitalize="words"></div>
     </div>
+    <div class="fg"><label class="fl">Nome società *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
     <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" id="rEmail" placeholder="mario@esempio.it" autocomplete="email" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
     <div class="fg"><label class="fl">Password * <span style="font-weight:400;text-transform:none;">(min. 8 car.)</span></label><input class="fi" type="password" id="rPass" placeholder="••••••••" autocomplete="new-password"></div>
     <div class="fg">
@@ -2157,25 +2184,55 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <span style="padding:0 10px;font-size:.88rem;color:var(--text2);font-weight:700;white-space:nowrap;border-right:1.5px solid var(--border);display:flex;align-items:center;flex-shrink:0;">+39</span>
         <input class="fi" type="tel" id="rPhoneNum" placeholder="3471234567" maxlength="10" pattern="[0-9]{9,10}" autocomplete="tel" inputmode="numeric" style="border-radius:0 9px 9px 0!important;border:none!important;box-shadow:none!important;background:transparent;flex:1;min-width:0;">
       </div>
-      <div style="font-size:.77rem;color:var(--text2);margin-top:4px;">Riceverai gli aggiornamenti della tua prova via WhatsApp</div>
-    </div>
-    <div class="rf-row2">
-      <div class="fg"><label class="fl">Nome società / club *</label><input class="fi" type="text" id="rSocieta" placeholder="ASD Calcio Milano" autocapitalize="words"></div>
-      <div class="fg"><label class="fl">Città</label><input class="fi" type="text" id="rCitta" placeholder="Milano" autocapitalize="words"></div>
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;margin-bottom:2px;">
-      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-        <input type="checkbox" id="rPrivacy" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
-        <span style="font-size:.82rem;color:var(--text2);line-height:1.5;">Ho letto e accetto la <a href="https://myvivaio.it/privacy" target="_blank" style="color:var(--cl);">Privacy Policy</a> *</span>
-      </label>
-      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-        <input type="checkbox" id="rMarketing" style="margin-top:3px;width:18px;height:18px;flex-shrink:0;">
-        <span style="font-size:.82rem;color:var(--text2);line-height:1.5;">Accetto di ricevere comunicazioni commerciali e novità su MyVivaio <em>(facoltativo)</em></span>
-      </label>
-    </div>
-    <button class="btn-login" id="btnRegister" style="margin-top:6px;height:46px;" onclick="doSelfRegister()">Inizia gratis →</button>
+    <button class="btn-login" id="btnRegister" style="margin-top:14px;height:48px;" onclick="doSelfRegister()">Continua →</button>
+    <p style="font-size:.75rem;color:var(--text2);line-height:1.5;margin-top:10px;text-align:center;">Cliccando Continua accetti la <a href="https://www.iubenda.com/privacy-policy/96516071" target="_blank" rel="noopener" style="color:var(--cp);">Privacy Policy</a> e i Termini di servizio.</p>
     <div class="rf-err" id="rErrMsg"></div>
+  </div>
+</div>
+
+<!-- ══════ STEP 2 — Scegli piano (dopo self-register) ══════ -->
+<div id="selectPlanScreen">
+  <div class="splan-wrap">
+    <div class="splan-head">
+      <img src="/icons/icon-512.png" alt="MyVivaio">
+      <div class="splan-title">Scegli il tuo piano</div>
+      <div class="splan-sub">14 giorni di prova gratis · Nessuna carta richiesta</div>
+    </div>
+    <div class="splan-cards">
+      <div class="splan-card" data-plan="mister" onclick="_selectPlanCard('mister')">
+        <div class="splan-card-ic">⚽</div>
+        <div class="splan-card-body">
+          <div class="splan-card-name">Mister</div>
+          <div class="splan-card-price">9€/mese · 79€/anno</div>
+          <div class="splan-card-feats">Una squadra · convocazioni, presenze, chat</div>
+        </div>
+        <div class="splan-card-check">✓</div>
+      </div>
+      <div class="splan-card featured" data-plan="mister_pro" onclick="_selectPlanCard('mister_pro')">
+        <div class="splan-card-ic">🏅</div>
+        <div class="splan-card-body">
+          <div class="splan-card-name">Mister Pro</div>
+          <div class="splan-card-price">19€/mese · 159€/anno</div>
+          <div class="splan-card-feats">Fino a 3 leve · libreria allenamenti · statistiche avanzate</div>
+        </div>
+        <div class="splan-card-check">✓</div>
+      </div>
+      <div class="splan-card" data-plan="societa" onclick="_selectPlanCard('societa')">
+        <div class="splan-card-ic">🏟️</div>
+        <div class="splan-card-body">
+          <div class="splan-card-name">Società</div>
+          <div class="splan-card-price">49€/mese · 419€/anno</div>
+          <div class="splan-card-feats">Squadre illimitate · quote, documenti, super admin</div>
+        </div>
+        <div class="splan-card-check">✓</div>
+      </div>
+    </div>
+    <div class="splan-foot">
+      <button class="splan-btn" id="btnSelectPlan" disabled onclick="_submitSelectPlan()">Scegli un piano per continuare</button>
+      <p class="splan-note">Puoi cambiare piano in qualsiasi momento dalle impostazioni account.</p>
+    </div>
   </div>
 </div>
 
@@ -22989,21 +23046,18 @@ async function doSelfRegister() {
   const phoneDigits     = (document.getElementById('rPhoneNum').value || '').replace(/\D/g, '');
   const phone           = phoneDigits ? '+39' + phoneDigits : '';
   const societa         = (document.getElementById('rSocieta').value || '').trim();
-  const citta           = (document.getElementById('rCitta').value || '').trim();
-  const piano           = document.getElementById('rPiano').value || 'mister';
-  const privacyAccepted = !!(document.getElementById('rPrivacy') && document.getElementById('rPrivacy').checked);
-  const marketingConsent= !!(document.getElementById('rMarketing') && document.getElementById('rMarketing').checked);
+  // Step 1: piano NON viene scelto qui (Step 2 = #scegli-piano)
+  // Privacy: auto-accept (disclaimer mostrato sopra il bottone)
 
   if (!nome)                                { _rShowErr('⚠️ Inserisci il nome'); return; }
   if (!cogn)                                { _rShowErr('⚠️ Inserisci il cognome'); return; }
+  if (!societa)                             { _rShowErr('⚠️ Inserisci il nome della società'); return; }
   if (!email || !email.includes('@'))       { _rShowErr('⚠️ Email non valida'); return; }
   if (pass.length < 8)                      { _rShowErr('⚠️ La password deve avere almeno 8 caratteri'); return; }
   if (!_PHONE_IT_REGEX.test(phoneDigits))   { _rShowErr('⚠️ Inserisci il numero di cellulare (9-10 cifre, es. 3471234567)'); return; }
-  if (!societa)                             { _rShowErr('⚠️ Inserisci il nome della società'); return; }
-  if (!privacyAccepted)                     { _rShowErr('⚠️ Devi accettare la Privacy Policy per registrarti'); return; }
 
   const btn = document.getElementById('btnRegister');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Registrazione in corso…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Creazione account…'; }
 
   let utm_data = null;
   try {
@@ -23022,8 +23076,8 @@ async function doSelfRegister() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome, cognome: cogn, email, password: pass,
-        phone, nomeSocieta: societa, citta, piano,
-        privacyAccepted: true, marketingConsent,
+        phone, nomeSocieta: societa,
+        marketingConsent: false,
         utm_data,
       }),
     });
@@ -23042,11 +23096,13 @@ async function doSelfRegister() {
     }
     if (!resp.ok) { _rShowErr('❌ Errore server. Riprova tra poco.'); return; }
 
-    // ── Registrazione ok: costruiamo lo stato iniziale e avviamo l'app ──
+    // ── Registrazione ok: prepariamo lo stato iniziale ma RINVIAMO bootApp a dopo lo Step 2 (scelta piano) ──
     const { society } = data;
-    // Store JWT for WA tracking calls
+    // Store JWT for WA tracking calls + v2 auth (sessionStorage + localStorage)
     _waToken = data.token || null;
+    _v2Token = data.token || null;
     if (_waToken) { try { sessionStorage.setItem('mv_wa_token', _waToken); } catch(_) {} }
+    if (_v2Token) { try { localStorage.setItem('mv_v2_token', _v2Token); } catch(_) {} }
     const societyId   = society.id;
     const stateKey    = societyStorageKey(societyId);
 
@@ -23088,53 +23144,165 @@ async function doSelfRegister() {
       body: JSON.stringify({ stateJson: JSON.stringify(initialState) })
     }).catch(() => {});
 
-    // Aggiorna SA state — fetch-merge-save per non sovrascrivere società esistenti
-    const demoDays = society.demoDays || (piano === 'societa' ? 10 : 14);
-    const _newSoc = {
-      id: societyId, nome: societa, citta, colori: '#047857', leva: 'Prima Squadra',
-      piano, stato: 'attivo', email, note: '', utenti: 1, giocatori: 0,
-      createdAt: Date.now(), lastActivity: null,
-      scadenzaDemo: Date.now() + demoDays * 86400000
+    // Salva i dati pending per il bootApp post Step 2 (scelta piano)
+    _pendingRegistration = {
+      societyId, stateKey, adminUser, society, societa: societa, email, nome, cogn, phone,
     };
-    try {
-      const _saR = await fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY));
-      if (_saR.ok) {
-        const _saD = await _saR.json();
-        const _saS = JSON.parse(_saD.stateJson);
-        if (Array.isArray(_saS.saSocieties))        saSocieties    = _saS.saSocieties;
-        if (typeof _saS.saNextSocId === 'number')   saNextSocId    = _saS.saNextSocId;
-        if (Array.isArray(_saS.saActionLog))        saActionLog    = _saS.saActionLog;
-        if (typeof _saS.saNextLogId === 'number')   saNextLogId    = _saS.saNextLogId;
-      }
-    } catch (_) {}
-    if (!saSocieties.find(x => x.id === societyId)) {
-      saSocieties.push(_newSoc);
-      saSaveState();
-    }
+    try { sessionStorage.setItem('mv_pending_reg', JSON.stringify(_pendingRegistration)); } catch(_) {}
 
-    currentSocietaId = societyId;
-    if (typeof window.__fieldosSetSocietaKey === 'function') {
-      window.__fieldosSetSocietaKey(stateKey);
-    }
-
-    closeRegisterScreen();
-    me = adminUser;
-    bootApp(adminUser);
-    // Show WhatsApp welcome screen after boot
-    setTimeout(function() { showWelcomeWaScreen(nome, cogn, piano, phone); }, 500);
-    // Se l'URL aveva ?piano=X, apri subito il tab piano per procedere all'abbonamento
-    try {
-      const _regPiano = new URLSearchParams(window.location.search).get('piano');
-      if (_regPiano) setTimeout(() => openAccountScreen('piano'), 250);
-    } catch(_) {}
+    // Naviga a Step 2: scegli piano
+    _openSelectPlanScreen();
 
   } catch (e) {
     console.error('[doSelfRegister]', e);
     _rShowErr('❌ Errore di connessione. Verifica la rete e riprova.');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Inizia gratis →'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Continua →'; }
   }
 }
+
+// ═══════════════════════════════════════════════════════════
+// STEP 2 — Scegli piano (after self-register)
+// ═══════════════════════════════════════════════════════════
+var _pendingRegistration = null;
+var _selectedPlanKey = null;
+
+function _openSelectPlanScreen() {
+  // Hide register screen + show select plan screen
+  try { document.getElementById('registerScreen').classList.remove('on'); } catch(_) {}
+  const sp = document.getElementById('selectPlanScreen');
+  if (sp) sp.classList.add('on');
+  _selectedPlanKey = null;
+  document.querySelectorAll('.splan-card').forEach(c => c.classList.remove('on'));
+  const btn = document.getElementById('btnSelectPlan');
+  if (btn) { btn.disabled = true; btn.textContent = 'Scegli un piano per continuare'; }
+  // Push hash for refresh-safety
+  try {
+    if (window.location.hash !== '#scegli-piano') {
+      history.replaceState(null, '', window.location.pathname + window.location.search + '#scegli-piano');
+    }
+  } catch(_) {}
+}
+
+function _selectPlanCard(plan) {
+  _selectedPlanKey = plan;
+  document.querySelectorAll('.splan-card').forEach(c => {
+    c.classList.toggle('on', c.dataset.plan === plan);
+  });
+  const btn = document.getElementById('btnSelectPlan');
+  if (btn) { btn.disabled = false; btn.textContent = 'Entra in MyVivaio →'; }
+}
+
+async function _submitSelectPlan() {
+  if (!_selectedPlanKey) return;
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) { alert('Sessione scaduta. Effettua di nuovo la registrazione.'); return; }
+  const btn = document.getElementById('btnSelectPlan');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Attivazione…'; }
+  try {
+    const resp = await fetch(API_BASE + '/api/v2/societies/select-plan', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + _v2Token,
+      },
+      body: JSON.stringify({ plan: _selectedPlanKey }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      alert('❌ Errore attivazione piano: ' + (data.error || resp.status));
+      if (btn) { btn.disabled = false; btn.textContent = 'Entra in MyVivaio →'; }
+      return;
+    }
+    // Update token with new societyPiano
+    _v2Token = data.token || _v2Token;
+    try { localStorage.setItem('mv_v2_token', _v2Token); } catch(_) {}
+    // Recupera pending registration (boot dello state lato client)
+    let pending = _pendingRegistration;
+    if (!pending) {
+      try { pending = JSON.parse(sessionStorage.getItem('mv_pending_reg') || 'null'); } catch(_) {}
+    }
+    if (pending) {
+      // Aggiorna saSocieties con il piano scelto, poi bootApp
+      const piano = _selectedPlanKey;
+      const demoDays = pending.society && pending.society.demoDays ? pending.society.demoDays : 14;
+      const _newSoc = {
+        id: pending.societyId, nome: pending.societa, citta: '', colori: '#047857', leva: 'Prima Squadra',
+        piano, stato: 'attivo', email: pending.email, note: '', utenti: 1, giocatori: 0,
+        createdAt: Date.now(), lastActivity: null,
+        scadenzaDemo: Date.now() + demoDays * 86400000,
+      };
+      try {
+        const _saR = await fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY));
+        if (_saR.ok) {
+          const _saD = await _saR.json();
+          const _saS = JSON.parse(_saD.stateJson);
+          if (Array.isArray(_saS.saSocieties))        saSocieties    = _saS.saSocieties;
+          if (typeof _saS.saNextSocId === 'number')   saNextSocId    = _saS.saNextSocId;
+          if (Array.isArray(_saS.saActionLog))        saActionLog    = _saS.saActionLog;
+          if (typeof _saS.saNextLogId === 'number')   saNextLogId    = _saS.saNextLogId;
+        }
+      } catch (_) {}
+      if (!saSocieties.find(x => x.id === pending.societyId)) {
+        saSocieties.push(_newSoc);
+        saSaveState();
+      }
+      currentSocietaId = pending.societyId;
+      if (typeof window.__fieldosSetSocietaKey === 'function') {
+        window.__fieldosSetSocietaKey(pending.stateKey);
+      }
+      try { sessionStorage.removeItem('mv_pending_reg'); } catch(_) {}
+      try {
+        const sp = document.getElementById('selectPlanScreen');
+        if (sp) sp.classList.remove('on');
+      } catch(_) {}
+      // Reset hash
+      try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(_) {}
+      me = pending.adminUser;
+      bootApp(pending.adminUser);
+      setTimeout(function() { showWelcomeWaScreen(pending.nome, pending.cogn, piano, pending.phone); }, 500);
+    } else {
+      // No pending state (es. refresh dopo register): reload completo
+      window.location.href = '/';
+    }
+  } catch (e) {
+    console.error('[submitSelectPlan]', e);
+    alert('❌ Errore di connessione. Riprova.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Entra in MyVivaio →'; }
+  }
+}
+
+// Hashchange listener — riapre Step 2 al refresh se hash è #scegli-piano e c'è un pending registration
+window.addEventListener('hashchange', function() {
+  if (window.location.hash === '#scegli-piano') {
+    let pending = _pendingRegistration;
+    if (!pending) {
+      try { pending = JSON.parse(sessionStorage.getItem('mv_pending_reg') || 'null'); } catch(_) {}
+      if (pending) _pendingRegistration = pending;
+    }
+    if (pending) _openSelectPlanScreen();
+  }
+});
+
+// Intercept globale fetch — se backend ritorna 403 plan_required, naviga a Step 2
+(function() {
+  const _origFetch = window.fetch;
+  window.fetch = async function() {
+    const resp = await _origFetch.apply(this, arguments);
+    if (resp && resp.status === 403) {
+      try {
+        const cloned = resp.clone();
+        const body = await cloned.json();
+        if (body && body.error === 'plan_required') {
+          if (window.location.hash !== '#scegli-piano') {
+            _openSelectPlanScreen();
+          }
+        }
+      } catch (_) {}
+    }
+    return resp;
+  };
+})();
 
 function _lfCTAClick() {
   openRegisterScreen();

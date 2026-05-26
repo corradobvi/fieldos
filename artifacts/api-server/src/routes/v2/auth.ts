@@ -38,6 +38,7 @@ router.post("/auth/login", async (req, res) => {
       societyId: user.society_id,
       role: user.ruolo,
       email: user.email,
+      societyPiano: user.piano ?? null,
     });
 
     logger.info({ userId: user.id, societyId: user.society_id }, "v2 login ok");

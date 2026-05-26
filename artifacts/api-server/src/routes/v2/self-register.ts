@@ -7,21 +7,17 @@ import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
-const DEMO_DAYS: Record<string, number> = {
-  mister:     14,
-  mister_pro: 14,
-  societa:    14,
-};
-
-const VALID_PIANI = new Set(["mister", "mister_pro", "societa"]);
+// Step 1 self-register: il piano viene scelto in Step 2 (#scegli-piano).
+// La demo trial parte comunque a 14 giorni dalla creazione, piano = NULL fino a select-plan.
+const DEMO_DAYS_DEFAULT = 14;
 
 const PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
 router.post("/auth/self-register", async (req, res) => {
-  const { nome, cognome, email, password, phone, nomeSocieta, citta, piano,
-          privacyAccepted, marketingConsent, utm_data } =
+  const { nome, cognome, email, password, phone, nomeSocieta, citta,
+          marketingConsent, utm_data } =
     req.body as Record<string, any>;
 
   if (!nome?.trim() || !cognome?.trim() || !email?.trim() || !password || !nomeSocieta?.trim()) {
@@ -33,16 +29,15 @@ router.post("/auth/self-register", async (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ error: "password_too_short" });
   }
-  if (privacyAccepted !== true) {
-    return res.status(400).json({ error: "privacy_required" });
-  }
+  // Privacy: auto-accept (disclaimer mostrato sopra il bottone Continua sul frontend).
+  // privacy_accepted_at viene comunque registrato server-side.
   const phoneNorm = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
   if (!PHONE_IT_REGEX.test(phoneNorm)) {
     return res.status(400).json({ error: "phone_required", message: "Cellulare obbligatorio in formato +39XXXXXXXXX" });
   }
 
   const normalizedEmail  = email.trim().toLowerCase();
-  const pianoNorm        = VALID_PIANI.has(piano ?? "") ? (piano as string) : "mister";
+  // piano NON viene scelto qui: resterà NULL su societies fino allo Step 2 /societies/select-plan
 
   // Parse UTM data (silent fail — never blocks registration)
   let utmSource:   string | null = null;
@@ -59,7 +54,7 @@ router.post("/auth/self-register", async (req, res) => {
     utmTerm     = typeof utm_data.utm_term     === "string" ? utm_data.utm_term.slice(0, 255)     : null;
     fbclid      = typeof utm_data.fbclid       === "string" ? utm_data.fbclid.slice(0, 500)       : null;
   }
-  const demoDays         = DEMO_DAYS[pianoNorm] ?? 14;
+  const demoDays         = DEMO_DAYS_DEFAULT;
   const demoExpires      = new Date(Date.now() + demoDays * 24 * 60 * 60 * 1000);
   const codice           = _generateCode(nomeSocieta.trim());
 
@@ -78,12 +73,12 @@ router.post("/auth/self-register", async (req, res) => {
       return res.status(409).json({ error: "email_exists" });
     }
 
-    // Crea società
+    // Crea società — piano NULL: lo sceglie lo Step 2 (/societies/select-plan)
     const [socRes] = (await conn.execute(
       `INSERT INTO societies
          (nome, citta, codice, piano, subscription_status, demo_scadenza, stato)
-       VALUES (?, ?, ?, ?, 'demo', ?, 'attiva')`,
-      [nomeSocieta.trim(), (citta ?? "").trim(), codice, pianoNorm, demoExpires]
+       VALUES (?, ?, ?, NULL, 'demo', ?, 'attiva')`,
+      [nomeSocieta.trim(), (citta ?? "").trim(), codice, demoExpires]
     )) as [any, any];
     const societyId: number = socRes.insertId;
 
@@ -115,15 +110,17 @@ router.post("/auth/self-register", async (req, res) => {
     pool.execute(
       `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), pianoNorm]
+      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), "pending_step2"]
     ).catch((e: any) => logger.warn({ err: e?.message }, "demo-wa contact insert failed"));
 
-    const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
+    // JWT con societyPiano: null — il middleware requireAuth ritornerà 403 plan_required
+    // su qualunque route protetta tranne /societies/select-plan, finché l'utente non sceglie.
+    const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail, societyPiano: null });
 
     // Webhook Superchat in background — non blocca la risposta
-    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {});
+    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: "pending_step2" }).catch(() => {});
 
-    // Email in background — non blocca la risposta
+    // Email in background — piano effettivo verrà scelto in Step 2, per ora indichiamo "demo"
     sendWelcomeEmails({
       nome:       nome.trim(),
       cognome:    cognome.trim(),
@@ -131,12 +128,12 @@ router.post("/auth/self-register", async (req, res) => {
       phone:      phoneNorm,
       nomeSocieta: nomeSocieta.trim(),
       citta:      (citta ?? "").trim(),
-      piano:      pianoNorm,
+      piano:      "demo",
       demoExpires,
       societyId,
     }).catch(() => {});
 
-    logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm }, "self-register ok");
+    logger.info({ userId, societyId, email: normalizedEmail }, "self-register ok (piano pending step2)");
 
     return res.status(201).json({
       token,
@@ -153,7 +150,7 @@ router.post("/auth/self-register", async (req, res) => {
         id:          societyId,
         nome:        nomeSocieta.trim(),
         citta:       (citta ?? "").trim(),
-        piano:       pianoNorm,
+        piano:       null,
         codice,
         demoExpires: demoExpires.toISOString(),
         demoDays,

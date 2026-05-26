@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router35;
+    module.exports = Router36;
     module.exports.Route = Route;
-    function Router35(options) {
-      if (!(this instanceof Router35)) {
-        return new Router35(options);
+    function Router36(options) {
+      if (!(this instanceof Router36)) {
+        return new Router36(options);
       }
       const opts = options || {};
-      function router35(req, res, next) {
-        router35.handle(req, res, next);
+      function router36(req, res, next) {
+        router36.handle(req, res, next);
       }
-      Object.setPrototypeOf(router35, this);
-      router35.caseSensitive = opts.caseSensitive;
-      router35.mergeParams = opts.mergeParams;
-      router35.params = {};
-      router35.strict = opts.strict;
-      router35.stack = [];
-      return router35;
+      Object.setPrototypeOf(router36, this);
+      router36.caseSensitive = opts.caseSensitive;
+      router36.mergeParams = opts.mergeParams;
+      router36.params = {};
+      router36.strict = opts.strict;
+      router36.stack = [];
+      return router36;
     }
-    Router35.prototype = function() {
+    Router36.prototype = function() {
     };
-    Router35.prototype.param = function param(name, fn) {
+    Router36.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router35.prototype.handle = function handle(req, res, callback) {
+    Router36.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router35.prototype.use = function use(handler) {
+    Router36.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router35.prototype.route = function route(path4) {
+    Router36.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router35.prototype[method] = function(path4) {
+      Router36.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router35 = require_router();
+    var Router36 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router35 = null;
+      var router36 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router35 === null) {
-            router35 = new Router35({
+          if (router36 === null) {
+            router36 = new Router36({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router35;
+          return router36;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router35 = this.router;
+      var router36 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router35.use(path4, fn2);
+          return router36.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router35.use(path4, function mounted_app(req, res, next) {
+        router36.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router35 = require_router();
+    var Router36 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router35.Route;
-    exports.Router = Router35;
+    exports.Route = Router36.Route;
+    exports.Router = Router36;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express35 = __toESM(require_express2(), 1);
+var import_express36 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express34 = __toESM(require_express2(), 1);
+var import_express35 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -77562,6 +77562,11 @@ var import_express3 = __toESM(require_express2(), 1);
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 var JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
 var JWT_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+var PLAN_BYPASS_SUFFIX = ["/societies/select-plan"];
+function _pathBypassesPlanCheck(originalUrl) {
+  const path4 = (originalUrl || "").split("?")[0];
+  return PLAN_BYPASS_SUFFIX.some((s) => path4.endsWith(s));
+}
 function signJWT(payload) {
   const full = { ...payload, exp: Math.floor(Date.now() / 1e3) + JWT_EXPIRY_SECONDS };
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
@@ -77616,6 +77621,10 @@ function requireAuth(req, res, next) {
     return;
   }
   req.jwtUser = payload;
+  if (payload.societyPiano == null && !_pathBypassesPlanCheck(req.originalUrl)) {
+    res.status(403).json({ error: "plan_required" });
+    return;
+  }
   next();
 }
 function requireRole(...roles) {
@@ -78359,7 +78368,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express33 = __toESM(require_express2(), 1);
+var import_express34 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -78570,6 +78579,7 @@ CREATE TABLE IF NOT EXISTS player_guardians (
 );
 `;
 var MIGRATIONS_SQL = `
+ALTER TABLE societies MODIFY COLUMN piano VARCHAR(50) NULL DEFAULT NULL;
 ALTER TABLE societies ADD COLUMN subscription_status VARCHAR(20) DEFAULT 'demo';
 ALTER TABLE users ADD COLUMN phone VARCHAR(50);
 ALTER TABLE societies ADD COLUMN stripe_customer_id VARCHAR(255);
@@ -83695,7 +83705,8 @@ router9.post("/auth/login", async (req, res) => {
       userId: user.id,
       societyId: user.society_id,
       role: user.ruolo,
-      email: user.email
+      email: user.email,
+      societyPiano: user.piano ?? null
     });
     logger.info({ userId: user.id, societyId: user.society_id }, "v2 login ok");
     return res.json({
@@ -84126,12 +84137,7 @@ async function sendCancelledEmail(opts) {
 
 // src/routes/v2/self-register.ts
 var router10 = (0, import_express10.Router)();
-var DEMO_DAYS = {
-  mister: 14,
-  mister_pro: 14,
-  societa: 14
-};
-var VALID_PIANI = /* @__PURE__ */ new Set(["mister", "mister_pro", "societa"]);
+var DEMO_DAYS_DEFAULT = 14;
 var PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 router10.post("/auth/self-register", async (req, res) => {
   const {
@@ -84142,8 +84148,6 @@ router10.post("/auth/self-register", async (req, res) => {
     phone,
     nomeSocieta,
     citta,
-    piano,
-    privacyAccepted,
     marketingConsent,
     utm_data
   } = req.body;
@@ -84156,15 +84160,11 @@ router10.post("/auth/self-register", async (req, res) => {
   if (password.length < 8) {
     return res.status(400).json({ error: "password_too_short" });
   }
-  if (privacyAccepted !== true) {
-    return res.status(400).json({ error: "privacy_required" });
-  }
   const phoneNorm = typeof phone === "string" ? phone.replace(/\s/g, "") : "";
   if (!PHONE_IT_REGEX.test(phoneNorm)) {
     return res.status(400).json({ error: "phone_required", message: "Cellulare obbligatorio in formato +39XXXXXXXXX" });
   }
   const normalizedEmail = email.trim().toLowerCase();
-  const pianoNorm = VALID_PIANI.has(piano ?? "") ? piano : "mister";
   let utmSource = null;
   let utmMedium = null;
   let utmCampaign = null;
@@ -84179,7 +84179,7 @@ router10.post("/auth/self-register", async (req, res) => {
     utmTerm = typeof utm_data.utm_term === "string" ? utm_data.utm_term.slice(0, 255) : null;
     fbclid = typeof utm_data.fbclid === "string" ? utm_data.fbclid.slice(0, 500) : null;
   }
-  const demoDays = DEMO_DAYS[pianoNorm] ?? 14;
+  const demoDays = DEMO_DAYS_DEFAULT;
   const demoExpires = new Date(Date.now() + demoDays * 24 * 60 * 60 * 1e3);
   const codice = _generateCode(nomeSocieta.trim());
   let conn = null;
@@ -84197,8 +84197,8 @@ router10.post("/auth/self-register", async (req, res) => {
     const [socRes] = await conn.execute(
       `INSERT INTO societies
          (nome, citta, codice, piano, subscription_status, demo_scadenza, stato)
-       VALUES (?, ?, ?, ?, 'demo', ?, 'attiva')`,
-      [nomeSocieta.trim(), (citta ?? "").trim(), codice, pianoNorm, demoExpires]
+       VALUES (?, ?, ?, NULL, 'demo', ?, 'attiva')`,
+      [nomeSocieta.trim(), (citta ?? "").trim(), codice, demoExpires]
     );
     const societyId = socRes.insertId;
     const hash = hashPassword(password);
@@ -84237,10 +84237,10 @@ router10.post("/auth/self-register", async (req, res) => {
     pool.execute(
       `INSERT INTO demo_whatsapp_contact (user_id, user_email, user_phone, user_first_name, user_last_name, demo_plan_key, status)
        VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), pianoNorm]
+      [userId, normalizedEmail, phoneNorm, nome.trim(), cognome.trim(), "pending_step2"]
     ).catch((e) => logger.warn({ err: e?.message }, "demo-wa contact insert failed"));
-    const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail });
-    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: pianoNorm }).catch(() => {
+    const token = signJWT({ userId, societyId, role: "admin", email: normalizedEmail, societyPiano: null });
+    _superchatWebhook({ phone: phoneNorm, nome: nome.trim(), email: normalizedEmail, piano: "pending_step2" }).catch(() => {
     });
     sendWelcomeEmails({
       nome: nome.trim(),
@@ -84249,12 +84249,12 @@ router10.post("/auth/self-register", async (req, res) => {
       phone: phoneNorm,
       nomeSocieta: nomeSocieta.trim(),
       citta: (citta ?? "").trim(),
-      piano: pianoNorm,
+      piano: "demo",
       demoExpires,
       societyId
     }).catch(() => {
     });
-    logger.info({ userId, societyId, email: normalizedEmail, piano: pianoNorm }, "self-register ok");
+    logger.info({ userId, societyId, email: normalizedEmail }, "self-register ok (piano pending step2)");
     return res.status(201).json({
       token,
       user: {
@@ -84270,7 +84270,7 @@ router10.post("/auth/self-register", async (req, res) => {
         id: societyId,
         nome: nomeSocieta.trim(),
         citta: (citta ?? "").trim(),
-        piano: pianoNorm,
+        piano: null,
         codice,
         demoExpires: demoExpires.toISOString(),
         demoDays
@@ -87279,8 +87279,8 @@ router24.post("/superadmin/societies", async (req, res) => {
   }
   const VALID_PIANI2 = ["demo", "mister", "mister_pro", "societa"];
   const pianoNorm = VALID_PIANI2.includes(piano) ? piano : "demo";
-  const DEMO_DAYS2 = { mister: 14, mister_pro: 14, societa: 10, demo: 14 };
-  const demoExpires = new Date(Date.now() + (DEMO_DAYS2[pianoNorm] ?? 14) * 24 * 60 * 60 * 1e3);
+  const DEMO_DAYS = { mister: 14, mister_pro: 14, societa: 10, demo: 14 };
+  const demoExpires = new Date(Date.now() + (DEMO_DAYS[pianoNorm] ?? 14) * 24 * 60 * 60 * 1e3);
   const clean = nome.trim().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5).padEnd(3, "X");
   const codice = clean + Math.floor(Math.random() * 900 + 100);
   const normalizedEmail = adminEmail.trim().toLowerCase();
@@ -90419,8 +90419,46 @@ router32.post("/_admin/populate-grafica-url", async (req, res) => {
 });
 var admin_populate_sessioni_default = router32;
 
-// src/routes/v2/index.ts
+// src/routes/v2/select-plan.ts
+var import_express33 = __toESM(require_express2(), 1);
 var router33 = (0, import_express33.Router)();
+var VALID_PIANI = /* @__PURE__ */ new Set(["mister", "mister_pro", "societa"]);
+router33.post("/societies/select-plan", requireAuth, async (req, res) => {
+  const user = req.jwtUser;
+  const { plan } = req.body || {};
+  if (!plan || !VALID_PIANI.has(plan)) {
+    return res.status(400).json({ error: "invalid_plan" });
+  }
+  try {
+    const [r] = await pool.execute(
+      "UPDATE societies SET piano = ? WHERE id = ?",
+      [plan, user.societyId]
+    );
+    if (!r.affectedRows) {
+      return res.status(404).json({ error: "society_not_found" });
+    }
+    const token = signJWT({
+      userId: user.userId,
+      societyId: user.societyId,
+      role: user.role,
+      email: user.email,
+      societyPiano: plan
+    });
+    logger.info({ userId: user.userId, societyId: user.societyId, plan }, "society plan selected");
+    return res.json({
+      success: true,
+      token,
+      society: { id: user.societyId, piano: plan }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "select-plan error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var select_plan_default = router33;
+
+// src/routes/v2/index.ts
+var router34 = (0, import_express34.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -90604,7 +90642,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router33.use(async (_req, _res, next) => {
+router34.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -90613,7 +90651,7 @@ router33.use(async (_req, _res, next) => {
     next();
   }
 });
-router33.get("/schema-info", async (_req, res) => {
+router34.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -90631,7 +90669,7 @@ router33.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router33.get("/health/ai-key", (_req, res) => {
+router34.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -90642,7 +90680,7 @@ router33.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router33.get("/health/schema-budget", async (_req, res) => {
+router34.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -90657,47 +90695,48 @@ router33.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router33.use(auth_default2);
-router33.use(self_register_default);
-router33.use(society_default);
-router33.use(leve_default);
-router33.use(minors_default);
-router33.use(players_default);
-router33.use(users_default);
-router33.use(events_default);
-router33.use(presenze_default);
-router33.use(comunicazioni_default);
-router33.use(chat_default);
-router33.use(quote_default);
-router33.use(migrate_default);
-router33.use(stripe_default);
-router33.use(demo_wa_default);
-router33.use(superadmin_default);
-router33.use(account_default);
-router33.use(notification_preferences_default);
-router33.use(allenamenti_default);
-router33.use(ai_allenamenti_default);
-router33.use(ai_tornei_default);
-router33.use(utm_stats_default);
-router33.use(admin_reset_demo_default);
-router33.use(admin_populate_sessioni_default);
-var v2_default = router33;
+router34.use(auth_default2);
+router34.use(self_register_default);
+router34.use(society_default);
+router34.use(leve_default);
+router34.use(minors_default);
+router34.use(players_default);
+router34.use(users_default);
+router34.use(events_default);
+router34.use(presenze_default);
+router34.use(comunicazioni_default);
+router34.use(chat_default);
+router34.use(quote_default);
+router34.use(migrate_default);
+router34.use(stripe_default);
+router34.use(demo_wa_default);
+router34.use(superadmin_default);
+router34.use(account_default);
+router34.use(notification_preferences_default);
+router34.use(allenamenti_default);
+router34.use(ai_allenamenti_default);
+router34.use(ai_tornei_default);
+router34.use(utm_stats_default);
+router34.use(admin_reset_demo_default);
+router34.use(admin_populate_sessioni_default);
+router34.use(select_plan_default);
+var v2_default = router34;
 
 // src/routes/index.ts
-var router34 = (0, import_express34.Router)();
-router34.use(health_default);
-router34.use(login_default);
-router34.use(auth_default);
-router34.use(state_default);
-router34.use(assist_default);
-router34.use(push_default);
-router34.use(upload_default);
-router34.use(public_default);
-router34.use("/v2", v2_default);
-var routes_default = router34;
+var router35 = (0, import_express35.Router)();
+router35.use(health_default);
+router35.use(login_default);
+router35.use(auth_default);
+router35.use(state_default);
+router35.use(assist_default);
+router35.use(push_default);
+router35.use(upload_default);
+router35.use(public_default);
+router35.use("/v2", v2_default);
+var routes_default = router35;
 
 // src/app.ts
-var app = (0, import_express35.default)();
+var app = (0, import_express36.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -90718,17 +90757,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express35.default.json({
+app.use(import_express36.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express35.default.urlencoded({ extended: true }));
+app.use(import_express36.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express35.default.static(staticDir));
+  app.use(import_express36.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });
