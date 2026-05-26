@@ -173,10 +173,36 @@ router.post("/auth/guardian-register", async (req, res) => {
   const upperCode = code.trim().toUpperCase();
 
   try {
-    const [socRows] = (await pool.execute(
+    // 1) Cerca codice in societies MySQL (caso standard)
+    let [socRows] = (await pool.execute(
       "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
       [upperCode]
     )) as [any[], any];
+    // 2) Fallback: il codice potrebbe essere nel blob legacy `society_state.state_json.codiceSocieta`.
+    //    Es.: Test MisterPro su MySQL ha codice 'TESTM293' ma l'admin ha cambiato a 'TEST3' solo nel blob.
+    //    Cerco nei blob e mappo a societyId via la chiave `fieldos_state_soc_<id>`.
+    if (!socRows.length) {
+      const [blobRows] = (await pool.execute(
+        `SELECT \`key\`, state_json FROM society_state
+         WHERE (\`key\` LIKE 'fieldos_state_soc_%' OR \`key\` = 'fieldos_state_v1')
+           AND \`key\` NOT LIKE 'fieldos_demo%'`
+      )) as [any[], any];
+      for (const row of blobRows) {
+        let state: any;
+        try { state = JSON.parse(row.state_json as string); } catch { continue; }
+        const rowCode = String(state?.codiceSocieta || "").trim().toUpperCase();
+        if (!rowCode || rowCode !== upperCode) continue;
+        const m = String(row.key).match(/fieldos_state_soc_(\d+)$/);
+        const blobSocId = m ? parseInt(m[1], 10) : 0;
+        if (!blobSocId) continue;
+        // Verifica che la società esista in MySQL e sia attiva (società senza riga MySQL non supportate qui)
+        const [check] = (await pool.execute(
+          "SELECT id, nome FROM societies WHERE id = ? AND stato = 'attiva' LIMIT 1",
+          [blobSocId]
+        )) as [any[], any];
+        if (check.length) { socRows = check; break; }
+      }
+    }
     if (!socRows.length) return res.status(400).json({ error: "invalid_code" });
     const society = socRows[0];
 

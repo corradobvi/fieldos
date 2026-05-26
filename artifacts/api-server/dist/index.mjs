@@ -83821,10 +83821,38 @@ router9.post("/auth/guardian-register", async (req, res) => {
   const normalizedEmail = email.trim().toLowerCase();
   const upperCode = code.trim().toUpperCase();
   try {
-    const [socRows] = await pool.execute(
+    let [socRows] = await pool.execute(
       "SELECT id, nome FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
       [upperCode]
     );
+    if (!socRows.length) {
+      const [blobRows] = await pool.execute(
+        `SELECT \`key\`, state_json FROM society_state
+         WHERE (\`key\` LIKE 'fieldos_state_soc_%' OR \`key\` = 'fieldos_state_v1')
+           AND \`key\` NOT LIKE 'fieldos_demo%'`
+      );
+      for (const row of blobRows) {
+        let state;
+        try {
+          state = JSON.parse(row.state_json);
+        } catch {
+          continue;
+        }
+        const rowCode = String(state?.codiceSocieta || "").trim().toUpperCase();
+        if (!rowCode || rowCode !== upperCode) continue;
+        const m = String(row.key).match(/fieldos_state_soc_(\d+)$/);
+        const blobSocId = m ? parseInt(m[1], 10) : 0;
+        if (!blobSocId) continue;
+        const [check] = await pool.execute(
+          "SELECT id, nome FROM societies WHERE id = ? AND stato = 'attiva' LIMIT 1",
+          [blobSocId]
+        );
+        if (check.length) {
+          socRows = check;
+          break;
+        }
+      }
+    }
     if (!socRows.length) return res.status(400).json({ error: "invalid_code" });
     const society = socRows[0];
     const [dup] = await pool.execute(
