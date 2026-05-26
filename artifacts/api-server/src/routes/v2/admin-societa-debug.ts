@@ -46,10 +46,20 @@ router.get("/superadmin/_diag/societa-debug", async (req, res) => {
       owners = r;
     }
 
+    // Audit log per le società rilevanti
+    const [audit] = await pool.execute(
+      `SELECT id, action, target_society_id, performed_by, reason, metadata, created_at
+       FROM sa_audit_log
+       WHERE target_society_id IN (49, 50, 40)
+       ORDER BY created_at DESC
+       LIMIT 50`
+    ) as [any[], any];
+
     return res.json({
       usd_angelo_baiardo: usd,
       societies_comparison: test,
       owners,
+      audit_log_recent: audit,
     });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message ?? "server_error" });
