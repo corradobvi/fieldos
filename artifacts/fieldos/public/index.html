@@ -14183,14 +14183,21 @@ function renderAllenamenti() {
 
   if (isGenitore) _allSt.tab = 'lista';
 
+  const _mobileMister = !isGenitore && _isMobileAllenView();
+  if (_mobileMister) _allSt.tab = 'lista';
+
   c.innerHTML = `
-    ${!isGenitore ? `<div class="all-tabs">
+    ${(!isGenitore && !_mobileMister) ? `<div class="all-tabs">
       <button class="all-tab ${_allSt.tab==='lista'?'on':''}" onclick="switchAllTab('lista')">Allenamenti</button>
       <button class="all-tab ${_allSt.tab==='libreria'?'on':''}" onclick="switchAllTab('libreria')">Libreria Sessioni</button>
     </div>` : ''}
     <div id="allTabContent"></div>`;
 
   _renderAllTabContent();
+}
+
+function _isMobileAllenView() {
+  return typeof window !== 'undefined' && window.innerWidth <= 768;
 }
 
 function switchAllTab(tab) {
@@ -14210,6 +14217,12 @@ function _renderAllTabContent() {
 
 function _renderAllLista(cont) {
   const isGenitore = me && (me.role === 'genitore' || me.role === 'nonno');
+  // Dispatch mobile mister: vista unica nuova
+  if (!isGenitore && _isMobileAllenView()) {
+    return _renderAllListaMobile(cont);
+  }
+  // Reset mobile flag se torno alla vista desktop
+  _allSt.cal.mobileMode = false;
   const act = document.getElementById('allenamentiActions');
   const canEdit = !isGenitore && (isAdminLike() || hasPerm('modifica_piano_allenamento'));
 
@@ -14452,6 +14465,7 @@ async function _allCalLoadBozze() {
 }
 
 function _allCalRender() {
+  if (_allSt.cal.mobileMode) { _allCalRenderMobile(); return; }
   const gridEl    = document.getElementById('allCalGrid');
   const bozzeEl   = document.getElementById('allCalBozze');
   const statsEl   = document.getElementById('allCalStats');
@@ -15052,6 +15066,256 @@ function _canUseAI() {
   if (piano === 'mister' && currentSocietyMeta?.billingMode !== 'omaggio') return false;
   return _allSt._aiAbilitato;
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// MOBILE Allenamenti — vista unica per ruolo mister (mobile-first redesign)
+// ══════════════════════════════════════════════════════════════════════════
+
+function _renderAllListaMobile(cont) {
+  const act = document.getElementById('allenamentiActions');
+  if (act) act.innerHTML = '';
+  const canEdit = isAdminLike() || hasPerm('modifica_piano_allenamento');
+
+  if (!_allSt.cal.leva) _allSt.cal.leva = currentLeva;
+  _allSt.cal.viewMode = 'week';
+  _allSt.cal.mobileMode = true;
+  if (!_allSt.cal.weekStart) {
+    const _td = new Date(); const _dw = _td.getDay(); const _di = _dw===0?-6:1-_dw;
+    const _mn = new Date(_td); _mn.setDate(_mn.getDate()+_di);
+    _allSt.cal.weekStart = _mn.toISOString().slice(0,10);
+  }
+  if (typeof _allSt.cal.mobileSelDay === 'undefined') _allSt.cal.mobileSelDay = null;
+
+  const leva = _allSt.cal.leva || currentLeva;
+  const levaPretty = _ALL_LEVA_IT[leva] || '';
+  const subLbl = levaPretty && levaPretty !== leva ? (leva + ' — ' + levaPretty) : leva;
+
+  cont.innerHTML = `
+    <div class="allM-wrap">
+      <div class="allM-titlebar">
+        <div class="allM-title-block">
+          <div class="allM-title-main">🏃 Allenamenti</div>
+          <div class="allM-title-sub">${escapeHtml(subLbl)}</div>
+        </div>
+        ${canEdit ? `<button class="allM-newbtn" onclick="_openNuovoAllenamento()">+ Nuovo</button>` : ''}
+      </div>
+      <div id="allMNext"></div>
+      <div id="allMStats"></div>
+      <div class="allM-weeknav">
+        <button class="allM-weeknav-btn" aria-label="Settimana precedente" onclick="_allMWeekChange(-1)">◀</button>
+        <div class="allM-weeknav-label" id="allMWeekLbl">${_allWeekLabel()}</div>
+        <button class="allM-weeknav-btn" aria-label="Settimana successiva" onclick="_allMWeekChange(1)">▶</button>
+      </div>
+      <div class="allM-cal" id="allMCal"></div>
+      <div id="allMList"></div>
+      <div class="allM-links">
+        <div class="allM-link" onclick="_allMOpenLibreria()">
+          <span class="allM-link-l"><span>📚</span><span>Libreria sessioni</span></span>
+          <span class="allM-link-arrow">▶</span>
+        </div>
+        <div class="allM-link" onclick="_allMOpenBozze()">
+          <span class="allM-link-l"><span>📝</span><span>Allenamenti in bozza</span><span id="allMBozzeCount" class="allM-link-count" style="display:none;"></span></span>
+          <span class="allM-link-arrow">▶</span>
+        </div>
+      </div>
+    </div>
+    <div id="allCalGrid" style="display:none;"></div>
+    <div id="allCalBozze" style="display:none;"></div>
+  `;
+
+  _allCalLoadEvents();
+  _allCalLoadBozze();
+}
+
+function _allCalRenderMobile() {
+  const events = _allSt.cal.events || [];
+  _allMRenderNext(events);
+  _allMRenderStats(events);
+  _allMRenderMiniCal(events);
+  _allMRenderList(events);
+  const lbl = document.getElementById('allMWeekLbl');
+  if (lbl) lbl.textContent = _allWeekLabel();
+}
+
+function _allMRenderNext(events) {
+  const box = document.getElementById('allMNext');
+  if (!box) return;
+  const todayStr = new Date().toISOString().slice(0,10);
+  const future = (events||[])
+    .filter(ev => ev.allenamento_id && (ev.data||'').slice(0,10) >= todayStr)
+    .sort((a,b) => {
+      const dCmp = (a.data||'').slice(0,10).localeCompare((b.data||'').slice(0,10));
+      if (dCmp !== 0) return dCmp;
+      return (a.ora_inizio||'').localeCompare(b.ora_inizio||'');
+    });
+  const next = future[0];
+  const canEdit = isAdminLike() || hasPerm('modifica_piano_allenamento');
+  if (!next) {
+    box.innerHTML = `<div class="allM-next allM-next-empty"${canEdit?' onclick="_openNuovoAllenamento()"':''}>
+      <div class="allM-next-label">Prossimo allenamento</div>
+      <div class="allM-next-title">${canEdit ? 'Nessun allenamento in programma' : 'Nessun allenamento questa settimana'}</div>
+      <div style="font-size:.8rem;color:#6B7280;margin-top:4px;">${canEdit ? 'Tap qui per creare il primo' : ''}</div>
+    </div>`;
+    return;
+  }
+  const ds = (next.data||'').slice(0,10);
+  const d = new Date(ds + 'T00:00:00');
+  const giorni = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const dataLbl = giorni[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1);
+  const st = (next.ora_inizio||'').slice(0,5);
+  const et = (next.ora_fine||'').slice(0,5);
+  const orario = st ? (st + (et?'–'+et:'')) : '';
+  const titolo = next.allenamento_titolo ? escapeHtml(next.allenamento_titolo) : 'Allenamento';
+  const chips = [];
+  const luogo = next.luogo || next.campo_nome || '';
+  if (luogo) chips.push('📍 ' + escapeHtml(luogo));
+  const durata = next.allenamento_durata_totale_minuti || 0;
+  const nSess  = next.allenamento_num_sessioni || 0;
+  if (durata) chips.push('⏱ ' + durata + ' min');
+  if (nSess)  chips.push('👥 ' + nSess + ' sess.');
+  box.innerHTML = `<div class="allM-next" onclick="_openAllenamentiDetail('${next.allenamento_id}')">
+    <div class="allM-next-label">Prossimo allenamento</div>
+    <div class="allM-next-title">${titolo}</div>
+    <div class="allM-next-dt">${dataLbl}${orario ? ' · ' + orario : ''}</div>
+    ${chips.length ? `<div class="allM-next-chips">${chips.map(c => `<span class="allM-next-chip">${c}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function _allMRenderStats(events) {
+  const box = document.getElementById('allMStats');
+  if (!box) return;
+  const evs = events || [];
+  const total = evs.length;
+  const creati = evs.filter(ev => !!ev.allenamento_id).length;
+  const durataTot = evs.reduce((s,ev) => s + (ev.allenamento_id ? (ev.allenamento_durata_totale_minuti||0) : 0), 0);
+  const ore = Math.floor(durataTot/60), min = durataTot%60;
+  const durStr = ore>0 ? ore+'h'+(min>0?' '+min+'m':'') : (min>0?min+'m':'0m');
+  box.innerHTML = `<div class="allM-stats">
+    <div class="allM-stat-col"><div class="allM-stat-num">${total}</div><div class="allM-stat-lbl">Programmati</div></div>
+    <div class="allM-stat-col"><div class="allM-stat-num">${creati}</div><div class="allM-stat-lbl">Creati</div></div>
+    <div class="allM-stat-col"><div class="allM-stat-num">${durStr}</div><div class="allM-stat-lbl">Durata totale</div></div>
+  </div>`;
+}
+
+function _allMRenderMiniCal(events) {
+  const box = document.getElementById('allMCal');
+  if (!box) return;
+  const ws = _allSt.cal.weekStart;
+  if (!ws) { box.innerHTML = ''; return; }
+  const todayStr = new Date().toISOString().slice(0,10);
+  const byDate = {};
+  (events||[]).forEach(ev => {
+    if (!ev.allenamento_id) return;
+    const d = (ev.data||'').slice(0,10);
+    if (d) { byDate[d] = (byDate[d]||0) + 1; }
+  });
+  const lbls = ['LUN','MAR','MER','GIO','VEN','SAB','DOM'];
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const dt = new Date(ws + 'T00:00:00'); dt.setDate(dt.getDate() + i);
+    const ymd = dt.toISOString().slice(0,10);
+    const isToday = ymd === todayStr;
+    const isSel = _allSt.cal.mobileSelDay === ymd;
+    const hasEvents = (byDate[ymd]||0) > 0;
+    const cls = 'allM-cal-day' + (isSel?' on':'') + (isToday?' today':'');
+    html += `<div class="${cls}" onclick="_allMSelectDay('${ymd}')">
+      <div class="allM-cal-day-lbl">${lbls[i]}</div>
+      <div class="allM-cal-day-num">${dt.getDate()}</div>
+      <div class="allM-cal-day-dot${hasEvents?'':' empty'}"></div>
+    </div>`;
+  }
+  box.innerHTML = html;
+}
+
+function _allMSelectDay(ymd) {
+  if (_allSt.cal.mobileSelDay === ymd) _allSt.cal.mobileSelDay = null;
+  else _allSt.cal.mobileSelDay = ymd;
+  _allMRenderMiniCal(_allSt.cal.events||[]);
+  _allMRenderList(_allSt.cal.events||[]);
+}
+
+function _allMRenderList(events) {
+  const box = document.getElementById('allMList');
+  if (!box) return;
+  const sel = _allSt.cal.mobileSelDay;
+  let items = (events||[]).filter(ev => !!ev.allenamento_id);
+  if (sel) items = items.filter(ev => (ev.data||'').slice(0,10) === sel);
+  items.sort((a,b) => {
+    const da=(a.data||'').slice(0,10), db=(b.data||'').slice(0,10);
+    if (da !== db) return da.localeCompare(db);
+    return (a.ora_inizio||'').localeCompare(b.ora_inizio||'');
+  });
+  if (!items.length) {
+    const lbl = sel ? 'Nessun allenamento in questo giorno' : 'Nessun allenamento in questa settimana';
+    box.innerHTML = `<div class="allM-empty">${lbl}</div>`;
+    return;
+  }
+  const lblsBadge = ['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+  let html = '<div class="allM-list">';
+  items.forEach(ev => {
+    const ds = (ev.data||'').slice(0,10);
+    const d = new Date(ds+'T00:00:00');
+    const giornoBadge = lblsBadge[d.getDay()] + ' ' + d.getDate();
+    const titolo = ev.allenamento_titolo ? escapeHtml(ev.allenamento_titolo) : 'Allenamento';
+    const st = (ev.ora_inizio||'').slice(0,5);
+    const et = (ev.ora_fine||'').slice(0,5);
+    const orario = st ? (st + (et?'–'+et:'')) : '';
+    const luogo = ev.luogo || ev.campo_nome || '';
+    const nSess = ev.allenamento_num_sessioni || 0;
+    const metaParts = [];
+    if (orario) metaParts.push(orario);
+    if (luogo)  metaParts.push(escapeHtml(luogo));
+    if (nSess)  metaParts.push(nSess + ' sess.');
+    html += `<div class="allM-card" onclick="_openAllenamentiDetail('${ev.allenamento_id}')">
+      <div class="allM-card-row">
+        <div class="allM-card-title">${titolo}</div>
+        <span class="allM-card-badge">${giornoBadge}</span>
+      </div>
+      <div class="allM-card-meta">${metaParts.join(' · ')}</div>
+    </div>`;
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function _allMWeekChange(dir) {
+  _allCalChangeWeek(dir);
+}
+
+function _allMOpenLibreria() {
+  const cont = document.getElementById('mAllMLibContent');
+  if (cont) _renderLibreria(cont);
+  openM('mAllMLib');
+}
+
+function _allMOpenBozze() {
+  const cont = document.getElementById('mAllMBozzeContent');
+  if (cont) _allCalRenderBozze(cont);
+  openM('mAllMBozze');
+}
+
+// Aggancia hook a _allCalLoadBozze per aggiornare counter in mobile
+(function(){
+  const _orig = _allCalLoadBozze;
+  window._allCalLoadBozze = async function() {
+    await _orig.apply(this, arguments);
+    if (_allSt.cal.mobileMode) {
+      const el = document.getElementById('allMBozzeCount');
+      const n = (_allSt.cal.bozze||[]).length;
+      if (el) {
+        if (n > 0) { el.textContent = String(n); el.style.display = ''; }
+        else { el.style.display = 'none'; el.textContent = ''; }
+      }
+      // se il modale bozze è aperto, ri-render
+      const bozzeModal = document.getElementById('mAllMBozze');
+      const isOpen = bozzeModal && bozzeModal.classList.contains('on');
+      if (isOpen) {
+        const cont = document.getElementById('mAllMBozzeContent');
+        if (cont) _allCalRenderBozze(cont);
+      }
+    }
+  };
+})();
 
 // ══════════════════════════════════════════════════════════════════════════
 // COSTRUTTORE ALLENAMENTO (fullscreen modal)
@@ -26203,6 +26467,61 @@ async function doRejoinSocieta() {
   .all-fs-grid{display:flex;flex-direction:column;gap:0;max-width:none;}
   .all-fs-mob-divider{display:block;}
 }
+
+/* ═══ MOBILE Allenamenti (vista unica per ruolo mister) ═══ */
+.allM-wrap{padding:0;}
+.allM-titlebar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.allM-title-block{flex:1;min-width:0;}
+.allM-title-main{font-family:'Nunito',sans-serif;font-size:1.18rem;font-weight:500;color:#1F2937;line-height:1.2;}
+.allM-title-sub{font-size:.78rem;color:#6B7280;font-weight:500;margin-top:2px;}
+.allM-newbtn{background:#1A7A4A;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:'Nunito',sans-serif;font-weight:500;font-size:.85rem;cursor:pointer;white-space:nowrap;line-height:1.1;min-height:36px;}
+.allM-newbtn:active{background:#0F6E56;}
+.allM-next{background:linear-gradient(135deg,#0F6E56,#1A7A4A);color:#fff;border-radius:16px;padding:14px 16px;margin-bottom:12px;cursor:pointer;}
+.allM-next-label{font-size:.65rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.78);margin-bottom:4px;}
+.allM-next-title{font-size:1.05rem;font-weight:500;line-height:1.25;margin-bottom:6px;}
+.allM-next-dt{font-size:.85rem;font-weight:400;color:rgba(255,255,255,.92);margin-bottom:10px;}
+.allM-next-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.allM-next-chip{font-size:.72rem;font-weight:500;background:rgba(255,255,255,.18);color:#fff;padding:3px 8px;border-radius:10px;line-height:1.4;}
+.allM-next-empty{background:#F3F4F6;color:#1F2937;border-radius:16px;padding:18px 16px;margin-bottom:12px;text-align:center;cursor:pointer;}
+.allM-next-empty .allM-next-label{color:#6B7280;}
+.allM-next-empty .allM-next-title{color:#1F2937;}
+.allM-stats{display:grid;grid-template-columns:repeat(3,1fr);background:#F3F4F6;border-radius:12px;padding:12px 4px;margin-bottom:14px;}
+.allM-stat-col{text-align:center;padding:0 4px;position:relative;min-width:0;}
+.allM-stat-col+.allM-stat-col::before{content:"";position:absolute;left:0;top:14%;bottom:14%;width:1px;background:#E5E7EB;}
+.allM-stat-num{font-family:'Nunito',sans-serif;font-size:1.22rem;font-weight:500;color:#1F2937;line-height:1.1;}
+.allM-stat-lbl{font-size:.66rem;color:#6B7280;font-weight:500;margin-top:3px;letter-spacing:.02em;}
+.allM-weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;padding:0 2px;}
+.allM-weeknav-btn{background:#fff;border:1px solid #E5E7EB;border-radius:8px;width:44px;height:36px;cursor:pointer;font-size:.85rem;color:#1F2937;display:flex;align-items:center;justify-content:center;}
+.allM-weeknav-btn:active{background:#F3F4F6;}
+.allM-weeknav-label{font-size:.82rem;font-weight:500;color:#1F2937;flex:1;text-align:center;}
+.allM-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px;}
+.allM-cal-day{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:6px 0 5px;text-align:center;cursor:pointer;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:background .15s,border-color .15s;}
+.allM-cal-day.on{background:#E8F3EE;border-color:#1A7A4A;}
+.allM-cal-day.today{border-color:#1A7A4A;}
+.allM-cal-day-lbl{font-size:.6rem;font-weight:500;color:#6B7280;letter-spacing:.04em;text-transform:uppercase;line-height:1;}
+.allM-cal-day-num{font-size:.95rem;font-weight:500;color:#1F2937;line-height:1;}
+.allM-cal-day.on .allM-cal-day-num{color:#0F6E56;}
+.allM-cal-day-dot{width:5px;height:5px;border-radius:50%;background:#1A7A4A;margin-top:2px;}
+.allM-cal-day-dot.empty{background:transparent;}
+.allM-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+.allM-card{background:#fff;border:1px solid #E5E7EB;border-left:4px solid #1A7A4A;border-radius:12px;padding:11px 13px;cursor:pointer;transition:border-color .15s;}
+.allM-card:active{border-color:#0F6E56;}
+.allM-card-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.allM-card-title{font-family:'Nunito',sans-serif;font-size:.94rem;font-weight:500;color:#1F2937;line-height:1.25;flex:1;min-width:0;}
+.allM-card-badge{font-size:.65rem;font-weight:500;background:#E8F3EE;color:#0F6E56;padding:3px 8px;border-radius:8px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;}
+.allM-card-meta{font-size:.74rem;color:#6B7280;font-weight:400;margin-top:5px;line-height:1.45;}
+.allM-empty{text-align:center;padding:28px 18px;color:#6B7280;font-size:.85rem;font-weight:400;background:#F9FAFB;border:1px dashed #E5E7EB;border-radius:12px;margin-bottom:18px;}
+.allM-links{border-top:1px solid #E5E7EB;padding-top:4px;}
+.allM-link{display:flex;align-items:center;justify-content:space-between;padding:14px 4px;border-bottom:1px solid #E5E7EB;font-size:.92rem;font-weight:500;color:#1A7A4A;cursor:pointer;min-height:48px;}
+.allM-link:last-child{border-bottom:none;}
+.allM-link:active{background:#F9FAFB;}
+.allM-link-l{display:flex;align-items:center;gap:8px;}
+.allM-link-arrow{color:#9CA3AF;font-size:.85rem;}
+.allM-link-count{background:#F3F4F6;color:#1F2937;font-size:.7rem;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px;}
+@media(min-width:375px) and (max-width:380px){
+  .allM-cal-day-num{font-size:.9rem;}
+  .allM-cal-day-lbl{font-size:.58rem;}
+}
 </style>
 
 <div id="saPanel" style="display:none;">
@@ -27196,6 +27515,22 @@ document.addEventListener('DOMContentLoaded', () => {
         <button class="btn btn-g btn-sm" onclick="closeM('mSessionePrev')">Chiudi</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ─── MOBILE Allenamenti: modale Libreria sessioni ─── -->
+<div class="ov" id="mAllMLib">
+  <div class="modal" style="max-width:720px;">
+    <div class="m-head"><div class="mt">📚 Libreria sessioni</div><button class="mx" onclick="closeM('mAllMLib')">✕</button></div>
+    <div class="m-body" id="mAllMLibContent" style="max-height:75vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ─── MOBILE Allenamenti: modale Bozze ─── -->
+<div class="ov" id="mAllMBozze">
+  <div class="modal" style="max-width:720px;">
+    <div class="m-head"><div class="mt">📝 Allenamenti in bozza</div><button class="mx" onclick="closeM('mAllMBozze')">✕</button></div>
+    <div class="m-body" id="mAllMBozzeContent" style="max-height:75vh;overflow-y:auto;"></div>
   </div>
 </div>
 
