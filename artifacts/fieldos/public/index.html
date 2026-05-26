@@ -19744,7 +19744,7 @@ function savePtRisultato() {
   match.golCasa = gc; match.golOspiti = go; match.played = true;
   // Read stats — merge with existing entry to preserve legacy fields (titolare/minuti/gialli/rossi)
   const stats = [];
-  document.querySelectorAll('#ptRisStatsList .ris-player-row').forEach(row => {
+  document.querySelectorAll('#ptRisStatsList .rprow:not(.rprow-hd)').forEach(row => {
     const inputs = row.querySelectorAll('input[data-pid]');
     if (!inputs.length) return;
     const pid = parseInt(inputs[0].dataset.pid);
