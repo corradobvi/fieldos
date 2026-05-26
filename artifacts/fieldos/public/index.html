@@ -11828,8 +11828,12 @@ async function submitSelfReg(){
   }
   if (errEl) errEl.style.display='none';
 
-  const _activeCode = codiceSocieta || _srVerifiedCode;
+  // Codice società: prova prima _srVerifiedCode (impostato da loginConCodice/srNextStep1),
+  // poi l'input field, poi il global codiceSocieta del blob caricato.
+  const _srCodInput = (document.getElementById('srCodice')?.value || '').trim().toUpperCase();
+  const _activeCode = (_srVerifiedCode || _srCodInput || codiceSocieta || '').toString().trim().toUpperCase();
   if (!_activeCode) { _err('⛔ Registrazione disattivata per questa società.'); return; }
+  console.log('[submitSelfReg] using code:', _activeCode);
   if (_selfRegSelectedIds.length === 0) { _err('⚠️ Nessun figlio/a selezionato. Torna indietro e selezionane almeno uno.'); return; }
 
   const nome  = (document.getElementById('srNome').value  || '').trim();
