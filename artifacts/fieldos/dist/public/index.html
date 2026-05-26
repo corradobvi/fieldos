@@ -14306,8 +14306,8 @@ function _renderAllLista(cont) {
   if (act) act.innerHTML = canEdit
     ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
          <button class="btn btn-p btn-sm" onclick="_openNuovoAllenamento()">+ Nuovo allenamento</button>
-         ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Genera con AI</button>` : ''}
-         ${ALL_AI_ENABLED ? `<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()" ${!_canUseAI()?'disabled title="Funzionalità disponibile con AI abilitata"':''}>✨ Spunto rapido</button>` : ''}
+         <button class="btn btn-sm" style="border:1px solid var(--cp);color:var(--cp);background:none;" onclick="_openAiAllenaCompleto()">✨ Genera con AI</button>
+         <button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiSpuntoRapido()">✨ Spunto rapido</button>
          ${ALL_AI_ENABLED&&isAdminLike()&&(['societa','mister_pro'].includes(pianoNorm((currentSocietyMeta&&currentSocietyMeta.piano)||'mister'))||currentSocietyMeta?.billingMode==='omaggio')?`<button class="btn btn-sm" style="border:1px solid var(--border2);color:var(--text);background:none;" onclick="_openAiAllowlist()">⚙️ AI</button>`:''}
        </div>` : '';
 
@@ -15686,7 +15686,7 @@ function _renderPickHome() {
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'personale\')"><div class="pick-ic">📚</div><div><div style="font-weight:800;">Dalla mia libreria</div><div style="font-size:.8rem;color:var(--text2);">Scegli una delle tue sessioni salvate</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickFromLibreria(\'community\')"><div class="pick-ic">🌍</div><div><div style="font-weight:800;">Dalla community</div><div style="font-size:.8rem;color:var(--text2);">Sfoglia le sessioni condivise da altri mister</div></div></div>'
     + '<div class="all-pick-card" onclick="_pickScrivi()"><div class="pick-ic">✏️</div><div><div style="font-weight:800;">Scrivi a mano</div><div style="font-size:.8rem;color:var(--text2);">Crea una sessione personalizzata</div></div></div>'
-    + (ALL_AI_ENABLED ? '<div class="all-pick-card" onclick="_pickAI()"><div class="pick-ic">✨</div><div><div style="font-weight:800;">Genera con AI</div><div style="font-size:.8rem;color:var(--text2);">L\'AI propone una sessione personalizzata</div></div></div>' : '')
+    + '<div class="all-pick-card" onclick="_pickAI()"><div class="pick-ic">✨</div><div><div style="font-weight:800;">Genera con AI</div><div style="font-size:.8rem;color:var(--text2);">L\'AI propone una sessione personalizzata</div></div></div>'
     + '</div>';
 }
 
