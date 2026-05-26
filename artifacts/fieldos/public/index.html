@@ -11769,43 +11769,42 @@ function renderSrRoster(){
 
   while (host.firstChild) host.removeChild(host.firstChild);
 
-  // API players (GDPR flow — from server)
-  let apiList = _srApiPlayers.slice();
-  if (q) apiList = apiList.filter(p => (p.firstName + ' ' + p.lastNameInitial).toLowerCase().includes(q) || (p.levaKey||'').toLowerCase().includes(q));
+  // Lista UNIFICATA con dedup: per ogni id MySQL preferisci API player (id `api_X`).
+  // Senza dedup, lo stesso giocatore appare 2 volte: il genitore sceglie da blob (id numerico)
+  // e submitSelfReg non chiama il claim → guardian mai creato → resta in 'Attesa genitore'.
+  const apiByMyId = new Map(_srApiPlayers.map(p => [p.id, p]));
+  let list = [];
+  _srApiPlayers.forEach(p => list.push({
+    displayId:   'api_' + p.id,
+    displayName: p.firstName + ' ' + p.lastNameInitial,
+    displaySub:  [p.levaKey || null, p.shirtNumber ? '#'+p.shirtNumber : null].filter(Boolean).join(' · '),
+    isApi:       true,
+    sortKey:     (p.levaKey || '') + '|' + ((p.firstName||'') + (p.lastNameInitial||''))
+  }));
+  players.forEach(p => {
+    if (apiByMyId.has(p.id)) return; // dedup: già in API list
+    list.push({
+      displayId:   p.id,
+      displayName: (p.nome || '') + ' ' + (p.cogn || p.cogn_iniziale || ''),
+      displaySub:  [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · '),
+      isApi:       false,
+      sortKey:     (p.leva || '') + '|' + ((p.cogn || '') + (p.nome || ''))
+    });
+  });
+  if (q) list = list.filter(it => it.displayName.toLowerCase().includes(q) || it.displaySub.toLowerCase().includes(q));
+  list.sort((a,b) => a.sortKey.localeCompare(b.sortKey));
 
-  // In-memory players (legacy — same device only)
-  let memList = players.slice();
-  if (q) memList = memList.filter(p => (p.nome+' '+p.cogn).toLowerCase().includes(q) || (p.leva||'').toLowerCase().includes(q));
-  memList.sort((a,b) => (a.leva||'').localeCompare(b.leva||'') || ((a.cogn||'')+(a.nome||'')).localeCompare((b.cogn||'')+(b.nome||'')));
-
-  if (!apiList.length && !memList.length) {
+  if (!list.length) {
     const msg = document.createElement('div');
     msg.style.cssText = 'font-size:.78rem;color:#94a3b8;padding:16px;text-align:center;line-height:1.5;';
     msg.textContent = 'Nessun giocatore trovato. Chiedi alla società di aggiungere tuo figlio in rosa.';
     host.appendChild(msg);
   } else {
-    if (apiList.length) {
-      const hdr = document.createElement('div');
-      hdr.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:4px 2px;';
-      hdr.textContent = '👶 Giocatori con profilo GDPR';
-      host.appendChild(hdr);
-      apiList.forEach(function(p) {
-        const displayId = 'api_' + p.id;
-        const displayName = p.firstName + ' ' + p.lastNameInitial;
-        const displaySub = [p.levaKey || null, p.shirtNumber ? '#'+p.shirtNumber : null].filter(Boolean).join(' · ');
-        host.appendChild(_srMakeRosterCard(displayId, displayName, displaySub, true));
-      });
-    }
-    if (memList.length) {
-      const hdr = document.createElement('div');
-      hdr.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:4px 2px;margin-top:' + (apiList.length ? '10px' : '0');
-      hdr.textContent = '👤 Giocatori in rosa';
-      host.appendChild(hdr);
-      memList.forEach(function(p) {
-        const displaySub = [p.leva || null, p.num ? '#'+p.num : null, p.ruolo || null].filter(Boolean).join(' · ');
-        host.appendChild(_srMakeRosterCard(p.id, p.nome + ' ' + p.cogn, displaySub, false));
-      });
-    }
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:4px 2px;';
+    hdr.textContent = '👶 Giocatori in rosa';
+    host.appendChild(hdr);
+    list.forEach(it => host.appendChild(_srMakeRosterCard(it.displayId, it.displayName, it.displaySub, it.isApi)));
   }
 
   const infoEl = document.getElementById('srSelectedInfo');
