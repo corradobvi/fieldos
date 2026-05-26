@@ -84979,9 +84979,9 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
       [userId, playerId]
     ).catch(() => {
     });
-    if (isFirstClaim) {
-      getUsersForPush(societyId, { leva: player.leva }).then(async (ids) => {
-        if (!ids.length) return;
+    try {
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva });
+      if (targetIds && targetIds.length) {
         let guardianFullName = "";
         try {
           const [u] = await pool.execute(
@@ -84992,19 +84992,22 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
         } catch {
         }
         const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}`.trim();
-        addNotificaToBlob(societyId, ids, {
+        addNotificaToBlob(societyId, targetIds, {
           type: "nuovo_genitore",
           title: `\u2705 Nuovo genitore: ${guardianFullName || "genitore"}`,
           body: `Figli: ${childFullName}`
         }).catch(() => {
         });
-        return sendPushToUsers(ids, societyKeyFor(societyId), {
-          title: "\u{1F4E5} Iscrizione famiglia da approvare",
-          body: `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}: nuovo genitore registrato. Approva dalla Rosa.`,
-          tag: `player-pending-${playerId}`
-        });
-      }).catch(() => {
-      });
+        if (isFirstClaim) {
+          sendPushToUsers(targetIds, societyKeyFor(societyId), {
+            title: "\u{1F4E5} Iscrizione famiglia da approvare",
+            body: `${childFullName}: nuovo genitore registrato. Approva dalla Rosa.`,
+            tag: `player-pending-${playerId}`
+          }).catch(() => {
+          });
+        }
+      }
+    } catch (_) {
     }
     await syncPlayerFromMysqlToBlob(societyId, playerId);
     return res.json({

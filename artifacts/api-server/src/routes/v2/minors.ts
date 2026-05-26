@@ -222,39 +222,36 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
       [userId, playerId]
     ).catch(() => {});
 
-    // Push staff: al primo claim, notifica "iscrizione famiglia da approvare"
-    if (isFirstClaim) {
-      getUsersForPush(societyId, { leva: player.leva })
-        .then(async ids => {
-          if (!ids.length) return;
+    // Card blob SEMPRE (anche claim successivi); push browser SOLO al primo claim per evitare spam
+    try {
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva });
+      if (targetIds && targetIds.length) {
+        let guardianFullName = '';
+        try {
+          const [u] = (await pool.execute(
+            "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+            [userId]
+          )) as [any[], any];
+          if (u.length) guardianFullName = `${u[0].nome || ''} ${u[0].cognome || ''}`.trim();
+        } catch {}
 
-          // Recupera nome/cognome guardian (JWT non li contiene)
-          let guardianFullName = '';
-          try {
-            const [u] = (await pool.execute(
-              "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
-              [userId]
-            )) as [any[], any];
-            if (u.length) guardianFullName = `${u[0].nome || ''} ${u[0].cognome || ''}`.trim();
-          } catch {}
+        const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ''}`.trim();
 
-          const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ''}`.trim();
+        addNotificaToBlob(societyId, targetIds, {
+          type: 'nuovo_genitore',
+          title: `✅ Nuovo genitore: ${guardianFullName || 'genitore'}`,
+          body: `Figli: ${childFullName}`,
+        }).catch(() => {});
 
-          // Scrivi card blob per gli admin/mister (per-user filter in frontend)
-          addNotificaToBlob(societyId, ids, {
-            type: 'nuovo_genitore',
-            title: `✅ Nuovo genitore: ${guardianFullName || 'genitore'}`,
-            body: `Figli: ${childFullName}`,
-          }).catch(() => {});
-
-          return sendPushToUsers(ids, societyKeyFor(societyId), {
+        if (isFirstClaim) {
+          sendPushToUsers(targetIds, societyKeyFor(societyId), {
             title: "📥 Iscrizione famiglia da approvare",
-            body: `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}: nuovo genitore registrato. Approva dalla Rosa.`,
+            body: `${childFullName}: nuovo genitore registrato. Approva dalla Rosa.`,
             tag: `player-pending-${playerId}`,
-          });
-        })
-        .catch(() => {});
-    }
+          }).catch(() => {});
+        }
+      }
+    } catch (_) { /* notifica non-bloccante */ }
 
     // Propaga lo stato MySQL del player nel blob society_state (evita letture stale da altri device)
     await syncPlayerFromMysqlToBlob(societyId, playerId);

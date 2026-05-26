@@ -8123,6 +8123,16 @@ function recipientsForPlayer(p) {
   return [...ids];
 }
 
+// Ritorna true se nella società esiste almeno un utente attivo con ruolo coach intermedio
+// (allenatore, dirigente, preparatore_portieri). Usato per decidere se l'admin deve vedere
+// gli avvisi di assenza come fallback (società piccole senza coach intermedi).
+function _societyHasNonAdminCoaches() {
+  return USERS_DB.some(u =>
+    (u.stato == null || u.stato === 'attivo') &&
+    (u.role === 'allenatore' || u.role === 'dirigente' || u.role === 'preparatore_portieri')
+  );
+}
+
 // Destinatari avvisi famiglia: allenatori + dirigenti della leva + admin/mister_admin (fallback per società senza coach intermedi)
 function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
@@ -9135,8 +9145,9 @@ function commTotalUnread() {
   if (!me) return 0;
   const visScopes = commVisibleScopes().map(s=>s.id);
   const unreadComm = comunicazioni.filter(c => visScopes.includes(c.scope) && !commIsRead(c)).length;
-  // Admin non conta avvisi di assenza nel badge (sono di competenza di mister/dirigente)
-  const unreadNotif = isAdminLike()
+  // Admin non conta avvisi di assenza nel badge SOLO se esistono coach intermedi (mister/dirigente).
+  // Su società piccole senza coach, l'admin è destinatario di fallback e li deve vedere.
+  const unreadNotif = (isAdminLike() && _societyHasNonAdminCoaches())
     ? notifiche.filter(n => n.userId === me.id && !n.read && n.type !== 'avviso_assenza').length
     : unreadCount(me.id);
   return unreadComm + unreadNotif;
@@ -9242,8 +9253,9 @@ function _renderCommTabContent() {
 
   if (_commActiveTab === 'notifiche') {
     let list = userNotifiche(me.id, false);
-    // Admin non vede avvisi di assenza: sono di competenza esclusiva di mister e dirigente
-    if (isAdminLike()) list = list.filter(n => n.type !== 'avviso_assenza');
+    // Admin nasconde avvisi di assenza SOLO se esistono coach intermedi (allenatore/dirigente/prep.portieri).
+    // Su società senza coach, l'admin riceve l'avviso come fallback (vedi recipientsForCoachesOfLeva).
+    if (isAdminLike() && _societyHasNonAdminCoaches()) list = list.filter(n => n.type !== 'avviso_assenza');
     if (q) list = list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));
     if (!list.length) {
       cont.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text2);">Nessuna notifica.</div>';
