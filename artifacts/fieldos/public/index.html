@@ -21143,7 +21143,10 @@ function canAddCollab(soc, role) {
 function isSectionLocked(sectionId, soc) {
   if (!SECTION_LOCKS[sectionId]) return false;
   if (!soc) return false;
-  if (currentSocietaId === DEMO_STELLA_ID || currentSocietyMeta?.billingMode === 'omaggio') return false;
+  if (currentSocietaId === DEMO_STELLA_ID) return false;
+  // billing_mode='omaggio' sblocca le sezioni "comped", TRANNE 'documenti' che resta
+  // feature esclusiva del piano Società indipendentemente dal billing_mode.
+  if (currentSocietyMeta?.billingMode === 'omaggio' && sectionId !== 'documenti') return false;
   const lock = SECTION_LOCKS[sectionId];
   const tier = getEffectivePlan(soc);
   return PIANO_TIERS.indexOf(tier) < PIANO_TIERS.indexOf(lock.pianoMin);
