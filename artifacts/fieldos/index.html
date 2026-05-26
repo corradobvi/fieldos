@@ -11847,13 +11847,36 @@ async function submitSelfReg(){
 
   if (btn) { btn.disabled=true; btn.textContent='⏳ Registrazione…'; }
 
-  // Separate API players (GDPR) from in-memory players (legacy)
+  // Normalizza: per ogni id selezionato (api_X o numero), prova a usare API GDPR flow se possibile.
+  // Per id numerici, se il blob player ha incomplete=true (= creato dal mister come minor in MySQL),
+  // il suo id È l'id MySQL → posso fare claim API come per gli api_X. Questo evita il ramo legacy
+  // che NON crea guardian e lascia il player in "Attesa genitore" eterno.
   const apiIds = new Set(_srApiPlayers.map(p => 'api_' + p.id));
-  const selectedApiIds = _selfRegSelectedIds.filter(id => apiIds.has(id));
-  const selectedMemIds = _selfRegSelectedIds.filter(id => !apiIds.has(id));
+  const claimList = []; // {rawId, lastNameFull, birthDate}
+  const memOnlyLegacyIds = [];
+  _selfRegSelectedIds.forEach(sid => {
+    if (typeof sid === 'string' && apiIds.has(sid)) {
+      const rawId = sid.replace('api_','');
+      const lastNameFull = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
+      const birthDate    = (document.getElementById('srBirth_' + rawId)?.value    || '').trim();
+      claimList.push({ rawId, lastNameFull, birthDate });
+    } else {
+      const bp = players.find(p => p.id === sid);
+      if (bp && bp.incomplete === true) {
+        // id numerico ma player MySQL (creato dal mister come minor) → API claim
+        const rawId = String(bp.id);
+        const lastNameFull = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
+        const birthDate    = (document.getElementById('srBirth_' + rawId)?.value    || '').trim();
+        claimList.push({ rawId, lastNameFull, birthDate });
+      } else {
+        memOnlyLegacyIds.push(sid);
+      }
+    }
+  });
+  const selectedMemIds = memOnlyLegacyIds; // solo i veri legacy (no MySQL row)
 
-  // API GDPR flow — requires guardian-register endpoint
-  if (selectedApiIds.length > 0) {
+  // API GDPR flow — chiama guardian-register + claim per tutti gli id che hanno riga MySQL
+  if (claimList.length > 0) {
     try {
       if (btn) btn.textContent = '⏳ Creo il tuo account…';
       const regResp = await fetch(API_BASE + '/api/v2/auth/guardian-register', {
@@ -11869,33 +11892,44 @@ async function submitSelfReg(){
       }
       const guardianToken = regData.token;
 
-      // Claim each API player
+      // Claim ogni player (api_X e blob-incomplete)
       if (btn) btn.textContent = '⏳ Associo i giocatori…';
-      for (const sid of selectedApiIds) {
-        const rawId = sid.replace('api_', '');
-        const lastNameFull = (document.getElementById('srLastName_' + rawId)?.value || '').trim();
-        const birthDate    = (document.getElementById('srBirth_' + rawId)?.value    || '').trim();
+      for (const c of claimList) {
         try {
-          await fetch(API_BASE + '/api/v2/players/' + rawId + '/claim', {
+          const cr = await fetch(API_BASE + '/api/v2/players/' + c.rawId + '/claim', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + guardianToken },
-            body: JSON.stringify({ role: titoloFamiliare, consent: true, lastNameFull, birthDate })
+            body: JSON.stringify({ role: titoloFamiliare, consent: true, lastNameFull: c.lastNameFull, birthDate: c.birthDate })
           });
+          if (!cr.ok) {
+            const _cd = await cr.json().catch(() => ({}));
+            console.warn('[submitSelfReg] claim error', c.rawId, cr.status, _cd);
+          }
         } catch(claimErr) {
-          console.warn('[submitSelfReg] claim failed for', rawId, claimErr);
+          console.warn('[submitSelfReg] claim failed for', c.rawId, claimErr);
         }
       }
 
       // Boot as new genitore user (in-memory session)
       const apiUser = regData.user || {};
+      const firstClaimId = parseInt(claimList[0]?.rawId || '0', 10);
+      const firstApi = _srApiPlayers.find(p => p.id === firstClaimId);
+      const firstBlob = players.find(p => p.id === firstClaimId);
       const newUser = {
         id: apiUser.id || (nextUserId++),
         nome, cogn, email,
         role: 'genitore', titoloFamiliare,
-        leva: (_srApiPlayers.find(p => 'api_' + p.id === selectedApiIds[0])?.levaKey || ''),
+        leva: (firstApi?.levaKey || firstBlob?.leva || ''),
         stato: 'attivo',
-        figli: selectedApiIds.map(sid => { const p = _srApiPlayers.find(x => 'api_' + x.id === sid); return p ? p.firstName + ' ' + p.lastNameInitial : ''; }).filter(Boolean),
-        figliIds: selectedApiIds.map(sid => parseInt(sid.replace('api_',''), 10)),
+        figli: claimList.map(c => {
+          const pid = parseInt(c.rawId, 10);
+          const ap = _srApiPlayers.find(x => x.id === pid);
+          const bp = players.find(x => x.id === pid);
+          if (ap) return ap.firstName + ' ' + (c.lastNameFull || ap.lastNameInitial);
+          if (bp) return (bp.nome || '') + ' ' + (c.lastNameFull || bp.cogn_iniziale || bp.cogn || '');
+          return '';
+        }).filter(Boolean),
+        figliIds: claimList.map(c => parseInt(c.rawId, 10)),
         anno: null,
         v2Token: guardianToken,
         societyId: apiUser.societyId || currentSocietaId,
