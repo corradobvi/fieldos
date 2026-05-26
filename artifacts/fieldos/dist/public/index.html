@@ -327,7 +327,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .pt-tab{padding:9px 20px;font-size:.82rem;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Plus Jakarta Sans',sans-serif;}
 .pt-tab.on{color:var(--cp);border-bottom-color:var(--cp);}
 .pt-tab:hover{color:var(--text);}
-.mc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;display:flex;align-items:center;gap:12px;transition:all .15s;cursor:pointer;margin-bottom:7px;}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;display:flex;align-items:center;flex-wrap:wrap;gap:12px;transition:all .15s;cursor:pointer;margin-bottom:7px;}
 .mc:hover{border-color:var(--cp);box-shadow:var(--sh);}
 .mc-date{font-size:.7rem;color:var(--text3);text-align:center;min-width:42px;line-height:1.3;}
 .mc-teams{flex:1;display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;}
@@ -337,7 +337,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mc-score.nd{color:var(--text3);font-size:.85rem;padding:5px 8px;}
 .mc-score.clickable{cursor:pointer;transition:background .12s,box-shadow .12s;}
 .mc-score.clickable:hover{background:var(--cl);box-shadow:0 0 0 1.5px var(--cp) inset;}
-.mc-scorers{font-size:12px;font-style:italic;color:var(--text2);padding:4px 12px 2px;line-height:1.45;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;}
+.mc-scorers{font-size:12px;font-style:italic;color:var(--text2);padding:4px 12px 2px;line-height:1.45;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;flex-basis:100%;width:100%;margin:2px 0 0;}
 .mc-scorers span{flex:1;min-width:0;}
 .ptd-tab{flex:1;padding:11px 8px;background:none;border:none;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;font-size:.88rem;font-family:inherit;-webkit-tap-highlight-color:transparent;}
 .ptd-tab.on{color:var(--cp);border-bottom-color:var(--cp);}
