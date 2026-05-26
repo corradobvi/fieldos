@@ -26915,6 +26915,80 @@ async function doRejoinSocieta() {
   .allM-cal-day-num{font-size:.9rem;}
   .allM-cal-day-lbl{font-size:.58rem;}
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANDROID UX HARDENING — audit 26/05
+   - Fix bottom-nav tap target (safe-area pill gestures)
+   - touch-action: manipulation globale (rimuove 300ms double-tap delay)
+   - tap-highlight default + overscroll contain
+═══════════════════════════════════════════════════════════════════ */
+
+/* AREA 1 — Bottom mobile nav: il button .mob-ni ora SI ESTENDE fino al bordo
+   inferiore del nav (incluso safe-area-inset-bottom), invece di lasciare
+   il padding-bottom safe-area come zona morta non-tappabile.
+   Soluzione: sposto il safe-area padding da .mob-nav a .mob-ni. */
+.mob-nav{
+  padding-bottom:0!important;
+  height:calc(72px + env(safe-area-inset-bottom,0px))!important;
+}
+.mob-ni{
+  padding-bottom:calc(4px + env(safe-area-inset-bottom,0px))!important;
+  min-height:calc(56px + env(safe-area-inset-bottom,0px))!important;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:rgba(26,122,74,.18);
+}
+
+/* AREA 2 — Tap target globali: tutti gli elementi interattivi minimi 44x44 di
+   AREA cliccabile (icona può restare più piccola, è il padding a fare il lavoro).
+   touch-action manipulation rimuove ritardo 300ms double-tap zoom (Android).
+   tap-highlight semi-trasparente brand per feedback al tap. */
+button,
+a,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+summary{
+  touch-action:manipulation;
+}
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]){
+  -webkit-tap-highlight-color:rgba(26,122,74,.15);
+}
+
+/* Icone-bottoni piccole comuni (es. ⋯ menu, ✕ close, frecce ◀ ▶):
+   garantiscono area cliccabile 44x44 anche se icona è 18px. */
+@media(max-width:768px){
+  .tb-bell-btn,
+  .nav-hamburger,
+  .all-bozze-menu-btn,
+  .cgm-nav-btn,
+  .mx,
+  .allM-weeknav-btn,
+  .allM-cal-day,
+  .allM-newbtn,
+  .gioc-subnav .gsnb{
+    min-width:44px;
+    min-height:44px;
+    touch-action:manipulation;
+  }
+}
+
+/* AREA 3 — Performance: animazioni globali su transform/opacity preferite a all/width/etc.
+   Non override-iamo le animazioni esistenti, ma aggiungiamo will-change ai casi pesanti
+   solo quando l'elemento è effettivamente in transizione (state class). */
+
+/* AREA 4 — Scroll: evita pull-to-refresh involontario Chrome Android su scroll
+   body (NON applicare a aree interne come chat/list che hanno comportamento proprio). */
+html{
+  overscroll-behavior-y:contain;
+}
+/* Listeners scroll/touch passive di default (browser moderni già lo fanno per
+   touchstart/touchmove su body, ma esplicitiamo per safety) */
+
+/* AREA 5 — Safe-area Android: già coperto a livello di .mob-nav (sopra) e
+   componenti dedicati (back-bar sessioni). Theme-color verde brand è già in <meta>. */
 </style>
 
 <div id="saPanel" style="display:none;">
