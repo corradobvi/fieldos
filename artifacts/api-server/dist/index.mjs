@@ -90841,6 +90841,150 @@ router35.get("/superadmin/_diag/push", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
+router35.get("/superadmin/_diag/push-remap", async (req, res) => {
+  if (!checkAuth3(req, res)) return;
+  const societyId = parseInt(String(req.query.societyId || ""));
+  const dryRun = String(req.query.dryRun ?? "1") !== "0";
+  if (!societyId || !Number.isFinite(societyId)) {
+    return res.status(400).json({ error: "societyId required" });
+  }
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  try {
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) {
+      return res.status(404).json({ error: "blob_not_found", stateKey });
+    }
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return res.status(500).json({ error: "blob_parse_error" });
+    }
+    const blobUsers = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+    const blobUserById = new Map(blobUsers.map((u) => [u.id, u]));
+    const [mysqlRows] = await pool.execute(
+      `SELECT id, email FROM users WHERE society_id = ? AND stato = 'attivo'`,
+      [societyId]
+    );
+    const mysqlIdByEmail = new Map(
+      mysqlRows.map((r) => [String(r.email || "").toLowerCase(), r.id])
+    );
+    const mysqlIds = new Set(mysqlRows.map((r) => r.id));
+    const [subs] = await pool.execute(
+      `SELECT id, user_id, society_key, CHAR_LENGTH(subscription) AS sub_size, updated_at
+       FROM push_subscriptions WHERE society_key = ? ORDER BY id`,
+      [stateKey]
+    );
+    const analysis = [];
+    const toRemap = [];
+    for (const s of subs) {
+      const blobUserId = s.user_id;
+      if (mysqlIds.has(blobUserId)) {
+        analysis.push({
+          sub_id: s.id,
+          user_id_blob: blobUserId,
+          email: null,
+          user_id_mysql: blobUserId,
+          match_status: "user_id_gi\xE0_mysql"
+        });
+        continue;
+      }
+      const bu = blobUserById.get(blobUserId);
+      const email = bu && typeof bu.email === "string" ? bu.email.toLowerCase().trim() : null;
+      if (!email) {
+        analysis.push({
+          sub_id: s.id,
+          user_id_blob: blobUserId,
+          email: null,
+          user_id_mysql: null,
+          match_status: "blob_user_non_trovato"
+        });
+        continue;
+      }
+      const mysqlId = mysqlIdByEmail.get(email);
+      if (!mysqlId) {
+        analysis.push({
+          sub_id: s.id,
+          user_id_blob: blobUserId,
+          email,
+          user_id_mysql: null,
+          match_status: "email_non_trovata_in_mysql"
+        });
+        continue;
+      }
+      analysis.push({
+        sub_id: s.id,
+        user_id_blob: blobUserId,
+        email,
+        user_id_mysql: mysqlId,
+        match_status: "ok_remappabile"
+      });
+      toRemap.push({ subId: s.id, oldUserId: blobUserId, newUserId: mysqlId, email });
+    }
+    let applied = [];
+    let txStatus = "skipped (dryRun)";
+    if (!dryRun && toRemap.length > 0) {
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        for (const r of toRemap) {
+          const [existing] = await conn.execute(
+            "SELECT id FROM `push_subscriptions` WHERE `user_id` = ? AND `society_key` = ? LIMIT 1",
+            [r.newUserId, stateKey]
+          );
+          if (existing.length) {
+            await conn.execute(
+              "DELETE FROM `push_subscriptions` WHERE id = ?",
+              [r.subId]
+            );
+            applied.push({ ...r, action: "deleted_duplicate" });
+          } else {
+            await conn.execute(
+              "UPDATE `push_subscriptions` SET user_id = ? WHERE id = ?",
+              [r.newUserId, r.subId]
+            );
+            applied.push({ ...r, action: "updated" });
+          }
+        }
+        await conn.commit();
+        txStatus = "committed";
+      } catch (e) {
+        try {
+          await conn.rollback();
+        } catch (_) {
+        }
+        txStatus = "rolledback: " + (e?.message || String(e));
+      } finally {
+        try {
+          conn.release();
+        } catch (_) {
+        }
+      }
+    } else if (!dryRun && toRemap.length === 0) {
+      txStatus = "no-op (toRemap is empty)";
+    }
+    return res.json({
+      societyId,
+      stateKey,
+      dryRun,
+      counts: {
+        total_subscriptions: subs.length,
+        ok_remappabile: analysis.filter((a) => a.match_status === "ok_remappabile").length,
+        user_id_gi\u00E0_mysql: analysis.filter((a) => a.match_status === "user_id_gi\xE0_mysql").length,
+        email_non_trovata: analysis.filter((a) => a.match_status === "email_non_trovata_in_mysql").length,
+        blob_user_non_trovato: analysis.filter((a) => a.match_status === "blob_user_non_trovato").length
+      },
+      analysis,
+      applied,
+      tx_status: txStatus
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
 var admin_push_debug_default = router35;
 
 // src/routes/v2/index.ts
