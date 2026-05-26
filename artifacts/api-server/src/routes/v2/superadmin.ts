@@ -342,13 +342,21 @@ router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
 
   try {
     const [modeRows] = (await pool.execute(
-      `SELECT billing_mode FROM societies WHERE id = ?`, [societyId]
+      `SELECT billing_mode, stripe_subscription_id, subscription_status FROM societies WHERE id = ?`,
+      [societyId]
     )) as [any[], any];
     if (!modeRows.length) return res.status(404).json({ error: "not_found" });
-    if (modeRows[0].billing_mode !== 'omaggio') {
+    const _row = modeRows[0];
+    // Blocca SOLO se c'è una subscription Stripe effettivamente attiva (active/trialing).
+    // Per società demo o senza subscription, il SA può cambiare piano liberamente.
+    const _hasActiveStripeSub =
+      _row.billing_mode === 'stripe' &&
+      _row.stripe_subscription_id != null &&
+      (_row.subscription_status === 'active' || _row.subscription_status === 'trialing');
+    if (_hasActiveStripeSub) {
       return res.status(403).json({
-        error: "billing_mode_stripe",
-        message: "Impossibile modificare il piano: società in modalità Stripe. Disattiva la fatturazione automatica prima.",
+        error: "active_stripe_subscription",
+        message: "Impossibile modificare il piano: la società ha una subscription Stripe attiva. Cancella la subscription prima.",
       });
     }
 

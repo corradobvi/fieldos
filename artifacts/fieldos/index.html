@@ -24572,22 +24572,11 @@ async function _saBMConfirmClick(btn, mode, cancelSub) {
   const allBtns = btn.closest('div').querySelectorAll('button');
   allBtns.forEach(b => { b.disabled = true; });
 
-  // Società solo-blob (demo, Baiardo, ecc.) — aggiorna solo il blob locale senza chiamata API
-  if (!s.fromMySQL) {
-    s.billingMode = mode;
-    saSaveState();
-    allBtns.forEach(b => { b.disabled = false; });
-    btn.textContent = origText;
-    try { _saDrillRenderBilling(s); } catch(e) {}
-    try { renderSaPanel(); } catch(e) {}
-    const _t = document.createElement('div');
-    _t.textContent = mode === 'omaggio' ? '✓ Modalità Omaggio attivata' : '✓ Fatturazione Stripe attivata';
-    _t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#4ade80;border:1px solid rgba(74,222,128,.3);border-radius:8px;padding:10px 18px;font-size:.85rem;font-weight:600;z-index:200000;pointer-events:none;';
-    document.body.appendChild(_t); setTimeout(() => _t.remove(), 3000);
-    return;
-  }
-
+  // Chiama SEMPRE il backend. Per società legacy solo-blob (non in MySQL) il 404 è atteso
+  // e ricade sul blob locale. Per società MySQL il backend è source-of-truth: senza questa
+  // chiamata, il merge MySQL→blob al prossimo login sovrascrive billing_mode con il valore vecchio.
   let fetchOk = false;
+  let fallbackBlobOnly = false;
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + drillId + '/set-billing-mode', {
       method: 'POST',
@@ -24596,13 +24585,18 @@ async function _saBMConfirmClick(btn, mode, cancelSub) {
     });
     let d;
     try { d = await r.json(); } catch(_) { d = {}; }
-    if (!r.ok) {
+    if (r.status === 404) {
+      // Società solo-blob (es. Polis ASD legacy id=0): aggiorna comunque il blob locale
+      fallbackBlobOnly = true;
+      fetchOk = true;
+    } else if (!r.ok) {
       console.error('[saBMConfirmClick] server error', r.status, d);
       alert(d.message || d.error || 'Errore server (' + r.status + ')');
       return;
+    } else {
+      fetchOk = true;
+      console.log('[saBMConfirmClick] ok', { mode, cancelSub, response: d });
     }
-    fetchOk = true;
-    console.log('[saBMConfirmClick] ok', { mode, cancelSub, response: d });
   } catch(err) {
     console.error('[saBMConfirmClick] network error', err);
     alert('Errore di rete: ' + (err && err.message ? err.message : String(err)));
