@@ -210,6 +210,48 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/v2/players/:id/personal-data — Genitore associato aggiorna cognome / data nascita del figlio
+router.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
+  const { userId, societyId } = req.jwtUser!;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+
+  const { lastNameFull, birthDate } = req.body as Record<string, any>;
+  const newLastName = typeof lastNameFull === "string" ? lastNameFull.trim() : null;
+  const newBirth    = typeof birthDate === "string" && birthDate.trim() ? birthDate.trim() : null;
+  if (!newLastName && !newBirth) return res.status(400).json({ error: "no_fields_to_update" });
+
+  try {
+    // Verifica che il chiamante sia un guardian del player
+    const [g] = (await pool.execute(
+      `SELECT pg.id FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.player_id = ? AND pg.user_id = ? AND p.society_id = ?
+       LIMIT 1`,
+      [playerId, userId, societyId]
+    )) as [any[], any];
+    if (!g.length) return res.status(403).json({ error: "not_a_guardian" });
+
+    const updates: string[] = [];
+    const params: any[] = [];
+    if (newLastName) { updates.push("cognome = ?"); params.push(newLastName); }
+    if (newBirth)    { updates.push("birth_date = ?"); params.push(newBirth); }
+    // Se erano incompleti e ora hanno cognome+data, segna completi
+    updates.push("incomplete = CASE WHEN cognome <> '' AND birth_date IS NOT NULL THEN 0 ELSE incomplete END");
+    params.push(playerId);
+
+    await pool.execute(
+      `UPDATE players SET ${updates.join(", ")} WHERE id = ?`,
+      params
+    );
+    logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e }, "PATCH players/:id/personal-data error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // GET /api/v2/players/:id/guardians — Lista tutori di un giocatore (pannello mister)
 router.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId: requesterId } = req.jwtUser!;

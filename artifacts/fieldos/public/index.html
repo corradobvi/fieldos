@@ -5541,6 +5541,16 @@ function renderProfiloFiglio(el) {
     </div>
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
+    <div class="mob-doc-card" id="figlioPersDataCard">
+      <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
+      <div style="font-size:.78rem;color:var(--text2);padding:0 0 10px;line-height:1.4;">Modifica cognome o data di nascita se sono cambiati. Vengono salvati nella scheda del giocatore.</div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Cognome</label><input class="fi" id="figlioPersCogn" value="${escapeHtml(p.cogn||'')}" placeholder="Cognome" style="min-height:44px;"></div>
+        <div class="fg"><label class="fl">Data di nascita</label><input class="fi" type="date" id="figlioPersBirth" value="${escapeHtml(p.birthDate||p.birth_date||'')}" style="min-height:44px;"></div>
+      </div>
+      <div id="figlioPersMsg" style="display:none;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:7px;margin-top:6px;"></div>
+      <button class="btn btn-p" style="width:100%;margin-top:10px;min-height:44px;" onclick="saveFiglioPersonalData(${p.id})">💾 Salva dati</button>
+    </div>
     ${docsHtml}
     ${(()=>{
       const _ss = levaStatsSettings[p.leva] || {};
@@ -5578,6 +5588,43 @@ function renderProfiloFiglio(el) {
         </table>
       </div>`;
     })()}`;
+}
+
+// Genitore aggiorna cognome / data di nascita del figlio (richiede _v2Token + essere guardian)
+async function saveFiglioPersonalData(playerId) {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  const msgEl = document.getElementById('figlioPersMsg');
+  function _msg(text, ok) {
+    if (!msgEl) return;
+    msgEl.style.display = 'block';
+    msgEl.style.background = ok ? '#ecfdf5' : '#fef2f2';
+    msgEl.style.color = ok ? '#065f46' : '#c0392b';
+    msgEl.textContent = text;
+  }
+  const cogn  = (document.getElementById('figlioPersCogn')?.value || '').trim();
+  const birth = (document.getElementById('figlioPersBirth')?.value || '').trim();
+  if (!cogn && !birth) { _msg('⚠️ Inserisci almeno un campo da aggiornare.', false); return; }
+  if (!_v2Token) { _msg('⛔ Sessione scaduta. Rifai login.', false); return; }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/players/' + playerId + '/personal-data', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ lastNameFull: cogn || null, birthDate: birth || null })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { _msg('❌ ' + (d.error || ('Errore ' + r.status)), false); return; }
+    // Aggiorna anche il blob locale per coerenza UX immediata
+    const p = players.find(x => x.id === playerId);
+    if (p) {
+      if (cogn)  p.cogn = cogn;
+      if (birth) p.birth_date = birth;
+      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+    }
+    _msg('✅ Dati salvati.', true);
+    setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 3000);
+  } catch (e) {
+    _msg('❌ Errore di rete: ' + (e.message || String(e)), false);
+  }
 }
 
 // ═══════════════════════════════════

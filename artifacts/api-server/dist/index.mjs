@@ -84932,6 +84932,46 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
+  const { userId, societyId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  const { lastNameFull, birthDate } = req.body;
+  const newLastName = typeof lastNameFull === "string" ? lastNameFull.trim() : null;
+  const newBirth = typeof birthDate === "string" && birthDate.trim() ? birthDate.trim() : null;
+  if (!newLastName && !newBirth) return res.status(400).json({ error: "no_fields_to_update" });
+  try {
+    const [g] = await pool.execute(
+      `SELECT pg.id FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.player_id = ? AND pg.user_id = ? AND p.society_id = ?
+       LIMIT 1`,
+      [playerId, userId, societyId]
+    );
+    if (!g.length) return res.status(403).json({ error: "not_a_guardian" });
+    const updates = [];
+    const params = [];
+    if (newLastName) {
+      updates.push("cognome = ?");
+      params.push(newLastName);
+    }
+    if (newBirth) {
+      updates.push("birth_date = ?");
+      params.push(newBirth);
+    }
+    updates.push("incomplete = CASE WHEN cognome <> '' AND birth_date IS NOT NULL THEN 0 ELSE incomplete END");
+    params.push(playerId);
+    await pool.execute(
+      `UPDATE players SET ${updates.join(", ")} WHERE id = ?`,
+      params
+    );
+    logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PATCH players/:id/personal-data error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 router14.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId: requesterId } = req.jwtUser;
   const playerId = parseInt(req.params.id, 10);
