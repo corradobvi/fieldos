@@ -28,6 +28,7 @@ import utmStatsRouter          from "./utm-stats";
 import adminResetDemoRouter    from "./admin-reset-demo";
 import adminPopulateSessioniRouter from "./admin-populate-sessioni";
 import selectPlanRouter            from "./select-plan";
+import adminPlayersDebugRouter     from "./admin-players-debug";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -326,4 +327,5 @@ router.use(utmStatsRouter);
 router.use(adminResetDemoRouter);
 router.use(adminPopulateSessioniRouter);
 router.use(selectPlanRouter);
+router.use(adminPlayersDebugRouter);
 export default router;
