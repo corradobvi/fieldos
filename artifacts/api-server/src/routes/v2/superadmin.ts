@@ -7,7 +7,9 @@ import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
-const SA_SECRET = process.env.SA_SECRET;
+// TODO security: il frontend hardcoda SA_PASS='super123'. Per riapplicare fail-closed
+// (vedi commit 636a494) settare SA_SECRET env su Railway + sostituire SA_PASS lato FE.
+const SA_SECRET = process.env.SA_SECRET ?? "super123";
 
 const EXCLUDED_IDS = [99, 99999];
 
@@ -33,7 +35,7 @@ function _generateTempPassword(): string {
 
 // POST /api/v2/superadmin/societies — crea società + admin in MySQL (SA panel)
 router.post("/superadmin/societies", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
 
   const { nome, citta, piano, adminNome, adminCogn, adminEmail, adminPass } =
     req.body as Record<string, any>;
@@ -102,7 +104,7 @@ router.post("/superadmin/societies", async (req, res) => {
 
 // GET /api/v2/superadmin/societies — lista completa da MySQL, protetta da X-SA-Secret
 router.get("/superadmin/societies", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
 
@@ -140,7 +142,7 @@ router.get("/superadmin/societies", async (req, res) => {
 
 // POST /api/v2/superadmin/reset-password — reset password admin di una società
 router.post("/superadmin/reset-password", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
   const { email } = req.body as { email?: string; societyId?: number };
@@ -201,7 +203,7 @@ async function getSocietyAdmin(societyId: number) {
 
 // POST /api/v2/superadmin/societies/:id/suspend
 router.post("/superadmin/societies/:id/suspend", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { reason } = req.body as { reason?: string };
@@ -229,7 +231,7 @@ router.post("/superadmin/societies/:id/suspend", async (req, res) => {
 
 // POST /api/v2/superadmin/societies/:id/reactivate
 router.post("/superadmin/societies/:id/reactivate", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
 
@@ -256,7 +258,7 @@ router.post("/superadmin/societies/:id/reactivate", async (req, res) => {
 
 // POST /api/v2/superadmin/societies/:id/extend-demo
 router.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { days, reason } = req.body as { days?: number; reason?: string };
@@ -297,7 +299,7 @@ router.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
 
 // PATCH /api/v2/superadmin/societies/:id — aggiorna nome/citta in MySQL
 router.patch("/superadmin/societies/:id", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { nome, citta } = req.body as { nome?: string; citta?: string };
@@ -329,7 +331,7 @@ router.patch("/superadmin/societies/:id", async (req, res) => {
 // Necessario per prevenire che _syncSubscriptionStatus lato client sovrascriva il piano
 // impostato manualmente dal SA (che aggiorna solo il blob, non MySQL).
 router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { piano } = req.body as { piano?: string };
@@ -369,7 +371,7 @@ router.post("/superadmin/societies/:id/set-plan", async (req, res) => {
 
 // POST /api/v2/superadmin/societies/:id/set-billing-mode
 router.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const { mode, cancel_stripe_sub } = req.body as { mode?: string; cancel_stripe_sub?: boolean };
@@ -433,7 +435,7 @@ router.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
 
 // GET /api/v2/superadmin/societies/:id/audit-log?limit=50
 router.get("/superadmin/societies/:id/audit-log", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
+  if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
   const rawLimit = parseInt(String(req.query.limit ?? "50"), 10);

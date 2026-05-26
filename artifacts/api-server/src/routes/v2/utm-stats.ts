@@ -3,11 +3,13 @@ import { pool } from "@workspace/db";
 
 const router = Router();
 
-const SA_SECRET = process.env.SA_SECRET;
+// TODO security: il frontend hardcoda SA_PASS='super123'. Per riapplicare fail-closed
+// (vedi commit 636a494) settare SA_SECRET env su Railway + sostituire SA_PASS lato FE.
+const SA_SECRET = process.env.SA_SECRET ?? "super123";
 
 // GET /api/v2/admin/utm-stats — SuperAdmin only
 router.get("/admin/utm-stats", async (req, res) => {
-  if (!SA_SECRET || req.headers["x-sa-secret"] !== SA_SECRET) {
+  if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
 
