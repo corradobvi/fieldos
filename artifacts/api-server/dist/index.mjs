@@ -84980,8 +84980,24 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
     ).catch(() => {
     });
     if (isFirstClaim) {
-      getUsersForPush(societyId, { leva: player.leva }).then((ids) => {
+      getUsersForPush(societyId, { leva: player.leva }).then(async (ids) => {
         if (!ids.length) return;
+        let guardianFullName = "";
+        try {
+          const [u] = await pool.execute(
+            "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+            [userId]
+          );
+          if (u.length) guardianFullName = `${u[0].nome || ""} ${u[0].cognome || ""}`.trim();
+        } catch {
+        }
+        const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}`.trim();
+        addNotificaToBlob(societyId, ids, {
+          type: "nuovo_genitore",
+          title: `\u2705 Nuovo genitore: ${guardianFullName || "genitore"}`,
+          body: `Figli: ${childFullName}`
+        }).catch(() => {
+        });
         return sendPushToUsers(ids, societyKeyFor(societyId), {
           title: "\u{1F4E5} Iscrizione famiglia da approvare",
           body: `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}: nuovo genitore registrato. Approva dalla Rosa.`,
@@ -85231,6 +85247,47 @@ async function syncPlayerFromMysqlToBlob(societyId, playerId) {
     );
   } catch (e) {
     logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
+  }
+}
+async function addNotificaToBlob(societyId, userIds, notifica) {
+  if (!societyId || !userIds.length) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [rows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!rows.length) return;
+    let state;
+    try {
+      state = JSON.parse(rows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.notifiche)) state.notifiche = [];
+    const baseTs = Date.now();
+    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+    for (const uid of userIds) {
+      state.notifiche.push({
+        id: `${baseId}_${uid}`,
+        userId: Number(uid),
+        type: notifica.type,
+        title: notifica.title,
+        body: notifica.body,
+        eventId: notifica.eventId ?? null,
+        convocazioneId: notifica.convocazioneId ?? null,
+        quoteKey: null,
+        docKey: null,
+        ts: baseTs,
+        read: false
+      });
+    }
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
   }
 }
 var minors_default = router14;
@@ -86202,6 +86259,12 @@ router17.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
       url: "/presenze",
       tag: tag || "assenza"
     }).catch((e) => logger.warn({ err: e }, "notify-coaches push error"));
+    addNotificaToBlob(societyId, ids, {
+      type: "avviso_assenza",
+      title: title || "\u{1F4E9} Avviso assenza",
+      body: body || ""
+    }).catch(() => {
+    });
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e }, "POST presenze/notify-coaches error");

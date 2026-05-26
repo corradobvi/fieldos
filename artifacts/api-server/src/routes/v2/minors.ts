@@ -225,8 +225,28 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
     // Push staff: al primo claim, notifica "iscrizione famiglia da approvare"
     if (isFirstClaim) {
       getUsersForPush(societyId, { leva: player.leva })
-        .then(ids => {
+        .then(async ids => {
           if (!ids.length) return;
+
+          // Recupera nome/cognome guardian (JWT non li contiene)
+          let guardianFullName = '';
+          try {
+            const [u] = (await pool.execute(
+              "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+              [userId]
+            )) as [any[], any];
+            if (u.length) guardianFullName = `${u[0].nome || ''} ${u[0].cognome || ''}`.trim();
+          } catch {}
+
+          const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ''}`.trim();
+
+          // Scrivi card blob per gli admin/mister (per-user filter in frontend)
+          addNotificaToBlob(societyId, ids, {
+            type: 'nuovo_genitore',
+            title: `✅ Nuovo genitore: ${guardianFullName || 'genitore'}`,
+            body: `Figli: ${childFullName}`,
+          }).catch(() => {});
+
           return sendPushToUsers(ids, societyKeyFor(societyId), {
             title: "📥 Iscrizione famiglia da approvare",
             body: `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}: nuovo genitore registrato. Approva dalla Rosa.`,
@@ -507,6 +527,56 @@ async function syncPlayerFromMysqlToBlob(societyId: number, playerId: number): P
   } catch (e: any) {
     logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
     // Non rilanciare: l'endpoint chiamante deve riuscire comunque
+  }
+}
+
+// Helper: scrive una entry "card notifica" nel blob society_state per ciascun userId destinatario.
+// Usata dai flow API-only (claim, notify-coaches) per generare card visibili al mister
+// nel tab Notifiche di Comunicazioni. Frontend filtra per `n.userId === me.id` strict.
+export async function addNotificaToBlob(
+  societyId: number,
+  userIds: number[],
+  notifica: { type: string; title: string; body: string; eventId?: any; convocazioneId?: any },
+): Promise<void> {
+  if (!societyId || !userIds.length) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [rows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey],
+    )) as [any[], any];
+    if (!rows.length) return;
+
+    let state: any;
+    try { state = JSON.parse(rows[0].state_json as string); } catch { return; }
+    if (!Array.isArray(state.notifiche)) state.notifiche = [];
+
+    const baseTs = Date.now();
+    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+
+    for (const uid of userIds) {
+      state.notifiche.push({
+        id: `${baseId}_${uid}`,
+        userId: Number(uid),
+        type: notifica.type,
+        title: notifica.title,
+        body: notifica.body,
+        eventId: notifica.eventId ?? null,
+        convocazioneId: notifica.convocazioneId ?? null,
+        quoteKey: null,
+        docKey: null,
+        ts: baseTs,
+        read: false,
+      });
+    }
+
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey],
+    );
+  } catch (e: any) {
+    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
+    // Non rilanciare
   }
 }
 

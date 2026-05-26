@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
 import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
+import { addNotificaToBlob } from "./minors";
 
 const router = Router();
 
@@ -104,6 +105,14 @@ router.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
     sendPushToUsers(ids, societyKeyFor(societyId), {
       title, body: body || "", url: "/presenze", tag: tag || "assenza",
     }).catch((e: any) => logger.warn({ err: e }, "notify-coaches push error"));
+
+    // Scrivi anche card blob per gli admin/coach (frontend filtra per userId)
+    addNotificaToBlob(societyId, ids, {
+      type: "avviso_assenza",
+      title: title || "📩 Avviso assenza",
+      body: body || "",
+    }).catch(() => {});
+
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "POST presenze/notify-coaches error");

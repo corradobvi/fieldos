@@ -8123,12 +8123,13 @@ function recipientsForPlayer(p) {
   return [...ids];
 }
 
-// Allenatori e dirigenti della leva indicata (destinatari avvisi famiglia — NO admin)
+// Destinatari avvisi famiglia: allenatori + dirigenti della leva + admin/mister_admin (fallback per società senza coach intermedi)
 function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
-    if (u.role === 'admin' || u.role === 'mister_admin') return; // admin escluso esplicitamente dagli avvisi di assenza
+    // INCLUDI admin/mister_admin senza filtro leva (società piccole senza coach ricevono comunque)
+    if (u.role === 'admin' || u.role === 'mister_admin') { ids.add(u.id); return; }
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
