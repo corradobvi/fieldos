@@ -82,6 +82,22 @@ router.get("/superadmin/_diag/genitore-debug", async (req, res) => {
     }
 
     // Lookup by email (per cercare testfixadmin senza conoscere societyId)
+    // Estrai info notifiche/comunicazioni dal blob
+    let blobNotificheCount = 0;
+    let blobComunicazioniCount = 0;
+    let blobNotificheRecent: any[] = [];
+    if (blobRows.length) {
+      try {
+        const stateFull = JSON.parse(blobRows[0].state_json as string);
+        const notifs = Array.isArray(stateFull.notifiche) ? stateFull.notifiche : [];
+        blobNotificheCount = notifs.length;
+        const coms = Array.isArray(stateFull.comunicazioni) ? stateFull.comunicazioni : [];
+        blobComunicazioniCount = coms.length;
+        blobNotificheRecent = notifs.slice(-10).map((n: any) => ({
+          id: n.id, userId: n.userId, type: n.type, title: n.title, body: n.body, ts: n.ts, read: n.read,
+        }));
+      } catch (_) {}
+    }
     let userByEmail: any = null;
     const emailQ = String(req.query.email || '').toLowerCase().trim();
     if (emailQ) {
@@ -128,6 +144,9 @@ router.get("/superadmin/_diag/genitore-debug", async (req, res) => {
       blob: { meta: blobRows[0] || null, codiceSocieta: blobCodice, players: blobPlayers, users: blobUsers },
       user_by_email: userByEmail,
       simulate_getUsersForPush: simulate,
+      blob_notifiche_count:     blobNotificheCount,
+      blob_comunicazioni_count: blobComunicazioniCount,
+      blob_notifiche_recent:    blobNotificheRecent,
     });
   } catch (e: any) {
     return res.status(500).json({ error: e?.message });
