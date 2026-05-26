@@ -78619,6 +78619,7 @@ ALTER TABLE players ADD COLUMN parental_consent_at DATETIME NULL;
 ALTER TABLE players ADD COLUMN cognome_iniziale VARCHAR(10) NULL;
 ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE players ADD COLUMN approval_status ENUM('pending','approved') NOT NULL DEFAULT 'approved';
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
@@ -84893,6 +84894,11 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
       [playerId, userId]
     );
     if (existing.length) return res.status(409).json({ error: "already_associated" });
+    const [gCountRows] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM player_guardians WHERE player_id = ?",
+      [playerId]
+    );
+    const isFirstClaim = (gCountRows[0].n ?? 0) === 0;
     if (player.incomplete) {
       if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required_for_incomplete_player" });
       if (!birthDate) return res.status(400).json({ error: "birthDate_required_for_incomplete_player" });
@@ -84901,6 +84907,12 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
         [lastNameFull.trim(), birthDate, playerId]
       );
       logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
+    }
+    if (isFirstClaim) {
+      await pool.execute(
+        "UPDATE players SET approval_status = 'pending' WHERE id = ?",
+        [playerId]
+      );
     }
     const [ins] = await pool.execute(
       `INSERT INTO player_guardians (player_id, user_id, role, consent_given, consent_at)
@@ -84912,13 +84924,13 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
       [userId, playerId]
     ).catch(() => {
     });
-    if (player.incomplete) {
+    if (isFirstClaim) {
       getUsersForPush(societyId, { leva: player.leva }).then((ids) => {
         if (!ids.length) return;
         return sendPushToUsers(ids, societyKeyFor(societyId), {
-          title: "\u2705 Scheda giocatore completata",
-          body: `${player.nome} ${lastNameFull?.trim() ?? ""} \xE8 stato completato dal genitore`,
-          tag: `player-complete-${playerId}`
+          title: "\u{1F4E5} Iscrizione famiglia da approvare",
+          body: `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}: nuovo genitore registrato. Approva dalla Rosa.`,
+          tag: `player-pending-${playerId}`
         });
       }).catch(() => {
       });
@@ -84969,6 +84981,91 @@ router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e }, "PATCH players/:id/personal-data error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/players/:id/approve", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, cognome, approval_status FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+      [playerId, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
+    const player = rows[0];
+    if (player.approval_status === "approved") return res.json({ ok: true, action: "already_approved" });
+    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
+    const [guardians] = await pool.execute(
+      "SELECT user_id FROM player_guardians WHERE player_id = ?",
+      [playerId]
+    );
+    const guardianIds = guardians.map((g) => g.user_id);
+    if (guardianIds.length) {
+      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
+        title: "\u2705 Iscrizione accettata",
+        body: `${player.nome} ${player.cognome}: il mister ha approvato l'iscrizione`,
+        tag: `player-approved-${playerId}`
+      }).catch(() => {
+      });
+    }
+    logger.info({ playerId, userId, societyId, guardiansNotified: guardianIds.length }, "[approval] player approved");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/:id/approve error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/players/:id/reject", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, cognome FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+      [playerId, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
+    const player = rows[0];
+    const [guardians] = await pool.execute(
+      "SELECT user_id FROM player_guardians WHERE player_id = ?",
+      [playerId]
+    );
+    const guardianIds = guardians.map((g) => g.user_id);
+    await pool.execute("DELETE FROM player_guardians WHERE player_id = ?", [playerId]);
+    await pool.execute("DELETE FROM user_players WHERE player_id = ?", [playerId]).catch(() => {
+    });
+    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
+    if (guardianIds.length) {
+      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
+        title: "\u274C Iscrizione rifiutata",
+        body: `${player.nome} ${player.cognome}: il mister non ha approvato l'iscrizione. Contatta la societ\xE0.`,
+        tag: `player-rejected-${playerId}`
+      }).catch(() => {
+      });
+    }
+    logger.info({ playerId, userId, societyId, guardiansRemoved: guardianIds.length }, "[approval] player rejected");
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/:id/reject error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/rosa-sync", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, p.leva, p.numero, p.incomplete,
+              p.approval_status, p.birth_date,
+              (SELECT COUNT(*) FROM player_guardians WHERE player_id = p.id) AS guardiansCount
+       FROM players p WHERE p.society_id = ?
+       ORDER BY p.id`,
+      [societyId]
+    );
+    return res.json({ players: rows });
+  } catch (e) {
+    logger.error({ err: e }, "GET players/rosa-sync error");
     return res.status(500).json({ error: "server_error" });
   }
 });
