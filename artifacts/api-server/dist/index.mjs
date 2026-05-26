@@ -90506,11 +90506,24 @@ router34.get("/superadmin/_diag/societa-debug", async (req, res) => {
        ORDER BY created_at DESC
        LIMIT 50`
     );
+    const [auditCount] = await pool.execute(
+      `SELECT COUNT(*) AS total, MAX(created_at) AS last_ts FROM sa_audit_log`
+    );
+    const [auditLast] = await pool.execute(
+      `SELECT id, action, target_society_id, reason, created_at
+       FROM sa_audit_log ORDER BY created_at DESC LIMIT 10`
+    );
+    const [auditSchema] = await pool.execute(
+      `SHOW COLUMNS FROM sa_audit_log`
+    );
     return res.json({
       usd_angelo_baiardo: usd,
       societies_comparison: test,
       owners,
-      audit_log_recent: audit
+      audit_log_recent: audit,
+      audit_total_count: auditCount[0],
+      audit_last_10: auditLast,
+      audit_schema: auditSchema
     });
   } catch (e) {
     return res.status(500).json({ error: e?.message ?? "server_error" });

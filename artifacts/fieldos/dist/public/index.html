@@ -23214,9 +23214,13 @@ async function _submitSelectPlan() {
       if (btn) { btn.disabled = false; btn.textContent = 'Entra in MyVivaio →'; }
       return;
     }
-    // Update token with new societyPiano
+    // Update token with new societyPiano — propaga a TUTTI i token cache (v2 + wa)
+    // altrimenti waCheckStatus() etc usano il vecchio token con societyPiano=null e
+    // l'interceptor 403 plan_required riapre Step 2.
     _v2Token = data.token || _v2Token;
+    _waToken = data.token || _waToken;
     try { localStorage.setItem('mv_v2_token', _v2Token); } catch(_) {}
+    try { sessionStorage.setItem('mv_wa_token', _waToken); } catch(_) {}
     // Recupera pending registration (boot dello state lato client)
     let pending = _pendingRegistration;
     if (!pending) {
@@ -23284,7 +23288,19 @@ window.addEventListener('hashchange', function() {
   }
 });
 
-// Intercept globale fetch — se backend ritorna 403 plan_required, naviga a Step 2
+// Intercept globale fetch — se backend ritorna 403 plan_required, naviga a Step 2.
+// Skip se nel token corrente abbiamo già societyPiano valorizzato (= falso positivo
+// dovuto a una request partita con token stale prima dell'aggiornamento post-select-plan).
+function _v2TokenHasPlan() {
+  try {
+    const tok = _v2Token || localStorage.getItem('mv_v2_token');
+    if (!tok) return false;
+    const parts = tok.split('.');
+    if (parts.length !== 3) return false;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload && payload.societyPiano != null;
+  } catch (_) { return false; }
+}
 (function() {
   const _origFetch = window.fetch;
   window.fetch = async function() {
@@ -23294,6 +23310,11 @@ window.addEventListener('hashchange', function() {
         const cloned = resp.clone();
         const body = await cloned.json();
         if (body && body.error === 'plan_required') {
+          if (_v2TokenHasPlan()) {
+            // Token corrente ha già un piano: il 403 viene da una request con token stale.
+            // Ignoriamo silenziosamente.
+            return resp;
+          }
           if (window.location.hash !== '#scegli-piano') {
             _openSelectPlanScreen();
           }
