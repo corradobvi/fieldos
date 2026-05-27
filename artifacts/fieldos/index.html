@@ -11915,6 +11915,20 @@ async function submitSelfReg(){
         }
       }
 
+      // Auto-accept privacy: idempotente. Garantisce coerenza tra consenso GDPR step3 (frontend)
+      // e users.privacy_accepted_at (backend). Evita prompt privacy al primo re-login.
+      try {
+        await fetch(API_BASE + '/api/v2/account/accept-privacy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + guardianToken
+          }
+        });
+      } catch(privacyErr) {
+        console.warn('[submitSelfReg] auto accept-privacy fallita (non bloccante)', privacyErr);
+      }
+
       // Boot as new genitore user (in-memory session)
       const apiUser = regData.user || {};
       const firstClaimId = parseInt(claimList[0]?.rawId || '0', 10);

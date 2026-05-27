@@ -221,13 +221,31 @@ router.post("/login", async (req, res) => {
           userId: ms.id, societyId: ms.society_id, role: ms.ruolo,
           email: normalizedEmail, societyPiano: ms.piano ?? null,
         });
-        logger.info({ email: normalizedEmail, societyId: ms.society_id, userId: ms.id }, "login ok (mysql-fallback V2)");
+
+        // Guardian relationships: ricostruisce figli + figliIds da player_guardians (source of truth V2)
+        const [guardianRows] = (await pool.execute(
+          `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, pg.role
+           FROM player_guardians pg
+           INNER JOIN players p ON p.id = pg.player_id
+           WHERE pg.user_id = ? AND p.society_id = ?`,
+          [ms.id, ms.society_id]
+        )) as [any[], any];
+        const figliFromGuardians: string[] = [];
+        const figliIdsFromGuardians: number[] = [];
+        for (const g of guardianRows as any[]) {
+          const cogn = g.cognome || g.cognome_iniziale || '';
+          figliFromGuardians.push(`${g.nome} ${cogn}`.trim());
+          figliIdsFromGuardians.push(Number(g.id));
+        }
+
+        logger.info({ email: normalizedEmail, societyId: ms.society_id, userId: ms.id, guardianCount: figliIdsFromGuardians.length }, "login ok (mysql-fallback V2)");
         return res.json({
           societyId: ms.society_id, stateKey,
           user: {
             id: ms.id, email: normalizedEmail, role: ms.ruolo,
             nome: ms.nome, cogn: ms.cognome,
-            figli: ms.figli ? JSON.parse(ms.figli) : [],
+            figli: figliFromGuardians,          // ← preso da player_guardians (cogn completo)
+            figliIds: figliIdsFromGuardians,    // ← NUOVO
             is_account_owner: ms.is_account_owner === 1,
             _isV2: true, tempPassword: ms.temp_password === 1,
           },
