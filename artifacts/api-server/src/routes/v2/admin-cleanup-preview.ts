@@ -77,4 +77,120 @@ router.get("/superadmin/_diag/cleanup-preview", async (req, res) => {
   return res.json({ preview: out });
 });
 
+// POST /api/v2/superadmin/_diag/cleanup-execute
+// Body: { societyIds: number[], confirm: "DELETE-CONFIRMED" }
+// Esegue cancellazione transazionale per ciascuna società.
+// Ordine: push_subscriptions → allenamento_sessioni → allenamenti → society_state → societies (CASCADE)
+router.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const { societyIds, confirm } = req.body as { societyIds?: number[]; confirm?: string };
+  if (confirm !== "DELETE-CONFIRMED") return res.status(400).json({ error: "confirm_required", expected: "DELETE-CONFIRMED" });
+  if (!Array.isArray(societyIds) || !societyIds.length) return res.status(400).json({ error: "societyIds_required" });
+  for (const sid of societyIds) {
+    if (!Number.isFinite(sid) || sid <= 0) return res.status(400).json({ error: "invalid_societyId", sid });
+  }
+
+  const conn = await (pool as any).getConnection();
+  const perSocietyResults: any[] = [];
+  let txStatus = "pending";
+  let errorDetail: string | null = null;
+
+  try {
+    await conn.beginTransaction();
+
+    for (const sid of societyIds) {
+      const stateKey = `fieldos_state_soc_${sid}`;
+      const counts: Record<string, number> = {};
+
+      // 1. push_subscriptions (no FK)
+      const [r1] = await conn.execute(
+        "DELETE FROM push_subscriptions WHERE society_key = ?",
+        [stateKey]
+      ) as [any, any];
+      counts.push_subscriptions = (r1 as any).affectedRows ?? 0;
+
+      // 2. allenamento_sessioni (FK CASCADE su allenamenti, ma li elimino esplicitamente per ordine)
+      const [r2] = await conn.execute(
+        "DELETE FROM allenamento_sessioni WHERE allenamento_id IN (SELECT id FROM allenamenti WHERE societa_id = ?)",
+        [sid]
+      ) as [any, any];
+      counts.allenamento_sessioni = (r2 as any).affectedRows ?? 0;
+
+      // 3. allenamenti (creato_da RESTRICT su users → eliminare prima di users)
+      const [r3] = await conn.execute(
+        "DELETE FROM allenamenti WHERE societa_id = ?",
+        [sid]
+      ) as [any, any];
+      counts.allenamenti = (r3 as any).affectedRows ?? 0;
+
+      // 4. society_state (no FK, key VARCHAR)
+      const [r4] = await conn.execute(
+        "DELETE FROM society_state WHERE `key` = ?",
+        [stateKey]
+      ) as [any, any];
+      counts.society_state = (r4 as any).affectedRows ?? 0;
+
+      // 5. societies — CASCADE su users, players, leve, events, comunicazioni, chat_messages, quote, notifiche, churn_feedback, ai_budget_utilizzo, ai_societa_allowlist; SET NULL su sessioni_libreria, ai_richieste_log (ma mister CASCADE)
+      const [r5] = await conn.execute(
+        "DELETE FROM societies WHERE id = ?",
+        [sid]
+      ) as [any, any];
+      counts.societies = (r5 as any).affectedRows ?? 0;
+
+      perSocietyResults.push({ society_id: sid, counts });
+    }
+
+    await conn.commit();
+    txStatus = "committed";
+  } catch (e: any) {
+    try { await conn.rollback(); } catch (_) {}
+    txStatus = "rolledback";
+    errorDetail = e?.message || String(e);
+  } finally {
+    try { conn.release(); } catch (_) {}
+  }
+
+  // Post-state: verifica residui per le società target
+  const postState: any[] = [];
+  if (txStatus === "committed") {
+    for (const sid of societyIds) {
+      const stateKey = `fieldos_state_soc_${sid}`;
+      try {
+        const [s] = await pool.execute("SELECT id FROM societies WHERE id = ?", [sid]) as [any[], any];
+        const [u] = await pool.execute("SELECT COUNT(*) AS n FROM users WHERE society_id = ?", [sid]) as [any[], any];
+        const [p] = await pool.execute("SELECT COUNT(*) AS n FROM players WHERE society_id = ?", [sid]) as [any[], any];
+        const [a] = await pool.execute("SELECT COUNT(*) AS n FROM allenamenti WHERE societa_id = ?", [sid]) as [any[], any];
+        const [ps] = await pool.execute("SELECT COUNT(*) AS n FROM push_subscriptions WHERE society_key = ?", [stateKey]) as [any[], any];
+        const [ss] = await pool.execute("SELECT COUNT(*) AS n FROM society_state WHERE `key` = ?", [stateKey]) as [any[], any];
+        postState.push({
+          society_id: sid,
+          societies_residual: (s as any[]).length,
+          users_residual: Number((u[0] as any).n) || 0,
+          players_residual: Number((p[0] as any).n) || 0,
+          allenamenti_residual: Number((a[0] as any).n) || 0,
+          push_subscriptions_residual: Number((ps[0] as any).n) || 0,
+          society_state_residual: Number((ss[0] as any).n) || 0,
+        });
+      } catch (e: any) {
+        postState.push({ society_id: sid, error: e?.message });
+      }
+    }
+  }
+
+  // Lista società rimaste
+  let remaining: any[] = [];
+  try {
+    const [r] = await pool.execute("SELECT id, nome, codice, billing_mode, subscription_status FROM societies ORDER BY id") as [any[], any];
+    remaining = r as any[];
+  } catch {}
+
+  return res.json({
+    tx_status: txStatus,
+    error: errorDetail,
+    per_society: perSocietyResults,
+    post_state: postState,
+    remaining_societies: remaining,
+  });
+});
+
 export default router;

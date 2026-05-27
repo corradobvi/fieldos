@@ -91187,6 +91187,104 @@ router36.get("/superadmin/_diag/cleanup-preview", async (req, res) => {
   }
   return res.json({ preview: out });
 });
+router36.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
+  if (!checkAuth4(req, res)) return;
+  const { societyIds, confirm } = req.body;
+  if (confirm !== "DELETE-CONFIRMED") return res.status(400).json({ error: "confirm_required", expected: "DELETE-CONFIRMED" });
+  if (!Array.isArray(societyIds) || !societyIds.length) return res.status(400).json({ error: "societyIds_required" });
+  for (const sid of societyIds) {
+    if (!Number.isFinite(sid) || sid <= 0) return res.status(400).json({ error: "invalid_societyId", sid });
+  }
+  const conn = await pool.getConnection();
+  const perSocietyResults = [];
+  let txStatus = "pending";
+  let errorDetail = null;
+  try {
+    await conn.beginTransaction();
+    for (const sid of societyIds) {
+      const stateKey = `fieldos_state_soc_${sid}`;
+      const counts = {};
+      const [r1] = await conn.execute(
+        "DELETE FROM push_subscriptions WHERE society_key = ?",
+        [stateKey]
+      );
+      counts.push_subscriptions = r1.affectedRows ?? 0;
+      const [r2] = await conn.execute(
+        "DELETE FROM allenamento_sessioni WHERE allenamento_id IN (SELECT id FROM allenamenti WHERE societa_id = ?)",
+        [sid]
+      );
+      counts.allenamento_sessioni = r2.affectedRows ?? 0;
+      const [r3] = await conn.execute(
+        "DELETE FROM allenamenti WHERE societa_id = ?",
+        [sid]
+      );
+      counts.allenamenti = r3.affectedRows ?? 0;
+      const [r4] = await conn.execute(
+        "DELETE FROM society_state WHERE `key` = ?",
+        [stateKey]
+      );
+      counts.society_state = r4.affectedRows ?? 0;
+      const [r5] = await conn.execute(
+        "DELETE FROM societies WHERE id = ?",
+        [sid]
+      );
+      counts.societies = r5.affectedRows ?? 0;
+      perSocietyResults.push({ society_id: sid, counts });
+    }
+    await conn.commit();
+    txStatus = "committed";
+  } catch (e) {
+    try {
+      await conn.rollback();
+    } catch (_) {
+    }
+    txStatus = "rolledback";
+    errorDetail = e?.message || String(e);
+  } finally {
+    try {
+      conn.release();
+    } catch (_) {
+    }
+  }
+  const postState = [];
+  if (txStatus === "committed") {
+    for (const sid of societyIds) {
+      const stateKey = `fieldos_state_soc_${sid}`;
+      try {
+        const [s] = await pool.execute("SELECT id FROM societies WHERE id = ?", [sid]);
+        const [u] = await pool.execute("SELECT COUNT(*) AS n FROM users WHERE society_id = ?", [sid]);
+        const [p] = await pool.execute("SELECT COUNT(*) AS n FROM players WHERE society_id = ?", [sid]);
+        const [a] = await pool.execute("SELECT COUNT(*) AS n FROM allenamenti WHERE societa_id = ?", [sid]);
+        const [ps] = await pool.execute("SELECT COUNT(*) AS n FROM push_subscriptions WHERE society_key = ?", [stateKey]);
+        const [ss] = await pool.execute("SELECT COUNT(*) AS n FROM society_state WHERE `key` = ?", [stateKey]);
+        postState.push({
+          society_id: sid,
+          societies_residual: s.length,
+          users_residual: Number(u[0].n) || 0,
+          players_residual: Number(p[0].n) || 0,
+          allenamenti_residual: Number(a[0].n) || 0,
+          push_subscriptions_residual: Number(ps[0].n) || 0,
+          society_state_residual: Number(ss[0].n) || 0
+        });
+      } catch (e) {
+        postState.push({ society_id: sid, error: e?.message });
+      }
+    }
+  }
+  let remaining = [];
+  try {
+    const [r] = await pool.execute("SELECT id, nome, codice, billing_mode, subscription_status FROM societies ORDER BY id");
+    remaining = r;
+  } catch {
+  }
+  return res.json({
+    tx_status: txStatus,
+    error: errorDetail,
+    per_society: perSocietyResults,
+    post_state: postState,
+    remaining_societies: remaining
+  });
+});
 var admin_cleanup_preview_default = router36;
 
 // src/routes/v2/index.ts
