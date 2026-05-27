@@ -30,6 +30,7 @@ import adminPopulateSessioniRouter from "./admin-populate-sessioni";
 import selectPlanRouter            from "./select-plan";
 import adminGenitoreDebugRouter    from "./admin-genitore-debug";
 import adminPushDebugRouter        from "./admin-push-debug";
+import adminCleanupPreviewRouter   from "./admin-cleanup-preview";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -330,4 +331,5 @@ router.use(adminPopulateSessioniRouter);
 router.use(selectPlanRouter);
 router.use(adminGenitoreDebugRouter);
 router.use(adminPushDebugRouter);
+router.use(adminCleanupPreviewRouter);
 export default router;
