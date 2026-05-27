@@ -11630,7 +11630,8 @@ function _srBuildIdentityFields() {
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
       const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
-      if (ap) toVerify.push({
+      // Verifica richiesta SOLO se incomplete (allinea col branch bp: secondi genitori NON ricompilano)
+      if (ap && ap.incomplete === true) toVerify.push({
         rawId:       String(ap.id),
         displayName: ap.firstName + ' ' + ap.lastNameInitial + (ap.shirtNumber ? ' #' + ap.shirtNumber : '') + ' · ' + (ap.levaKey || '')
       });
@@ -11673,7 +11674,9 @@ function srStep3Next(){
   const toValidate = []; // array di rawId
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
-      toValidate.push(sid.replace('api_',''));
+      const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
+      // Verifica richiesta SOLO se incomplete (allinea col branch bp)
+      if (ap && ap.incomplete === true) toValidate.push(sid.replace('api_',''));
     } else {
       const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
       if (bp && bp.incomplete === true) toValidate.push(String(bp.id));
@@ -11942,10 +11945,18 @@ async function submitSelfReg(){
       _v2Token = guardianToken;
       try { localStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
       closeM('mSelfReg');
-      const _figliText = newUser.figli.join(', ');
-      const _toastMsg = _figliText
-        ? '✅ Registrazione completata, sei collegato a ' + _figliText
-        : '✅ Registrazione completata';
+      // Distingue caso "secondo genitore" (almeno un player già completo) da "primo genitore" (tutti incomplete)
+      const _hasAlreadyCompletePlayer = claimList.some(c => {
+        const pid = parseInt(c.rawId, 10);
+        const ap = _srApiPlayers.find(x => x.id === pid);
+        if (ap) return ap.incomplete === false;
+        const bp = players.find(x => x.id === pid);
+        return bp ? bp.incomplete === false : false;
+      });
+      const _figliText = (newUser.figli || []).filter(f => f && f.trim()).join(', ');
+      const _toastMsg = _hasAlreadyCompletePlayer
+        ? (_figliText ? '✅ Collegamento confermato: ' + _figliText : '✅ Collegamento confermato')
+        : (_figliText ? '🎉 Registrazione completata, sei collegato a ' + _figliText : '🎉 Registrazione completata');
       setTimeout(() => toast(_toastMsg), 350);
       me = newUser;
       bootApp(newUser);
