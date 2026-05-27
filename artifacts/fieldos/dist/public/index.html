@@ -12538,6 +12538,24 @@ function _campPolis(lv) {
   return found || current;
 }
 
+// Badge per riga partita in Panoramica/Home: tornei mostrano la sede (m.luogo),
+// amichevoli/campionato mantengono Casa/Trasferta. Tornei senza sede: nessun badge.
+function getBadgePartita(m) {
+  if (m && m.tipo === 'torneo') {
+    if (!m.luogo) return null;
+    return {
+      label: m.luogo,
+      bg: 'var(--bg2, #e2e8f0)',
+      color: 'var(--text2, #4a5568)'
+    };
+  }
+  return {
+    label: m && m.casa ? 'Casa' : 'Trasferta',
+    bg: m && m.casa ? '#0b7a3e' : '#e65100',
+    color: '#fff'
+  };
+}
+
 function panoAllNextMatchesAcrossLeve(leveArr) {
   const todayStr = ymd(new Date());
   const results = [];
@@ -12699,20 +12717,24 @@ function renderPanoramica() {
           </div>
         </div>`;
       }
-      const casaCol = m.casa ? '#0b7a3e' : '#e65100';
-      const casaLb  = m.casa ? 'Casa' : 'Trasferta';
       const sub = m.giornata ? ` · G${m.giornata}` : m.torneoNome ? ` · ${escapeHtml(m.torneoNome)}` : '';
+      // Per i tornei la sede compare già nel badge a destra → niente 📍 nel meta per evitare duplicazione.
+      const _showLuogoInMeta = m.tipo !== 'torneo' && !!m.luogo;
       const meta = [
         `📅 ${escapeHtml(panoFmtDateShort(m.data))}${m.orario ? ' ' + m.orario : ''}`,
-        m.luogo ? `📍 ${escapeHtml(m.luogo)}` : ''
+        _showLuogoInMeta ? `📍 ${escapeHtml(m.luogo)}` : ''
       ].filter(Boolean).join(' · ');
+      const _badge = getBadgePartita(m);
+      const _badgeHtml = _badge
+        ? `<span style="font-size:.65rem;font-weight:700;background:${_badge.bg};color:${_badge.color};border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(_badge.label)}</span>`
+        : '';
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 11px;background:#f8fafc;border-radius:9px;border:1px solid var(--bd);border-left:3px solid ${t.col};">
         <div style="font-size:1.15rem;line-height:1;flex-shrink:0;">${t.ic}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ${escapeHtml(m.avversario)}${levaChip}<span style="font-weight:400;font-size:.75rem;color:var(--text3);">${sub}</span></div>
           <div style="font-size:.74rem;color:var(--text2);margin-top:1px;">${meta}</div>
         </div>
-        <span style="font-size:.65rem;font-weight:700;background:${casaCol};color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;">${casaLb}</span>
+        ${_badgeHtml}
       </div>`;
     }).join('');
     const more = _panoVisible.length > _maxShow

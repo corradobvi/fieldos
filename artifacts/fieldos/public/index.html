@@ -1575,8 +1575,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-today .cgm-num{color:#fff;font-weight:700;}
 .cgm-sel{border:2px solid var(--cp);}
 .cgm-sel .cgm-num{color:var(--cp);font-weight:700;}
-.cgm-dots{display:flex;gap:2px;margin-top:3px;}
-.cgm-dot{width:5px;height:5px;border-radius:50%;}
+.cgm-dots{display:flex;gap:6px;justify-content:center;margin:6px 0;min-height:14px;}
+.cgm-dot{width:10px;height:10px;border-radius:50%;}
 .cgm-dot-tr{background:#0F6E56;}
 .cgm-dot-mt{background:var(--cp);}
 .cgm-dot-ev{background:var(--gold,#BA7517);}
@@ -1593,6 +1593,98 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-badge-conv{background:#dcfce7;color:#166534;}
 .cgm-badge-noconv{background:var(--border);color:var(--text2);}
 .cgm-badge-wait{background:#fef9c3;color:#854d0e;}
+/* Cal genitore v2: 5 pallini per giorno + data-badge OGGI/DOMANI */
+.cgm-dot-allen{background:#0F6E56;}
+.cgm-dot-conv{background:#2563eb;}
+.cgm-dot-noconv{background:#cbd5e1;}
+.cgm-dot-ass{background:#f97316;}
+.cgm-dot-ind{background:#dc2626;}
+.data-badge{display:inline-block;font-size:.58rem;font-weight:800;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-left:4px;vertical-align:middle;}
+.data-badge.oggi{background:var(--cp);color:#fff;}
+.data-badge.domani{background:#fef3c7;color:#92400e;}
+.cgm-tabs{display:flex;gap:4px;margin-bottom:12px;}
+.cgm-tab-btn{flex:1;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:8px;padding:7px 8px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.cgm-tab-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.cgm-filtri{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.cgm-filtro-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:14px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.cgm-filtro-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.cgm-placeholder{text-align:center;padding:48px 20px;color:var(--text3);font-size:.88rem;background:var(--cl);border-radius:10px;}
+/* Vista settimana v3 */
+.cgm-week-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:12px;}
+.cgm-week-nav-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text1);-webkit-tap-highlight-color:transparent;}
+.cgm-week-nav-today{background:var(--cp);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cgm-week-label{font-weight:700;font-size:.92rem;color:var(--text1);flex:1;text-align:center;}
+/* Grid desktop: scroll orizzontale, colonne larghe 280px */
+.cgm-week-grid{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;padding:8px 4px 16px 4px;margin:16px -8px 0 -8px;scroll-snap-type:x proximity;scrollbar-width:thin;}
+.cgm-week-grid::-webkit-scrollbar{height:8px;}
+.cgm-week-grid::-webkit-scrollbar-track{background:#f1f5f9;border-radius:4px;}
+.cgm-week-grid::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
+.cgm-week-grid::-webkit-scrollbar-thumb:hover{background:#94a3b8;}
+.cgm-week-col{flex:0 0 280px;scroll-snap-align:start;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 12px;min-height:220px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:all .2s;}
+.cgm-week-col:hover{border-color:var(--cp);box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-2px);}
+.cgm-week-col.oggi{border-color:var(--cp);border-width:2px;padding:13px 11px;}
+.cgm-week-col-head{text-align:center;padding-bottom:10px;border-bottom:1px solid #f1f5f9;}
+.cgm-week-col-day{font-size:12px;font-weight:600;color:#64748b;letter-spacing:1px;text-transform:uppercase;}
+.cgm-week-col-num{font-size:30px;font-weight:700;color:#0f172a;line-height:1.1;margin-top:4px;}
+.cgm-week-col-badge{display:inline-block;margin-top:8px;padding:3px 10px;border-radius:8px;font-size:10px;font-weight:700;letter-spacing:.5px;}
+.cgm-week-col-badge.oggi{background:var(--cp);color:#fff;}
+.cgm-week-col-badge.domani{background:#fef3c7;color:#92400e;}
+.cgm-week-col .cgm-dots{margin:8px 0;justify-content:center;}
+.cgm-week-col-events{display:flex;flex-direction:column;gap:6px;}
+/* Pillole RICCHE (multi-riga in colonna larga 280px) */
+.cgm-week-pill{display:block;font-size:13px;font-weight:600;padding:10px 12px;border-radius:8px;border-left:4px solid #cbd5e1;background:#f8fafc;color:#0f172a;line-height:1.4;}
+.cgm-week-pill.tipo-allen{border-left-color:#0F6E56;background:#ecfdf5;color:#064e3b;}
+.cgm-week-pill.tipo-partita-conv{border-left-color:#2563eb;background:#eff6ff;color:#1e3a8a;}
+.cgm-week-pill.tipo-partita-noconv{border-left-color:#94a3b8;background:#f8fafc;color:#475569;}
+.cgm-week-pill.tipo-altro{border-left-color:#7c3aed;background:#f5f3ff;color:#5b21b6;}
+.cgm-week-pill.tipo-indisp{border-left-color:#dc2626;background:#fef2f2;color:#991b1b;}
+.cgm-week-pill.tipo-assenza{border-left-color:#f97316;background:#fff7ed;color:#9a3412;}
+.cgm-week-pill-icon-title{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;}
+.cgm-week-pill-meta{font-size:12px;color:inherit;opacity:.85;margin-top:4px;display:flex;flex-direction:column;gap:2px;}
+.cgm-week-pill-badge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;}
+.cgm-week-pill-badge.conv{background:#dbeafe;color:#1e40af;}
+.cgm-week-pill-badge.noconv{background:#f1f5f9;color:#475569;}
+.cgm-week-pill-badge.attesa{background:#fef3c7;color:#92400e;}
+.cgm-week-more{font-size:12px;color:#64748b;text-align:center;padding:6px 0;font-weight:500;}
+.cgm-week-empty{text-align:center;padding:24px 8px;color:#94a3b8;font-size:13px;flex:1;display:flex;align-items:center;justify-content:center;}
+/* Card RICCHE (riusabili da Lista/Modal e da mobile-agenda) */
+.cgm-week-ev{background:#f8fafc;border-radius:8px;padding:8px 10px 8px 12px;position:relative;overflow:hidden;border-left:3px solid #cbd5e1;}
+.cgm-week-ev.tipo-allen{border-left-color:#0F6E56;background:#ecfdf5;}
+.cgm-week-ev.tipo-partita-conv{border-left-color:#2563eb;background:#eff6ff;}
+.cgm-week-ev.tipo-partita-noconv{border-left-color:#94a3b8;background:#f8fafc;}
+.cgm-week-ev.tipo-altro{border-left-color:#7c3aed;background:#f5f3ff;}
+.cgm-week-ev.tipo-indisp{border-left-color:#dc2626;background:#fef2f2;}
+.cgm-week-ev.tipo-assenza{border-left-color:#f97316;background:#fff7ed;}
+.cgm-week-ev-icon-title{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#0f172a;margin-bottom:2px;}
+.cgm-week-ev-meta{font-size:11px;color:#475569;display:flex;flex-direction:column;gap:2px;}
+.cgm-week-ev-meta .row{display:flex;align-items:center;gap:4px;}
+.cgm-week-ev-badge-inline{display:inline-block;margin-top:5px;padding:2px 6px;border-radius:6px;font-size:10px;font-weight:600;}
+.cgm-week-ev-badge-inline.conv{background:#dbeafe;color:#1e40af;}
+.cgm-week-ev-badge-inline.noconv{background:#f1f5f9;color:#475569;}
+.cgm-week-ev-badge-inline.attesa{background:#fef3c7;color:#92400e;}
+/* Vista lista (riusa .cgm-week-ev) */
+.cgm-lista{display:flex;flex-direction:column;gap:14px;}
+.cgm-lista-day-header{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px;}
+.cgm-lista-day-events{display:flex;flex-direction:column;gap:6px;}
+/* Layout switch: <768px mobile agenda (cards ricche), >=769px desktop scroll-x */
+.cgm-week-agenda{display:none;}
+@media(max-width:768px){
+  .cgm-week-grid{display:none;}
+  .cgm-week-agenda{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .cgm-week-agenda .cgm-week-col{flex:none;min-height:auto;flex-direction:column;padding:14px;}
+}
+@media(min-width:769px){.cgm-week-agenda{display:none;}}
+/* Modal sheet slide-up */
+.modal-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:9998;}
+.modal-sheet-backdrop.open{opacity:1;pointer-events:auto;}
+.modal-sheet{position:fixed;bottom:0;left:0;right:0;max-height:90vh;overflow-y:auto;background:var(--white);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .3s ease;z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,.15);-webkit-overflow-scrolling:touch;}
+.modal-sheet.open{transform:translateY(0);}
+.modal-sheet-handle{width:40px;height:4px;background:var(--border);border-radius:3px;margin:8px auto 4px;}
+.modal-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--white);z-index:1;}
+.modal-sheet-title{font-size:1rem;font-weight:800;color:var(--text1);}
+.modal-sheet-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--cl);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);-webkit-tap-highlight-color:transparent;}
+.modal-sheet-body{padding:14px 18px 80px;display:flex;flex-direction:column;gap:10px;}
+.modal-sheet-cta-fixed{position:sticky;bottom:0;left:0;right:0;background:linear-gradient(180deg,rgba(255,255,255,0) 0%,var(--white) 30%);padding:18px 18px 22px;display:flex;flex-direction:column;gap:8px;}
 /* ── Allenamenti calendar view ─────────── */
 .all-cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .all-cal-mlbl{font-weight:800;font-size:.95rem;min-width:130px;text-align:center;color:var(--text1);}
@@ -4073,6 +4165,10 @@ let calWeekSelDay = null;
 let calGenYear = new Date().getFullYear();
 let calGenMonth = new Date().getMonth();
 let calGenSelDay = null;
+// Calendario genitore v2: stato per 3 viste (mese/settimana/lista) + filtri
+let calGenView = 'settimana';                           // verrà ripristinato da localStorage in render
+let calGenFiltri = { allen: true, partite: true };      // toggle Allenamenti/Partite
+let calGenWeekStart = null;                             // lunedì della settimana visibile (vista settimana)
 let _dayModalDate = null;
 let _deleteTargetId = null;
 let _editPendingData = null;
@@ -5177,21 +5273,24 @@ function buildSidebar(role) {
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       // Quote: nascondi completamente dalla nav se piano non include la feature
       if (locked && item.id === 'pagamenti') return;
-      const wip = !!item.wip;
+      // Consumer (genitore/nonno/giocatore): paywall sostituito da "In sviluppo" + no-op (non sono loro a pagare)
+      const _isConsumerRole = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+      const _effLocked = locked && !_isConsumerRole;
+      const _effWip = !!item.wip || (locked && _isConsumerRole);
       const d = document.createElement('div');
-      d.className = 'ni' + (locked ? ' ni-locked' : '') + (wip ? ' ni-wip' : '');
+      d.className = 'ni' + (_effLocked ? ' ni-locked' : '') + (_effWip ? ' ni-wip' : '');
       d.dataset.pg = item.id;
       let h = `<span class="ico">${item.ic}</span>${item.lb}`;
-      if (locked) {
+      if (_effLocked) {
         const lk = SECTION_LOCKS[item.id];
         h += `<span class="nb lock">🔒 ${lk.nomePiano}</span>`;
-      } else if (wip) {
+      } else if (_effWip) {
         h += `<span class="nb wip">In sviluppo</span>`;
       } else if (item.badge) {
         h += `<span class="nb${item.bw?' w':''}">${item.badge}</span>`;
       }
       d.innerHTML = h;
-      d.onclick = locked ? () => { openUpgradePopup(item.id); closeSb(); } : wip ? () => {} : () => { goTo(item.id); closeSb(); };
+      d.onclick = _effLocked ? () => { openUpgradePopup(item.id); closeSb(); } : _effWip ? () => {} : () => { goTo(item.id); closeSb(); };
       nav.appendChild(d);
     }
   });
@@ -5540,7 +5639,6 @@ function renderProfiloFiglio(el) {
     <div class="mob-figlio-hero">
       <div class="mob-figlio-av">${ini}</div>
       <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-      ${p.approval_status === 'pending' ? '<div style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700;margin-top:6px;">⏳ In attesa di approvazione mister</div>' : ''}
       <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
       <div class="mob-figlio-stats">
         <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
@@ -5886,42 +5984,6 @@ async function _syncRosaFromMySQL() {
   } catch(_) {}
 }
 
-async function approvePlayerRegistration(playerId) {
-  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
-  if (!_v2Token) { toast('⛔ Sessione scaduta. Rifai login.'); return; }
-  try {
-    const r = await fetch(API_BASE + '/api/v2/players/' + playerId + '/approve', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + _v2Token }
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { toast('❌ ' + (d.error || 'Errore approvazione')); return; }
-    const p = players.find(x => x.id === playerId);
-    if (p) { p.approval_status = 'approved'; if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState(); }
-    toast('✅ Iscrizione approvata');
-    renderRosa();
-  } catch (e) { toast('❌ Errore di rete'); }
-}
-
-async function rejectPlayerRegistration(playerId) {
-  const p = players.find(x => x.id === playerId);
-  const nm = p ? (p.nome + ' ' + (p.cogn || p.cogn_iniziale || '')) : 'questo giocatore';
-  if (!confirm('Rifiutare l\'iscrizione di ' + nm + '? Il genitore associato verrà rimosso e dovrà riprovare contattando la società.')) return;
-  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
-  if (!_v2Token) { toast('⛔ Sessione scaduta. Rifai login.'); return; }
-  try {
-    const r = await fetch(API_BASE + '/api/v2/players/' + playerId + '/reject', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + _v2Token }
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { toast('❌ ' + (d.error || 'Errore rifiuto')); return; }
-    if (p) { p.approval_status = 'approved'; if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState(); }
-    toast('🗑 Iscrizione rifiutata, genitore rimosso');
-    renderRosa();
-  } catch (e) { toast('❌ Errore di rete'); }
-}
-
 function _renderRosaInner() {
   // Inner re-render senza re-trigger del sync MySQL — usato da _syncRosaFromMySQL
   _rosaSkipSync = true;
@@ -5980,9 +6042,7 @@ function renderRosa() {
       : '';
     const incompleteBadge = p.incomplete
       ? ' <span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:5px;padding:1px 6px;font-size:.68rem;font-weight:700;" title="In attesa del genitore">⏳ Attesa genitore</span>'
-      : (p.approval_status === 'pending')
-        ? ' <span style="display:inline-block;background:#dbeafe;color:#1e3a8a;border-radius:5px;padding:1px 6px;font-size:.68rem;font-weight:700;" title="Iscrizione famiglia da approvare">📥 Da approvare</span>'
-        : '';
+      : '';
     const displayName = p.incomplete
       ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
       : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
@@ -6050,34 +6110,14 @@ function renderRosa() {
           }
         };
 
-        if (p.incomplete) {
-          // Incomplete player: show Genitori button instead of ✉
-          const bGen = document.createElement('button');
-          bGen.className = 'btn btn-g btn-xs';
-          bGen.style.flex = '1';
-          bGen.title = 'Tutori/Genitori';
-          bGen.textContent = '👨‍👧';
-          bGen.onclick = () => openGuardiansModal(p.id);
-          btns.appendChild(bGen);
-        } else if (p.approval_status === 'pending') {
-          // Iscrizione famiglia da approvare: 2 bottoni
-          const bOk = document.createElement('button');
-          bOk.className = 'btn btn-p btn-xs';
-          bOk.style.flex = '1';
-          bOk.title = 'Approva iscrizione famiglia';
-          bOk.textContent = '✓ Approva';
-          bOk.onclick = () => approvePlayerRegistration(p.id);
-          const bNo = document.createElement('button');
-          bNo.className = 'btn btn-r btn-xs';
-          bNo.style.flex = '1';
-          bNo.title = 'Rifiuta iscrizione famiglia';
-          bNo.textContent = '✗ Rifiuta';
-          bNo.onclick = () => rejectPlayerRegistration(p.id);
-          btns.appendChild(bOk);
-          btns.appendChild(bNo);
-        } else {
-          btns.appendChild(bMsg);
-        }
+        // Bottone Tutori sempre visibile (gestisce associazione genitori al giocatore)
+        const bGen = document.createElement('button');
+        bGen.className = 'btn btn-g btn-xs';
+        bGen.style.flex = '1';
+        bGen.title = 'Tutori/Genitori';
+        bGen.textContent = '👨‍👧';
+        bGen.onclick = () => openGuardiansModal(p.id);
+        btns.appendChild(bGen);
         btns.appendChild(bEdit);
         btns.appendChild(bDel);
       }
@@ -6724,8 +6764,18 @@ function renderPresenze() {
   } else if (me.role === 'preparatore_portieri') {
     renderPresenzeAllenatore(cont);
   } else if (me.role === 'genitore' || me.role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    renderPresenzePersonale(cont, players.filter(p => figliNames.includes(p.nome+' '+p.cogn)));
+    let figliP = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliP = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliP.length) {
+      const figliNames = getFigliOf(me);
+      figliP = players.filter(p =>
+        figliNames.includes(p.nome+' '+p.cogn) ||
+        figliNames.includes(p.nome+' '+(p.cogn_iniziale||''))
+      );
+    }
+    renderPresenzePersonale(cont, figliP);
   } else if (me.role === 'giocatore') {
     const myP = players.find(p => p.nome===me.nome && p.cogn===me.cogn);
     renderPresenzePersonale(cont, myP ? [myP] : []);
@@ -7493,15 +7543,23 @@ function exportPresenzeCSV(){
 }
 
 // ── Modale "Avvisa assenza" (genitore / giocatore)
-function openAvvisaModal(){
+function openAvvisaModal(prefilledDate){
   if (!canAvvisaAssenza()) return;
   const figliRow = document.getElementById('avvisaFiglioRow');
   const figliSel = document.getElementById('avvisaFiglio');
   // Determina i giocatori coinvolti
   let candidates = [];
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    candidates = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      candidates = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!candidates.length) {
+      const figliNames = getFigliOf(me);
+      candidates = players.filter(p =>
+        figliNames.includes(p.nome + ' ' + p.cogn) ||
+        figliNames.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
   } else if (me.role === 'giocatore') {
     candidates = players.filter(p => p.nome === me.nome && p.cogn === me.cogn);
   }
@@ -7532,6 +7590,13 @@ function openAvvisaModal(){
   populateDates(figliSel.value);
   figliSel.onchange = () => populateDates(figliSel.value);
   document.getElementById('avvisaMotivo').value = '';
+  // Pre-popola la data se richiesto e disponibile come option (es. da click giorno nel calendario)
+  if (prefilledDate) {
+    const dateEl = document.getElementById('avvisaDate');
+    if (dateEl && Array.from(dateEl.options || []).some(o => o.value === prefilledDate)) {
+      dateEl.value = prefilledDate;
+    }
+  }
   openM('mAvvisa');
 }
 
@@ -7631,8 +7696,18 @@ function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role 
 function getMyPlayers() {
   if (!me) return [];
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figli = (typeof getFigliOf === 'function') ? getFigliOf(me) : (me.figli || []);
-    return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
+    let out = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      out = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!out.length) {
+      const figli = (typeof getFigliOf === 'function') ? getFigliOf(me) : (me.figli || []);
+      out = players.filter(p =>
+        figli.includes(p.nome + ' ' + p.cogn) ||
+        figli.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
+    return out;
   }
   if (me.role === 'giocatore') {
     return players.filter(p => p.nome === me.nome && p.cogn === me.cogn);
@@ -8123,12 +8198,23 @@ function recipientsForPlayer(p) {
   return [...ids];
 }
 
-// Allenatori e dirigenti della leva indicata (destinatari avvisi famiglia — NO admin)
+// Ritorna true se nella società esiste almeno un utente attivo con ruolo coach intermedio
+// (allenatore, dirigente, preparatore_portieri). Usato per decidere se l'admin deve vedere
+// gli avvisi di assenza come fallback (società piccole senza coach intermedi).
+function _societyHasNonAdminCoaches() {
+  return USERS_DB.some(u =>
+    (u.stato == null || u.stato === 'attivo') &&
+    (u.role === 'allenatore' || u.role === 'dirigente' || u.role === 'preparatore_portieri')
+  );
+}
+
+// Destinatari avvisi famiglia: allenatori + dirigenti della leva + admin/mister_admin (fallback per società senza coach intermedi)
 function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
-    if (u.role === 'admin' || u.role === 'mister_admin') return; // admin escluso esplicitamente dagli avvisi di assenza
+    // INCLUDI admin/mister_admin senza filtro leva (società piccole senza coach ricevono comunque)
+    if (u.role === 'admin' || u.role === 'mister_admin') { ids.add(u.id); return; }
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
@@ -9134,8 +9220,9 @@ function commTotalUnread() {
   if (!me) return 0;
   const visScopes = commVisibleScopes().map(s=>s.id);
   const unreadComm = comunicazioni.filter(c => visScopes.includes(c.scope) && !commIsRead(c)).length;
-  // Admin non conta avvisi di assenza nel badge (sono di competenza di mister/dirigente)
-  const unreadNotif = isAdminLike()
+  // Admin non conta avvisi di assenza nel badge SOLO se esistono coach intermedi (mister/dirigente).
+  // Su società piccole senza coach, l'admin è destinatario di fallback e li deve vedere.
+  const unreadNotif = (isAdminLike() && _societyHasNonAdminCoaches())
     ? notifiche.filter(n => n.userId === me.id && !n.read && n.type !== 'avviso_assenza').length
     : unreadCount(me.id);
   return unreadComm + unreadNotif;
@@ -9241,8 +9328,9 @@ function _renderCommTabContent() {
 
   if (_commActiveTab === 'notifiche') {
     let list = userNotifiche(me.id, false);
-    // Admin non vede avvisi di assenza: sono di competenza esclusiva di mister e dirigente
-    if (isAdminLike()) list = list.filter(n => n.type !== 'avviso_assenza');
+    // Admin nasconde avvisi di assenza SOLO se esistono coach intermedi (allenatore/dirigente/prep.portieri).
+    // Su società senza coach, l'admin riceve l'avviso come fallback (vedi recipientsForCoachesOfLeva).
+    if (isAdminLike() && _societyHasNonAdminCoaches()) list = list.filter(n => n.type !== 'avviso_assenza');
     if (q) list = list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));
     if (!list.length) {
       cont.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text2);">Nessuna notifica.</div>';
@@ -9386,8 +9474,15 @@ function saveNuovaComunicazione() {
       const ul = (() => {
         if (u.role==='admin') return leve.slice();
         if (u.role==='genitore'||u.role==='nonno') {
-          const figli=Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
-          const ls=[...new Set(players.filter(p=>figli.includes(p.nome+' '+p.cogn)).map(p=>p.leva).filter(Boolean))];
+          let figliPl = [];
+          if (Array.isArray(u.figliIds) && u.figliIds.length) {
+            figliPl = players.filter(pl => u.figliIds.includes(pl.id));
+          }
+          if (!figliPl.length) {
+            const figli = Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
+            figliPl = players.filter(p => figli.includes(p.nome+' '+p.cogn) || figli.includes(p.nome+' '+(p.cogn_iniziale||'')));
+          }
+          const ls = [...new Set(figliPl.map(p => p.leva).filter(Boolean))];
           return ls.length?ls:[];
         }
         const l=u.leva;
@@ -11641,7 +11736,8 @@ function _srBuildIdentityFields() {
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
       const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
-      if (ap) toVerify.push({
+      // Verifica richiesta SOLO se incomplete (allinea col branch bp: secondi genitori NON ricompilano)
+      if (ap && ap.incomplete === true) toVerify.push({
         rawId:       String(ap.id),
         displayName: ap.firstName + ' ' + ap.lastNameInitial + (ap.shirtNumber ? ' #' + ap.shirtNumber : '') + ' · ' + (ap.levaKey || '')
       });
@@ -11684,7 +11780,9 @@ function srStep3Next(){
   const toValidate = []; // array di rawId
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
-      toValidate.push(sid.replace('api_',''));
+      const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
+      // Verifica richiesta SOLO se incomplete (allinea col branch bp)
+      if (ap && ap.incomplete === true) toValidate.push(sid.replace('api_',''));
     } else {
       const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
       if (bp && bp.incomplete === true) toValidate.push(String(bp.id));
@@ -11923,6 +12021,20 @@ async function submitSelfReg(){
         }
       }
 
+      // Auto-accept privacy: idempotente. Garantisce coerenza tra consenso GDPR step3 (frontend)
+      // e users.privacy_accepted_at (backend). Evita prompt privacy al primo re-login.
+      try {
+        await fetch(API_BASE + '/api/v2/account/accept-privacy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + guardianToken
+          }
+        });
+      } catch(privacyErr) {
+        console.warn('[submitSelfReg] auto accept-privacy fallita (non bloccante)', privacyErr);
+      }
+
       // Boot as new genitore user (in-memory session)
       const apiUser = regData.user || {};
       const firstClaimId = parseInt(claimList[0]?.rawId || '0', 10);
@@ -11938,8 +12050,10 @@ async function submitSelfReg(){
           const pid = parseInt(c.rawId, 10);
           const ap = _srApiPlayers.find(x => x.id === pid);
           const bp = players.find(x => x.id === pid);
-          if (ap) return ap.firstName + ' ' + (c.lastNameFull || ap.lastNameInitial);
-          if (bp) return (bp.nome || '') + ' ' + (c.lastNameFull || bp.cogn_iniziale || bp.cogn || '');
+          // Priorità: lastNameFull inserito > cognome completo dal blob > lastNameInitial
+          const cognBlob = (bp && !bp.incomplete && bp.cogn) ? bp.cogn : '';
+          if (ap) return ap.firstName + ' ' + (c.lastNameFull || cognBlob || ap.lastNameInitial);
+          if (bp) return (bp.nome || '') + ' ' + (c.lastNameFull || bp.cogn || bp.cogn_iniziale || '');
           return '';
         }).filter(Boolean),
         figliIds: claimList.map(c => parseInt(c.rawId, 10)),
@@ -11951,7 +12065,19 @@ async function submitSelfReg(){
       _v2Token = guardianToken;
       try { localStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
       closeM('mSelfReg');
-      setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
+      // Distingue caso "secondo genitore" (almeno un player già completo) da "primo genitore" (tutti incomplete)
+      const _hasAlreadyCompletePlayer = claimList.some(c => {
+        const pid = parseInt(c.rawId, 10);
+        const ap = _srApiPlayers.find(x => x.id === pid);
+        if (ap) return ap.incomplete === false;
+        const bp = players.find(x => x.id === pid);
+        return bp ? bp.incomplete === false : false;
+      });
+      const _figliText = (newUser.figli || []).filter(f => f && f.trim()).join(', ');
+      const _toastMsg = _hasAlreadyCompletePlayer
+        ? (_figliText ? '✅ Collegamento confermato: ' + _figliText : '✅ Collegamento confermato')
+        : (_figliText ? '🎉 Registrazione completata, sei collegato a ' + _figliText : '🎉 Registrazione completata');
+      setTimeout(() => toast(_toastMsg), 350);
       me = newUser;
       bootApp(newUser);
       return;
@@ -12412,6 +12538,24 @@ function _campPolis(lv) {
   return found || current;
 }
 
+// Badge per riga partita in Panoramica/Home: tornei mostrano la sede (m.luogo),
+// amichevoli/campionato mantengono Casa/Trasferta. Tornei senza sede: nessun badge.
+function getBadgePartita(m) {
+  if (m && m.tipo === 'torneo') {
+    if (!m.luogo) return null;
+    return {
+      label: m.luogo,
+      bg: 'var(--bg2, #e2e8f0)',
+      color: 'var(--text2, #4a5568)'
+    };
+  }
+  return {
+    label: m && m.casa ? 'Casa' : 'Trasferta',
+    bg: m && m.casa ? '#0b7a3e' : '#e65100',
+    color: '#fff'
+  };
+}
+
 function panoAllNextMatchesAcrossLeve(leveArr) {
   const todayStr = ymd(new Date());
   const results = [];
@@ -12573,20 +12717,24 @@ function renderPanoramica() {
           </div>
         </div>`;
       }
-      const casaCol = m.casa ? '#0b7a3e' : '#e65100';
-      const casaLb  = m.casa ? 'Casa' : 'Trasferta';
       const sub = m.giornata ? ` · G${m.giornata}` : m.torneoNome ? ` · ${escapeHtml(m.torneoNome)}` : '';
+      // Per i tornei la sede compare già nel badge a destra → niente 📍 nel meta per evitare duplicazione.
+      const _showLuogoInMeta = m.tipo !== 'torneo' && !!m.luogo;
       const meta = [
         `📅 ${escapeHtml(panoFmtDateShort(m.data))}${m.orario ? ' ' + m.orario : ''}`,
-        m.luogo ? `📍 ${escapeHtml(m.luogo)}` : ''
+        _showLuogoInMeta ? `📍 ${escapeHtml(m.luogo)}` : ''
       ].filter(Boolean).join(' · ');
+      const _badge = getBadgePartita(m);
+      const _badgeHtml = _badge
+        ? `<span style="font-size:.65rem;font-weight:700;background:${_badge.bg};color:${_badge.color};border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(_badge.label)}</span>`
+        : '';
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 11px;background:#f8fafc;border-radius:9px;border:1px solid var(--bd);border-left:3px solid ${t.col};">
         <div style="font-size:1.15rem;line-height:1;flex-shrink:0;">${t.ic}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vs ${escapeHtml(m.avversario)}${levaChip}<span style="font-weight:400;font-size:.75rem;color:var(--text3);">${sub}</span></div>
           <div style="font-size:.74rem;color:var(--text2);margin-top:1px;">${meta}</div>
         </div>
-        <span style="font-size:.65rem;font-weight:700;background:${casaCol};color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap;flex-shrink:0;">${casaLb}</span>
+        ${_badgeHtml}
       </div>`;
     }).join('');
     const more = _panoVisible.length > _maxShow
@@ -13064,8 +13212,14 @@ function buildMobDashboard(role, c) {
 
 // ─── Selettore figlio genitore ────────────────────────────────────────────────
 function openGenFiglioSelector(){
-  var figliNames=getFigliOf(me);
-  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  var figliPlayers=[];
+  if(Array.isArray(me.figliIds)&&me.figliIds.length){
+    figliPlayers=players.filter(function(pl){return me.figliIds.includes(pl.id);});
+  }
+  if(!figliPlayers.length){
+    var figliNames=getFigliOf(me);
+    figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn)||figliNames.includes(p.nome+' '+(p.cogn_iniziale||''));});
+  }
   if(figliPlayers.length<2)return;
   if(document.getElementById('genFiglioSelOv'))return;
   var _scKey='gen_sel_'+(me?me.id:0);
@@ -13100,8 +13254,14 @@ function selectGenFiglio(playerId){
 
 function buildMobDashboardGenitore(c) {
   var todayStr=ymd(new Date());
-  var figliNames=getFigliOf(me);
-  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  var figliPlayers=[];
+  if(Array.isArray(me.figliIds)&&me.figliIds.length){
+    figliPlayers=players.filter(function(pl){return me.figliIds.includes(pl.id);});
+  }
+  if(!figliPlayers.length){
+    var figliNames=getFigliOf(me);
+    figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn)||figliNames.includes(p.nome+' '+(p.cogn_iniziale||''));});
+  }
 
   // Selezione figlio attivo (da localStorage se ≥2 figli)
   var _genScKey='gen_sel_'+(me?me.id:0);
@@ -13558,8 +13718,17 @@ function buildDashboard(role) {
       +`</div></div>`;
 
   } else if (role === 'genitore' || role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
+    let figliPlayers = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliPlayers = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliPlayers.length) {
+      const figliNames = getFigliOf(me);
+      figliPlayers = players.filter(p =>
+        figliNames.includes(p.nome+' '+p.cogn) ||
+        figliNames.includes(p.nome+' '+(p.cogn_iniziale||''))
+      );
+    }
     // Rispetta figlio selezionato da localStorage
     const _dGenKey='gen_sel_'+(me?me.id:0);
     const _dSavedId=localStorage.getItem(_dGenKey);
@@ -13885,6 +14054,16 @@ function renderPagamenti() {
   const _pagSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (isSectionLocked('pagamenti', _pagSoc)) {
     if (acts) acts.innerHTML = '';
+    // Consumer (genitore/nonno/giocatore): messaggio neutro "In sviluppo", no upgrade CTA
+    const _isConsumer = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    if (_isConsumer) {
+      c.innerHTML = `<div class="card" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">💰</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Quote</div>
+        <div style="color:var(--text2);">Funzionalità in sviluppo. Sarà disponibile presto.</div>
+      </div>`;
+      return;
+    }
     c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione quote e pagamenti è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('pagamenti')">Scopri il Piano Società →</button></div>`;
     return;
   }
@@ -14005,8 +14184,18 @@ function renderQuoteGenitore(c) {
 function getMyPlayersFor(user) {
   if (!user) return [];
   if (user.role === 'genitore' || user.role === 'nonno') {
-    const figli = (typeof getFigliOf === 'function') ? getFigliOf(user) : (user.figli || []);
-    return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
+    let out = [];
+    if (Array.isArray(user.figliIds) && user.figliIds.length) {
+      out = players.filter(pl => user.figliIds.includes(pl.id));
+    }
+    if (!out.length) {
+      const figli = (typeof getFigliOf === 'function') ? getFigliOf(user) : (user.figli || []);
+      out = players.filter(p =>
+        figli.includes(p.nome + ' ' + p.cogn) ||
+        figli.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
+    return out;
   }
   if (user.role === 'giocatore') return players.filter(p => p.nome === user.nome && p.cogn === user.cogn);
   return [];
@@ -14313,6 +14502,16 @@ function renderDocumenti() {
   if (!c || !me) return;
   const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (isSectionLocked('documenti', _docSoc)) {
+    // Consumer (genitore/nonno/giocatore): messaggio neutro "In sviluppo", no upgrade CTA
+    const _isConsumer = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    if (_isConsumer) {
+      c.innerHTML = `<div class="card" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">📄</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Documenti</div>
+        <div style="color:var(--text2);">Funzionalità in sviluppo. Sarà disponibile presto.</div>
+      </div>`;
+      return;
+    }
     c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione documenti con certificati medici è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('documenti')">Scopri il Piano Società →</button></div>`;
     return;
   }
@@ -17125,10 +17324,16 @@ function userLeve(){
   if (isAdminLike()) return leve.slice();
   // Per genitore/nonno: leve derivate dai figli/nipoti
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figli = getFigliOf(me);
-    if (figli.length) {
-      const ls = [...new Set(players.filter(p => figli.includes(p.nome+' '+p.cogn))
-                                    .map(p => p.leva).filter(Boolean))];
+    let figliPl = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliPl = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliPl.length) {
+      const figli = getFigliOf(me);
+      figliPl = players.filter(p => figli.includes(p.nome+' '+p.cogn) || figli.includes(p.nome+' '+(p.cogn_iniziale||'')));
+    }
+    if (figliPl.length) {
+      const ls = [...new Set(figliPl.map(p => p.leva).filter(Boolean))];
       if (ls.length) return ls;
     }
   }
@@ -17355,6 +17560,96 @@ function _isCalGenitoreRole() {
   return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
 }
 
+// ── Cal genitore v2: helper data + markers giornalieri ───────────────────────
+function isOggi(dateStr) { return ymd(new Date()) === dateStr; }
+function isDomani(dateStr) { return ymd(new Date(Date.now() + 86400000)) === dateStr; }
+function _dataBadgeHTML(dateStr) {
+  if (isOggi(dateStr)) return '<span class="data-badge oggi">OGGI</span>';
+  if (isDomani(dateStr)) return '<span class="data-badge domani">DOMANI</span>';
+  return '';
+}
+
+// Marker pallini per il giorno: { allen, partitaConv, partitaNoConv, assenza, indisp }
+// Logica: indisp 🔴 sovrascrive TUTTO (early return). assenza 🟠 e gli altri convivono.
+function getMyDayMarkers(dateStr) {
+  const markers = { allen: false, partitaConv: false, partitaNoConv: false, assenza: false, indisp: null };
+  const myPls = (typeof getMyPlayers === 'function') ? getMyPlayers() : [];
+  const myPlIds = myPls.map(p => p.id);
+  if (!myPlIds.length) return markers;
+
+  // Indisp: priorità massima
+  for (const pid of myPlIds) {
+    const ind = (typeof playerIndispOnDate === 'function') ? playerIndispOnDate(pid, dateStr) : null;
+    if (ind) { markers.indisp = ind; return markers; }
+  }
+
+  // Assenza dichiarata
+  for (const p of myPls) {
+    if (Array.isArray(p.assenzeAvvisate) && p.assenzeAvvisate.some(a => a.date === dateStr)) {
+      markers.assenza = true;
+      break;
+    }
+  }
+
+  // Eventi del giorno filtrati per visibilità famiglia
+  const dayEvents = events.filter(ev => eventOccursOn(ev, dateStr) && canSeeEvent(ev));
+  for (const ev of dayEvents) {
+    if (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') {
+      markers.allen = true;
+    } else if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
+      const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+      const isConv = conv && conv.playerIds && myPlIds.some(pid => conv.playerIds.includes(pid));
+      if (isConv) markers.partitaConv = true;
+      else markers.partitaNoConv = true;
+    }
+  }
+  return markers;
+}
+
+// Render compatto pallini per una cella (rispetta filtri attivi). Stringa HTML.
+function _renderCalGenDots(markers) {
+  if (markers.indisp) return '<span class="cgm-dot cgm-dot-ind"></span>';
+  const dots = [];
+  if (markers.allen && calGenFiltri.allen) dots.push('<span class="cgm-dot cgm-dot-allen"></span>');
+  if (markers.partitaConv && calGenFiltri.partite) dots.push('<span class="cgm-dot cgm-dot-conv"></span>');
+  if (markers.partitaNoConv && calGenFiltri.partite) dots.push('<span class="cgm-dot cgm-dot-noconv"></span>');
+  if (markers.assenza) dots.push('<span class="cgm-dot cgm-dot-ass"></span>');
+  return dots.length ? dots.join('') : '';
+}
+
+// Setter view + filtri (persiste in localStorage e re-renderizza)
+function calGenSetView(v) {
+  calGenView = v;
+  try { if (me) localStorage.setItem('cal_gen_view_' + me.id, v); } catch(_) {}
+  renderCalGenitore();
+}
+function calGenToggleFiltro(key) {
+  calGenFiltri[key] = !calGenFiltri[key];
+  try { if (me) localStorage.setItem('cal_gen_filtri_' + me.id, JSON.stringify(calGenFiltri)); } catch(_) {}
+  renderCalGenitore();
+}
+function _calGenLoadState() {
+  if (!me) return;
+  try {
+    const v = localStorage.getItem('cal_gen_view_' + me.id);
+    if (v === 'mese' || v === 'settimana' || v === 'lista') calGenView = v;
+    const f = localStorage.getItem('cal_gen_filtri_' + me.id);
+    if (f) { const p = JSON.parse(f); if (typeof p.allen === 'boolean') calGenFiltri.allen = p.allen; if (typeof p.partite === 'boolean') calGenFiltri.partite = p.partite; }
+  } catch(_) {}
+}
+
+// Lunedì della settimana di una Date
+function _startOfWeek(d) {
+  const out = new Date(d); out.setHours(0,0,0,0);
+  const dow = out.getDay(); // 0=Dom
+  const diff = dow === 0 ? -6 : 1 - dow;
+  out.setDate(out.getDate() + diff);
+  return out;
+}
+function calGenWeekPrev() { if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date()); calGenWeekStart = new Date(calGenWeekStart.getTime() - 7*86400000); renderCalGenitore(); }
+function calGenWeekNext() { if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date()); calGenWeekStart = new Date(calGenWeekStart.getTime() + 7*86400000); renderCalGenitore(); }
+function calGenWeekToday() { calGenWeekStart = _startOfWeek(new Date()); renderCalGenitore(); }
+
 function calGenMove(dir) {
   calGenMonth += dir;
   if (calGenMonth > 11) { calGenMonth = 0; calGenYear++; }
@@ -17379,95 +17674,65 @@ function calGenSelectDay(dateStr) {
   }, 60);
 }
 
+// Dispatcher: tabs + filtri + delega alla vista attiva (mese/settimana/lista)
 function renderCalGenitore() {
   const page = document.getElementById('pg-calendario');
   if (page) page.classList.add('cal-gen');
   const container = document.getElementById('calGenitoreView');
   if (!container) return;
-
+  _calGenLoadState();
   if (!calGenSelDay) calGenSelDay = ymd(new Date());
 
-  const todayStr = ymd(new Date());
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = ymd(tomorrow);
+  const _tabBtn = (v, lbl) => `<button class="cgm-tab-btn${calGenView===v?' on':''}" onclick="calGenSetView('${v}')">${lbl}</button>`;
+  const _filtroBtn = (k, lbl) => `<button class="cgm-filtro-btn${calGenFiltri[k]?' on':''}" onclick="calGenToggleFiltro('${k}')">${lbl}</button>`;
 
-  // Events filtered by role (no UI filter overrides)
-  function genEventsForDay(ds) {
-    return events.filter(ev => {
-      if (!canSeeEvent(ev)) return false;
-      return eventOccursOn(ev, ds);
-    }).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-  }
+  container.innerHTML = `<div class="cgm-wrap">
+    <div class="cgm-tabs">
+      ${_tabBtn('mese','📅 Mese')}
+      ${_tabBtn('settimana','📆 Settimana')}
+      ${_tabBtn('lista','📋 Lista')}
+    </div>
+    <div class="cgm-filtri">
+      ${_filtroBtn('allen','🏃 Allenamenti')}
+      ${_filtroBtn('partite','⚽ Partite')}
+    </div>
+    <div id="calGenViewBody"></div>
+  </div>`;
+
+  if (calGenView === 'mese')      renderCalGenMese();
+  else if (calGenView === 'settimana') renderCalGenSettimana();
+  else                            renderCalGenLista();
+}
+
+// Vista Mese: griglia mensile con 5 pallini colorati. Click cella → modal sheet.
+function renderCalGenMese() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  const todayStr = ymd(new Date());
 
   const MESI_FULL = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   const DAY_HEADS = ['L','M','M','G','V','S','D'];
-  const DOW_UP = ['DOMENICA','LUNEDÌ','MARTEDÌ','MERCOLEDÌ','GIOVEDÌ','VENERDÌ','SABATO'];
 
   const firstDow = new Date(calGenYear, calGenMonth, 1).getDay();
   const offset = firstDow === 0 ? 6 : firstDow - 1;
   const daysInMonth = new Date(calGenYear, calGenMonth + 1, 0).getDate();
 
-  // Grid
   let cells = DAY_HEADS.map(h => `<div class="cgm-head">${h}</div>`).join('');
   for (let i = 0; i < offset; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
 
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = calGenYear + '-' + pad2(calGenMonth + 1) + '-' + pad2(day);
     const isToday = ds === todayStr;
-    const isSel = ds === calGenSelDay && !isToday;
-    const dayEvs = genEventsForDay(ds);
-    const hasAllen = dayEvs.some(ev => ev.type === 'allenamento' || ev.type === 'allenamento_portieri');
-    const hasMatch = dayEvs.some(ev => ['partita','campionato','torneo','amichevole'].includes(ev.type));
-    const hasOther = dayEvs.some(ev => !['allenamento','allenamento_portieri','partita','campionato','torneo','amichevole'].includes(ev.type));
-    const dots = (hasAllen ? '<span class="cgm-dot cgm-dot-tr"></span>' : '')
-               + (hasMatch ? '<span class="cgm-dot cgm-dot-mt"></span>' : '')
-               + (hasOther ? '<span class="cgm-dot cgm-dot-ev"></span>' : '');
-    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : isSel ? ' cgm-sel' : '');
-    cells += `<div class="cgm-cell" onclick="calGenSelectDay('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
+    const markers = getMyDayMarkers(ds);
+    const dots = _renderCalGenDots(markers);
+    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : '');
+    cells += `<div class="cgm-cell" onclick="openCalDayModal('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
   }
 
   const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
   for (let i = 0; i < trailing; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
 
-  // Day detail header
-  const selD = parseYmd(calGenSelDay);
-  let dayLabel = DOW_UP[selD.getDay()] + ' ' + selD.getDate();
-  if (calGenSelDay === todayStr) dayLabel += ' · OGGI';
-  else if (calGenSelDay === tomorrowStr) dayLabel += ' · DOMANI';
-
-  // Event cards
-  const selEvs = genEventsForDay(calGenSelDay);
-  const myPls = (typeof getMyPlayers === 'function') ? getMyPlayers() : [];
-  let evCards = '';
-  if (!selEvs.length) {
-    evCards = '<div class="cgm-empty">Nessun evento per questo giorno</div>';
-  } else {
-    evCards = selEvs.map(ev => {
-      const tipo = getTipo(ev.type);
-      const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
-      const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
-      const icon = isAllen ? '🏃' : isMatch ? '⚽' : '📌';
-      const luogoHtml = ev.luogo ? `<div class="cgm-ev-luogo">📍 ${escapeHtml(ev.luogo)}</div>` : '';
-      let badge = '';
-      if (isMatch && ev.id && myPls.length) {
-        const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
-        if (conv && conv.playerIds) {
-          badge = myPls.some(p => conv.playerIds.includes(p.id))
-            ? '<span class="cgm-badge cgm-badge-conv">🟢 CONVOCATO</span>'
-            : '<span class="cgm-badge cgm-badge-noconv">⚪ NON CONVOCATO</span>';
-        } else {
-          badge = '<span class="cgm-badge cgm-badge-wait">🟡 IN ATTESA</span>';
-        }
-      }
-      return `<div class="cgm-ev-card" style="border-left-color:${tipo.color};">
-        <div class="cgm-ev-row1"><span class="cgm-ev-time">${ev.start || ''}</span>${badge}</div>
-        <div class="cgm-ev-title">${icon} ${escapeHtml(ev.title || tipo.label)}</div>
-        ${luogoHtml}
-      </div>`;
-    }).join('');
-  }
-
-  container.innerHTML = `<div class="cgm-wrap">
+  body.innerHTML = `
     <div class="cgm-header">
       <div class="cgm-title">📅 ${MESI_FULL[calGenMonth]} ${calGenYear}</div>
       <button class="cgm-today-btn" onclick="calGenGoToday()">Oggi</button>
@@ -17477,11 +17742,383 @@ function renderCalGenitore() {
       <span class="cgm-nav-label">${MESI_FULL[calGenMonth]} ${calGenYear}</span>
       <button class="cgm-nav-btn" onclick="calGenMove(1)">›</button>
     </div>
-    <div class="cgm-grid">${cells}</div>
-    <div class="cgm-sep" id="calGenDaySection"></div>
-    <div class="cgm-day-label">${dayLabel}</div>
-    <div class="cgm-ev-list">${evCards}</div>
+    <div class="cgm-grid">${cells}</div>`;
+}
+
+// Helper visivo: icona type evento
+function _getEventTypeIcon(type) {
+  const map = {
+    'allenamento': '🏃', 'allenamento_portieri': '🧤',
+    'partita': '⚽', 'campionato': '🏆', 'torneo': '🏆', 'amichevole': '⚽',
+    'riunione': '👥', 'evento': '🎉', 'personalizzato': '📌',
+  };
+  return map[type] || '📅';
+}
+// Helper visivo: titolo evento con fallback per type
+function _getEventTitle(ev) {
+  if (ev.title) return ev.title;
+  const labelMap = {
+    'allenamento': 'Allenamento', 'allenamento_portieri': 'Allenamento portieri',
+    'partita': 'Partita', 'campionato': 'Campionato', 'torneo': 'Torneo', 'amichevole': 'Amichevole',
+    'riunione': 'Riunione', 'evento': 'Evento', 'personalizzato': 'Evento',
+  };
+  return labelMap[ev.type] || 'Evento';
+}
+// Helper visivo: classe tipo card per barra colorata laterale
+function _getCardTipoClass(ev, myPlIds) {
+  if (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') return 'tipo-allen';
+  if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
+    const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+    const isConv = conv && conv.playerIds && myPlIds.some(pid => conv.playerIds.includes(pid));
+    return isConv ? 'tipo-partita-conv' : 'tipo-partita-noconv';
+  }
+  return 'tipo-altro';
+}
+// Helper visivo: badge convocazione inline (markup .cgm-week-ev-badge-inline)
+function _convBadgeInline(ev, myPls) {
+  const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+  if (!isMatch || !ev.id || !myPls.length) return '';
+  const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+  if (conv && conv.playerIds) {
+    return myPls.some(p => conv.playerIds.includes(p.id))
+      ? '<span class="cgm-week-ev-badge-inline conv">🔵 Convocato</span>'
+      : '<span class="cgm-week-ev-badge-inline noconv">⚪ Non convocato</span>';
+  }
+  return '<span class="cgm-week-ev-badge-inline attesa">🟡 In attesa</span>';
+}
+// Helper visivo: pill ricca multi-riga (Settimana desktop, colonne 280px)
+function _renderEventPill(ev, myPls, myPlIds) {
+  const tipoClass = _getCardTipoClass(ev, myPlIds);
+  const icon = _getEventTypeIcon(ev.type);
+  const title = _getEventTitle(ev);
+  const orario = ev.start || '';
+  const orarioEnd = ev.end || '';
+  const orarioFull = orarioEnd ? `${orario} - ${orarioEnd}` : orario;
+  const luogo = ev.luogo || '';
+
+  let badgeHtml = '';
+  if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
+    const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+    if (conv && conv.playerIds) {
+      const isConv = myPlIds.some(pid => conv.playerIds.includes(pid));
+      badgeHtml = isConv
+        ? '<span class="cgm-week-pill-badge conv">🔵 Convocato</span>'
+        : '<span class="cgm-week-pill-badge noconv">⚪ Non convocato</span>';
+    } else {
+      badgeHtml = '<span class="cgm-week-pill-badge attesa">🟡 In attesa</span>';
+    }
+  }
+
+  return `<div class="cgm-week-pill ${tipoClass}">
+    <div class="cgm-week-pill-icon-title">${icon} ${escapeHtml(title)}</div>
+    <div class="cgm-week-pill-meta">
+      ${orarioFull ? `<div>🕐 ${escapeHtml(orarioFull)}</div>` : ''}
+      ${luogo ? `<div>📍 ${escapeHtml(luogo)}</div>` : ''}
+    </div>
+    ${badgeHtml}
   </div>`;
+}
+
+// Helper visivo: card evento completa (usata da Settimana, Lista, Modal)
+// opts: { extraHtml?, onClickJs? } per personalizzazioni inline
+function _renderEventCard(ev, myPls, myPlIds, opts) {
+  opts = opts || {};
+  const tipoClass = _getCardTipoClass(ev, myPlIds);
+  const icon = _getEventTypeIcon(ev.type);
+  const title = _getEventTitle(ev);
+  const tm = ev.start ? (ev.end ? `${ev.start} – ${ev.end}` : ev.start) : '—';
+  const luogo = ev.luogo ? `<div class="row">📍 ${escapeHtml(ev.luogo)}</div>` : '';
+  const badge = _convBadgeInline(ev, myPls);
+  const extra = opts.extraHtml || '';
+  const onClickAttr = opts.onClickJs ? ` onclick="${opts.onClickJs}" style="cursor:pointer;"` : '';
+  return `<div class="cgm-week-ev ${tipoClass}"${onClickAttr}>
+    <div class="cgm-week-ev-icon-title">${icon} ${escapeHtml(title)}</div>
+    <div class="cgm-week-ev-meta">
+      <div class="row">🕐 ${tm}</div>
+      ${luogo}
+    </div>
+    ${badge}
+    ${extra}
+  </div>`;
+}
+
+// Helper interno: array eventi del giorno per il genitore, ordinati per orario, filtrati per visibility famiglia
+function _calGenEventsForDay(ds) {
+  return events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds))
+               .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+}
+// Helper interno: applica filtri allen/partite
+function _calGenFiltraEventi(evs) {
+  return evs.filter(ev => {
+    const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+    const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+    if (isAllen && !calGenFiltri.allen) return false;
+    if (isMatch && !calGenFiltri.partite) return false;
+    return true;
+  });
+}
+// Helper interno: badge convocazione per evento partita
+function _calGenConvBadge(ev, myPls) {
+  const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+  if (!isMatch || !ev.id || !myPls.length) return '';
+  const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+  if (conv && conv.playerIds) {
+    return myPls.some(p => conv.playerIds.includes(p.id))
+      ? '<span class="cgm-badge cgm-badge-conv">🔵 CONVOCATO</span>'
+      : '<span class="cgm-badge cgm-badge-noconv">⚪ NON CONVOCATO</span>';
+  }
+  return '<span class="cgm-badge cgm-badge-wait">🟡 IN ATTESA</span>';
+}
+
+// Vista Settimana (DEFAULT) — cards ricche, layout uniforme, mobile agenda verticale
+function renderCalGenSettimana() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date());
+
+  const DAY_SHORT = ['LUN','MAR','MER','GIO','VEN','SAB','DOM'];
+  const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const todayStr = ymd(new Date());
+  const myPls = getMyPlayers();
+  const myPlIds = myPls.map(p => p.id);
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(calGenWeekStart); d.setDate(calGenWeekStart.getDate() + i);
+    days.push({ d, ds: ymd(d) });
+  }
+  const d0 = days[0].d, d6 = days[6].d;
+  const sameMonth = d0.getMonth() === d6.getMonth();
+  const label = sameMonth
+    ? `${d0.getDate()}–${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`
+    : `${d0.getDate()} ${MESI_IT[d0.getMonth()]} – ${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`;
+
+  // Costruisce HTML colonna per giorno.
+  // isMobile=false → eventi come pillole compatte (desktop)
+  // isMobile=true  → eventi come cards ricche (mobile agenda)
+  function _buildCol(d, ds, i, isMobile) {
+    const isToday = ds === todayStr;
+    const markers = getMyDayMarkers(ds);
+    const dots = _renderCalGenDots(markers);
+    const evs = _calGenFiltraEventi(_calGenEventsForDay(ds));
+
+    let topBadge = '';
+    if (isOggi(ds))   topBadge = '<div class="cgm-week-col-badge oggi">OGGI</div>';
+    else if (isDomani(ds)) topBadge = '<div class="cgm-week-col-badge domani">DOMANI</div>';
+
+    let evsHtml = '';
+    const hasContent = evs.length || markers.indisp || markers.assenza;
+    if (!hasContent) {
+      evsHtml = '<div class="cgm-week-empty">Nessun evento</div>';
+    } else if (markers.indisp) {
+      // Indisp ha priorità visiva (sostituisce eventi)
+      const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(markers.indisp.tipo) : (markers.indisp.tipo || 'Indisponibile');
+      if (isMobile) {
+        evsHtml = `<div class="cgm-week-ev tipo-indisp">
+          <div class="cgm-week-ev-icon-title" style="color:#dc2626;">🔴 ${escapeHtml(t)}</div>
+          ${markers.indisp.motivo ? `<div class="cgm-week-ev-meta"><div class="row">${escapeHtml(markers.indisp.motivo)}</div></div>` : ''}
+        </div>`;
+      } else {
+        evsHtml = `<div class="cgm-week-pill tipo-indisp">
+          <div class="cgm-week-pill-icon-title">🔴 Indisponibile</div>
+          ${markers.indisp.motivo ? `<div class="cgm-week-pill-meta"><div>${escapeHtml(t)} · ${escapeHtml(markers.indisp.motivo)}</div></div>` : `<div class="cgm-week-pill-meta"><div>${escapeHtml(t)}</div></div>`}
+        </div>`;
+      }
+    } else {
+      if (isMobile) {
+        // Mobile: cards ricche, tutti gli eventi
+        evsHtml = evs.map(ev => _renderEventCard(ev, myPls, myPlIds)).join('');
+        if (markers.assenza) {
+          evsHtml += `<div class="cgm-week-ev tipo-assenza">
+            <div class="cgm-week-ev-icon-title" style="color:#c2410c;">🟠 Hai segnalato assenza</div>
+          </div>`;
+        }
+      } else {
+        // Desktop: pillole ricche, TUTTI gli eventi (colonna 280px + scroll, no limit)
+        evsHtml = evs.map(ev => _renderEventPill(ev, myPls, myPlIds)).join('');
+        if (markers.assenza) {
+          evsHtml += `<div class="cgm-week-pill tipo-assenza">
+            <div class="cgm-week-pill-icon-title">🟠 Hai segnalato assenza</div>
+          </div>`;
+        }
+      }
+    }
+
+    return `<div class="cgm-week-col${isToday ? ' oggi' : ''}" onclick="openCalDayModal('${ds}')">
+      <div class="cgm-week-col-head">
+        <div class="cgm-week-col-day">${DAY_SHORT[i]}</div>
+        <div class="cgm-week-col-num">${d.getDate()}</div>
+        ${topBadge}
+        <div class="cgm-dots">${dots}</div>
+      </div>
+      <div class="cgm-week-col-events">${evsHtml}</div>
+    </div>`;
+  }
+
+  const gridHtml = '<div class="cgm-week-grid">' + days.map(({d,ds},i) => _buildCol(d,ds,i,false)).join('') + '</div>';
+  const agendaHtml = '<div class="cgm-week-agenda">' + days.map(({d,ds},i) => _buildCol(d,ds,i,true)).join('') + '</div>';
+
+  body.innerHTML = `
+    <div class="cgm-week-nav">
+      <button class="cgm-week-nav-btn" onclick="calGenWeekPrev()">‹</button>
+      <span class="cgm-week-label">${label}</span>
+      <button class="cgm-week-nav-today" onclick="calGenWeekToday()">Oggi</button>
+      <button class="cgm-week-nav-btn" onclick="calGenWeekNext()">›</button>
+    </div>
+    ${gridHtml}
+    ${agendaHtml}`;
+
+  // Auto-scroll alla colonna OGGI (desktop scroll orizzontale)
+  setTimeout(() => {
+    const oggiCol = body.querySelector('.cgm-week-grid .cgm-week-col.oggi');
+    if (oggiCol && typeof oggiCol.scrollIntoView === 'function') {
+      try { oggiCol.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' }); } catch(_) {}
+    }
+  }, 50);
+}
+
+// Vista Lista: prossimi 30 giorni raggruppati
+function renderCalGenLista() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  const DAY_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESI_FULL = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const myPls = getMyPlayers();
+
+  const groups = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + i);
+    const ds = ymd(d);
+    const markers = getMyDayMarkers(ds);
+    const evs = _calGenFiltraEventi(_calGenEventsForDay(ds));
+    // Salta giorni senza nulla
+    if (!evs.length && !markers.indisp && !markers.assenza) continue;
+    groups.push({ d, ds, markers, evs });
+  }
+
+  if (!groups.length) {
+    body.innerHTML = '<div class="cgm-placeholder">📅 Nessun evento programmato per i prossimi 30 giorni.</div>';
+    return;
+  }
+
+  const myPlIds = myPls.map(p => p.id);
+  let html = '<div class="cgm-lista">';
+  groups.forEach(g => {
+    const head = `${DAY_FULL[g.d.getDay()]} ${g.d.getDate()} ${MESI_FULL[g.d.getMonth()]}${_dataBadgeHTML(g.ds)}`;
+    let cards = '';
+    if (g.markers.indisp) {
+      const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(g.markers.indisp.tipo) : (g.markers.indisp.tipo || 'Indisponibile');
+      cards += `<div class="cgm-week-ev tipo-indisp" onclick="openCalDayModal('${g.ds}')" style="cursor:pointer;">
+        <div class="cgm-week-ev-icon-title" style="color:#dc2626;">🔴 ${escapeHtml(t)}</div>
+        ${g.markers.indisp.motivo ? `<div class="cgm-week-ev-meta"><div class="row">${escapeHtml(g.markers.indisp.motivo)}</div></div>` : ''}
+      </div>`;
+    } else {
+      g.evs.forEach(ev => {
+        cards += _renderEventCard(ev, myPls, myPlIds, { onClickJs: `openCalDayModal('${g.ds}')` });
+      });
+      if (g.markers.assenza) {
+        cards += `<div class="cgm-week-ev tipo-assenza" onclick="openCalDayModal('${g.ds}')" style="cursor:pointer;">
+          <div class="cgm-week-ev-icon-title" style="color:#c2410c;">🟠 Hai segnalato assenza</div>
+        </div>`;
+      }
+    }
+    html += `<div class="cgm-lista-day">
+      <div class="cgm-lista-day-header">${head}</div>
+      <div class="cgm-lista-day-events">${cards}</div>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+// Modal sheet click giorno: dettaglio completo + bottoni azione
+function openCalDayModal(dateStr) {
+  closeCalDayModal();
+  const DAY_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESI_FULL = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const d = parseYmd(dateStr);
+  const titleText = `${DAY_FULL[d.getDay()]} ${d.getDate()} ${MESI_FULL[d.getMonth()]} ${d.getFullYear()}`;
+  const markers = getMyDayMarkers(dateStr);
+  const myPls = getMyPlayers();
+  const evs = _calGenFiltraEventi(_calGenEventsForDay(dateStr));
+
+  const myPlIds = myPls.map(p => p.id);
+  let bodyHtml = '';
+  if (markers.indisp) {
+    const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(markers.indisp.tipo) : (markers.indisp.tipo || 'Indisponibile');
+    const m = markers.indisp.motivo ? `<div class="cgm-week-ev-meta"><div class="row">${escapeHtml(markers.indisp.motivo)}</div></div>` : '';
+    bodyHtml += `<div class="cgm-week-ev tipo-indisp">
+      <div class="cgm-week-ev-icon-title" style="color:#dc2626;font-size:14px;">🔴 ${escapeHtml(t)}</div>
+      ${m}
+      <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Indisponibilità segnata dalla società. Per modifiche contatta il Mister.</div>
+    </div>`;
+  } else {
+    if (markers.assenza) {
+      const plWithAss = myPls.find(p => Array.isArray(p.assenzeAvvisate) && p.assenzeAvvisate.some(a => a.date === dateStr));
+      const av = plWithAss ? plWithAss.assenzeAvvisate.find(a => a.date === dateStr) : null;
+      const motivoHtml = (av && av.motivo) ? `<div class="cgm-week-ev-meta"><div class="row">${escapeHtml(av.motivo)}</div></div>` : '';
+      bodyHtml += `<div class="cgm-week-ev tipo-assenza">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div class="cgm-week-ev-icon-title" style="color:#c2410c;font-size:14px;margin-bottom:0;">🟠 Hai segnalato assenza</div>
+          ${plWithAss ? `<button class="btn btn-r btn-xs" onclick="closeCalDayModal();openRevocaAssenzaModal(${plWithAss.id},'${dateStr}')">Revoca</button>` : ''}
+        </div>
+        ${motivoHtml}
+      </div>`;
+    }
+    if (evs.length) {
+      evs.forEach(ev => {
+        const extra = ev.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:6px;">${escapeHtml(ev.note)}</div>` : '';
+        bodyHtml += _renderEventCard(ev, myPls, myPlIds, { extraHtml: extra });
+      });
+    } else if (!markers.assenza) {
+      bodyHtml += '<div class="cgm-empty">Nessun evento programmato per questo giorno.</div>';
+    }
+  }
+
+  const showSegnalaCTA = !markers.indisp && !markers.assenza && typeof canAvvisaAssenza === 'function' && canAvvisaAssenza();
+  const ctaHtml = showSegnalaCTA
+    ? `<div class="modal-sheet-cta-fixed"><button class="btn btn-r" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeCalDayModal();openAvvisaModal('${dateStr}')">📩 Segnala assenza per questo giorno</button></div>`
+    : '';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-sheet-backdrop';
+  backdrop.id = 'mCalDayBackdrop';
+  backdrop.onclick = () => closeCalDayModal();
+
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  sheet.id = 'mCalDayDetail';
+  sheet.innerHTML = `
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-head">
+      <div class="modal-sheet-title">📅 ${titleText}${_dataBadgeHTML(dateStr)}</div>
+      <button class="modal-sheet-close" onclick="closeCalDayModal()">✕</button>
+    </div>
+    <div class="modal-sheet-body">${bodyHtml}</div>
+    ${ctaHtml}
+  `;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(sheet);
+  // ESC chiude
+  const escHandler = (e) => { if (e.key === 'Escape') closeCalDayModal(); };
+  sheet.dataset.escHandler = '1';
+  document.addEventListener('keydown', escHandler);
+  sheet._escHandler = escHandler;
+  // Trigger animation (next frame)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); sheet.classList.add('open'); });
+}
+
+function closeCalDayModal() {
+  const sheet = document.getElementById('mCalDayDetail');
+  const backdrop = document.getElementById('mCalDayBackdrop');
+  if (sheet && sheet._escHandler) document.removeEventListener('keydown', sheet._escHandler);
+  if (backdrop) backdrop.classList.remove('open');
+  if (sheet) {
+    sheet.classList.remove('open');
+    setTimeout(() => { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); }, 300);
+  }
+  if (backdrop) setTimeout(() => { if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop); }, 300);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
