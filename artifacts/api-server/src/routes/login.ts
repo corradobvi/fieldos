@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
-import { signJWT } from "../lib/auth";
+import { signJWT, verifyPassword } from "../lib/auth";
 
 const router = Router();
 
@@ -197,6 +197,57 @@ router.post("/login", async (req, res) => {
         societyCodice:         msCheck2.codiceSocieta   ?? null,
         privacyPending: _pc2.privacyPending, v2Token: _pc2.v2Token,
       });
+    }
+
+    // 4. Fallback MySQL: utente V2 puro senza `pass` plain nel blob (es. genitori auto-registrati via /api/v2/auth/guardian-register)
+    try {
+      const [u] = (await pool.execute(
+        `SELECT u.id, u.society_id, u.password_hash, u.ruolo, u.privacy_accepted_at,
+                u.is_account_owner, u.nome, u.cognome, u.temp_password, u.figli,
+                s.piano, s.billing_mode, s.subscription_status, s.colore_primario, s.colore_accento,
+                s.logo_url, s.nome AS soc_nome, s.citta, s.codice
+         FROM users u JOIN societies s ON s.id = u.society_id
+         WHERE LOWER(u.email) = ? AND u.stato = 'attivo' AND s.stato = 'attiva' LIMIT 1`,
+        [normalizedEmail]
+      )) as [any[], any];
+      if (u.length && verifyPassword(password, u[0].password_hash)) {
+        const ms = u[0];
+        const stateKey = `fieldos_state_soc_${ms.society_id}`;
+        const [bRows] = (await pool.execute(
+          "SELECT state_json FROM `society_state` WHERE `key` = ?", [stateKey]
+        )) as [any[], any];
+        const stateJson = bRows.length ? bRows[0].state_json as string : '{}';
+        const v2Token = signJWT({
+          userId: ms.id, societyId: ms.society_id, role: ms.ruolo,
+          email: normalizedEmail, societyPiano: ms.piano ?? null,
+        });
+        logger.info({ email: normalizedEmail, societyId: ms.society_id, userId: ms.id }, "login ok (mysql-fallback V2)");
+        return res.json({
+          societyId: ms.society_id, stateKey,
+          user: {
+            id: ms.id, email: normalizedEmail, role: ms.ruolo,
+            nome: ms.nome, cogn: ms.cognome,
+            figli: ms.figli ? JSON.parse(ms.figli) : [],
+            is_account_owner: ms.is_account_owner === 1,
+            _isV2: true, tempPassword: ms.temp_password === 1,
+          },
+          stateJson,
+          societyPiano:          ms.piano                                ?? null,
+          societyBillingMode:    ms.billing_mode                         ?? null,
+          societyIsDemo:         (ms.subscription_status ?? 'demo') === 'demo',
+          societyColorePrimario: ms.colore_primario                      ?? null,
+          societyColoreAccento:  ms.colore_accento                       ?? null,
+          societyLogoUrl:        ms.logo_url                             ?? null,
+          societyNomeSocieta:    ms.soc_nome                             ?? null,
+          societyCitta:          ms.citta                                ?? null,
+          societyCodice:         ms.codice                               ?? null,
+          privacyPending: ms.privacy_accepted_at === null,
+          v2Token,
+        });
+      }
+    } catch (mysqlFallbackErr: any) {
+      logger.warn({ err: mysqlFallbackErr?.message }, "login mysql fallback failed");
+      // swallow: il return 401 sotto gestisce il fallimento
     }
 
     return res.status(401).json({ error: "invalid_credentials" });
