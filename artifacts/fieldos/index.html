@@ -5177,21 +5177,24 @@ function buildSidebar(role) {
       try { locked = isSectionLocked(item.id, _sbSoc); } catch(_e) { console.warn('[lock]', _e); }
       // Quote: nascondi completamente dalla nav se piano non include la feature
       if (locked && item.id === 'pagamenti') return;
-      const wip = !!item.wip;
+      // Consumer (genitore/nonno/giocatore): paywall sostituito da "In sviluppo" + no-op (non sono loro a pagare)
+      const _isConsumerRole = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+      const _effLocked = locked && !_isConsumerRole;
+      const _effWip = !!item.wip || (locked && _isConsumerRole);
       const d = document.createElement('div');
-      d.className = 'ni' + (locked ? ' ni-locked' : '') + (wip ? ' ni-wip' : '');
+      d.className = 'ni' + (_effLocked ? ' ni-locked' : '') + (_effWip ? ' ni-wip' : '');
       d.dataset.pg = item.id;
       let h = `<span class="ico">${item.ic}</span>${item.lb}`;
-      if (locked) {
+      if (_effLocked) {
         const lk = SECTION_LOCKS[item.id];
         h += `<span class="nb lock">🔒 ${lk.nomePiano}</span>`;
-      } else if (wip) {
+      } else if (_effWip) {
         h += `<span class="nb wip">In sviluppo</span>`;
       } else if (item.badge) {
         h += `<span class="nb${item.bw?' w':''}">${item.badge}</span>`;
       }
       d.innerHTML = h;
-      d.onclick = locked ? () => { openUpgradePopup(item.id); closeSb(); } : wip ? () => {} : () => { goTo(item.id); closeSb(); };
+      d.onclick = _effLocked ? () => { openUpgradePopup(item.id); closeSb(); } : _effWip ? () => {} : () => { goTo(item.id); closeSb(); };
       nav.appendChild(d);
     }
   });
@@ -13926,6 +13929,16 @@ function renderPagamenti() {
   const _pagSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (isSectionLocked('pagamenti', _pagSoc)) {
     if (acts) acts.innerHTML = '';
+    // Consumer (genitore/nonno/giocatore): messaggio neutro "In sviluppo", no upgrade CTA
+    const _isConsumer = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    if (_isConsumer) {
+      c.innerHTML = `<div class="card" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">💰</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Quote</div>
+        <div style="color:var(--text2);">Funzionalità in sviluppo. Sarà disponibile presto.</div>
+      </div>`;
+      return;
+    }
     c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione quote e pagamenti è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('pagamenti')">Scopri il Piano Società →</button></div>`;
     return;
   }
@@ -14364,6 +14377,16 @@ function renderDocumenti() {
   if (!c || !me) return;
   const _docSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (isSectionLocked('documenti', _docSoc)) {
+    // Consumer (genitore/nonno/giocatore): messaggio neutro "In sviluppo", no upgrade CTA
+    const _isConsumer = me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
+    if (_isConsumer) {
+      c.innerHTML = `<div class="card" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:12px;">📄</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Documenti</div>
+        <div style="color:var(--text2);">Funzionalità in sviluppo. Sarà disponibile presto.</div>
+      </div>`;
+      return;
+    }
     c.innerHTML = `<div style="text-align:center;padding:48px 20px;"><div style="font-size:2.5rem;margin-bottom:12px;">🔒</div><div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">Sezione non disponibile</div><div style="font-size:.85rem;color:var(--text2);margin-bottom:18px;">La gestione documenti con certificati medici è disponibile a partire dal piano <strong>Società</strong>.</div><button class="btn btn-p" onclick="openUpgradePopup('documenti')">Scopri il Piano Società →</button></div>`;
     return;
   }
