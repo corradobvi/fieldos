@@ -1609,23 +1609,35 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-filtro-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:14px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .cgm-filtro-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
 .cgm-placeholder{text-align:center;padding:48px 20px;color:var(--text3);font-size:.88rem;background:var(--cl);border-radius:10px;}
-/* Vista settimana v2 */
+/* Vista settimana v3 */
 .cgm-week-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:12px;}
 .cgm-week-nav-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text1);-webkit-tap-highlight-color:transparent;}
 .cgm-week-nav-today{background:var(--cp);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .cgm-week-label{font-weight:700;font-size:.92rem;color:var(--text1);flex:1;text-align:center;}
-.cgm-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;}
-.cgm-week-col{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 8px;min-height:200px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:all .2s;}
-.cgm-week-col:hover{border-color:var(--cp);box-shadow:0 2px 8px rgba(0,0,0,.08);}
-.cgm-week-col.oggi{border-color:var(--cp);border-width:2px;}
-.cgm-week-col-head{text-align:center;padding-bottom:8px;border-bottom:1px solid #f1f5f9;}
-.cgm-week-col-day{font-size:11px;font-weight:600;color:#64748b;letter-spacing:.5px;text-transform:uppercase;}
-.cgm-week-col-num{font-size:24px;font-weight:700;color:#0f172a;line-height:1.1;margin-top:2px;}
-.cgm-week-col-badge{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:8px;font-size:9px;font-weight:700;letter-spacing:.5px;}
+/* Grid 7 colonne uniformi */
+.cgm-week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px;}
+.cgm-week-col{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px 6px;min-height:180px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:all .2s;}
+.cgm-week-col:hover{border-color:var(--cp);box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px);}
+.cgm-week-col.oggi{border-color:var(--cp);border-width:2px;padding:9px 5px;}
+.cgm-week-col-head{text-align:center;padding-bottom:6px;border-bottom:1px solid #f1f5f9;}
+.cgm-week-col-day{font-size:10px;font-weight:600;color:#64748b;letter-spacing:.5px;text-transform:uppercase;line-height:1;}
+.cgm-week-col-num{font-size:22px;font-weight:700;color:#0f172a;line-height:1.1;margin-top:2px;}
+.cgm-week-col-badge{display:inline-block;margin-top:4px;padding:1px 6px;border-radius:6px;font-size:8px;font-weight:700;letter-spacing:.5px;}
 .cgm-week-col-badge.oggi{background:var(--cp);color:#fff;}
 .cgm-week-col-badge.domani{background:#fef3c7;color:#92400e;}
-.cgm-week-col-events{display:flex;flex-direction:column;gap:6px;}
-/* Card evento ricca con barra colorata laterale */
+.cgm-week-col .cgm-dots{margin:4px 0 6px 0;}
+.cgm-week-col-events{display:flex;flex-direction:column;gap:4px;}
+/* Pillole compatte (desktop) */
+.cgm-week-pill{display:block;font-size:10.5px;font-weight:600;padding:4px 6px;border-radius:6px;border-left:3px solid #cbd5e1;background:#f8fafc;color:#0f172a;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cgm-week-pill.tipo-allen{border-left-color:#0F6E56;background:#ecfdf5;color:#064e3b;}
+.cgm-week-pill.tipo-partita-conv{border-left-color:#2563eb;background:#eff6ff;color:#1e3a8a;}
+.cgm-week-pill.tipo-partita-noconv{border-left-color:#94a3b8;background:#f8fafc;color:#475569;}
+.cgm-week-pill.tipo-altro{border-left-color:#7c3aed;background:#f5f3ff;color:#5b21b6;}
+.cgm-week-pill.tipo-indisp{border-left-color:#dc2626;background:#fef2f2;color:#991b1b;}
+.cgm-week-pill.tipo-assenza{border-left-color:#f97316;background:#fff7ed;color:#9a3412;}
+.cgm-week-more{font-size:10px;color:#64748b;text-align:center;padding:2px 0;}
+.cgm-week-empty{text-align:center;padding:16px 4px;color:#94a3b8;font-size:10px;flex:1;display:flex;align-items:center;justify-content:center;}
+/* Card RICCHE (riusabili da Lista/Modal e da mobile-agenda) */
 .cgm-week-ev{background:#f8fafc;border-radius:8px;padding:8px 10px 8px 12px;position:relative;overflow:hidden;border-left:3px solid #cbd5e1;}
 .cgm-week-ev.tipo-allen{border-left-color:#0F6E56;background:#ecfdf5;}
 .cgm-week-ev.tipo-partita-conv{border-left-color:#2563eb;background:#eff6ff;}
@@ -1640,15 +1652,18 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-week-ev-badge-inline.conv{background:#dbeafe;color:#1e40af;}
 .cgm-week-ev-badge-inline.noconv{background:#f1f5f9;color:#475569;}
 .cgm-week-ev-badge-inline.attesa{background:#fef3c7;color:#92400e;}
-.cgm-week-ev-more{font-size:11px;color:#94a3b8;text-align:center;padding:2px 0;}
-.cgm-week-empty{text-align:center;padding:24px 8px;color:#94a3b8;font-size:11px;}
-/* Vista lista: riusa le stesse classi .cgm-week-ev */
+/* Vista lista (riusa .cgm-week-ev) */
 .cgm-lista{display:flex;flex-direction:column;gap:14px;}
 .cgm-lista-day-header{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px;}
 .cgm-lista-day-events{display:flex;flex-direction:column;gap:6px;}
-/* Layout mobile vs desktop per settimana */
+/* Layout switch: <768px mobile agenda (cards ricche), >=769px desktop grid (pillole) */
 .cgm-week-agenda{display:none;}
-@media(max-width:600px){.cgm-week-grid{display:none;}.cgm-week-agenda{display:flex;flex-direction:column;gap:10px;}.cgm-week-agenda .cgm-week-col{min-height:auto;}}
+@media(max-width:768px){
+  .cgm-week-grid{display:none;}
+  .cgm-week-agenda{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .cgm-week-agenda .cgm-week-col{min-height:auto;flex-direction:column;padding:12px;}
+}
+@media(min-width:769px){.cgm-week-agenda{display:none;}}
 /* Modal sheet slide-up */
 .modal-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:9998;}
 .modal-sheet-backdrop.open{opacity:1;pointer-events:auto;}
@@ -17739,6 +17754,16 @@ function _convBadgeInline(ev, myPls) {
   }
   return '<span class="cgm-week-ev-badge-inline attesa">🟡 In attesa</span>';
 }
+// Helper visivo: pillola compatta 1 riga (usata da Settimana desktop)
+function _renderEventPill(ev, myPls, myPlIds) {
+  const tipoClass = _getCardTipoClass(ev, myPlIds); // 'tipo-allen' | 'tipo-partita-conv' | ...
+  const icon = _getEventTypeIcon(ev.type);
+  const title = _getEventTitle(ev);
+  const orario = ev.start || '';
+  const shortTitle = title.length > 12 ? title.substring(0, 11) + '…' : title;
+  return `<div class="cgm-week-pill ${tipoClass}">${icon} ${orario ? orario + ' ' : ''}${escapeHtml(shortTitle)}</div>`;
+}
+
 // Helper visivo: card evento completa (usata da Settimana, Lista, Modal)
 // opts: { extraHtml?, onClickJs? } per personalizzazioni inline
 function _renderEventCard(ev, myPls, myPlIds, opts) {
@@ -17813,7 +17838,9 @@ function renderCalGenSettimana() {
     ? `${d0.getDate()}–${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`
     : `${d0.getDate()} ${MESI_IT[d0.getMonth()]} – ${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`;
 
-  // Costruisce HTML colonna per giorno (riusato sia da grid desktop sia da agenda mobile)
+  // Costruisce HTML colonna per giorno.
+  // isMobile=false → eventi come pillole compatte (desktop)
+  // isMobile=true  → eventi come cards ricche (mobile agenda)
   function _buildCol(d, ds, i, isMobile) {
     const isToday = ds === todayStr;
     const markers = getMyDayMarkers(ds);
@@ -17828,24 +17855,35 @@ function renderCalGenSettimana() {
     const hasContent = evs.length || markers.indisp || markers.assenza;
     if (!hasContent) {
       evsHtml = '<div class="cgm-week-empty">Nessun evento</div>';
-    } else {
+    } else if (markers.indisp) {
       // Indisp ha priorità visiva (sostituisce eventi)
-      if (markers.indisp) {
-        const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(markers.indisp.tipo) : (markers.indisp.tipo || 'Indisponibile');
+      const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(markers.indisp.tipo) : (markers.indisp.tipo || 'Indisponibile');
+      if (isMobile) {
         evsHtml = `<div class="cgm-week-ev tipo-indisp">
           <div class="cgm-week-ev-icon-title" style="color:#dc2626;">🔴 ${escapeHtml(t)}</div>
           ${markers.indisp.motivo ? `<div class="cgm-week-ev-meta"><div class="row">${escapeHtml(markers.indisp.motivo)}</div></div>` : ''}
         </div>`;
       } else {
-        const maxVisible = isMobile ? evs.length : 3;
-        evsHtml = evs.slice(0, maxVisible).map(ev => _renderEventCard(ev, myPls, myPlIds)).join('');
-        if (!isMobile && evs.length > maxVisible) {
-          evsHtml += `<div class="cgm-week-ev-more">+${evs.length - maxVisible} altri</div>`;
-        }
+        evsHtml = `<div class="cgm-week-pill tipo-indisp">🔴 ${escapeHtml(t)}</div>`;
+      }
+    } else {
+      if (isMobile) {
+        // Mobile: cards ricche, tutti gli eventi (no truncation)
+        evsHtml = evs.map(ev => _renderEventCard(ev, myPls, myPlIds)).join('');
         if (markers.assenza) {
           evsHtml += `<div class="cgm-week-ev tipo-assenza">
             <div class="cgm-week-ev-icon-title" style="color:#c2410c;">🟠 Hai segnalato assenza</div>
           </div>`;
+        }
+      } else {
+        // Desktop: pillole compatte, max 3 + "+N altri"
+        const maxVisible = 3;
+        evsHtml = evs.slice(0, maxVisible).map(ev => _renderEventPill(ev, myPls, myPlIds)).join('');
+        if (evs.length > maxVisible) {
+          evsHtml += `<div class="cgm-week-more">+${evs.length - maxVisible} altri</div>`;
+        }
+        if (markers.assenza) {
+          evsHtml += `<div class="cgm-week-pill tipo-assenza">🟠 Assenza</div>`;
         }
       }
     }
