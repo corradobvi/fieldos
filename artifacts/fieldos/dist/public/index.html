@@ -5540,7 +5540,6 @@ function renderProfiloFiglio(el) {
     <div class="mob-figlio-hero">
       <div class="mob-figlio-av">${ini}</div>
       <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-      ${p.approval_status === 'pending' ? '<div style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:6px;padding:4px 10px;font-size:.78rem;font-weight:700;margin-top:6px;">⏳ In attesa di approvazione mister</div>' : ''}
       <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
       <div class="mob-figlio-stats">
         <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
@@ -5886,42 +5885,6 @@ async function _syncRosaFromMySQL() {
   } catch(_) {}
 }
 
-async function approvePlayerRegistration(playerId) {
-  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
-  if (!_v2Token) { toast('⛔ Sessione scaduta. Rifai login.'); return; }
-  try {
-    const r = await fetch(API_BASE + '/api/v2/players/' + playerId + '/approve', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + _v2Token }
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { toast('❌ ' + (d.error || 'Errore approvazione')); return; }
-    const p = players.find(x => x.id === playerId);
-    if (p) { p.approval_status = 'approved'; if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState(); }
-    toast('✅ Iscrizione approvata');
-    renderRosa();
-  } catch (e) { toast('❌ Errore di rete'); }
-}
-
-async function rejectPlayerRegistration(playerId) {
-  const p = players.find(x => x.id === playerId);
-  const nm = p ? (p.nome + ' ' + (p.cogn || p.cogn_iniziale || '')) : 'questo giocatore';
-  if (!confirm('Rifiutare l\'iscrizione di ' + nm + '? Il genitore associato verrà rimosso e dovrà riprovare contattando la società.')) return;
-  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
-  if (!_v2Token) { toast('⛔ Sessione scaduta. Rifai login.'); return; }
-  try {
-    const r = await fetch(API_BASE + '/api/v2/players/' + playerId + '/reject', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + _v2Token }
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) { toast('❌ ' + (d.error || 'Errore rifiuto')); return; }
-    if (p) { p.approval_status = 'approved'; if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState(); }
-    toast('🗑 Iscrizione rifiutata, genitore rimosso');
-    renderRosa();
-  } catch (e) { toast('❌ Errore di rete'); }
-}
-
 function _renderRosaInner() {
   // Inner re-render senza re-trigger del sync MySQL — usato da _syncRosaFromMySQL
   _rosaSkipSync = true;
@@ -5980,9 +5943,7 @@ function renderRosa() {
       : '';
     const incompleteBadge = p.incomplete
       ? ' <span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:5px;padding:1px 6px;font-size:.68rem;font-weight:700;" title="In attesa del genitore">⏳ Attesa genitore</span>'
-      : (p.approval_status === 'pending')
-        ? ' <span style="display:inline-block;background:#dbeafe;color:#1e3a8a;border-radius:5px;padding:1px 6px;font-size:.68rem;font-weight:700;" title="Iscrizione famiglia da approvare">📥 Da approvare</span>'
-        : '';
+      : '';
     const displayName = p.incomplete
       ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
       : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
@@ -6050,34 +6011,14 @@ function renderRosa() {
           }
         };
 
-        if (p.incomplete) {
-          // Incomplete player: show Genitori button instead of ✉
-          const bGen = document.createElement('button');
-          bGen.className = 'btn btn-g btn-xs';
-          bGen.style.flex = '1';
-          bGen.title = 'Tutori/Genitori';
-          bGen.textContent = '👨‍👧';
-          bGen.onclick = () => openGuardiansModal(p.id);
-          btns.appendChild(bGen);
-        } else if (p.approval_status === 'pending') {
-          // Iscrizione famiglia da approvare: 2 bottoni
-          const bOk = document.createElement('button');
-          bOk.className = 'btn btn-p btn-xs';
-          bOk.style.flex = '1';
-          bOk.title = 'Approva iscrizione famiglia';
-          bOk.textContent = '✓ Approva';
-          bOk.onclick = () => approvePlayerRegistration(p.id);
-          const bNo = document.createElement('button');
-          bNo.className = 'btn btn-r btn-xs';
-          bNo.style.flex = '1';
-          bNo.title = 'Rifiuta iscrizione famiglia';
-          bNo.textContent = '✗ Rifiuta';
-          bNo.onclick = () => rejectPlayerRegistration(p.id);
-          btns.appendChild(bOk);
-          btns.appendChild(bNo);
-        } else {
-          btns.appendChild(bMsg);
-        }
+        // Bottone Tutori sempre visibile (gestisce associazione genitori al giocatore)
+        const bGen = document.createElement('button');
+        bGen.className = 'btn btn-g btn-xs';
+        bGen.style.flex = '1';
+        bGen.title = 'Tutori/Genitori';
+        bGen.textContent = '👨‍👧';
+        bGen.onclick = () => openGuardiansModal(p.id);
+        btns.appendChild(bGen);
         btns.appendChild(bEdit);
         btns.appendChild(bDel);
       }
@@ -11964,7 +11905,11 @@ async function submitSelfReg(){
       _v2Token = guardianToken;
       try { localStorage.setItem('mv_v2_token', guardianToken); } catch(_) {}
       closeM('mSelfReg');
-      setTimeout(() => toast('🎉 Account creato — benvenuto in MyVivaio!'), 350);
+      const _figliText = newUser.figli.join(', ');
+      const _toastMsg = _figliText
+        ? '✅ Registrazione completata, sei collegato a ' + _figliText
+        : '✅ Registrazione completata';
+      setTimeout(() => toast(_toastMsg), 350);
       me = newUser;
       bootApp(newUser);
       return;

@@ -84963,12 +84963,6 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
       );
       logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
     }
-    if (isFirstClaim) {
-      await pool.execute(
-        "UPDATE players SET approval_status = 'pending' WHERE id = ?",
-        [playerId]
-      );
-    }
     const [ins] = await pool.execute(
       `INSERT INTO player_guardians (player_id, user_id, role, consent_given, consent_at)
        VALUES (?, ?, ?, 1, NOW())`,
@@ -85000,16 +84994,19 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
         });
         if (isFirstClaim) {
           sendPushToUsers(targetIds, societyKeyFor(societyId), {
-            title: "\u{1F4E5} Iscrizione famiglia da approvare",
-            body: `${childFullName}: nuovo genitore registrato. Approva dalla Rosa.`,
-            tag: `player-pending-${playerId}`
+            title: "\u{1F468}\u200D\u{1F467} Nuovo genitore collegato",
+            body: `${childFullName}: ${guardianFullName || "un genitore"} si \xE8 registrato.`,
+            tag: `player-guardian-${playerId}`
           }).catch(() => {
           });
         }
       }
     } catch (_) {
     }
-    await syncPlayerFromMysqlToBlob(societyId, playerId);
+    await syncPlayerFromMysqlToBlob(societyId, playerId).catch(() => {
+    });
+    await syncGuardianToBlob(societyId, userId).catch(() => {
+    });
     return res.json({
       ok: true,
       guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true }
@@ -85057,74 +85054,6 @@ router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e }, "PATCH players/:id/personal-data error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.post("/players/:id/approve", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  try {
-    const [rows] = await pool.execute(
-      "SELECT id, nome, cognome, approval_status FROM players WHERE id = ? AND society_id = ? LIMIT 1",
-      [playerId, societyId]
-    );
-    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
-    const player = rows[0];
-    if (player.approval_status === "approved") return res.json({ ok: true, action: "already_approved" });
-    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
-    const [guardians] = await pool.execute(
-      "SELECT user_id FROM player_guardians WHERE player_id = ?",
-      [playerId]
-    );
-    const guardianIds = guardians.map((g) => g.user_id);
-    if (guardianIds.length) {
-      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
-        title: "\u2705 Iscrizione accettata",
-        body: `${player.nome} ${player.cognome}: il mister ha approvato l'iscrizione`,
-        tag: `player-approved-${playerId}`
-      }).catch(() => {
-      });
-    }
-    logger.info({ playerId, userId, societyId, guardiansNotified: guardianIds.length }, "[approval] player approved");
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "POST players/:id/approve error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.post("/players/:id/reject", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  try {
-    const [rows] = await pool.execute(
-      "SELECT id, nome, cognome FROM players WHERE id = ? AND society_id = ? LIMIT 1",
-      [playerId, societyId]
-    );
-    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
-    const player = rows[0];
-    const [guardians] = await pool.execute(
-      "SELECT user_id FROM player_guardians WHERE player_id = ?",
-      [playerId]
-    );
-    const guardianIds = guardians.map((g) => g.user_id);
-    await pool.execute("DELETE FROM player_guardians WHERE player_id = ?", [playerId]);
-    await pool.execute("DELETE FROM user_players WHERE player_id = ?", [playerId]).catch(() => {
-    });
-    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
-    if (guardianIds.length) {
-      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
-        title: "\u274C Iscrizione rifiutata",
-        body: `${player.nome} ${player.cognome}: il mister non ha approvato l'iscrizione. Contatta la societ\xE0.`,
-        tag: `player-rejected-${playerId}`
-      }).catch(() => {
-      });
-    }
-    logger.info({ playerId, userId, societyId, guardiansRemoved: guardianIds.length }, "[approval] player rejected");
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "POST players/:id/reject error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -85206,6 +85135,37 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
     ).catch(() => {
     });
     logger.info({ requesterId, guardianId, guardianUserId, playerId, societyId }, "[GDPR] guardian unlinked by staff");
+    try {
+      const [residui] = await pool.execute(
+        `SELECT COUNT(*) AS n FROM player_guardians pg
+         INNER JOIN players p ON p.id = pg.player_id
+         WHERE pg.user_id = ? AND p.society_id = ?`,
+        [guardianUserId, societyId]
+      );
+      const hasOtherChildren = Number(residui[0].n) > 0;
+      if (hasOtherChildren) {
+        await syncGuardianToBlob(societyId, guardianUserId).catch(() => {
+        });
+      } else {
+        await removeGuardianFromBlob(societyId, guardianUserId).catch(() => {
+        });
+      }
+    } catch (_) {
+    }
+    try {
+      const [playerInfo] = await pool.execute(
+        "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
+        [playerId]
+      );
+      const pName = playerInfo[0] ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ""}`.trim() : "un giocatore";
+      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
+        title: "\u274C Tutore sganciato",
+        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la societ\xE0 per chiarimenti.`,
+        tag: `guardian-removed-${playerId}-${guardianUserId}`
+      }).catch(() => {
+      });
+    } catch (_) {
+    }
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e }, "DELETE players/:playerId/guardians/:guardianId error");
@@ -85291,6 +85251,100 @@ async function addNotificaToBlob(societyId, userIds, notifica) {
     );
   } catch (e) {
     logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
+  }
+}
+async function syncGuardianToBlob(societyId, userId) {
+  if (!societyId || !userId) return;
+  try {
+    const [userRows] = await pool.execute(
+      "SELECT id, email, ruolo, nome, cognome, leva, stato FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    if (!userRows.length) return;
+    const u = userRows[0];
+    const [childRows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, pg.role
+       FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.user_id = ? AND p.society_id = ?`,
+      [userId, societyId]
+    );
+    const figli = [];
+    const figliIds = [];
+    let titoloFamiliare = null;
+    for (const c of childRows) {
+      const cogn = c.cognome || c.cognome_iniziale || "";
+      figli.push(`${c.nome} ${cogn}`.trim());
+      figliIds.push(Number(c.id));
+      if (!titoloFamiliare) titoloFamiliare = c.role;
+    }
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.USERS_DB)) state.USERS_DB = [];
+    const guardianEntry = {
+      id: Number(u.id),
+      email: u.email,
+      role: u.ruolo,
+      nome: u.nome || "",
+      cogn: u.cognome || "",
+      leva: u.leva || null,
+      stato: u.stato || "attivo",
+      figli,
+      figliIds,
+      titoloFamiliare,
+      _isV2: true
+    };
+    const idx = state.USERS_DB.findIndex((x) => x && Number(x.id) === Number(u.id));
+    if (idx < 0) {
+      state.USERS_DB.push(guardianEntry);
+    } else {
+      state.USERS_DB[idx] = { ...state.USERS_DB[idx], ...guardianEntry };
+    }
+    const maxId = state.USERS_DB.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
+    state.nextUserId = Math.max(Number(state.nextUserId) || 1, maxId + 1);
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userId }, "syncGuardianToBlob failed");
+  }
+}
+async function removeGuardianFromBlob(societyId, userId) {
+  if (!societyId || !userId) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.USERS_DB)) return;
+    const before = state.USERS_DB.length;
+    state.USERS_DB = state.USERS_DB.filter((x) => !x || Number(x.id) !== Number(userId));
+    if (state.USERS_DB.length === before) return;
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userId }, "removeGuardianFromBlob failed");
   }
 }
 var minors_default = router14;

@@ -182,7 +182,7 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
     )) as [any[], any];
     if (existing.length) return res.status(409).json({ error: "already_associated" });
 
-    // Conta i guardian già esistenti prima dell'insert: se è il PRIMO claim, andrà in 'pending approval' del mister
+    // Conta i guardian già esistenti prima dell'insert: usato per push primo claim (notifica unica al mister)
     const [gCountRows] = (await pool.execute(
       "SELECT COUNT(*) AS n FROM player_guardians WHERE player_id = ?",
       [playerId]
@@ -199,14 +199,6 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
         [lastNameFull.trim(), birthDate, playerId]
       );
       logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
-    }
-
-    // Approvazione mister: solo al PRIMO claim (i claim successivi non re-aprono il workflow)
-    if (isFirstClaim) {
-      await pool.execute(
-        "UPDATE players SET approval_status = 'pending' WHERE id = ?",
-        [playerId]
-      );
     }
 
     // Insert guardian link
@@ -245,16 +237,17 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
 
         if (isFirstClaim) {
           sendPushToUsers(targetIds, societyKeyFor(societyId), {
-            title: "📥 Iscrizione famiglia da approvare",
-            body: `${childFullName}: nuovo genitore registrato. Approva dalla Rosa.`,
-            tag: `player-pending-${playerId}`,
+            title: "👨‍👧 Nuovo genitore collegato",
+            body: `${childFullName}: ${guardianFullName || 'un genitore'} si è registrato.`,
+            tag: `player-guardian-${playerId}`,
           }).catch(() => {});
         }
       }
     } catch (_) { /* notifica non-bloccante */ }
 
-    // Propaga lo stato MySQL del player nel blob society_state (evita letture stale da altri device)
-    await syncPlayerFromMysqlToBlob(societyId, playerId);
+    // Propaga MySQL → blob: sia il player che il guardian (evita letture stale e bug "genitore fantasma")
+    await syncPlayerFromMysqlToBlob(societyId, playerId).catch(() => {});
+    await syncGuardianToBlob(societyId, userId).catch(() => {});
 
     return res.json({
       ok: true,
@@ -308,77 +301,6 @@ router.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "PATCH players/:id/personal-data error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-
-// POST /api/v2/players/:id/approve — Mister/admin/dirigente approva l'iscrizione famiglia
-router.post("/players/:id/approve", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser!;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  try {
-    const [rows] = (await pool.execute(
-      "SELECT id, nome, cognome, approval_status FROM players WHERE id = ? AND society_id = ? LIMIT 1",
-      [playerId, societyId]
-    )) as [any[], any];
-    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
-    const player = rows[0];
-    if (player.approval_status === 'approved') return res.json({ ok: true, action: "already_approved" });
-    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
-    // Push notification ai guardian del player
-    const [guardians] = (await pool.execute(
-      "SELECT user_id FROM player_guardians WHERE player_id = ?", [playerId]
-    )) as [any[], any];
-    const guardianIds = guardians.map((g: any) => g.user_id);
-    if (guardianIds.length) {
-      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
-        title: "✅ Iscrizione accettata",
-        body: `${player.nome} ${player.cognome}: il mister ha approvato l'iscrizione`,
-        tag: `player-approved-${playerId}`,
-      }).catch(() => {});
-    }
-    logger.info({ playerId, userId, societyId, guardiansNotified: guardianIds.length }, "[approval] player approved");
-    return res.json({ ok: true });
-  } catch (e: any) {
-    logger.error({ err: e }, "POST players/:id/approve error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-
-// POST /api/v2/players/:id/reject — Mister rifiuta l'iscrizione: rimuove guardian + ritorna pending=approved
-router.post("/players/:id/reject", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser!;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  try {
-    const [rows] = (await pool.execute(
-      "SELECT id, nome, cognome FROM players WHERE id = ? AND society_id = ? LIMIT 1",
-      [playerId, societyId]
-    )) as [any[], any];
-    if (!rows.length) return res.status(404).json({ error: "player_not_found" });
-    const player = rows[0];
-    const [guardians] = (await pool.execute(
-      "SELECT user_id FROM player_guardians WHERE player_id = ?", [playerId]
-    )) as [any[], any];
-    const guardianIds = guardians.map((g: any) => g.user_id);
-    // Rimuovi guardian link
-    await pool.execute("DELETE FROM player_guardians WHERE player_id = ?", [playerId]);
-    await pool.execute("DELETE FROM user_players WHERE player_id = ?", [playerId]).catch(() => {});
-    // Reset stato approval (esce dalla lista pending; il giocatore resta in MySQL)
-    await pool.execute("UPDATE players SET approval_status = 'approved' WHERE id = ?", [playerId]);
-    // Push notification ai guardian rimossi
-    if (guardianIds.length) {
-      sendPushToUsers(guardianIds, societyKeyFor(societyId), {
-        title: "❌ Iscrizione rifiutata",
-        body: `${player.nome} ${player.cognome}: il mister non ha approvato l'iscrizione. Contatta la società.`,
-        tag: `player-rejected-${playerId}`,
-      }).catch(() => {});
-    }
-    logger.info({ playerId, userId, societyId, guardiansRemoved: guardianIds.length }, "[approval] player rejected");
-    return res.json({ ok: true });
-  } catch (e: any) {
-    logger.error({ err: e }, "POST players/:id/reject error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -474,6 +396,38 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
     ).catch(() => {});
 
     logger.info({ requesterId, guardianId, guardianUserId, playerId, societyId }, "[GDPR] guardian unlinked by staff");
+
+    // Sync blob: aggiorna o rimuovi guardian da USERS_DB in base ai player_guardians residui
+    try {
+      const [residui] = (await pool.execute(
+        `SELECT COUNT(*) AS n FROM player_guardians pg
+         INNER JOIN players p ON p.id = pg.player_id
+         WHERE pg.user_id = ? AND p.society_id = ?`,
+        [guardianUserId, societyId]
+      )) as [any[], any];
+      const hasOtherChildren = Number((residui[0] as any).n) > 0;
+      if (hasOtherChildren) {
+        await syncGuardianToBlob(societyId, guardianUserId).catch(() => {});
+      } else {
+        await removeGuardianFromBlob(societyId, guardianUserId).catch(() => {});
+      }
+    } catch (_) { /* non-bloccante */ }
+
+    // Push al guardian rimosso
+    try {
+      const [playerInfo] = (await pool.execute(
+        "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
+        [playerId]
+      )) as [any[], any];
+      const pName = playerInfo[0]
+        ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ''}`.trim()
+        : 'un giocatore';
+      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
+        title: "❌ Tutore sganciato",
+        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la società per chiarimenti.`,
+        tag: `guardian-removed-${playerId}-${guardianUserId}`,
+      }).catch(() => {});
+    } catch (_) { /* non-bloccante */ }
 
     return res.json({ ok: true });
   } catch (e: any) {
@@ -574,6 +528,109 @@ export async function addNotificaToBlob(
   } catch (e: any) {
     logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
     // Non rilanciare
+  }
+}
+
+// Helper: propaga il guardian MySQL → blob USERS_DB. Idempotente, fault-tolerant.
+// Usato in POST /claim e DELETE /guardians per evitare il bug "genitore fantasma"
+// (auto-save di altri device che sovrascrivono il blob senza l'utente nuovo).
+async function syncGuardianToBlob(societyId: number, userId: number): Promise<void> {
+  if (!societyId || !userId) return;
+  try {
+    const [userRows] = (await pool.execute(
+      "SELECT id, email, ruolo, nome, cognome, leva, stato FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    )) as [any[], any];
+    if (!userRows.length) return;
+    const u = userRows[0];
+
+    const [childRows] = (await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, pg.role
+       FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.user_id = ? AND p.society_id = ?`,
+      [userId, societyId]
+    )) as [any[], any];
+
+    const figli: string[] = [];
+    const figliIds: number[] = [];
+    let titoloFamiliare: string | null = null;
+    for (const c of childRows as any[]) {
+      const cogn = c.cognome || c.cognome_iniziale || '';
+      figli.push(`${c.nome} ${cogn}`.trim());
+      figliIds.push(Number(c.id));
+      if (!titoloFamiliare) titoloFamiliare = c.role;
+    }
+
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    )) as [any[], any];
+    if (!blobRows.length) return;
+
+    let state: any;
+    try { state = JSON.parse(blobRows[0].state_json as string); } catch { return; }
+    if (!Array.isArray(state.USERS_DB)) state.USERS_DB = [];
+
+    const guardianEntry = {
+      id: Number(u.id),
+      email: u.email,
+      role: u.ruolo,
+      nome: u.nome || '',
+      cogn: u.cognome || '',
+      leva: u.leva || null,
+      stato: u.stato || 'attivo',
+      figli,
+      figliIds,
+      titoloFamiliare,
+      _isV2: true,
+    };
+
+    const idx = state.USERS_DB.findIndex((x: any) => x && Number(x.id) === Number(u.id));
+    if (idx < 0) {
+      state.USERS_DB.push(guardianEntry);
+    } else {
+      state.USERS_DB[idx] = { ...state.USERS_DB[idx], ...guardianEntry };
+    }
+
+    const maxId = state.USERS_DB.reduce((m: number, x: any) => Math.max(m, Number(x.id) || 0), 0);
+    state.nextUserId = Math.max(Number(state.nextUserId) || 1, maxId + 1);
+
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e: any) {
+    logger.error({ err: e?.message, societyId, userId }, "syncGuardianToBlob failed");
+  }
+}
+
+// Helper: rimuove un guardian dal blob USERS_DB (chiamato quando il guardian non ha più figli associati).
+async function removeGuardianFromBlob(societyId: number, userId: number): Promise<void> {
+  if (!societyId || !userId) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    )) as [any[], any];
+    if (!blobRows.length) return;
+
+    let state: any;
+    try { state = JSON.parse(blobRows[0].state_json as string); } catch { return; }
+    if (!Array.isArray(state.USERS_DB)) return;
+
+    const before = state.USERS_DB.length;
+    state.USERS_DB = state.USERS_DB.filter((x: any) => !x || Number(x.id) !== Number(userId));
+    if (state.USERS_DB.length === before) return; // nessuna modifica
+
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e: any) {
+    logger.error({ err: e?.message, societyId, userId }, "removeGuardianFromBlob failed");
   }
 }
 
