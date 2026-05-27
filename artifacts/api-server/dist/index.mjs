@@ -84980,7 +84980,7 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
     ).catch(() => {
     });
     try {
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva });
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId });
       if (targetIds && targetIds.length) {
         let guardianFullName = "";
         try {

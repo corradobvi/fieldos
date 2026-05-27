@@ -224,7 +224,7 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
 
     // Card blob SEMPRE (anche claim successivi); push browser SOLO al primo claim per evitare spam
     try {
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva });
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId });
       if (targetIds && targetIds.length) {
         let guardianFullName = '';
         try {
