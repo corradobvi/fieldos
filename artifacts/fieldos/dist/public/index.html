@@ -1593,6 +1593,64 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-badge-conv{background:#dcfce7;color:#166534;}
 .cgm-badge-noconv{background:var(--border);color:var(--text2);}
 .cgm-badge-wait{background:#fef9c3;color:#854d0e;}
+/* Cal genitore v2: 5 pallini per giorno + data-badge OGGI/DOMANI */
+.cgm-dot-allen{background:#0F6E56;}
+.cgm-dot-conv{background:#2563eb;}
+.cgm-dot-noconv{background:#cbd5e1;}
+.cgm-dot-ass{background:#f97316;}
+.cgm-dot-ind{background:#dc2626;}
+.data-badge{display:inline-block;font-size:.58rem;font-weight:800;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-left:4px;vertical-align:middle;}
+.data-badge.oggi{background:var(--cp);color:#fff;}
+.data-badge.domani{background:#fef3c7;color:#92400e;}
+.cgm-tabs{display:flex;gap:4px;margin-bottom:12px;}
+.cgm-tab-btn{flex:1;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:8px;padding:7px 8px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.cgm-tab-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.cgm-filtri{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.cgm-filtro-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:14px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.cgm-filtro-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
+.cgm-placeholder{text-align:center;padding:48px 20px;color:var(--text3);font-size:.88rem;background:var(--cl);border-radius:10px;}
+/* Vista settimana */
+.cgm-week-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:12px;}
+.cgm-week-nav-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--white);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text1);-webkit-tap-highlight-color:transparent;}
+.cgm-week-nav-today{background:var(--cp);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:600;padding:7px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cgm-week-label{font-weight:700;font-size:.92rem;color:var(--text1);flex:1;text-align:center;}
+.cgm-week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cgm-week-col{border:1.5px solid var(--border);border-radius:10px;background:var(--white);padding:6px 5px;min-height:130px;display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:border-color .15s;}
+.cgm-week-col:hover{border-color:var(--cp);}
+.cgm-week-col.today{border-color:var(--cp);border-width:2px;}
+.cgm-week-col-head{text-align:center;font-size:.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;padding-bottom:3px;}
+.cgm-week-col-head .cgm-week-num{font-size:1.15rem;font-weight:800;color:var(--text1);display:block;margin-top:2px;}
+.cgm-week-col.today .cgm-week-col-head, .cgm-week-col.today .cgm-week-num{color:var(--cp);}
+.cgm-week-dots{display:flex;justify-content:center;gap:2px;margin:2px 0 4px;min-height:6px;}
+.cgm-week-evbox{font-size:.66rem;line-height:1.3;background:var(--cl);border-radius:5px;padding:3px 5px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cgm-week-agenda{display:none;}
+.cgm-week-agenda-card{border:1.5px solid var(--border);border-radius:10px;background:var(--white);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.cgm-week-agenda-card:hover{border-color:var(--cp);}
+.cgm-week-agenda-card.today{border-color:var(--cp);border-width:2px;}
+.cgm-week-agenda-head{display:flex;align-items:center;justify-content:space-between;font-size:.85rem;font-weight:700;color:var(--text1);margin-bottom:6px;}
+.cgm-week-agenda-head .cgm-week-agenda-dots{display:flex;gap:3px;}
+@media(max-width:600px){.cgm-week-grid{display:none;}.cgm-week-agenda{display:block;}}
+/* Vista lista */
+.cgm-lista{display:flex;flex-direction:column;gap:14px;}
+.cgm-lista-day-header{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px;}
+.cgm-lista-day-events{display:flex;flex-direction:column;gap:6px;}
+.cgm-lista-card{display:flex;align-items:center;gap:10px;background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;}
+.cgm-lista-card:hover{border-color:var(--cp);}
+.cgm-lista-card .cgm-dot{width:10px;height:10px;flex-shrink:0;}
+.cgm-lista-card-content{flex:1;min-width:0;}
+.cgm-lista-card-title{font-size:.9rem;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cgm-lista-card-meta{font-size:.74rem;color:var(--text2);margin-top:2px;}
+/* Modal sheet slide-up */
+.modal-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:9998;}
+.modal-sheet-backdrop.open{opacity:1;pointer-events:auto;}
+.modal-sheet{position:fixed;bottom:0;left:0;right:0;max-height:90vh;overflow-y:auto;background:var(--white);border-radius:16px 16px 0 0;transform:translateY(100%);transition:transform .3s ease;z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,.15);-webkit-overflow-scrolling:touch;}
+.modal-sheet.open{transform:translateY(0);}
+.modal-sheet-handle{width:40px;height:4px;background:var(--border);border-radius:3px;margin:8px auto 4px;}
+.modal-sheet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--white);z-index:1;}
+.modal-sheet-title{font-size:1rem;font-weight:800;color:var(--text1);}
+.modal-sheet-close{width:32px;height:32px;border-radius:50%;border:none;background:var(--cl);font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);-webkit-tap-highlight-color:transparent;}
+.modal-sheet-body{padding:14px 18px 80px;display:flex;flex-direction:column;gap:10px;}
+.modal-sheet-cta-fixed{position:sticky;bottom:0;left:0;right:0;background:linear-gradient(180deg,rgba(255,255,255,0) 0%,var(--white) 30%);padding:18px 18px 22px;display:flex;flex-direction:column;gap:8px;}
 /* ── Allenamenti calendar view ─────────── */
 .all-cal-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .all-cal-mlbl{font-weight:800;font-size:.95rem;min-width:130px;text-align:center;color:var(--text1);}
@@ -4073,6 +4131,10 @@ let calWeekSelDay = null;
 let calGenYear = new Date().getFullYear();
 let calGenMonth = new Date().getMonth();
 let calGenSelDay = null;
+// Calendario genitore v2: stato per 3 viste (mese/settimana/lista) + filtri
+let calGenView = 'settimana';                           // verrà ripristinato da localStorage in render
+let calGenFiltri = { allen: true, partite: true };      // toggle Allenamenti/Partite
+let calGenWeekStart = null;                             // lunedì della settimana visibile (vista settimana)
 let _dayModalDate = null;
 let _deleteTargetId = null;
 let _editPendingData = null;
@@ -7447,7 +7509,7 @@ function exportPresenzeCSV(){
 }
 
 // ── Modale "Avvisa assenza" (genitore / giocatore)
-function openAvvisaModal(){
+function openAvvisaModal(prefilledDate){
   if (!canAvvisaAssenza()) return;
   const figliRow = document.getElementById('avvisaFiglioRow');
   const figliSel = document.getElementById('avvisaFiglio');
@@ -7494,6 +7556,13 @@ function openAvvisaModal(){
   populateDates(figliSel.value);
   figliSel.onchange = () => populateDates(figliSel.value);
   document.getElementById('avvisaMotivo').value = '';
+  // Pre-popola la data se richiesto e disponibile come option (es. da click giorno nel calendario)
+  if (prefilledDate) {
+    const dateEl = document.getElementById('avvisaDate');
+    if (dateEl && Array.from(dateEl.options || []).some(o => o.value === prefilledDate)) {
+      dateEl.value = prefilledDate;
+    }
+  }
   openM('mAvvisa');
 }
 
@@ -17435,6 +17504,96 @@ function _isCalGenitoreRole() {
   return me && (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore');
 }
 
+// ── Cal genitore v2: helper data + markers giornalieri ───────────────────────
+function isOggi(dateStr) { return ymd(new Date()) === dateStr; }
+function isDomani(dateStr) { return ymd(new Date(Date.now() + 86400000)) === dateStr; }
+function _dataBadgeHTML(dateStr) {
+  if (isOggi(dateStr)) return '<span class="data-badge oggi">OGGI</span>';
+  if (isDomani(dateStr)) return '<span class="data-badge domani">DOMANI</span>';
+  return '';
+}
+
+// Marker pallini per il giorno: { allen, partitaConv, partitaNoConv, assenza, indisp }
+// Logica: indisp 🔴 sovrascrive TUTTO (early return). assenza 🟠 e gli altri convivono.
+function getMyDayMarkers(dateStr) {
+  const markers = { allen: false, partitaConv: false, partitaNoConv: false, assenza: false, indisp: null };
+  const myPls = (typeof getMyPlayers === 'function') ? getMyPlayers() : [];
+  const myPlIds = myPls.map(p => p.id);
+  if (!myPlIds.length) return markers;
+
+  // Indisp: priorità massima
+  for (const pid of myPlIds) {
+    const ind = (typeof playerIndispOnDate === 'function') ? playerIndispOnDate(pid, dateStr) : null;
+    if (ind) { markers.indisp = ind; return markers; }
+  }
+
+  // Assenza dichiarata
+  for (const p of myPls) {
+    if (Array.isArray(p.assenzeAvvisate) && p.assenzeAvvisate.some(a => a.date === dateStr)) {
+      markers.assenza = true;
+      break;
+    }
+  }
+
+  // Eventi del giorno filtrati per visibilità famiglia
+  const dayEvents = events.filter(ev => eventOccursOn(ev, dateStr) && canSeeEvent(ev));
+  for (const ev of dayEvents) {
+    if (ev.type === 'allenamento' || ev.type === 'allenamento_portieri') {
+      markers.allen = true;
+    } else if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
+      const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+      const isConv = conv && conv.playerIds && myPlIds.some(pid => conv.playerIds.includes(pid));
+      if (isConv) markers.partitaConv = true;
+      else markers.partitaNoConv = true;
+    }
+  }
+  return markers;
+}
+
+// Render compatto pallini per una cella (rispetta filtri attivi). Stringa HTML.
+function _renderCalGenDots(markers) {
+  if (markers.indisp) return '<span class="cgm-dot cgm-dot-ind"></span>';
+  const dots = [];
+  if (markers.allen && calGenFiltri.allen) dots.push('<span class="cgm-dot cgm-dot-allen"></span>');
+  if (markers.partitaConv && calGenFiltri.partite) dots.push('<span class="cgm-dot cgm-dot-conv"></span>');
+  if (markers.partitaNoConv && calGenFiltri.partite) dots.push('<span class="cgm-dot cgm-dot-noconv"></span>');
+  if (markers.assenza) dots.push('<span class="cgm-dot cgm-dot-ass"></span>');
+  return dots.length ? dots.join('') : '';
+}
+
+// Setter view + filtri (persiste in localStorage e re-renderizza)
+function calGenSetView(v) {
+  calGenView = v;
+  try { if (me) localStorage.setItem('cal_gen_view_' + me.id, v); } catch(_) {}
+  renderCalGenitore();
+}
+function calGenToggleFiltro(key) {
+  calGenFiltri[key] = !calGenFiltri[key];
+  try { if (me) localStorage.setItem('cal_gen_filtri_' + me.id, JSON.stringify(calGenFiltri)); } catch(_) {}
+  renderCalGenitore();
+}
+function _calGenLoadState() {
+  if (!me) return;
+  try {
+    const v = localStorage.getItem('cal_gen_view_' + me.id);
+    if (v === 'mese' || v === 'settimana' || v === 'lista') calGenView = v;
+    const f = localStorage.getItem('cal_gen_filtri_' + me.id);
+    if (f) { const p = JSON.parse(f); if (typeof p.allen === 'boolean') calGenFiltri.allen = p.allen; if (typeof p.partite === 'boolean') calGenFiltri.partite = p.partite; }
+  } catch(_) {}
+}
+
+// Lunedì della settimana di una Date
+function _startOfWeek(d) {
+  const out = new Date(d); out.setHours(0,0,0,0);
+  const dow = out.getDay(); // 0=Dom
+  const diff = dow === 0 ? -6 : 1 - dow;
+  out.setDate(out.getDate() + diff);
+  return out;
+}
+function calGenWeekPrev() { if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date()); calGenWeekStart = new Date(calGenWeekStart.getTime() - 7*86400000); renderCalGenitore(); }
+function calGenWeekNext() { if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date()); calGenWeekStart = new Date(calGenWeekStart.getTime() + 7*86400000); renderCalGenitore(); }
+function calGenWeekToday() { calGenWeekStart = _startOfWeek(new Date()); renderCalGenitore(); }
+
 function calGenMove(dir) {
   calGenMonth += dir;
   if (calGenMonth > 11) { calGenMonth = 0; calGenYear++; }
@@ -17459,95 +17618,65 @@ function calGenSelectDay(dateStr) {
   }, 60);
 }
 
+// Dispatcher: tabs + filtri + delega alla vista attiva (mese/settimana/lista)
 function renderCalGenitore() {
   const page = document.getElementById('pg-calendario');
   if (page) page.classList.add('cal-gen');
   const container = document.getElementById('calGenitoreView');
   if (!container) return;
-
+  _calGenLoadState();
   if (!calGenSelDay) calGenSelDay = ymd(new Date());
 
-  const todayStr = ymd(new Date());
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = ymd(tomorrow);
+  const _tabBtn = (v, lbl) => `<button class="cgm-tab-btn${calGenView===v?' on':''}" onclick="calGenSetView('${v}')">${lbl}</button>`;
+  const _filtroBtn = (k, lbl) => `<button class="cgm-filtro-btn${calGenFiltri[k]?' on':''}" onclick="calGenToggleFiltro('${k}')">${lbl}</button>`;
 
-  // Events filtered by role (no UI filter overrides)
-  function genEventsForDay(ds) {
-    return events.filter(ev => {
-      if (!canSeeEvent(ev)) return false;
-      return eventOccursOn(ev, ds);
-    }).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
-  }
+  container.innerHTML = `<div class="cgm-wrap">
+    <div class="cgm-tabs">
+      ${_tabBtn('mese','📅 Mese')}
+      ${_tabBtn('settimana','📆 Settimana')}
+      ${_tabBtn('lista','📋 Lista')}
+    </div>
+    <div class="cgm-filtri">
+      ${_filtroBtn('allen','🏃 Allenamenti')}
+      ${_filtroBtn('partite','⚽ Partite')}
+    </div>
+    <div id="calGenViewBody"></div>
+  </div>`;
+
+  if (calGenView === 'mese')      renderCalGenMese();
+  else if (calGenView === 'settimana') renderCalGenSettimana();
+  else                            renderCalGenLista();
+}
+
+// Vista Mese: griglia mensile con 5 pallini colorati. Click cella → modal sheet.
+function renderCalGenMese() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  const todayStr = ymd(new Date());
 
   const MESI_FULL = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   const DAY_HEADS = ['L','M','M','G','V','S','D'];
-  const DOW_UP = ['DOMENICA','LUNEDÌ','MARTEDÌ','MERCOLEDÌ','GIOVEDÌ','VENERDÌ','SABATO'];
 
   const firstDow = new Date(calGenYear, calGenMonth, 1).getDay();
   const offset = firstDow === 0 ? 6 : firstDow - 1;
   const daysInMonth = new Date(calGenYear, calGenMonth + 1, 0).getDate();
 
-  // Grid
   let cells = DAY_HEADS.map(h => `<div class="cgm-head">${h}</div>`).join('');
   for (let i = 0; i < offset; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
 
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = calGenYear + '-' + pad2(calGenMonth + 1) + '-' + pad2(day);
     const isToday = ds === todayStr;
-    const isSel = ds === calGenSelDay && !isToday;
-    const dayEvs = genEventsForDay(ds);
-    const hasAllen = dayEvs.some(ev => ev.type === 'allenamento' || ev.type === 'allenamento_portieri');
-    const hasMatch = dayEvs.some(ev => ['partita','campionato','torneo','amichevole'].includes(ev.type));
-    const hasOther = dayEvs.some(ev => !['allenamento','allenamento_portieri','partita','campionato','torneo','amichevole'].includes(ev.type));
-    const dots = (hasAllen ? '<span class="cgm-dot cgm-dot-tr"></span>' : '')
-               + (hasMatch ? '<span class="cgm-dot cgm-dot-mt"></span>' : '')
-               + (hasOther ? '<span class="cgm-dot cgm-dot-ev"></span>' : '');
-    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : isSel ? ' cgm-sel' : '');
-    cells += `<div class="cgm-cell" onclick="calGenSelectDay('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
+    const markers = getMyDayMarkers(ds);
+    const dots = _renderCalGenDots(markers);
+    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : '');
+    cells += `<div class="cgm-cell" onclick="openCalDayModal('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
   }
 
   const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
   for (let i = 0; i < trailing; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
 
-  // Day detail header
-  const selD = parseYmd(calGenSelDay);
-  let dayLabel = DOW_UP[selD.getDay()] + ' ' + selD.getDate();
-  if (calGenSelDay === todayStr) dayLabel += ' · OGGI';
-  else if (calGenSelDay === tomorrowStr) dayLabel += ' · DOMANI';
-
-  // Event cards
-  const selEvs = genEventsForDay(calGenSelDay);
-  const myPls = (typeof getMyPlayers === 'function') ? getMyPlayers() : [];
-  let evCards = '';
-  if (!selEvs.length) {
-    evCards = '<div class="cgm-empty">Nessun evento per questo giorno</div>';
-  } else {
-    evCards = selEvs.map(ev => {
-      const tipo = getTipo(ev.type);
-      const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
-      const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
-      const icon = isAllen ? '🏃' : isMatch ? '⚽' : '📌';
-      const luogoHtml = ev.luogo ? `<div class="cgm-ev-luogo">📍 ${escapeHtml(ev.luogo)}</div>` : '';
-      let badge = '';
-      if (isMatch && ev.id && myPls.length) {
-        const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
-        if (conv && conv.playerIds) {
-          badge = myPls.some(p => conv.playerIds.includes(p.id))
-            ? '<span class="cgm-badge cgm-badge-conv">🟢 CONVOCATO</span>'
-            : '<span class="cgm-badge cgm-badge-noconv">⚪ NON CONVOCATO</span>';
-        } else {
-          badge = '<span class="cgm-badge cgm-badge-wait">🟡 IN ATTESA</span>';
-        }
-      }
-      return `<div class="cgm-ev-card" style="border-left-color:${tipo.color};">
-        <div class="cgm-ev-row1"><span class="cgm-ev-time">${ev.start || ''}</span>${badge}</div>
-        <div class="cgm-ev-title">${icon} ${escapeHtml(ev.title || tipo.label)}</div>
-        ${luogoHtml}
-      </div>`;
-    }).join('');
-  }
-
-  container.innerHTML = `<div class="cgm-wrap">
+  body.innerHTML = `
     <div class="cgm-header">
       <div class="cgm-title">📅 ${MESI_FULL[calGenMonth]} ${calGenYear}</div>
       <button class="cgm-today-btn" onclick="calGenGoToday()">Oggi</button>
@@ -17557,11 +17686,301 @@ function renderCalGenitore() {
       <span class="cgm-nav-label">${MESI_FULL[calGenMonth]} ${calGenYear}</span>
       <button class="cgm-nav-btn" onclick="calGenMove(1)">›</button>
     </div>
-    <div class="cgm-grid">${cells}</div>
-    <div class="cgm-sep" id="calGenDaySection"></div>
-    <div class="cgm-day-label">${dayLabel}</div>
-    <div class="cgm-ev-list">${evCards}</div>
-  </div>`;
+    <div class="cgm-grid">${cells}</div>`;
+}
+
+// Helper interno: array eventi del giorno per il genitore, ordinati per orario, filtrati per visibility famiglia
+function _calGenEventsForDay(ds) {
+  return events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds))
+               .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+}
+// Helper interno: applica filtri allen/partite
+function _calGenFiltraEventi(evs) {
+  return evs.filter(ev => {
+    const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+    const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+    if (isAllen && !calGenFiltri.allen) return false;
+    if (isMatch && !calGenFiltri.partite) return false;
+    return true;
+  });
+}
+// Helper interno: badge convocazione per evento partita
+function _calGenConvBadge(ev, myPls) {
+  const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+  if (!isMatch || !ev.id || !myPls.length) return '';
+  const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
+  if (conv && conv.playerIds) {
+    return myPls.some(p => conv.playerIds.includes(p.id))
+      ? '<span class="cgm-badge cgm-badge-conv">🔵 CONVOCATO</span>'
+      : '<span class="cgm-badge cgm-badge-noconv">⚪ NON CONVOCATO</span>';
+  }
+  return '<span class="cgm-badge cgm-badge-wait">🟡 IN ATTESA</span>';
+}
+
+// Vista Settimana (DEFAULT)
+function renderCalGenSettimana() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  if (!calGenWeekStart) calGenWeekStart = _startOfWeek(new Date());
+
+  const DAY_SHORT = ['LUN','MAR','MER','GIO','VEN','SAB','DOM'];
+  const MESI_IT = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const todayStr = ymd(new Date());
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(calGenWeekStart); d.setDate(calGenWeekStart.getDate() + i);
+    days.push({ d, ds: ymd(d) });
+  }
+  const d0 = days[0].d, d6 = days[6].d;
+  const sameMonth = d0.getMonth() === d6.getMonth();
+  const label = sameMonth
+    ? `${d0.getDate()}–${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`
+    : `${d0.getDate()} ${MESI_IT[d0.getMonth()]} – ${d6.getDate()} ${MESI_IT[d6.getMonth()]} ${d6.getFullYear()}`;
+
+  // GRID DESKTOP (>600px)
+  let gridHtml = '<div class="cgm-week-grid">';
+  days.forEach(({ d, ds }, i) => {
+    const isToday = ds === todayStr;
+    const markers = getMyDayMarkers(ds);
+    const dots = _renderCalGenDots(markers);
+    const evs = _calGenFiltraEventi(_calGenEventsForDay(ds));
+    const evBoxes = evs.slice(0, 2).map(ev => {
+      const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+      const icon = isAllen ? '🏃' : (['partita','campionato','torneo','amichevole'].includes(ev.type) ? '⚽' : '📌');
+      const tm = ev.start ? ev.start + ' ' : '';
+      return `<div class="cgm-week-evbox">${tm}${icon} ${escapeHtml((ev.title || '').slice(0, 18))}</div>`;
+    }).join('');
+    const more = evs.length > 2 ? `<div class="cgm-week-evbox" style="color:var(--text3);">+${evs.length - 2}</div>` : '';
+    const badge = _dataBadgeHTML(ds);
+    gridHtml += `<div class="cgm-week-col${isToday ? ' today' : ''}" onclick="openCalDayModal('${ds}')">
+      <div class="cgm-week-col-head">${DAY_SHORT[i]}${badge}<span class="cgm-week-num">${d.getDate()}</span></div>
+      <div class="cgm-week-dots">${dots}</div>
+      ${evBoxes}${more}
+    </div>`;
+  });
+  gridHtml += '</div>';
+
+  // AGENDA MOBILE (<600px)
+  let agendaHtml = '<div class="cgm-week-agenda">';
+  days.forEach(({ d, ds }, i) => {
+    const isToday = ds === todayStr;
+    const markers = getMyDayMarkers(ds);
+    const dots = _renderCalGenDots(markers);
+    const evs = _calGenFiltraEventi(_calGenEventsForDay(ds));
+    const myPls = getMyPlayers();
+    const evRows = evs.map(ev => {
+      const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+      const icon = isAllen ? '🏃' : (['partita','campionato','torneo','amichevole'].includes(ev.type) ? '⚽' : '📌');
+      const tm = ev.start || '';
+      const luogo = ev.luogo ? ' · 📍 ' + escapeHtml(ev.luogo) : '';
+      const badge = _calGenConvBadge(ev, myPls);
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:.8rem;padding:5px 0;border-top:1px solid var(--border);">
+        <span style="font-weight:700;min-width:42px;">${tm}</span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${icon} ${escapeHtml(ev.title || '')}${luogo}</span>
+        ${badge}
+      </div>`;
+    }).join('');
+    const empty = !evs.length ? '<div style="font-size:.78rem;color:var(--text3);padding:4px 0;">Nessun evento</div>' : '';
+    const badge = _dataBadgeHTML(ds);
+    agendaHtml += `<div class="cgm-week-agenda-card${isToday ? ' today' : ''}" onclick="openCalDayModal('${ds}')">
+      <div class="cgm-week-agenda-head">
+        <span>${DAY_SHORT[i]} ${d.getDate()} ${MESI_IT[d.getMonth()]}${badge}</span>
+        <span class="cgm-week-agenda-dots">${dots}</span>
+      </div>
+      ${evRows}${empty}
+    </div>`;
+  });
+  agendaHtml += '</div>';
+
+  body.innerHTML = `
+    <div class="cgm-week-nav">
+      <button class="cgm-week-nav-btn" onclick="calGenWeekPrev()">‹</button>
+      <span class="cgm-week-label">${label}</span>
+      <button class="cgm-week-nav-today" onclick="calGenWeekToday()">Oggi</button>
+      <button class="cgm-week-nav-btn" onclick="calGenWeekNext()">›</button>
+    </div>
+    ${gridHtml}
+    ${agendaHtml}`;
+}
+
+// Vista Lista: prossimi 30 giorni raggruppati
+function renderCalGenLista() {
+  const body = document.getElementById('calGenViewBody');
+  if (!body) return;
+  const DAY_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESI_FULL = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const myPls = getMyPlayers();
+
+  const groups = [];
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + i);
+    const ds = ymd(d);
+    const markers = getMyDayMarkers(ds);
+    const evs = _calGenFiltraEventi(_calGenEventsForDay(ds));
+    // Salta giorni senza nulla
+    if (!evs.length && !markers.indisp && !markers.assenza) continue;
+    groups.push({ d, ds, markers, evs });
+  }
+
+  if (!groups.length) {
+    body.innerHTML = '<div class="cgm-placeholder">📅 Nessun evento programmato per i prossimi 30 giorni.</div>';
+    return;
+  }
+
+  let html = '<div class="cgm-lista">';
+  groups.forEach(g => {
+    const head = `${DAY_FULL[g.d.getDay()]} ${g.d.getDate()} ${MESI_FULL[g.d.getMonth()]}${_dataBadgeHTML(g.ds)}`;
+    let cards = '';
+    if (g.markers.indisp) {
+      const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(g.markers.indisp.tipo) : (g.markers.indisp.tipo || 'Indisponibile');
+      cards += `<div class="cgm-lista-card" style="border-color:#dc262644;background:#fef2f2;" onclick="openCalDayModal('${g.ds}')">
+        <span class="cgm-dot cgm-dot-ind"></span>
+        <div class="cgm-lista-card-content">
+          <div class="cgm-lista-card-title" style="color:#dc2626;">🔴 Indisponibile · ${escapeHtml(t)}</div>
+          ${g.markers.indisp.motivo ? `<div class="cgm-lista-card-meta">${escapeHtml(g.markers.indisp.motivo)}</div>` : ''}
+        </div>
+      </div>`;
+    } else {
+      g.evs.forEach(ev => {
+        const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+        const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+        const icon = isAllen ? '🏃' : (isMatch ? '⚽' : '📌');
+        let dotCls = 'cgm-dot-allen';
+        if (isMatch) {
+          const conv = getConvocazione(ev.id);
+          const isConv = conv && conv.playerIds && myPls.some(p => conv.playerIds.includes(p.id));
+          dotCls = isConv ? 'cgm-dot-conv' : 'cgm-dot-noconv';
+        } else if (!isAllen) {
+          dotCls = '';
+        }
+        const badge = _calGenConvBadge(ev, myPls);
+        const meta = `🕐 ${ev.start || '—'}${ev.luogo ? ' · 📍 ' + escapeHtml(ev.luogo) : ''}`;
+        cards += `<div class="cgm-lista-card" onclick="openCalDayModal('${g.ds}')">
+          ${dotCls ? `<span class="cgm-dot ${dotCls}"></span>` : '<span style="width:10px;flex-shrink:0;"></span>'}
+          <div class="cgm-lista-card-content">
+            <div class="cgm-lista-card-title">${icon} ${escapeHtml(ev.title || '')}</div>
+            <div class="cgm-lista-card-meta">${meta}</div>
+          </div>
+          ${badge}
+        </div>`;
+      });
+      if (g.markers.assenza) {
+        cards += `<div class="cgm-lista-card" style="border-color:#f9731644;background:#fff7ed;" onclick="openCalDayModal('${g.ds}')">
+          <span class="cgm-dot cgm-dot-ass"></span>
+          <div class="cgm-lista-card-content">
+            <div class="cgm-lista-card-title" style="color:#c2410c;">🟠 Hai segnalato assenza</div>
+          </div>
+        </div>`;
+      }
+    }
+    html += `<div class="cgm-lista-day">
+      <div class="cgm-lista-day-header">${head}</div>
+      <div class="cgm-lista-day-events">${cards}</div>
+    </div>`;
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+// Modal sheet click giorno: dettaglio completo + bottoni azione
+function openCalDayModal(dateStr) {
+  closeCalDayModal();
+  const DAY_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESI_FULL = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  const d = parseYmd(dateStr);
+  const titleText = `${DAY_FULL[d.getDay()]} ${d.getDate()} ${MESI_FULL[d.getMonth()]} ${d.getFullYear()}`;
+  const markers = getMyDayMarkers(dateStr);
+  const myPls = getMyPlayers();
+  const evs = _calGenFiltraEventi(_calGenEventsForDay(dateStr));
+
+  let bodyHtml = '';
+  if (markers.indisp) {
+    const t = (typeof _indispTipoLabel === 'function') ? _indispTipoLabel(markers.indisp.tipo) : (markers.indisp.tipo || 'Indisponibile');
+    const m = markers.indisp.motivo ? `<div style="font-size:.82rem;color:var(--text2);margin-top:6px;">${escapeHtml(markers.indisp.motivo)}</div>` : '';
+    bodyHtml += `<div class="cgm-ev-card" style="border-left-color:#dc2626;background:#fef2f2;">
+      <div style="font-weight:800;color:#dc2626;font-size:1rem;">🔴 Indisponibile · ${escapeHtml(t)}</div>${m}
+      <div style="font-size:.74rem;color:var(--text3);margin-top:6px;">Indisponibilità segnata dalla società. Per modifiche contatta il Mister.</div>
+    </div>`;
+  } else {
+    if (markers.assenza) {
+      // Trova playerId con assenza per quel giorno (primo che matcha)
+      const plWithAss = myPls.find(p => Array.isArray(p.assenzeAvvisate) && p.assenzeAvvisate.some(a => a.date === dateStr));
+      const av = plWithAss ? plWithAss.assenzeAvvisate.find(a => a.date === dateStr) : null;
+      const motivoHtml = (av && av.motivo) ? `<div style="font-size:.78rem;color:var(--text2);margin-top:4px;">${escapeHtml(av.motivo)}</div>` : '';
+      bodyHtml += `<div class="cgm-ev-card" style="border-left-color:#f97316;background:#fff7ed;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-weight:800;color:#c2410c;">🟠 Hai segnalato assenza</div>
+          ${plWithAss ? `<button class="btn btn-r btn-xs" onclick="closeCalDayModal();openRevocaAssenzaModal(${plWithAss.id},'${dateStr}')">Revoca</button>` : ''}
+        </div>
+        ${motivoHtml}
+      </div>`;
+    }
+    if (evs.length) {
+      evs.forEach(ev => {
+        const tipo = getTipo(ev.type);
+        const isAllen = ev.type === 'allenamento' || ev.type === 'allenamento_portieri';
+        const isMatch = ['partita','campionato','torneo','amichevole'].includes(ev.type);
+        const icon = isAllen ? '🏃' : (isMatch ? '⚽' : '📌');
+        const tm = (ev.start || '—') + (ev.end ? ' – ' + ev.end : '');
+        const luogo = ev.luogo ? `<div class="cgm-ev-luogo">📍 ${escapeHtml(ev.luogo)}</div>` : '';
+        const note = ev.note ? `<div style="font-size:.78rem;color:var(--text3);margin-top:4px;">${escapeHtml(ev.note)}</div>` : '';
+        const badge = _calGenConvBadge(ev, myPls);
+        bodyHtml += `<div class="cgm-ev-card" style="border-left-color:${tipo.color};">
+          <div class="cgm-ev-row1"><span class="cgm-ev-time">${tm}</span>${badge}</div>
+          <div class="cgm-ev-title">${icon} ${escapeHtml(ev.title || tipo.label)}</div>
+          ${luogo}${note}
+        </div>`;
+      });
+    } else if (!markers.assenza) {
+      bodyHtml += '<div class="cgm-empty">Nessun evento programmato per questo giorno.</div>';
+    }
+  }
+
+  const showSegnalaCTA = !markers.indisp && !markers.assenza && typeof canAvvisaAssenza === 'function' && canAvvisaAssenza();
+  const ctaHtml = showSegnalaCTA
+    ? `<div class="modal-sheet-cta-fixed"><button class="btn btn-r" style="width:100%;padding:12px;font-size:.95rem;" onclick="closeCalDayModal();openAvvisaModal('${dateStr}')">📩 Segnala assenza per questo giorno</button></div>`
+    : '';
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-sheet-backdrop';
+  backdrop.id = 'mCalDayBackdrop';
+  backdrop.onclick = () => closeCalDayModal();
+
+  const sheet = document.createElement('div');
+  sheet.className = 'modal-sheet';
+  sheet.id = 'mCalDayDetail';
+  sheet.innerHTML = `
+    <div class="modal-sheet-handle"></div>
+    <div class="modal-sheet-head">
+      <div class="modal-sheet-title">📅 ${titleText}${_dataBadgeHTML(dateStr)}</div>
+      <button class="modal-sheet-close" onclick="closeCalDayModal()">✕</button>
+    </div>
+    <div class="modal-sheet-body">${bodyHtml}</div>
+    ${ctaHtml}
+  `;
+
+  document.body.appendChild(backdrop);
+  document.body.appendChild(sheet);
+  // ESC chiude
+  const escHandler = (e) => { if (e.key === 'Escape') closeCalDayModal(); };
+  sheet.dataset.escHandler = '1';
+  document.addEventListener('keydown', escHandler);
+  sheet._escHandler = escHandler;
+  // Trigger animation (next frame)
+  requestAnimationFrame(() => { backdrop.classList.add('open'); sheet.classList.add('open'); });
+}
+
+function closeCalDayModal() {
+  const sheet = document.getElementById('mCalDayDetail');
+  const backdrop = document.getElementById('mCalDayBackdrop');
+  if (sheet && sheet._escHandler) document.removeEventListener('keydown', sheet._escHandler);
+  if (backdrop) backdrop.classList.remove('open');
+  if (sheet) {
+    sheet.classList.remove('open');
+    setTimeout(() => { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); }, 300);
+  }
+  if (backdrop) setTimeout(() => { if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop); }, 300);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
