@@ -6665,8 +6665,18 @@ function renderPresenze() {
   } else if (me.role === 'preparatore_portieri') {
     renderPresenzeAllenatore(cont);
   } else if (me.role === 'genitore' || me.role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    renderPresenzePersonale(cont, players.filter(p => figliNames.includes(p.nome+' '+p.cogn)));
+    let figliP = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliP = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliP.length) {
+      const figliNames = getFigliOf(me);
+      figliP = players.filter(p =>
+        figliNames.includes(p.nome+' '+p.cogn) ||
+        figliNames.includes(p.nome+' '+(p.cogn_iniziale||''))
+      );
+    }
+    renderPresenzePersonale(cont, figliP);
   } else if (me.role === 'giocatore') {
     const myP = players.find(p => p.nome===me.nome && p.cogn===me.cogn);
     renderPresenzePersonale(cont, myP ? [myP] : []);
@@ -7441,8 +7451,16 @@ function openAvvisaModal(){
   // Determina i giocatori coinvolti
   let candidates = [];
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    candidates = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn));
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      candidates = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!candidates.length) {
+      const figliNames = getFigliOf(me);
+      candidates = players.filter(p =>
+        figliNames.includes(p.nome + ' ' + p.cogn) ||
+        figliNames.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
   } else if (me.role === 'giocatore') {
     candidates = players.filter(p => p.nome === me.nome && p.cogn === me.cogn);
   }
@@ -7572,8 +7590,18 @@ function canSetDisponibilita(){ return me && (me.role === 'genitore' || me.role 
 function getMyPlayers() {
   if (!me) return [];
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figli = (typeof getFigliOf === 'function') ? getFigliOf(me) : (me.figli || []);
-    return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
+    let out = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      out = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!out.length) {
+      const figli = (typeof getFigliOf === 'function') ? getFigliOf(me) : (me.figli || []);
+      out = players.filter(p =>
+        figli.includes(p.nome + ' ' + p.cogn) ||
+        figli.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
+    return out;
   }
   if (me.role === 'giocatore') {
     return players.filter(p => p.nome === me.nome && p.cogn === me.cogn);
@@ -9340,8 +9368,15 @@ function saveNuovaComunicazione() {
       const ul = (() => {
         if (u.role==='admin') return leve.slice();
         if (u.role==='genitore'||u.role==='nonno') {
-          const figli=Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
-          const ls=[...new Set(players.filter(p=>figli.includes(p.nome+' '+p.cogn)).map(p=>p.leva).filter(Boolean))];
+          let figliPl = [];
+          if (Array.isArray(u.figliIds) && u.figliIds.length) {
+            figliPl = players.filter(pl => u.figliIds.includes(pl.id));
+          }
+          if (!figliPl.length) {
+            const figli = Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
+            figliPl = players.filter(p => figli.includes(p.nome+' '+p.cogn) || figli.includes(p.nome+' '+(p.cogn_iniziale||'')));
+          }
+          const ls = [...new Set(figliPl.map(p => p.leva).filter(Boolean))];
           return ls.length?ls:[];
         }
         const l=u.leva;
@@ -11892,8 +11927,10 @@ async function submitSelfReg(){
           const pid = parseInt(c.rawId, 10);
           const ap = _srApiPlayers.find(x => x.id === pid);
           const bp = players.find(x => x.id === pid);
-          if (ap) return ap.firstName + ' ' + (c.lastNameFull || ap.lastNameInitial);
-          if (bp) return (bp.nome || '') + ' ' + (c.lastNameFull || bp.cogn_iniziale || bp.cogn || '');
+          // Priorità: lastNameFull inserito > cognome completo dal blob > lastNameInitial
+          const cognBlob = (bp && !bp.incomplete && bp.cogn) ? bp.cogn : '';
+          if (ap) return ap.firstName + ' ' + (c.lastNameFull || cognBlob || ap.lastNameInitial);
+          if (bp) return (bp.nome || '') + ' ' + (c.lastNameFull || bp.cogn || bp.cogn_iniziale || '');
           return '';
         }).filter(Boolean),
         figliIds: claimList.map(c => parseInt(c.rawId, 10)),
@@ -13022,8 +13059,14 @@ function buildMobDashboard(role, c) {
 
 // ─── Selettore figlio genitore ────────────────────────────────────────────────
 function openGenFiglioSelector(){
-  var figliNames=getFigliOf(me);
-  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  var figliPlayers=[];
+  if(Array.isArray(me.figliIds)&&me.figliIds.length){
+    figliPlayers=players.filter(function(pl){return me.figliIds.includes(pl.id);});
+  }
+  if(!figliPlayers.length){
+    var figliNames=getFigliOf(me);
+    figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn)||figliNames.includes(p.nome+' '+(p.cogn_iniziale||''));});
+  }
   if(figliPlayers.length<2)return;
   if(document.getElementById('genFiglioSelOv'))return;
   var _scKey='gen_sel_'+(me?me.id:0);
@@ -13058,8 +13101,14 @@ function selectGenFiglio(playerId){
 
 function buildMobDashboardGenitore(c) {
   var todayStr=ymd(new Date());
-  var figliNames=getFigliOf(me);
-  var figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn);});
+  var figliPlayers=[];
+  if(Array.isArray(me.figliIds)&&me.figliIds.length){
+    figliPlayers=players.filter(function(pl){return me.figliIds.includes(pl.id);});
+  }
+  if(!figliPlayers.length){
+    var figliNames=getFigliOf(me);
+    figliPlayers=players.filter(function(p){return figliNames.includes(p.nome+' '+p.cogn)||figliNames.includes(p.nome+' '+(p.cogn_iniziale||''));});
+  }
 
   // Selezione figlio attivo (da localStorage se ≥2 figli)
   var _genScKey='gen_sel_'+(me?me.id:0);
@@ -13516,8 +13565,17 @@ function buildDashboard(role) {
       +`</div></div>`;
 
   } else if (role === 'genitore' || role === 'nonno') {
-    const figliNames = getFigliOf(me);
-    const figliPlayers = players.filter(p=>figliNames.includes(p.nome+' '+p.cogn));
+    let figliPlayers = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliPlayers = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliPlayers.length) {
+      const figliNames = getFigliOf(me);
+      figliPlayers = players.filter(p =>
+        figliNames.includes(p.nome+' '+p.cogn) ||
+        figliNames.includes(p.nome+' '+(p.cogn_iniziale||''))
+      );
+    }
     // Rispetta figlio selezionato da localStorage
     const _dGenKey='gen_sel_'+(me?me.id:0);
     const _dSavedId=localStorage.getItem(_dGenKey);
@@ -13963,8 +14021,18 @@ function renderQuoteGenitore(c) {
 function getMyPlayersFor(user) {
   if (!user) return [];
   if (user.role === 'genitore' || user.role === 'nonno') {
-    const figli = (typeof getFigliOf === 'function') ? getFigliOf(user) : (user.figli || []);
-    return players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
+    let out = [];
+    if (Array.isArray(user.figliIds) && user.figliIds.length) {
+      out = players.filter(pl => user.figliIds.includes(pl.id));
+    }
+    if (!out.length) {
+      const figli = (typeof getFigliOf === 'function') ? getFigliOf(user) : (user.figli || []);
+      out = players.filter(p =>
+        figli.includes(p.nome + ' ' + p.cogn) ||
+        figli.includes(p.nome + ' ' + (p.cogn_iniziale||''))
+      );
+    }
+    return out;
   }
   if (user.role === 'giocatore') return players.filter(p => p.nome === user.nome && p.cogn === user.cogn);
   return [];
@@ -17083,10 +17151,16 @@ function userLeve(){
   if (isAdminLike()) return leve.slice();
   // Per genitore/nonno: leve derivate dai figli/nipoti
   if (me.role === 'genitore' || me.role === 'nonno') {
-    const figli = getFigliOf(me);
-    if (figli.length) {
-      const ls = [...new Set(players.filter(p => figli.includes(p.nome+' '+p.cogn))
-                                    .map(p => p.leva).filter(Boolean))];
+    let figliPl = [];
+    if (Array.isArray(me.figliIds) && me.figliIds.length) {
+      figliPl = players.filter(pl => me.figliIds.includes(pl.id));
+    }
+    if (!figliPl.length) {
+      const figli = getFigliOf(me);
+      figliPl = players.filter(p => figli.includes(p.nome+' '+p.cogn) || figli.includes(p.nome+' '+(p.cogn_iniziale||'')));
+    }
+    if (figliPl.length) {
+      const ls = [...new Set(figliPl.map(p => p.leva).filter(Boolean))];
       if (ls.length) return ls;
     }
   }
