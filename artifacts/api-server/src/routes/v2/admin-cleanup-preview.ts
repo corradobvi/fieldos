@@ -439,12 +439,14 @@ router.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => {
     await conn.beginTransaction();
 
     // Pre-check sicurezza: ogni player deve avere guardian_count=0 e presenze_count=0 e appartenere alla società
+    // NB: mysql2.execute (prepared) non espande array per IN — placeholder dinamici espliciti
+    const placeholders = idsCsv.map(() => "?").join(",");
     const [check] = (await conn.execute(
       `SELECT p.id, p.nome, p.cognome, p.society_id, p.incomplete,
               (SELECT COUNT(*) FROM player_guardians pg WHERE pg.player_id = p.id) AS gc,
               (SELECT COUNT(*) FROM presenze pp WHERE pp.player_id = p.id) AS pc
-       FROM players p WHERE p.id IN (?) AND p.society_id = ?`,
-      [idsCsv, societyId]
+       FROM players p WHERE p.id IN (${placeholders}) AND p.society_id = ?`,
+      [...idsCsv, societyId]
     )) as [any[], any];
 
     const toDelete: number[] = [];

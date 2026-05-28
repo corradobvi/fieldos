@@ -91682,12 +91682,13 @@ router36.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => 
   const result = { societyId, deleted: [], skipped: [], errors: [] };
   try {
     await conn.beginTransaction();
+    const placeholders = idsCsv.map(() => "?").join(",");
     const [check] = await conn.execute(
       `SELECT p.id, p.nome, p.cognome, p.society_id, p.incomplete,
               (SELECT COUNT(*) FROM player_guardians pg WHERE pg.player_id = p.id) AS gc,
               (SELECT COUNT(*) FROM presenze pp WHERE pp.player_id = p.id) AS pc
-       FROM players p WHERE p.id IN (?) AND p.society_id = ?`,
-      [idsCsv, societyId]
+       FROM players p WHERE p.id IN (${placeholders}) AND p.society_id = ?`,
+      [...idsCsv, societyId]
     );
     const toDelete = [];
     for (const r of check) {
