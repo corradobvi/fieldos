@@ -20895,7 +20895,7 @@ function openPtFaseMatch(torneoId, faseId) {
   if (!f) return;
   document.getElementById('ptFMTorneoId').value = torneoId;
   document.getElementById('ptFMFaseId').value   = faseId;
-  document.getElementById('ptFMData').value = new Date().toISOString().slice(0,10);
+  document.getElementById('ptFMData').value = t.dataInizio || t.dataFine || '';
   const opts = (f.squadre||[]).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.getElementById('ptFMCasa').innerHTML   = opts;
   document.getElementById('ptFMOspite').innerHTML = opts;
