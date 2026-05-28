@@ -345,4 +345,161 @@ router.post("/superadmin/_diag/repair-players", async (req, res) => {
   }
 });
 
+// GET /api/v2/superadmin/_diag/duplicate-players-preview?societyId=X
+// Report READ-ONLY: per ogni player MySQL elenca guardian_count, presenze_count,
+// e classifica AZIONE (TIENI / ELIMINA / VERIFICA) in base alle regole di sicurezza.
+router.get("/superadmin/_diag/duplicate-players-preview", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const societyId = parseInt(String(req.query.societyId || ""), 10);
+  if (!societyId) return res.status(400).json({ error: "societyId required" });
+
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT
+         p.id, p.nome, p.cognome, p.cognome_iniziale, p.incomplete, p.leva,
+         (SELECT COUNT(*) FROM player_guardians pg WHERE pg.player_id = p.id) AS guardian_count,
+         (SELECT COUNT(*) FROM presenze pp WHERE pp.player_id = p.id) AS presenze_count
+       FROM players p
+       WHERE p.society_id = ?
+       ORDER BY p.nome, p.cognome_iniziale, p.id`,
+      [societyId]
+    )) as [any[], any];
+
+    // Raggruppa per (nome, cognome_iniziale)
+    const groups = new Map<string, any[]>();
+    for (const p of rows as any[]) {
+      const key = `${(p.nome || '').trim().toLowerCase()}|${(p.cognome_iniziale || '').trim().toLowerCase()}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(p);
+    }
+
+    // Classifica
+    const report: any[] = [];
+    for (const [key, items] of groups) {
+      const completi = items.filter(p => p.incomplete === 0 || Number(p.guardian_count) > 0);
+      const groupHasCanonical = completi.length > 0;
+      for (const p of items) {
+        let action = "TIENI";
+        let reason = "";
+        const gc = Number(p.guardian_count);
+        const pc = Number(p.presenze_count);
+        if (gc > 0) { action = "TIENI"; reason = "ha guardian (player_guardians)"; }
+        else if (pc > 0) { action = "TIENI"; reason = "ha presenze storiche"; }
+        else if (p.incomplete === 0 && p.cognome) { action = "TIENI"; reason = "completo con cognome"; }
+        else if (items.length === 1) { action = "VERIFICA"; reason = "unico con questo nome+iniziale, ma incomplete senza guardian"; }
+        else if (!groupHasCanonical) { action = "VERIFICA"; reason = "nessuno del gruppo è canonico (tutti incomplete senza guardian)"; }
+        else {
+          // incomplete=1, no guardian, no presenze, esiste un canonico nello stesso gruppo
+          action = "ELIMINA";
+          reason = `duplicato di canonico del gruppo "${key}"`;
+        }
+        report.push({
+          id: p.id, nome: p.nome, cognome: p.cognome || '',
+          cognome_iniziale: p.cognome_iniziale || '',
+          incomplete: p.incomplete === 1,
+          leva: p.leva, guardian_count: gc, presenze_count: pc,
+          group_key: key, action, reason,
+        });
+      }
+    }
+
+    // Riordina: per nome, poi action (ELIMINA in fondo per leggibilità)
+    report.sort((a, b) => a.group_key.localeCompare(b.group_key) || a.id - b.id);
+
+    const summary = {
+      total: report.length,
+      tieni: report.filter(r => r.action === "TIENI").length,
+      elimina: report.filter(r => r.action === "ELIMINA").length,
+      verifica: report.filter(r => r.action === "VERIFICA").length,
+    };
+
+    return res.json({ societyId, summary, report });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
+
+// POST /api/v2/superadmin/_diag/delete-duplicate-players
+// Body: { societyId, playerIds: [number], confirm: "DELETE-DUPLICATES" }
+// Cancella i player indicati (in transazione) + rimuove dal blob state.players[] + repair USERS_DB.
+// Pre-check: rifiuta se uno dei playerIds ha guardian_count>0 o presenze_count>0.
+router.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const { societyId, playerIds, confirm } = req.body as { societyId?: number; playerIds?: number[]; confirm?: string };
+  if (confirm !== "DELETE-DUPLICATES") return res.status(400).json({ error: "confirm_required", expected: "DELETE-DUPLICATES" });
+  if (!societyId || !Array.isArray(playerIds) || !playerIds.length) return res.status(400).json({ error: "societyId + playerIds[] required" });
+
+  const idsCsv = playerIds.map(n => Number(n)).filter(Number.isFinite);
+  if (!idsCsv.length) return res.status(400).json({ error: "no_valid_ids" });
+
+  const conn = await (pool as any).getConnection();
+  const result: any = { societyId, deleted: [], skipped: [], errors: [] };
+
+  try {
+    await conn.beginTransaction();
+
+    // Pre-check sicurezza: ogni player deve avere guardian_count=0 e presenze_count=0 e appartenere alla società
+    const [check] = (await conn.execute(
+      `SELECT p.id, p.nome, p.cognome, p.society_id, p.incomplete,
+              (SELECT COUNT(*) FROM player_guardians pg WHERE pg.player_id = p.id) AS gc,
+              (SELECT COUNT(*) FROM presenze pp WHERE pp.player_id = p.id) AS pc
+       FROM players p WHERE p.id IN (?) AND p.society_id = ?`,
+      [idsCsv, societyId]
+    )) as [any[], any];
+
+    const toDelete: number[] = [];
+    for (const r of check as any[]) {
+      if (Number(r.gc) > 0 || Number(r.pc) > 0) {
+        result.skipped.push({ id: r.id, nome: r.nome, reason: `has guardian_count=${r.gc} presenze_count=${r.pc}` });
+        continue;
+      }
+      toDelete.push(r.id);
+    }
+
+    for (const pid of toDelete) {
+      try {
+        await conn.execute("DELETE FROM player_guardians WHERE player_id = ?", [pid]);
+        await conn.execute("DELETE FROM user_players WHERE player_id = ?", [pid]).catch(() => {});
+        const [r] = await conn.execute("DELETE FROM players WHERE id = ? AND society_id = ?", [pid, societyId]) as [any, any];
+        if (r.affectedRows) result.deleted.push(pid);
+      } catch (e: any) {
+        result.errors.push({ id: pid, error: e?.message });
+      }
+    }
+
+    await conn.commit();
+  } catch (e: any) {
+    try { await conn.rollback(); } catch (_) {}
+    return res.status(500).json({ error: e?.message });
+  } finally {
+    try { conn.release(); } catch (_) {}
+  }
+
+  // Update blob: rimuovi player eliminati da state.players[]
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    )) as [any[], any];
+    if (blobRows.length) {
+      const state = JSON.parse(blobRows[0].state_json as string);
+      if (Array.isArray(state.players)) {
+        const before = state.players.length;
+        state.players = state.players.filter((p: any) => !result.deleted.includes(Number(p?.id)));
+        result.blob_players_before = before;
+        result.blob_players_after = state.players.length;
+        await pool.execute(
+          "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+          [JSON.stringify(state), stateKey]
+        );
+      }
+    }
+  } catch (e: any) {
+    result.blob_update_error = e?.message;
+  }
+
+  return res.json(result);
+});
+
 export default router;
