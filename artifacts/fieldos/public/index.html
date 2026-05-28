@@ -1558,7 +1558,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 #pg-calendario.cal-gen #calWeekView{display:none!important;}
 #pg-calendario.cal-gen #calMonthView{display:none!important;}
 #pg-calendario.cal-gen #calGenitoreView{display:block!important;}
-.cgm-wrap{max-width:520px;margin:0 auto;padding:0 0 32px;}
+.cgm-wrap{max-width:1400px;margin:0 auto;padding:0 8px 32px;}
 .cgm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .cgm-title{font-family:'Barlow Condensed',sans-serif;font-size:1.25rem;font-weight:900;color:var(--text1);}
 .cgm-today-btn{background:var(--cp);color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:500;padding:7px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
@@ -1602,10 +1602,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .data-badge{display:inline-block;font-size:.58rem;font-weight:800;padding:1px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-left:4px;vertical-align:middle;}
 .data-badge.oggi{background:var(--cp);color:#fff;}
 .data-badge.domani{background:#fef3c7;color:#92400e;}
-.cgm-tabs{display:flex;gap:4px;margin-bottom:12px;}
+.cgm-tabs{display:flex;gap:4px;margin:0 auto 12px auto;max-width:520px;}
 .cgm-tab-btn{flex:1;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:8px;padding:7px 8px;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .cgm-tab-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
-.cgm-filtri{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.cgm-filtri{display:flex;gap:6px;margin:0 auto 12px auto;max-width:520px;flex-wrap:wrap;justify-content:center;}
 .cgm-filtro-btn{border:1.5px solid var(--border);background:var(--bg);color:var(--text2);border-radius:14px;padding:4px 10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;}
 .cgm-filtro-btn.on{background:var(--cp);color:#fff;border-color:var(--cp);}
 .cgm-placeholder{text-align:center;padding:48px 20px;color:var(--text3);font-size:.88rem;background:var(--cl);border-radius:10px;}
@@ -1662,7 +1662,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-week-ev-badge-inline.noconv{background:#f1f5f9;color:#475569;}
 .cgm-week-ev-badge-inline.attesa{background:#fef3c7;color:#92400e;}
 /* Vista lista (riusa .cgm-week-ev) */
-.cgm-lista{display:flex;flex-direction:column;gap:14px;}
+.cgm-lista{display:flex;flex-direction:column;gap:14px;max-width:800px;margin:0 auto;}
 .cgm-lista-day-header{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px;}
 .cgm-lista-day-events{display:flex;flex-direction:column;gap:6px;}
 /* Layout switch: <768px mobile agenda (cards ricche), >=769px desktop 7-col grid */
@@ -17603,6 +17603,25 @@ function getMyDayMarkers(dateStr) {
       else markers.partitaNoConv = true;
     }
   }
+
+  // Virtual events (tornei/amichevoli/campionato) per i pallini
+  if (typeof getPtVirtualEvents === 'function') {
+    const virtEvents = getPtVirtualEvents(dateStr) || [];
+    for (const ev of virtEvents) {
+      if (ev._tipo === 'torneo_banner') continue; // banner non genera pallino
+      if (ev._tipo === 'torneo') {
+        const torneoId = String(ev._ref).split('__')[0];
+        const t = tornei.find(x => x.id === torneoId);
+        const isConv = t && Array.isArray(t.convocati) && myPlIds.some(pid => t.convocati.includes(pid));
+        if (isConv) markers.partitaConv = true;
+        else markers.partitaNoConv = true;
+      } else if (ev._tipo === 'amichevole' || ev._tipo === 'campionato') {
+        // convocazione amichevole/campionato non tracciata a livello partita → fallback noConv
+        markers.partitaNoConv = true;
+      }
+    }
+  }
+
   return markers;
 }
 
@@ -17786,6 +17805,28 @@ function _convBadgeInline(ev, myPls) {
   }
   return '<span class="cgm-week-ev-badge-inline attesa">🟡 In attesa</span>';
 }
+// Helper unificato: badge convocazione che distingue partita torneo (usa t.convocati)
+// Ritorna markup in stile .cgm-week-pill-badge per pill, oppure delega a _convBadgeInline per card/modal
+function _calGenConvBadgeUnified(ev, myPls, myPlIds, style) {
+  // style: 'pill' (default) → .cgm-week-pill-badge | 'inline' → .cgm-week-ev-badge-inline
+  const isTorneo = ev._tipo === 'torneo' || ev.type === 'torneo';
+  if (isTorneo) {
+    const refStr = String(ev._ref || ev.id || '');
+    const torneoId = refStr.split('__')[0];
+    const t = tornei.find(x => x.id === torneoId);
+    const isConv = t && Array.isArray(t.convocati) && myPlIds && myPlIds.some(pid => t.convocati.includes(pid));
+    if (style === 'inline') {
+      return isConv
+        ? '<span class="cgm-week-ev-badge-inline conv">🔵 Convocato</span>'
+        : '<span class="cgm-week-ev-badge-inline noconv">⚪ Non convocato</span>';
+    }
+    return isConv
+      ? '<span class="cgm-week-pill-badge conv">🔵 Conv.</span>'
+      : '<span class="cgm-week-pill-badge noconv">⚪ No</span>';
+  }
+  // Eventi normali (events[]) + amichevoli/campionato virtual: usa getConvocazione standard
+  return _convBadgeInline(ev, myPls);
+}
 // Helper visivo: pill rich-compatta (Settimana desktop, 7 colonne tutte visibili)
 function _renderEventPill(ev, myPls, myPlIds) {
   const tipoClass = _getCardTipoClass(ev, myPlIds);
@@ -17795,17 +17836,10 @@ function _renderEventPill(ev, myPls, myPlIds) {
   const orarioEnd = ev.end || '';
   const orarioFull = orarioEnd ? `${orario}-${orarioEnd}` : orario;
 
+  // Badge convocazione: helper unificato distingue partita torneo (usa t.convocati)
   let badgeHtml = '';
   if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
-    const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
-    if (conv && conv.playerIds) {
-      const isConv = myPlIds.some(pid => conv.playerIds.includes(pid));
-      badgeHtml = isConv
-        ? '<span class="cgm-week-pill-badge conv">🔵 Conv.</span>'
-        : '<span class="cgm-week-pill-badge noconv">⚪ No</span>';
-    } else {
-      badgeHtml = '<span class="cgm-week-pill-badge attesa">🟡 Attesa</span>';
-    }
+    badgeHtml = _calGenConvBadgeUnified(ev, myPls, myPlIds, 'pill');
   }
 
   return `<div class="cgm-week-pill ${tipoClass}">
@@ -17827,7 +17861,7 @@ function _renderEventCard(ev, myPls, myPlIds, opts) {
   const title = _getEventTitle(ev);
   const tm = ev.start ? (ev.end ? `${ev.start} – ${ev.end}` : ev.start) : '—';
   const luogo = ev.luogo ? `<div class="row">📍 ${escapeHtml(ev.luogo)}</div>` : '';
-  const badge = _convBadgeInline(ev, myPls);
+  const badge = _calGenConvBadgeUnified(ev, myPls, myPlIds, 'inline');
   const extra = opts.extraHtml || '';
   const onClickAttr = opts.onClickJs ? ` onclick="${opts.onClickJs}" style="cursor:pointer;"` : '';
   return `<div class="cgm-week-ev ${tipoClass}"${onClickAttr}>
@@ -17843,8 +17877,20 @@ function _renderEventCard(ev, myPls, myPlIds, opts) {
 
 // Helper interno: array eventi del giorno per il genitore, ordinati per orario, filtrati per visibility famiglia
 function _calGenEventsForDay(ds) {
-  return events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds))
-               .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  const regular = events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds));
+  // Virtual events (tornei/amichevoli/campionato) — già filtrati per leva figlio + fase famiglia
+  let virtual = [];
+  if (typeof getPtVirtualEvents === 'function') {
+    virtual = (getPtVirtualEvents(ds) || [])
+      .filter(v => v._tipo !== 'torneo_banner')  // no banner (duplicherebbe la partita specifica)
+      .map(v => ({
+        ...v,
+        type: v._tipo,   // normalizza _tipo → type per riuso helper esistenti
+        id: v._ref,      // normalizza _ref → id
+      }));
+  }
+  return [...regular, ...virtual]
+    .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
 }
 // Helper interno: applica filtri allen/partite
 function _calGenFiltraEventi(evs) {
@@ -19404,7 +19450,7 @@ function renderPtTornei() {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
         const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
+        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
       const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
@@ -20615,7 +20661,7 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
           ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>`
           : `<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${torneoId}','${faseId}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`)
       : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${tipo==='torneo'&&m.orario?' · '+m.orario:''}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
   }).join('');
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
@@ -20898,6 +20944,7 @@ function openPtFaseMatch(torneoId, faseId) {
   document.getElementById('ptFMTorneoId').value = torneoId;
   document.getElementById('ptFMFaseId').value   = faseId;
   document.getElementById('ptFMData').value = t.dataInizio || t.dataFine || '';
+  document.getElementById('ptFMOrario').value = '';
   const opts = (f.squadre||[]).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.getElementById('ptFMCasa').innerHTML   = opts;
   document.getElementById('ptFMOspite').innerHTML = opts;
@@ -20908,13 +20955,14 @@ function savePtFaseMatch() {
   const tid = document.getElementById('ptFMTorneoId').value;
   const fid = document.getElementById('ptFMFaseId').value;
   const data = document.getElementById('ptFMData').value;
+  const orario = document.getElementById('ptFMOrario').value || '';
   const casa   = document.getElementById('ptFMCasa').value;
   const ospite = document.getElementById('ptFMOspite').value;
   if (casa === ospite) { toast('⚠️ Casa e ospite non possono essere uguali'); return; }
   const t = tornei.find(x => x.id === tid);
   const f = t && t.fasi.find(x => x.id === fid);
   if (!f) return;
-  f.partite.push({id:'tm'+nextTornMatchId++, data, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+  f.partite.push({id:'tm'+nextTornMatchId++, data, orario, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
   window.__fieldosSaveState();
   closeM('mPtFaseMatch');
   renderGestComp(); renderPartite(); renderCal();
@@ -27057,7 +27105,10 @@ async function doRejoinSocieta() {
     <div class="mh"><div class="mt">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mPtFaseMatch')">✕</button></div>
     <input type="hidden" id="ptFMTorneoId">
     <input type="hidden" id="ptFMFaseId">
-    <div class="fg"><label class="fl">Data</label><input class="fi" id="ptFMData" type="date"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="ptFMData" type="date"></div>
+      <div class="fg"><label class="fl">Orario (opzionale)</label><input class="fi" id="ptFMOrario" type="time"></div>
+    </div>
     <div class="fr">
       <div class="fg"><label class="fl">Casa</label><select class="fs" id="ptFMCasa"></select></div>
       <div class="fg"><label class="fl">Ospite</label><select class="fs" id="ptFMOspite"></select></div>

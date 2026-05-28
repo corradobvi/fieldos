@@ -19450,7 +19450,7 @@ function renderPtTornei() {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
         const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
+        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
       const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
@@ -20661,7 +20661,7 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
           ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>`
           : `<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${torneoId}','${faseId}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`)
       : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
+    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${tipo==='torneo'&&m.orario?' · '+m.orario:''}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
   }).join('');
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
@@ -20944,6 +20944,7 @@ function openPtFaseMatch(torneoId, faseId) {
   document.getElementById('ptFMTorneoId').value = torneoId;
   document.getElementById('ptFMFaseId').value   = faseId;
   document.getElementById('ptFMData').value = t.dataInizio || t.dataFine || '';
+  document.getElementById('ptFMOrario').value = '';
   const opts = (f.squadre||[]).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.getElementById('ptFMCasa').innerHTML   = opts;
   document.getElementById('ptFMOspite').innerHTML = opts;
@@ -20954,13 +20955,14 @@ function savePtFaseMatch() {
   const tid = document.getElementById('ptFMTorneoId').value;
   const fid = document.getElementById('ptFMFaseId').value;
   const data = document.getElementById('ptFMData').value;
+  const orario = document.getElementById('ptFMOrario').value || '';
   const casa   = document.getElementById('ptFMCasa').value;
   const ospite = document.getElementById('ptFMOspite').value;
   if (casa === ospite) { toast('⚠️ Casa e ospite non possono essere uguali'); return; }
   const t = tornei.find(x => x.id === tid);
   const f = t && t.fasi.find(x => x.id === fid);
   if (!f) return;
-  f.partite.push({id:'tm'+nextTornMatchId++, data, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+  f.partite.push({id:'tm'+nextTornMatchId++, data, orario, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
   window.__fieldosSaveState();
   closeM('mPtFaseMatch');
   renderGestComp(); renderPartite(); renderCal();
