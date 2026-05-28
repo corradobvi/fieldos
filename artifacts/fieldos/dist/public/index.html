@@ -19339,11 +19339,23 @@ function ptToggleArchiviati(el) {
   _ptMostraArchiviati = el.checked;
   renderPtTornei();
 }
+// Ordina tornei per dataInizio crescente (più vicini in cima).
+// Tornei senza dataInizio: in fondo alla lista.
+function _sortTorneiByData(arr) {
+  return [...arr].sort((a, b) => {
+    const da = a.dataInizio || '';
+    const db = b.dataInizio || '';
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da.localeCompare(db);
+  });
+}
 function renderPtTornei() {
   const c = document.getElementById('ptContent');
   if (!c) return;
   const today = new Date().toISOString().slice(0,10);
-  const allSorted = tornei.filter(t => t.leva === currentLeva).sort((a,b) => (b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const allSorted = _sortTorneiByData(tornei.filter(t => t.leva === currentLeva));
   // For family users, filter out tornei in 'none' phase
   const visible = isFamily() ? allSorted.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allSorted;
   let attivi = visible.filter(t => !t.archiviato);
@@ -19774,7 +19786,7 @@ function importPdfSave() {
 
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
-  const all = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const all = _sortTorneiByData(tornei.filter(t=>t.leva===currentLeva));
   const attivi = all.filter(t=>!t.archiviato);
   const archiviati = all.filter(t=>t.archiviato);
   if (attivi.length === 1) _gcTorneiEspansi.add(attivi[0].id);
