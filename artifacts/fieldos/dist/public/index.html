@@ -17603,6 +17603,25 @@ function getMyDayMarkers(dateStr) {
       else markers.partitaNoConv = true;
     }
   }
+
+  // Virtual events (tornei/amichevoli/campionato) per i pallini
+  if (typeof getPtVirtualEvents === 'function') {
+    const virtEvents = getPtVirtualEvents(dateStr) || [];
+    for (const ev of virtEvents) {
+      if (ev._tipo === 'torneo_banner') continue; // banner non genera pallino
+      if (ev._tipo === 'torneo') {
+        const torneoId = String(ev._ref).split('__')[0];
+        const t = tornei.find(x => x.id === torneoId);
+        const isConv = t && Array.isArray(t.convocati) && myPlIds.some(pid => t.convocati.includes(pid));
+        if (isConv) markers.partitaConv = true;
+        else markers.partitaNoConv = true;
+      } else if (ev._tipo === 'amichevole' || ev._tipo === 'campionato') {
+        // convocazione amichevole/campionato non tracciata a livello partita → fallback noConv
+        markers.partitaNoConv = true;
+      }
+    }
+  }
+
   return markers;
 }
 
@@ -17786,6 +17805,28 @@ function _convBadgeInline(ev, myPls) {
   }
   return '<span class="cgm-week-ev-badge-inline attesa">🟡 In attesa</span>';
 }
+// Helper unificato: badge convocazione che distingue partita torneo (usa t.convocati)
+// Ritorna markup in stile .cgm-week-pill-badge per pill, oppure delega a _convBadgeInline per card/modal
+function _calGenConvBadgeUnified(ev, myPls, myPlIds, style) {
+  // style: 'pill' (default) → .cgm-week-pill-badge | 'inline' → .cgm-week-ev-badge-inline
+  const isTorneo = ev._tipo === 'torneo' || ev.type === 'torneo';
+  if (isTorneo) {
+    const refStr = String(ev._ref || ev.id || '');
+    const torneoId = refStr.split('__')[0];
+    const t = tornei.find(x => x.id === torneoId);
+    const isConv = t && Array.isArray(t.convocati) && myPlIds && myPlIds.some(pid => t.convocati.includes(pid));
+    if (style === 'inline') {
+      return isConv
+        ? '<span class="cgm-week-ev-badge-inline conv">🔵 Convocato</span>'
+        : '<span class="cgm-week-ev-badge-inline noconv">⚪ Non convocato</span>';
+    }
+    return isConv
+      ? '<span class="cgm-week-pill-badge conv">🔵 Conv.</span>'
+      : '<span class="cgm-week-pill-badge noconv">⚪ No</span>';
+  }
+  // Eventi normali (events[]) + amichevoli/campionato virtual: usa getConvocazione standard
+  return _convBadgeInline(ev, myPls);
+}
 // Helper visivo: pill rich-compatta (Settimana desktop, 7 colonne tutte visibili)
 function _renderEventPill(ev, myPls, myPlIds) {
   const tipoClass = _getCardTipoClass(ev, myPlIds);
@@ -17795,17 +17836,10 @@ function _renderEventPill(ev, myPls, myPlIds) {
   const orarioEnd = ev.end || '';
   const orarioFull = orarioEnd ? `${orario}-${orarioEnd}` : orario;
 
+  // Badge convocazione: helper unificato distingue partita torneo (usa t.convocati)
   let badgeHtml = '';
   if (['partita','torneo','amichevole','campionato'].includes(ev.type)) {
-    const conv = (typeof getConvocazione === 'function') ? getConvocazione(ev.id) : null;
-    if (conv && conv.playerIds) {
-      const isConv = myPlIds.some(pid => conv.playerIds.includes(pid));
-      badgeHtml = isConv
-        ? '<span class="cgm-week-pill-badge conv">🔵 Conv.</span>'
-        : '<span class="cgm-week-pill-badge noconv">⚪ No</span>';
-    } else {
-      badgeHtml = '<span class="cgm-week-pill-badge attesa">🟡 Attesa</span>';
-    }
+    badgeHtml = _calGenConvBadgeUnified(ev, myPls, myPlIds, 'pill');
   }
 
   return `<div class="cgm-week-pill ${tipoClass}">
@@ -17827,7 +17861,7 @@ function _renderEventCard(ev, myPls, myPlIds, opts) {
   const title = _getEventTitle(ev);
   const tm = ev.start ? (ev.end ? `${ev.start} – ${ev.end}` : ev.start) : '—';
   const luogo = ev.luogo ? `<div class="row">📍 ${escapeHtml(ev.luogo)}</div>` : '';
-  const badge = _convBadgeInline(ev, myPls);
+  const badge = _calGenConvBadgeUnified(ev, myPls, myPlIds, 'inline');
   const extra = opts.extraHtml || '';
   const onClickAttr = opts.onClickJs ? ` onclick="${opts.onClickJs}" style="cursor:pointer;"` : '';
   return `<div class="cgm-week-ev ${tipoClass}"${onClickAttr}>
@@ -17843,8 +17877,20 @@ function _renderEventCard(ev, myPls, myPlIds, opts) {
 
 // Helper interno: array eventi del giorno per il genitore, ordinati per orario, filtrati per visibility famiglia
 function _calGenEventsForDay(ds) {
-  return events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds))
-               .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  const regular = events.filter(ev => canSeeEvent(ev) && eventOccursOn(ev, ds));
+  // Virtual events (tornei/amichevoli/campionato) — già filtrati per leva figlio + fase famiglia
+  let virtual = [];
+  if (typeof getPtVirtualEvents === 'function') {
+    virtual = (getPtVirtualEvents(ds) || [])
+      .filter(v => v._tipo !== 'torneo_banner')  // no banner (duplicherebbe la partita specifica)
+      .map(v => ({
+        ...v,
+        type: v._tipo,   // normalizza _tipo → type per riuso helper esistenti
+        id: v._ref,      // normalizza _ref → id
+      }));
+  }
+  return [...regular, ...virtual]
+    .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
 }
 // Helper interno: applica filtri allen/partite
 function _calGenFiltraEventi(evs) {
@@ -27057,7 +27103,10 @@ async function doRejoinSocieta() {
     <div class="mh"><div class="mt">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mPtFaseMatch')">✕</button></div>
     <input type="hidden" id="ptFMTorneoId">
     <input type="hidden" id="ptFMFaseId">
-    <div class="fg"><label class="fl">Data</label><input class="fi" id="ptFMData" type="date"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Data</label><input class="fi" id="ptFMData" type="date"></div>
+      <div class="fg"><label class="fl">Orario (opzionale)</label><input class="fi" id="ptFMOrario" type="time"></div>
+    </div>
     <div class="fr">
       <div class="fg"><label class="fl">Casa</label><select class="fs" id="ptFMCasa"></select></div>
       <div class="fg"><label class="fl">Ospite</label><select class="fs" id="ptFMOspite"></select></div>
