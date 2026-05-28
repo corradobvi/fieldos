@@ -2722,6 +2722,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
+          <button class="tb-user-dd-item" id="tbMenuConvocazioni" style="display:none;" onclick="goTo('convocazioni');toggleTopUserMenu();event.stopPropagation();">📋 Convocazioni</button>
           <button class="tb-user-dd-item" onclick="openAccountScreen();toggleTopUserMenu();event.stopPropagation();">👤 Il mio account</button>
           <button class="tb-user-dd-item" onclick="openHelpModal();toggleTopUserMenu();event.stopPropagation();">💬 Aiuto</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
@@ -3794,16 +3795,27 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;min-height:48px;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
+    <!-- STEP 1b: scelta leva (mostrato solo se >1 leva disponibile) -->
+    <div id="srStep1b" style="display:none;">
+      <div style="font-size:.95rem;font-weight:700;margin-bottom:8px;">In quale leva gioca tuo figlio/a?</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:14px;">Seleziona la leva per filtrare la lista dei giocatori.</div>
+      <div id="srLevaList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srShowStep(1)">← Indietro</button>
+      </div>
+    </div>
     <!-- STEP 2: scelta figlio dalla lista API -->
     <div id="srStep2" style="display:none;">
+      <div id="srStep2LevaBadge" style="font-size:.78rem;color:var(--text2);margin-bottom:8px;display:none;"></div>
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px;">Cerca e seleziona tuo figlio/a. La lista include i giocatori aggiunti dalla società.</div>
       <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca per nome..." oninput="renderSrRoster()" style="min-height:48px;"></div>
       <div id="srRosterLoading" style="display:none;text-align:center;padding:20px;font-size:.82rem;color:var(--text2);">⏳ Carico la lista giocatori…</div>
       <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
       <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:6px;min-height:18px;"></div>
+      <div id="srDupWarn" style="display:none;background:#fef3c7;padding:10px 12px;border-radius:8px;margin-bottom:8px;font-size:.78rem;color:#92400e;">⚠️ Hai selezionato più giocatori con lo stesso nome. Verifica di scegliere il figlio giusto.</div>
       <div id="srStep2Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Back()">← Indietro</button>
         <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Conferma identità</button>
       </div>
     </div>
@@ -4108,6 +4120,8 @@ let _onboardSelectedIds = [];
 let _onboardCurrentInvito = null;
 let _selfRegSelectedIds = [];
 let _srVerifiedCode  = ''; // codice società verificato dall'API
+let _srSelectedLeva   = ''; // leva selezionata in step 1b (filtra lista step 2)
+let _srFilteredPlayers = null; // _srApiPlayers filtrati per _srSelectedLeva (null = no filtro)
 let _srVerifiedState = ''; // stateKey per caricare la società
 // Calendario & eventi
 const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO','LUGLIO','AGOSTO','SETTEMBRE','OTTOBRE','NOVEMBRE','DICEMBRE'];
@@ -4449,6 +4463,8 @@ function isAdminMisterForLeva(leva) {
 function hasPerm(key) {
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'mister_admin') return true;
+  // Consumer roles: mai permessi staff, ignora legacy compat
+  if (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') return false;
   if (me.permissions == null) return true;
   return !!me.permissions[key];
 }
@@ -5103,6 +5119,13 @@ function bootApp(user) {
   // Topbar
   document.getElementById('tbAv').textContent   = user.nome[0] + user.cogn[0];
   document.getElementById('tbName').textContent  = user.nome + ' ' + user.cogn;
+  // Voce "Convocazioni" nel menu profilo solo per famiglia (genitore/nonno/giocatore)
+  // — su mobile è il principale punto di accesso a pg-convocazioni.
+  const _tbMenuConv = document.getElementById('tbMenuConvocazioni');
+  if (_tbMenuConv) {
+    const _isFam = user.role === 'genitore' || user.role === 'nonno' || user.role === 'giocatore';
+    _tbMenuConv.style.display = _isFam ? '' : 'none';
+  }
   const _tbLabel = userRoleLabel(user) || cfg.label;
   document.getElementById('tbRole').textContent  = _tbLabel.replace(/^[^\w]*\S+\s/, '');
   const tb = document.getElementById('tbBadge');
@@ -7958,13 +7981,22 @@ function renderPartiteGenitore() {
     if (!isPast) {
       // FIX 2: convocazione badge for future events
       const conv = getConvocazione(ev.id);
+      let _needsReply = false;
       if (conv && conv.playerIds && selectedPlayer) {
         const inList = (conv.playerIds || []).includes(selectedPlayer.id);
         extraHtml = inList
           ? '<span class="pgf-card-badge" style="background:#dcfce7;color:#166534;">🟢 CONVOCATO</span>'
           : '<span class="pgf-card-badge" style="background:#f1f5f9;color:var(--text2);">⚪ NON CONVOCATO</span>';
+        // CTA risposta solo se convocato E non ancora confermato/indisponibile
+        const _d = typeof getDispon === 'function' ? getDispon(ev.id, selectedPlayer.id) : null;
+        const _isIndisp = _d && _d.status === 'indisponibile';
+        const _isConfermato = typeof isPresenzaConfermata === 'function' && isPresenzaConfermata(ev.id, selectedPlayer.id);
+        _needsReply = inList && !_isIndisp && !_isConfermato;
       } else if (selectedPlayer) {
         extraHtml = '<span class="pgf-card-badge" style="background:#fef9c3;color:#854d0e;">🟡 IN ATTESA</span>';
+      }
+      if (_needsReply) {
+        extraHtml += ` <a href="#" onclick="event.preventDefault();event.stopPropagation();goTo('convocazioni')" style="display:inline-block;background:var(--green);color:white;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:6px;text-decoration:none;margin-left:6px;white-space:nowrap;">📋 Rispondi →</a>`;
       }
     } else {
       // FIX 3: result + player stats for past events
@@ -8315,6 +8347,7 @@ function renderConvocazioneCard(ev) {
       fase === 'fase1' ? `<span class="pill pill-b" style="font-size:.7rem;">👁 Fase 1 attiva</span>` :
       `<span class="pill" style="background:var(--cl);color:var(--text2);font-size:.7rem;">👁 Non visibile</span>`;
 
+    const confermatiCount = (conv && Array.isArray(conv.confermati)) ? conv.confermati.length : 0;
     body = `
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;">
         <div style="background:var(--gbg);border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
@@ -8328,6 +8361,10 @@ function renderConvocazioneCard(ev) {
         <div style="background:${convocatiCount ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
           <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">📋 Convocati</div>
           <div style="font-size:1.1rem;font-weight:800;color:${convocatiCount ? 'var(--green)' : 'var(--text2)'};">${convocatiCount}</div>
+        </div>
+        <div style="background:${confermatiCount ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border-radius:8px;padding:7px 12px;flex:1;min-width:72px;">
+          <div style="font-size:.67rem;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">✅ Confermati</div>
+          <div style="font-size:1.1rem;font-weight:800;color:${confermatiCount ? 'var(--green)' : 'var(--text2)'};">${confermatiCount}/${convocatiCount}</div>
         </div>
       </div>`;
 
@@ -8357,6 +8394,17 @@ function renderConvocazioneCard(ev) {
         <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--green);margin-bottom:5px;">📋 Convocati (${convocatiCount})</div>
         <div style="font-size:.83rem;color:var(--text);">${names.join(' · ') || '<em style="color:var(--text2);">nessun giocatore selezionato</em>'}</div>
       </div>`;
+      // Lista confermati (sotto i convocati)
+      if (Array.isArray(conv.confermati) && conv.confermati.length) {
+        const confermatiNames = conv.confermati.map(pid => {
+          const cp = players.find(x => x.id === pid);
+          return cp ? escapeHtml(cp.soprannome || (cp.nome + ' ' + cp.cogn)) : '?';
+        });
+        body += `<div style="background:#dcfce7;border:1px solid rgba(14,168,96,.4);border-radius:8px;padding:9px 12px;margin-bottom:10px;">
+          <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#166534;margin-bottom:5px;">✅ Presenza confermata (${conv.confermati.length}/${convocatiCount})</div>
+          <div style="font-size:.83rem;color:var(--text);">${confermatiNames.join(' · ')}</div>
+        </div>`;
+      }
     }
 
     body += _convTipoSwitcherHtml(ev.id);
@@ -8433,21 +8481,43 @@ function renderConvocazioneCard(ev) {
         const d = getDispon(ev.id, p.id);
         const isConv = conv && conv.playerIds.includes(p.id);
         const isIndisp2 = d && d.status === 'indisponibile';
+        const isConfermato = isPresenzaConfermata(ev.id, p.id);
         const dispBadge = isIndisp2
           ? `<span class="pill pill-r">⚠️ Indisponibile</span>`
-          : `<span class="pill pill-g">✅ Disponibile</span>`;
+          : (isConfermato
+              ? `<span class="pill pill-g" style="font-weight:800;">✅ Presenza confermata</span>`
+              : `<span class="pill pill-g">✅ Disponibile</span>`);
         const convBadge = conv
           ? (isConv
               ? `<span class="pill pill-g" style="font-weight:800;">📋 CONVOCATO</span>`
               : `<span class="pill" style="background:var(--cl);color:var(--text2);">Non convocato</span>`)
           : `<span class="pill pill-b">In attesa convocazione</span>`;
-        const btnHtml2 = isIndisp2
-          ? `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:9px 12px;">
+
+        let btnHtml2;
+        if (isIndisp2) {
+          // Indisponibile → mantieni card arancione esistente
+          btnHtml2 = `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:9px 12px;">
                <div style="font-weight:700;color:#c2410c;font-size:.86rem;margin-bottom:4px;">⚠️ Hai segnalato indisponibilità</div>
                ${d.motivo ? `<div style="font-size:.76rem;color:var(--text2);margin-bottom:6px;">Motivo: ${escapeHtml(d.motivo)}</div>` : ''}
                <a href="#" style="font-size:.78rem;color:var(--cp);font-weight:600;" onclick="cancelConvIndisp(${evIdJs},${p.id});return false;">↩ Annulla — siamo disponibili</a>
-             </div>`
-          : `<button class="btn btn-sm" style="background:#e03055;color:white;width:100%;padding:10px;font-size:.87rem;" onclick="openConvIndispModal(${evIdJs},${p.id})">❌ Segnala indisponibilità</button>`;
+             </div>`;
+        } else if (isConv && isConfermato) {
+          // Convocato + già confermato → card verde + annulla conferma
+          btnHtml2 = `<div style="background:var(--gbg);border:1px solid rgba(14,168,96,.35);border-radius:8px;padding:9px 12px;">
+               <div style="font-weight:700;color:var(--green);font-size:.86rem;margin-bottom:4px;">✅ Presenza confermata al mister</div>
+               <a href="#" style="font-size:.78rem;color:var(--cp);font-weight:600;" onclick="revocaConferma(${evIdJs},${p.id});return false;">↩ Annulla conferma</a>
+             </div>`;
+        } else if (isConv) {
+          // Convocato + non ancora confermato → 2 bottoni affiancati
+          btnHtml2 = `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="btn btn-sm" style="flex:1;min-width:140px;background:var(--green);color:white;padding:10px;font-size:.87rem;" onclick="confermaPresenza(${evIdJs},${p.id})">✅ Conferma presenza</button>
+              <button class="btn btn-sm" style="flex:1;min-width:140px;background:#e03055;color:white;padding:10px;font-size:.87rem;" onclick="openConvIndispModal(${evIdJs},${p.id})">❌ Non disponibile</button>
+            </div>`;
+        } else {
+          // Non convocato → bottone segnala indisp invariato
+          btnHtml2 = `<button class="btn btn-sm" style="background:#e03055;color:white;width:100%;padding:10px;font-size:.87rem;" onclick="openConvIndispModal(${evIdJs},${p.id})">❌ Segnala indisponibilità</button>`;
+        }
+
         return `<div style="background:${isConv ? 'rgba(14,168,96,.07)' : 'var(--bg)'};border:${isConv ? '1.5px solid rgba(14,168,96,.35)' : '1px solid transparent'};border-radius:9px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <div style="font-weight:800;font-size:.92rem;">${escapeHtml(p.nome+' '+p.cogn)} <span style="color:var(--text2);font-weight:500;">· ${escapeHtml(p.leva)}</span></div>
@@ -9097,12 +9167,14 @@ function saveAdminAsMisterLeva(lv, val) {
 // ─── DISPONIBILITÀ (genitore/giocatore) ──────────────
 
 // Genitori/nonno — segnala indisponibilità per evento specifico
-let _ciEvId = null, _ciPid = null;
+let _ciEvId = null, _ciPid = null, _ciEvObj = null;
 function openConvIndispModal(eventId, playerId) {
-  const ev = events.find(e => e.id === eventId);
+  // Lookup esteso: events[] + pseudo-events (torneo_*/camp_*/amich_*) via upcomingPartiteEvents
+  const ev = events.find(e => e.id === eventId)
+          || (typeof upcomingPartiteEvents === 'function' ? upcomingPartiteEvents([]).find(e => e.id === eventId) : null);
   const p = players.find(x => x.id === playerId);
   if (!ev || !p) return;
-  _ciEvId = eventId; _ciPid = playerId;
+  _ciEvId = eventId; _ciPid = playerId; _ciEvObj = ev;
   const d = getDispon(eventId, playerId);
   document.getElementById('ciMotivo').value = d ? (d.motivo || '') : '';
   document.getElementById('mConvIndispInfo').innerHTML =
@@ -9113,8 +9185,31 @@ function openConvIndispModal(eventId, playerId) {
 function saveConvIndisp() {
   const motivo = document.getElementById('ciMotivo').value.trim();
   setDispon(_ciEvId, _ciPid, 'indisponibile', motivo);
-  const ev = events.find(e => e.id === _ciEvId);
+
+  const ev = _ciEvObj || events.find(e => e.id === _ciEvId);
   const p = players.find(x => x.id === _ciPid);
+  const evDate = ev ? ev.date : null;
+
+  // DOPPIA SCRITTURA: allinea a indisponibilita[] per il 🔴 calendario
+  if (evDate) {
+    indisponibilita = indisponibilita.filter(ind =>
+      !(ind.playerId === _ciPid && ind.eventId === _ciEvId)
+    );
+    indisponibilita.push({
+      id: nextIndispId++,
+      playerId: _ciPid,
+      dataInizio: evDate,
+      dataFine: evDate,
+      tipo: 'altro',
+      motivo: motivo || 'Indisponibile (segnalato dal genitore)',
+      byUserId: me.id,
+      byStaff: false,
+      eventId: _ciEvId,
+      createdAt: Date.now(),
+    });
+  }
+
+  // Notifica mister (esistente)
   if (ev && p) {
     const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
     coachIds.forEach(uid => {
@@ -9122,19 +9217,55 @@ function saveConvIndisp() {
         type: 'avviso_assenza',
         title: `⚠️ Indisponibile · ${p.nome} ${p.cogn}`,
         body: `${fmtDateLong(parseYmd(ev.date))} · ${ev.title||''}${motivo ? '\nMotivo: '+motivo : ''}\nSegnalato da ${me.nome} ${me.cogn}`,
-        eventId: ev.id,
+        eventId: _ciEvId,
       });
     });
     refreshNotificheBadge();
   }
+
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   closeM('mConvIndisp');
   toast('⚠️ Indisponibilità segnalata al mister');
   renderConvocazioni();
 }
 function cancelConvIndisp(eventId, playerId) {
   disponibilita = disponibilita.filter(d => !(d.eventId === eventId && d.playerId === playerId));
+  // Rimuovi anche da indisponibilita[] SOLO quelle del genitore (mai del mister)
+  indisponibilita = indisponibilita.filter(ind =>
+    !(ind.playerId === playerId && ind.eventId === eventId && ind.byStaff === false)
+  );
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('✅ Disponibilità ripristinata');
   renderConvocazioni();
+}
+
+// ─── Conferma presenza (genitore) ───
+function isPresenzaConfermata(eventId, playerId) {
+  const conv = getConvocazione(eventId);
+  return !!(conv && Array.isArray(conv.confermati) && conv.confermati.includes(playerId));
+}
+function confermaPresenza(eventId, playerId) {
+  const conv = getConvocazione(eventId);
+  if (!conv) return;
+  if (!Array.isArray(conv.confermati)) conv.confermati = [];
+  if (!conv.confermati.includes(playerId)) conv.confermati.push(playerId);
+  // Coerenza: rimuovi eventuale indisponibilità del genitore
+  setDispon(eventId, playerId, 'disponibile', '');
+  indisponibilita = indisponibilita.filter(ind =>
+    !(ind.playerId === playerId && ind.eventId === eventId && ind.byStaff === false)
+  );
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('✅ Presenza confermata');
+  // NESSUNA notifica al mister (decisione presa)
+}
+function revocaConferma(eventId, playerId) {
+  const conv = getConvocazione(eventId);
+  if (!conv || !Array.isArray(conv.confermati)) return;
+  conv.confermati = conv.confermati.filter(id => id !== playerId);
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderConvocazioni();
+  toast('↩ Conferma annullata');
 }
 
 function quickSetDispon(eventId, playerId, status) {
@@ -9343,12 +9474,15 @@ function _renderCommTabContent() {
       const border=!n.read?`1.5px solid ${isConv?'rgba(14,168,96,.4)':isAvviso?'rgba(245,158,11,.4)':'rgba('+getComputedStyle(document.documentElement).getPropertyValue('--cp-rgb').trim()+',.3)'}`:'1.5px solid var(--border)';
       const dot=!n.read?'<span style="display:inline-block;width:8px;height:8px;background:var(--red);border-radius:50%;flex-shrink:0;margin-right:4px;"></span>':'';
       const when=new Date(n.ts).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+' '+new Date(n.ts).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-      return `<div style="background:${bg};border:${border};border-left:4px solid ${borderColor};border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh);">
-        <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <div style="display:flex;gap:4px;align-items:center;">${dot}<span style="font-weight:800;font-size:.86rem;">${escapeHtml(n.title)}</span></div>
-          <span style="font-size:.7rem;color:var(--text3);flex-shrink:0;">${when}</span>
+      const convPill = isConv ? `<span style="background:var(--green);color:white;font-size:.62rem;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:10px;text-transform:uppercase;flex-shrink:0;">📋 Convocazione</span>` : '';
+      const onClickAttr = isConv ? ` onclick="goTo('convocazioni')" style="cursor:pointer;` : ' style="';
+      return `<div${onClickAttr}background:${bg};border:${border};border-left:4px solid ${borderColor};border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh);">
+        <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;">
+          <div style="display:flex;gap:4px;align-items:center;flex:1;min-width:0;">${dot}<span style="font-weight:800;font-size:.86rem;">${escapeHtml(n.title)}</span></div>
+          <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;">${convPill}<span style="font-size:.7rem;color:var(--text3);">${when}</span></div>
         </div>
         <div style="font-size:.81rem;color:var(--text2);white-space:pre-wrap;">${escapeHtml(n.body)}</div>
+        ${isConv ? '<div style="font-size:.74rem;color:var(--green);font-weight:700;margin-top:6px;">Tocca per gestire la convocazione →</div>' : ''}
       </div>`;
     }).join('')}</div>`;
     return;
@@ -11509,21 +11643,61 @@ function openSelfReg(){
 }
 
 function srShowStep(n){
-  for (let i=1;i<=4;i++){
-    const el = document.getElementById('srStep'+i);
-    if (el) el.style.display = (i===n) ? 'block' : 'none';
-  }
+  // n può essere 1,2,3,4 (numeri) o '1b' (stringa) per lo step intermedio leva
+  const stepIds = ['srStep1','srStep1b','srStep2','srStep3','srStep4'];
+  const targetId = (n === '1b') ? 'srStep1b' : ('srStep' + n);
+  stepIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = (id === targetId) ? 'block' : 'none'; });
+  // Aggiorna indicatori (solo per step numerati 1-4)
   for (let i=1;i<=4;i++){
     const ind = document.getElementById('srStepInd'+i);
     if (ind) {
-      ind.style.background = (i===n) ? 'var(--cl)' : 'var(--bg)';
-      ind.style.fontWeight = (i===n) ? '700' : '500';
-      ind.style.color = (i===n) ? 'var(--cp)' : 'var(--text2)';
+      const isActive = (typeof n === 'number') ? (i===n) : (n === '1b' && i === 1);
+      ind.style.background = isActive ? 'var(--cl)' : 'var(--bg)';
+      ind.style.fontWeight = isActive ? '700' : '500';
+      ind.style.color = isActive ? 'var(--cp)' : 'var(--text2)';
     }
   }
 }
 
 function srBackStep(n){ srShowStep(n); }
+
+// Indietro da step 2: se ho passato per step1b (più leve), torno lì; altrimenti torno a step 1
+function srStep2Back() {
+  const uniqueLeve = [...new Set((_srApiPlayers||[]).map(p => p.levaKey).filter(Boolean))];
+  if (uniqueLeve.length > 1) {
+    // Reset filtro e torna a scelta leva
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    _selfRegSelectedIds = [];
+    srShowStep('1b');
+    renderSrLevaList(uniqueLeve);
+  } else {
+    srShowStep(1);
+  }
+}
+
+// Renderizza la lista bottoni leva in step1b
+function renderSrLevaList(leveDisponibili) {
+  const host = document.getElementById('srLevaList');
+  if (!host) return;
+  host.innerHTML = leveDisponibili.map(lv =>
+    `<button type="button" class="btn btn-g" style="text-align:left;padding:14px 16px;font-size:15px;min-height:52px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srSelectLeva('${escapeHtml(lv)}')">⚽ ${escapeHtml(lv)}</button>`
+  ).join('');
+}
+
+// Selezione leva → filtra _srApiPlayers e vai a step 2
+function srSelectLeva(levaKey) {
+  _srSelectedLeva = levaKey;
+  _srFilteredPlayers = (_srApiPlayers || []).filter(p => p.levaKey === levaKey);
+  _selfRegSelectedIds = [];
+  const badge = document.getElementById('srStep2LevaBadge');
+  if (badge) {
+    badge.style.display = 'block';
+    badge.innerHTML = `Leva: <strong>${escapeHtml(levaKey)}</strong> · <a href="#" style="color:var(--cp);font-weight:600;" onclick="srStep2Back();return false;">Cambia</a>`;
+  }
+  srShowStep(2);
+  renderSrRoster();
+}
 
 // ── Cerca una società per codice chiamando l'API backend (legge da MySQL).
 // Fallback su in-memory se l'API non è raggiungibile.
@@ -11612,12 +11786,34 @@ async function srNextStep1(){
     }
 
     _srApplySocietaContext(found.socId, found.soc);
-    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
     _selfRegSelectedIds = [];
-    srShowStep(2);
-    renderSrRoster();
-    // Load API players for GDPR-flow roster
-    srLoadApiPlayers(v);
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    const badge = document.getElementById('srStep2LevaBadge');
+    if (badge) badge.style.display = 'none';
+
+    // Carica giocatori API (await per decidere il flusso leva)
+    if (btn) btn.textContent = '⏳ Carico giocatori…';
+    await srLoadApiPlayers(v);
+    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+
+    // Ricava leve disponibili
+    const leveDisponibili = [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))].sort();
+    if (leveDisponibili.length > 1) {
+      // Più leve → mostra step1b per scelta
+      renderSrLevaList(leveDisponibili);
+      srShowStep('1b');
+    } else if (leveDisponibili.length === 1) {
+      // 1 sola leva → preseleziona e vai a step 2
+      _srSelectedLeva = leveDisponibili[0];
+      _srFilteredPlayers = _srApiPlayers.filter(p => p.levaKey === _srSelectedLeva);
+      srShowStep(2);
+      renderSrRoster();
+    } else {
+      // Nessuna leva nei giocatori (o nessun giocatore API) → vai a step 2 senza filtro
+      srShowStep(2);
+      renderSrRoster();
+    }
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
@@ -11878,17 +12074,21 @@ function renderSrRoster(){
   // Lista UNIFICATA con dedup: per ogni id MySQL preferisci API player (id `api_X`).
   // Senza dedup, lo stesso giocatore appare 2 volte: il genitore sceglie da blob (id numerico)
   // e submitSelfReg non chiama il claim → guardian mai creato → resta in 'Attesa genitore'.
-  const apiByMyId = new Map(_srApiPlayers.map(p => [p.id, p]));
+  // Usa _srFilteredPlayers se settato (filtro per leva da step 1b)
+  const apiPlayersToShow = (_srFilteredPlayers && _srFilteredPlayers.length) ? _srFilteredPlayers : _srApiPlayers;
+  const apiByMyId = new Map(apiPlayersToShow.map(p => [p.id, p]));
   let list = [];
-  _srApiPlayers.forEach(p => list.push({
+  apiPlayersToShow.forEach(p => list.push({
     displayId:   'api_' + p.id,
     displayName: p.firstName + ' ' + p.lastNameInitial,
     displaySub:  [p.levaKey || null, p.shirtNumber ? '#'+p.shirtNumber : null].filter(Boolean).join(' · '),
     isApi:       true,
     sortKey:     (p.levaKey || '') + '|' + ((p.firstName||'') + (p.lastNameInitial||''))
   }));
+  // Aggiungi anche blob players, filtrati per leva selezionata se presente
   players.forEach(p => {
     if (apiByMyId.has(p.id)) return; // dedup: già in API list
+    if (_srSelectedLeva && p.leva !== _srSelectedLeva) return; // filtro leva
     list.push({
       displayId:   p.id,
       displayName: (p.nome || '') + ' ' + (p.cogn || p.cogn_iniziale || ''),
@@ -11922,6 +12122,20 @@ function renderSrRoster(){
       infoEl.style.cssText = 'font-size:.78rem;color:var(--text2);font-weight:400;margin-bottom:6px;min-height:18px;';
       infoEl.textContent = 'Seleziona almeno un figlio/a per continuare.';
     }
+  }
+
+  // Warning: nomi simili selezionati (es. 2 Diego Bagnasco duplicati in rosa)
+  const dupWarnEl = document.getElementById('srDupWarn');
+  if (dupWarnEl) {
+    let hasDuplicate = false;
+    if (_selfRegSelectedIds.length > 1) {
+      const selectedNames = _selfRegSelectedIds.map(sid => {
+        const it = list.find(x => x.displayId === sid || x.displayId === String(sid));
+        return it ? it.displayName.toLowerCase().trim() : '';
+      }).filter(Boolean);
+      hasDuplicate = selectedNames.length !== new Set(selectedNames).size;
+    }
+    dupWarnEl.style.display = hasDuplicate ? 'block' : 'none';
   }
 }
 
@@ -12740,7 +12954,11 @@ function renderPanoramica() {
     const more = _panoVisible.length > _maxShow
       ? `<div style="text-align:center;padding:4px 0;"><a href="#" onclick="event.preventDefault();goTo('partite')" style="font-size:.8rem;color:var(--cp);font-weight:600;">Vedi tutte le ${_panoVisible.length} partite →</a></div>`
       : '';
-    partiteHtml = `<div style="display:flex;flex-direction:column;gap:7px;">${rows}${more}</div>`;
+    // Punto C: mini-CTA convocazioni solo per genitori/nonni (dropdown menu è meno visibile).
+    const _convCta = isFamily()
+      ? `<a href="#" onclick="event.preventDefault();goTo('convocazioni')" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;margin-top:4px;background:#eafaf1;border:1px solid rgba(14,168,96,.3);border-radius:9px;color:var(--green);font-weight:700;font-size:.85rem;text-decoration:none;">📋 Rispondi alle convocazioni →</a>`
+      : '';
+    partiteHtml = `<div style="display:flex;flex-direction:column;gap:7px;">${rows}${more}${_convCta}</div>`;
   }
 
   // Prossimi allenamenti (cross-leva)
