@@ -4449,6 +4449,8 @@ function isAdminMisterForLeva(leva) {
 function hasPerm(key) {
   if (!me) return false;
   if (me.role === 'admin' || me.role === 'mister_admin') return true;
+  // Consumer roles: mai permessi staff, ignora legacy compat
+  if (me.role === 'genitore' || me.role === 'nonno' || me.role === 'giocatore') return false;
   if (me.permissions == null) return true;
   return !!me.permissions[key];
 }
