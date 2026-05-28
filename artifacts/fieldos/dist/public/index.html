@@ -1635,8 +1635,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cgm-week-pill.tipo-altro{border-left-color:#7c3aed;background:#f5f3ff;color:#5b21b6;}
 .cgm-week-pill.tipo-indisp{border-left-color:#dc2626;background:#fef2f2;color:#991b1b;}
 .cgm-week-pill.tipo-assenza{border-left-color:#f97316;background:#fff7ed;color:#9a3412;}
-.cgm-week-pill-icon-title{font-size:12px;font-weight:700;display:flex;align-items:flex-start;gap:4px;word-break:break-word;}
+.cgm-week-pill-icon-title{font-size:12px;font-weight:700;display:flex;align-items:flex-start;gap:4px;overflow-wrap:break-word;word-break:normal;hyphens:auto;min-width:0;}
 .cgm-week-pill-icon-title .icon{flex-shrink:0;}
+.cgm-week-pill-icon-title>span:not(.icon){min-width:0;overflow-wrap:break-word;word-break:normal;}
+@media(min-width:769px) and (max-width:1100px){.cgm-week-pill-icon-title{font-size:11px;}}
 .cgm-week-pill-time{font-size:11px;font-weight:600;margin-top:3px;opacity:.85;}
 .cgm-week-pill-badge{display:inline-block;margin-top:5px;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;}
 .cgm-week-pill-badge.conv{background:#dbeafe;color:#1e40af;}
