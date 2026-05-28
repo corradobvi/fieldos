@@ -85398,7 +85398,8 @@ router14.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (re
         telefono_genitore = COALESCE(?, telefono_genitore),
         email_genitore    = COALESCE(?, email_genitore),
         note              = COALESCE(?, note),
-        foto_url          = COALESCE(?, foto_url)
+        foto_url          = COALESCE(?, foto_url),
+        incomplete        = CASE WHEN COALESCE(?, cognome) <> '' AND COALESCE(?, cognome) IS NOT NULL THEN 0 ELSE incomplete END
        WHERE id = ? AND society_id = ?`,
       [
         nome ?? null,
@@ -85412,6 +85413,9 @@ router14.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (re
         emailGenitore ?? null,
         note ?? null,
         fotoUrl ?? null,
+        cognome ?? null,
+        cognome ?? null,
+        // ← duplica per CASE
         req.params.id,
         societyId
       ]
@@ -91439,6 +91443,43 @@ router36.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
     post_state: postState,
     remaining_societies: remaining
   });
+});
+router36.post("/superadmin/_diag/repair-guardians", async (req, res) => {
+  if (!checkAuth4(req, res)) return;
+  const societyId = parseInt(String(req.query.societyId || req.body?.societyId || ""), 10);
+  if (!societyId || !Number.isFinite(societyId)) {
+    return res.status(400).json({ error: "societyId required" });
+  }
+  try {
+    const [rows] = await pool.execute(
+      `SELECT DISTINCT pg.user_id, u.email
+       FROM player_guardians pg
+       JOIN players p ON p.id = pg.player_id
+       JOIN users u ON u.id = pg.user_id
+       WHERE p.society_id = ?`,
+      [societyId]
+    );
+    const synced = [];
+    const errors = [];
+    for (const r of rows) {
+      try {
+        await syncGuardianToBlob(societyId, r.user_id);
+        synced.push({ user_id: r.user_id, email: r.email });
+      } catch (e) {
+        errors.push({ user_id: r.user_id, email: r.email, error: e?.message });
+      }
+    }
+    return res.json({
+      societyId,
+      total_guardians: rows.length,
+      synced: synced.length,
+      errors_count: errors.length,
+      synced_details: synced,
+      errors
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
 });
 var admin_cleanup_preview_default = router36;
 

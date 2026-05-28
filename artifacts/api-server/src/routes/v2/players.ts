@@ -149,12 +149,15 @@ router.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req,
         telefono_genitore = COALESCE(?, telefono_genitore),
         email_genitore    = COALESCE(?, email_genitore),
         note              = COALESCE(?, note),
-        foto_url          = COALESCE(?, foto_url)
+        foto_url          = COALESCE(?, foto_url),
+        incomplete        = CASE WHEN COALESCE(?, cognome) <> '' AND COALESCE(?, cognome) IS NOT NULL THEN 0 ELSE incomplete END
        WHERE id = ? AND society_id = ?`,
       [nome ?? null, cognome ?? null, soprannome ?? null, numero ?? null,
        ruoloCampo ?? null, annoNascita ?? null, leva ?? null,
        telefonoGenitore ?? null, emailGenitore ?? null, note ?? null,
-       fotoUrl ?? null, req.params.id, societyId]
+       fotoUrl ?? null,
+       cognome ?? null, cognome ?? null,    // ← duplica per CASE
+       req.params.id, societyId]
     )) as [any, any];
 
     if (!result.affectedRows) return res.status(404).json({ error: "not_found" });

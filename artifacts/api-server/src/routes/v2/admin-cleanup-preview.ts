@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
+import { syncGuardianToBlob } from "./minors";
 
 const router = Router();
 
@@ -191,6 +192,51 @@ router.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
     post_state: postState,
     remaining_societies: remaining,
   });
+});
+
+// POST /api/v2/superadmin/_diag/repair-guardians?societyId=X
+// Riparatore retroattivo: per ogni user con player_guardians in questa società,
+// chiama syncGuardianToBlob → ricostruisce figli/figliIds in blob USERS_DB da MySQL.
+// Idempotente. Usato per riparare blob USERS_DB desallineati.
+router.post("/superadmin/_diag/repair-guardians", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const societyId = parseInt(String(req.query.societyId || req.body?.societyId || ""), 10);
+  if (!societyId || !Number.isFinite(societyId)) {
+    return res.status(400).json({ error: "societyId required" });
+  }
+  try {
+    // Trova tutti gli user_id distinct in player_guardians per questa società
+    const [rows] = (await pool.execute(
+      `SELECT DISTINCT pg.user_id, u.email
+       FROM player_guardians pg
+       JOIN players p ON p.id = pg.player_id
+       JOIN users u ON u.id = pg.user_id
+       WHERE p.society_id = ?`,
+      [societyId]
+    )) as [any[], any];
+
+    const synced: any[] = [];
+    const errors: any[] = [];
+    for (const r of rows as any[]) {
+      try {
+        await syncGuardianToBlob(societyId, r.user_id);
+        synced.push({ user_id: r.user_id, email: r.email });
+      } catch (e: any) {
+        errors.push({ user_id: r.user_id, email: r.email, error: e?.message });
+      }
+    }
+
+    return res.json({
+      societyId,
+      total_guardians: rows.length,
+      synced: synced.length,
+      errors_count: errors.length,
+      synced_details: synced,
+      errors,
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
 });
 
 export default router;
