@@ -91481,6 +91481,120 @@ router36.post("/superadmin/_diag/repair-guardians", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
+router36.post("/superadmin/_diag/repair-players", async (req, res) => {
+  if (!checkAuth4(req, res)) return;
+  const societyId = parseInt(String(req.query.societyId || req.body?.societyId || ""), 10);
+  if (!societyId || !Number.isFinite(societyId)) {
+    return res.status(400).json({ error: "societyId required" });
+  }
+  try {
+    const [mysqlPlayers] = await pool.execute(
+      `SELECT id, nome, cognome, cognome_iniziale, numero, leva, incomplete, ruolo_campo, birth_date, approval_status
+       FROM players WHERE society_id = ?`,
+      [societyId]
+    );
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return res.status(404).json({ error: "blob_not_found", stateKey });
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return res.status(500).json({ error: "blob_parse_error" });
+    }
+    if (!Array.isArray(state.players)) state.players = [];
+    const mysqlById = new Map(mysqlPlayers.map((p) => [Number(p.id), p]));
+    const blobById = new Map(state.players.map((p) => [Number(p?.id), p]));
+    const added = [];
+    const updated = [];
+    for (const m of mysqlPlayers) {
+      const mid = Number(m.id);
+      const existing = blobById.get(mid);
+      if (!existing) {
+        const newEntry = {
+          id: mid,
+          nome: m.nome || "",
+          cogn: m.cognome || "",
+          cogn_iniziale: m.cognome_iniziale || "",
+          leva: m.leva || "",
+          num: m.numero || 0,
+          incomplete: m.incomplete === 1,
+          approval_status: m.approval_status || "approved",
+          birth_date: m.birth_date || null,
+          ruolo: m.ruolo_campo || "",
+          partite: [],
+          presAll: [],
+          presPartite: [],
+          assenzeAvvisate: []
+        };
+        state.players.push(newEntry);
+        added.push({ id: mid, nome: m.nome, cognome: m.cognome });
+      } else {
+        let changed = false;
+        if (m.nome != null && existing.nome !== m.nome) {
+          existing.nome = m.nome;
+          changed = true;
+        }
+        if (m.cognome != null && existing.cogn !== m.cognome) {
+          existing.cogn = m.cognome;
+          changed = true;
+        }
+        if (m.cognome_iniziale != null && existing.cogn_iniziale !== m.cognome_iniziale) {
+          existing.cogn_iniziale = m.cognome_iniziale;
+          changed = true;
+        }
+        if (m.leva != null && existing.leva !== m.leva) {
+          existing.leva = m.leva;
+          changed = true;
+        }
+        const expectedIncomplete = m.incomplete === 1;
+        if (existing.incomplete !== expectedIncomplete) {
+          existing.incomplete = expectedIncomplete;
+          changed = true;
+        }
+        if (m.birth_date != null && existing.birth_date !== m.birth_date) {
+          existing.birth_date = m.birth_date;
+          changed = true;
+        }
+        if (m.approval_status != null && existing.approval_status !== m.approval_status) {
+          existing.approval_status = m.approval_status;
+          changed = true;
+        }
+        if (changed) updated.push({ id: mid, nome: m.nome });
+      }
+    }
+    const orphans = [];
+    for (const bp of state.players) {
+      if (!bp || bp.id == null) continue;
+      if (!mysqlById.has(Number(bp.id))) {
+        orphans.push({ id: Number(bp.id), nome: bp.nome, cogn: bp.cogn, cogn_iniziale: bp.cogn_iniziale, incomplete: bp.incomplete });
+      }
+    }
+    const maxId = state.players.reduce((mx, p) => Math.max(mx, Number(p?.id) || 0), 0);
+    state.nextPlayerId = Math.max(Number(state.nextPlayerId) || 1, maxId + 1);
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+    return res.json({
+      societyId,
+      stateKey,
+      total_mysql: mysqlPlayers.length,
+      total_blob_after: state.players.length,
+      added_count: added.length,
+      updated_count: updated.length,
+      orphans_count: orphans.length,
+      added,
+      updated,
+      orphans
+    });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
 var admin_cleanup_preview_default = router36;
 
 // src/routes/v2/index.ts

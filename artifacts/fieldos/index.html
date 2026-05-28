@@ -2722,6 +2722,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         <div><div class="tb-uname" id="tbName">—</div><div class="tb-urole" id="tbRole">—</div></div>
         <div class="tb-user-dd" id="tbUserMenu">
           <div class="tb-user-dd-head"><strong id="tbMenuName">—</strong><span id="tbMenuRole">—</span></div>
+          <button class="tb-user-dd-item" id="tbMenuConvocazioni" style="display:none;" onclick="goTo('convocazioni');toggleTopUserMenu();event.stopPropagation();">📋 Convocazioni</button>
           <button class="tb-user-dd-item" onclick="openAccountScreen();toggleTopUserMenu();event.stopPropagation();">👤 Il mio account</button>
           <button class="tb-user-dd-item" onclick="openHelpModal();toggleTopUserMenu();event.stopPropagation();">💬 Aiuto</button>
           <button class="tb-user-dd-item danger" onclick="logout();event.stopPropagation();">🚪 Esci</button>
@@ -5118,6 +5119,13 @@ function bootApp(user) {
   // Topbar
   document.getElementById('tbAv').textContent   = user.nome[0] + user.cogn[0];
   document.getElementById('tbName').textContent  = user.nome + ' ' + user.cogn;
+  // Voce "Convocazioni" nel menu profilo solo per famiglia (genitore/nonno/giocatore)
+  // — su mobile è il principale punto di accesso a pg-convocazioni.
+  const _tbMenuConv = document.getElementById('tbMenuConvocazioni');
+  if (_tbMenuConv) {
+    const _isFam = user.role === 'genitore' || user.role === 'nonno' || user.role === 'giocatore';
+    _tbMenuConv.style.display = _isFam ? '' : 'none';
+  }
   const _tbLabel = userRoleLabel(user) || cfg.label;
   document.getElementById('tbRole').textContent  = _tbLabel.replace(/^[^\w]*\S+\s/, '');
   const tb = document.getElementById('tbBadge');
@@ -9457,12 +9465,15 @@ function _renderCommTabContent() {
       const border=!n.read?`1.5px solid ${isConv?'rgba(14,168,96,.4)':isAvviso?'rgba(245,158,11,.4)':'rgba('+getComputedStyle(document.documentElement).getPropertyValue('--cp-rgb').trim()+',.3)'}`:'1.5px solid var(--border)';
       const dot=!n.read?'<span style="display:inline-block;width:8px;height:8px;background:var(--red);border-radius:50%;flex-shrink:0;margin-right:4px;"></span>':'';
       const when=new Date(n.ts).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+' '+new Date(n.ts).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-      return `<div style="background:${bg};border:${border};border-left:4px solid ${borderColor};border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh);">
-        <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <div style="display:flex;gap:4px;align-items:center;">${dot}<span style="font-weight:800;font-size:.86rem;">${escapeHtml(n.title)}</span></div>
-          <span style="font-size:.7rem;color:var(--text3);flex-shrink:0;">${when}</span>
+      const convPill = isConv ? `<span style="background:var(--green);color:white;font-size:.62rem;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:10px;text-transform:uppercase;flex-shrink:0;">📋 Convocazione</span>` : '';
+      const onClickAttr = isConv ? ` onclick="goTo('convocazioni')" style="cursor:pointer;` : ' style="';
+      return `<div${onClickAttr}background:${bg};border:${border};border-left:4px solid ${borderColor};border-radius:var(--r);padding:13px 14px;box-shadow:var(--sh);">
+        <div style="display:flex;gap:6px;justify-content:space-between;align-items:center;margin-bottom:5px;flex-wrap:wrap;">
+          <div style="display:flex;gap:4px;align-items:center;flex:1;min-width:0;">${dot}<span style="font-weight:800;font-size:.86rem;">${escapeHtml(n.title)}</span></div>
+          <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;">${convPill}<span style="font-size:.7rem;color:var(--text3);">${when}</span></div>
         </div>
         <div style="font-size:.81rem;color:var(--text2);white-space:pre-wrap;">${escapeHtml(n.body)}</div>
+        ${isConv ? '<div style="font-size:.74rem;color:var(--green);font-weight:700;margin-top:6px;">Tocca per gestire la convocazione →</div>' : ''}
       </div>`;
     }).join('')}</div>`;
     return;
