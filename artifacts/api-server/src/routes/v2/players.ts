@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { syncGuardianToBlob } from "./minors";
 
 const router = Router();
 
@@ -157,6 +158,18 @@ router.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req,
     )) as [any, any];
 
     if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+
+    // Sync blob USERS_DB per tutti i guardian del player: il loro figli/figliIds resta allineato
+    try {
+      const [guardianRows] = (await pool.execute(
+        "SELECT user_id FROM player_guardians WHERE player_id = ?",
+        [req.params.id]
+      )) as [any[], any];
+      for (const g of guardianRows as any[]) {
+        await syncGuardianToBlob(societyId, g.user_id).catch(() => {});
+      }
+    } catch (_) { /* non-bloccante */ }
+
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e }, "PUT player error");

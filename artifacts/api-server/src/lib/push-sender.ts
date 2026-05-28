@@ -103,11 +103,12 @@ export async function sendPushToUsers(
 // Fetches active user IDs for a society.
 // If leva is set: returns staff of that leva + admin/dirigente + ALL guardians of players in that leva.
 // excludeUserId: omit the sender.
+// staffOnly: se true, ESCLUDE i guardian (usato per notifiche privacy-sensitive tipo "nuovo_genitore").
 export async function getUsersForPush(
   societyId: number,
-  options: { leva?: string | null; excludeUserId?: number } = {}
+  options: { leva?: string | null; excludeUserId?: number; staffOnly?: boolean } = {}
 ): Promise<number[]> {
-  const { leva, excludeUserId } = options;
+  const { leva, excludeUserId, staffOnly } = options;
   try {
     // Query 1: staff users (same as before)
     let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
@@ -118,9 +119,9 @@ export async function getUsersForPush(
     const [staffRows] = (await pool.execute(staffQuery, staffParams)) as [any[], any];
     const staffIds: number[] = staffRows.map((r: any) => r.id as number);
 
-    // Query 2: guardians of players in this leva (new GDPR flow)
+    // Query 2: guardians of players in this leva (new GDPR flow) — solo se NON staffOnly
     let guardianIds: number[] = [];
-    if (leva) {
+    if (!staffOnly && leva) {
       try {
         let gQuery = `SELECT DISTINCT pg.user_id AS id
           FROM player_guardians pg

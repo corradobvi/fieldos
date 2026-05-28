@@ -84565,201 +84565,10 @@ router12.delete("/leve/:id", requireAuth, requireRole("admin"), async (req, res)
 var leve_default = router12;
 
 // src/routes/v2/players.ts
-var import_express13 = __toESM(require_express2(), 1);
-var router13 = (0, import_express13.Router)();
-var ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
-var PIANO_NORM = { gratuito: "mister", base: "mister_pro", premium: "societa" };
-var PLAYER_LIMITS = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
-async function getSocietyPlayerLimit(societyId) {
-  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
-  const raw = rows[0]?.piano || "demo";
-  const norm = PIANO_NORM[raw] || raw;
-  return PLAYER_LIMITS[norm] ?? 25;
-}
-router13.get("/players/pending-parental-consent", requireAuth, async (req, res) => {
-  const { userId, role } = req.jwtUser;
-  if (role !== "genitore") return res.json({ players: [] });
-  try {
-    const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.anno_nascita
-       FROM players p
-       JOIN user_players up ON up.player_id = p.id
-       WHERE up.user_id = ?
-         AND p.anno_nascita IS NOT NULL
-         AND (? - p.anno_nascita) < 18
-         AND p.parental_consent_at IS NULL`,
-      [userId, currentYear]
-    );
-    return res.json({ players: rows });
-  } catch (e) {
-    logger.error({ err: e }, "GET pending-parental-consent error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const leva = req.query.leva;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
-              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
-              p.note, p.foto_url, p.created_at,
-              p.parental_consent_given_by, p.parental_consent_at
-       FROM players p
-       WHERE p.society_id = ?
-         ${leva ? "AND p.leva = ?" : ""}
-       ORDER BY p.cognome, p.nome`,
-      leva ? [societyId, leva] : [societyId]
-    );
-    return res.json(rows);
-  } catch (e) {
-    logger.error({ err: e }, "GET players error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players/:id", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva,
-              telefono_genitore, email_genitore, note, foto_url, created_at,
-              parental_consent_given_by, parental_consent_at
-       FROM players WHERE id = ? AND society_id = ?`,
-      [req.params.id, societyId]
-    );
-    if (!rows.length) return res.status(404).json({ error: "not_found" });
-    return res.json(rows[0]);
-  } catch (e) {
-    logger.error({ err: e }, "GET player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    nome,
-    cognome,
-    soprannome,
-    numero,
-    ruoloCampo,
-    annoNascita,
-    leva,
-    telefonoGenitore,
-    emailGenitore,
-    note
-  } = req.body;
-  if (!nome?.trim() || !cognome?.trim()) {
-    return res.status(400).json({ error: "nome_cognome_required" });
-  }
-  try {
-    const maxGioc = await getSocietyPlayerLimit(societyId);
-    if (isFinite(maxGioc) && leva) {
-      const [cnt] = await pool.execute(
-        "SELECT COUNT(*) as n FROM players WHERE society_id = ? AND leva = ?",
-        [societyId, leva]
-      );
-      if (cnt[0].n >= maxGioc) {
-        return res.status(403).json({ error: "plan_limit_reached", limitType: "giocatoriPerLeva", current: cnt[0].n, max: maxGioc });
-      }
-    }
-    const [result] = await pool.execute(
-      `INSERT INTO players
-        (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
-         leva, telefono_genitore, email_genitore, note,
-         parental_consent_given_by, parental_consent_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
-      [
-        societyId,
-        nome.trim(),
-        cognome.trim(),
-        soprannome ?? null,
-        numero ?? null,
-        ruoloCampo ?? null,
-        annoNascita ?? null,
-        leva ?? null,
-        telefonoGenitore ?? null,
-        emailGenitore ?? null,
-        note ?? null
-      ]
-    );
-    return res.status(201).json({ id: result.insertId });
-  } catch (e) {
-    logger.error({ err: e }, "POST player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    nome,
-    cognome,
-    soprannome,
-    numero,
-    ruoloCampo,
-    annoNascita,
-    leva,
-    telefonoGenitore,
-    emailGenitore,
-    note,
-    fotoUrl
-  } = req.body;
-  try {
-    const [result] = await pool.execute(
-      `UPDATE players SET
-        nome              = COALESCE(?, nome),
-        cognome           = COALESCE(?, cognome),
-        soprannome        = COALESCE(?, soprannome),
-        numero            = COALESCE(?, numero),
-        ruolo_campo       = COALESCE(?, ruolo_campo),
-        anno_nascita      = COALESCE(?, anno_nascita),
-        leva              = COALESCE(?, leva),
-        telefono_genitore = COALESCE(?, telefono_genitore),
-        email_genitore    = COALESCE(?, email_genitore),
-        note              = COALESCE(?, note),
-        foto_url          = COALESCE(?, foto_url)
-       WHERE id = ? AND society_id = ?`,
-      [
-        nome ?? null,
-        cognome ?? null,
-        soprannome ?? null,
-        numero ?? null,
-        ruoloCampo ?? null,
-        annoNascita ?? null,
-        leva ?? null,
-        telefonoGenitore ?? null,
-        emailGenitore ?? null,
-        note ?? null,
-        fotoUrl ?? null,
-        req.params.id,
-        societyId
-      ]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "PUT player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.delete("/players/:id", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [result] = await pool.execute(
-      "DELETE FROM players WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var players_default = router13;
+var import_express14 = __toESM(require_express2(), 1);
 
 // src/routes/v2/minors.ts
-var import_express14 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 
 // src/lib/push-sender.ts
 var import_web_push2 = __toESM(require_src2(), 1);
@@ -84841,7 +84650,7 @@ async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
   return { sent, errors };
 }
 async function getUsersForPush(societyId, options = {}) {
-  const { leva, excludeUserId } = options;
+  const { leva, excludeUserId, staffOnly } = options;
   try {
     let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
     const staffParams = [societyId];
@@ -84856,7 +84665,7 @@ async function getUsersForPush(societyId, options = {}) {
     const [staffRows] = await pool.execute(staffQuery, staffParams);
     const staffIds = staffRows.map((r) => r.id);
     let guardianIds = [];
-    if (leva) {
+    if (!staffOnly && leva) {
       try {
         let gQuery = `SELECT DISTINCT pg.user_id AS id
           FROM player_guardians pg
@@ -84882,10 +84691,10 @@ async function getUsersForPush(societyId, options = {}) {
 }
 
 // src/routes/v2/minors.ts
-var router14 = (0, import_express14.Router)();
+var router13 = (0, import_express13.Router)();
 var STAFF_ROLES = ["admin", "allenatore", "dirigente"];
 var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
-router14.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+router13.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { firstName, lastNameInitial, levaKey, shirtNumber } = req.body;
   if (!firstName?.trim()) return res.status(400).json({ error: "firstName_required" });
@@ -84918,7 +84727,7 @@ router14.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.get("/players/public-incomplete", async (req, res) => {
+router13.get("/players/public-incomplete", async (req, res) => {
   const code = req.query.code?.trim().toUpperCase();
   if (!code) return res.status(400).json({ error: "code_required" });
   try {
@@ -84981,7 +84790,7 @@ router14.get("/players/public-incomplete", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.get("/players/incomplete", requireAuth, async (req, res) => {
+router13.get("/players/incomplete", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const levaKey = req.query.levaKey;
   try {
@@ -85016,7 +84825,7 @@ router14.get("/players/incomplete", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.post("/players/:id/claim", requireAuth, async (req, res) => {
+router13.post("/players/:id/claim", requireAuth, async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const playerId = parseInt(req.params.id, 10);
   if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
@@ -85062,7 +84871,7 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
     ).catch(() => {
     });
     try {
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId });
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId, staffOnly: true });
       if (targetIds && targetIds.length) {
         let guardianFullName = "";
         try {
@@ -85104,7 +84913,7 @@ router14.post("/players/:id/claim", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
+router13.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const playerId = parseInt(req.params.id, 10);
   if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
@@ -85145,7 +84954,7 @@ router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.get("/players/rosa-sync", requireAuth, async (req, res) => {
+router13.get("/players/rosa-sync", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -85162,7 +84971,7 @@ router14.get("/players/rosa-sync", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+router13.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId: requesterId } = req.jwtUser;
   const playerId = parseInt(req.params.id, 10);
   if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
@@ -85199,7 +85008,7 @@ router14.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES),
     return res.status(500).json({ error: "server_error" });
   }
 });
-router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+router13.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId: requesterId } = req.jwtUser;
   const playerId = parseInt(req.params.playerId, 10);
   const guardianId = parseInt(req.params.guardianId, 10);
@@ -85435,7 +85244,211 @@ async function removeGuardianFromBlob(societyId, userId) {
     logger.error({ err: e?.message, societyId, userId }, "removeGuardianFromBlob failed");
   }
 }
-var minors_default = router14;
+var minors_default = router13;
+
+// src/routes/v2/players.ts
+var router14 = (0, import_express14.Router)();
+var ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
+var PIANO_NORM = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+var PLAYER_LIMITS = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
+async function getSocietyPlayerLimit(societyId) {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM[raw] || raw;
+  return PLAYER_LIMITS[norm] ?? 25;
+}
+router14.get("/players/pending-parental-consent", requireAuth, async (req, res) => {
+  const { userId, role } = req.jwtUser;
+  if (role !== "genitore") return res.json({ players: [] });
+  try {
+    const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.anno_nascita
+       FROM players p
+       JOIN user_players up ON up.player_id = p.id
+       WHERE up.user_id = ?
+         AND p.anno_nascita IS NOT NULL
+         AND (? - p.anno_nascita) < 18
+         AND p.parental_consent_at IS NULL`,
+      [userId, currentYear]
+    );
+    return res.json({ players: rows });
+  } catch (e) {
+    logger.error({ err: e }, "GET pending-parental-consent error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const leva = req.query.leva;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at
+       FROM players p
+       WHERE p.society_id = ?
+         ${leva ? "AND p.leva = ?" : ""}
+       ORDER BY p.cognome, p.nome`,
+      leva ? [societyId, leva] : [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET players error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/:id", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva,
+              telefono_genitore, email_genitore, note, foto_url, created_at,
+              parental_consent_given_by, parental_consent_at
+       FROM players WHERE id = ? AND society_id = ?`,
+      [req.params.id, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    logger.error({ err: e }, "GET player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note
+  } = req.body;
+  if (!nome?.trim() || !cognome?.trim()) {
+    return res.status(400).json({ error: "nome_cognome_required" });
+  }
+  try {
+    const maxGioc = await getSocietyPlayerLimit(societyId);
+    if (isFinite(maxGioc) && leva) {
+      const [cnt] = await pool.execute(
+        "SELECT COUNT(*) as n FROM players WHERE society_id = ? AND leva = ?",
+        [societyId, leva]
+      );
+      if (cnt[0].n >= maxGioc) {
+        return res.status(403).json({ error: "plan_limit_reached", limitType: "giocatoriPerLeva", current: cnt[0].n, max: maxGioc });
+      }
+    }
+    const [result] = await pool.execute(
+      `INSERT INTO players
+        (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
+         leva, telefono_genitore, email_genitore, note,
+         parental_consent_given_by, parental_consent_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
+      [
+        societyId,
+        nome.trim(),
+        cognome.trim(),
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note,
+    fotoUrl
+  } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE players SET
+        nome              = COALESCE(?, nome),
+        cognome           = COALESCE(?, cognome),
+        soprannome        = COALESCE(?, soprannome),
+        numero            = COALESCE(?, numero),
+        ruolo_campo       = COALESCE(?, ruolo_campo),
+        anno_nascita      = COALESCE(?, anno_nascita),
+        leva              = COALESCE(?, leva),
+        telefono_genitore = COALESCE(?, telefono_genitore),
+        email_genitore    = COALESCE(?, email_genitore),
+        note              = COALESCE(?, note),
+        foto_url          = COALESCE(?, foto_url)
+       WHERE id = ? AND society_id = ?`,
+      [
+        nome ?? null,
+        cognome ?? null,
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null,
+        fotoUrl ?? null,
+        req.params.id,
+        societyId
+      ]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    try {
+      const [guardianRows] = await pool.execute(
+        "SELECT user_id FROM player_guardians WHERE player_id = ?",
+        [req.params.id]
+      );
+      for (const g of guardianRows) {
+        await syncGuardianToBlob(societyId, g.user_id).catch(() => {
+        });
+      }
+    } catch (_) {
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.delete("/players/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM players WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var players_default = router14;
 
 // src/routes/v2/users.ts
 var import_express15 = __toESM(require_express2(), 1);

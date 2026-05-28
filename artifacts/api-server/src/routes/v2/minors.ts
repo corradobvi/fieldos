@@ -216,7 +216,8 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
 
     // Card blob SEMPRE (anche claim successivi); push browser SOLO al primo claim per evitare spam
     try {
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId });
+      // Per "nuovo genitore" notificare SOLO staff (admin/mister/allenatori/dirigenti), NON altri genitori
+      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId, staffOnly: true });
       if (targetIds && targetIds.length) {
         let guardianFullName = '';
         try {
@@ -534,7 +535,7 @@ export async function addNotificaToBlob(
 // Helper: propaga il guardian MySQL → blob USERS_DB. Idempotente, fault-tolerant.
 // Usato in POST /claim e DELETE /guardians per evitare il bug "genitore fantasma"
 // (auto-save di altri device che sovrascrivono il blob senza l'utente nuovo).
-async function syncGuardianToBlob(societyId: number, userId: number): Promise<void> {
+export async function syncGuardianToBlob(societyId: number, userId: number): Promise<void> {
   if (!societyId || !userId) return;
   try {
     const [userRows] = (await pool.execute(

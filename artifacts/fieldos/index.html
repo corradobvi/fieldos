@@ -3794,16 +3794,27 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="srStep1Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;"><button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" id="srBtnNext1" onclick="srNextStep1()">Avanti →</button><button class="btn btn-g" style="touch-action:manipulation;min-height:48px;" onclick="closeM('mSelfReg')">Annulla</button></div>
     </div>
+    <!-- STEP 1b: scelta leva (mostrato solo se >1 leva disponibile) -->
+    <div id="srStep1b" style="display:none;">
+      <div style="font-size:.95rem;font-weight:700;margin-bottom:8px;">In quale leva gioca tuo figlio/a?</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:14px;">Seleziona la leva per filtrare la lista dei giocatori.</div>
+      <div id="srLevaList" style="display:flex;flex-direction:column;gap:8px;"></div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srShowStep(1)">← Indietro</button>
+      </div>
+    </div>
     <!-- STEP 2: scelta figlio dalla lista API -->
     <div id="srStep2" style="display:none;">
+      <div id="srStep2LevaBadge" style="font-size:.78rem;color:var(--text2);margin-bottom:8px;display:none;"></div>
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:8px;">Cerca e seleziona tuo figlio/a. La lista include i giocatori aggiunti dalla società.</div>
       <div class="fg"><input class="fi" id="srSearch" placeholder="🔍 Cerca per nome..." oninput="renderSrRoster()" style="min-height:48px;"></div>
       <div id="srRosterLoading" style="display:none;text-align:center;padding:20px;font-size:.82rem;color:var(--text2);">⏳ Carico la lista giocatori…</div>
       <div id="srRoster" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:8px;padding:8px;background:var(--cl);margin-bottom:12px;"></div>
       <div id="srSelectedInfo" style="font-size:.78rem;color:var(--text2);margin-bottom:6px;min-height:18px;"></div>
+      <div id="srDupWarn" style="display:none;background:#fef3c7;padding:10px 12px;border-radius:8px;margin-bottom:8px;font-size:.78rem;color:#92400e;">⚠️ Hai selezionato più giocatori con lo stesso nome. Verifica di scegliere il figlio giusto.</div>
       <div id="srStep2Error" style="display:none;font-size:.84rem;font-weight:600;padding:8px 11px;border-radius:8px;margin-bottom:10px;"></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srBackStep(1)">← Indietro</button>
+        <button class="btn btn-g" style="min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Back()">← Indietro</button>
         <button class="btn btn-p" style="flex:1;min-height:48px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srStep2Next()">Avanti → Conferma identità</button>
       </div>
     </div>
@@ -4108,6 +4119,8 @@ let _onboardSelectedIds = [];
 let _onboardCurrentInvito = null;
 let _selfRegSelectedIds = [];
 let _srVerifiedCode  = ''; // codice società verificato dall'API
+let _srSelectedLeva   = ''; // leva selezionata in step 1b (filtra lista step 2)
+let _srFilteredPlayers = null; // _srApiPlayers filtrati per _srSelectedLeva (null = no filtro)
 let _srVerifiedState = ''; // stateKey per caricare la società
 // Calendario & eventi
 const MONTHS = ['GENNAIO','FEBBRAIO','MARZO','APRILE','MAGGIO','GIUGNO','LUGLIO','AGOSTO','SETTEMBRE','OTTOBRE','NOVEMBRE','DICEMBRE'];
@@ -11610,21 +11623,61 @@ function openSelfReg(){
 }
 
 function srShowStep(n){
-  for (let i=1;i<=4;i++){
-    const el = document.getElementById('srStep'+i);
-    if (el) el.style.display = (i===n) ? 'block' : 'none';
-  }
+  // n può essere 1,2,3,4 (numeri) o '1b' (stringa) per lo step intermedio leva
+  const stepIds = ['srStep1','srStep1b','srStep2','srStep3','srStep4'];
+  const targetId = (n === '1b') ? 'srStep1b' : ('srStep' + n);
+  stepIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = (id === targetId) ? 'block' : 'none'; });
+  // Aggiorna indicatori (solo per step numerati 1-4)
   for (let i=1;i<=4;i++){
     const ind = document.getElementById('srStepInd'+i);
     if (ind) {
-      ind.style.background = (i===n) ? 'var(--cl)' : 'var(--bg)';
-      ind.style.fontWeight = (i===n) ? '700' : '500';
-      ind.style.color = (i===n) ? 'var(--cp)' : 'var(--text2)';
+      const isActive = (typeof n === 'number') ? (i===n) : (n === '1b' && i === 1);
+      ind.style.background = isActive ? 'var(--cl)' : 'var(--bg)';
+      ind.style.fontWeight = isActive ? '700' : '500';
+      ind.style.color = isActive ? 'var(--cp)' : 'var(--text2)';
     }
   }
 }
 
 function srBackStep(n){ srShowStep(n); }
+
+// Indietro da step 2: se ho passato per step1b (più leve), torno lì; altrimenti torno a step 1
+function srStep2Back() {
+  const uniqueLeve = [...new Set((_srApiPlayers||[]).map(p => p.levaKey).filter(Boolean))];
+  if (uniqueLeve.length > 1) {
+    // Reset filtro e torna a scelta leva
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    _selfRegSelectedIds = [];
+    srShowStep('1b');
+    renderSrLevaList(uniqueLeve);
+  } else {
+    srShowStep(1);
+  }
+}
+
+// Renderizza la lista bottoni leva in step1b
+function renderSrLevaList(leveDisponibili) {
+  const host = document.getElementById('srLevaList');
+  if (!host) return;
+  host.innerHTML = leveDisponibili.map(lv =>
+    `<button type="button" class="btn btn-g" style="text-align:left;padding:14px 16px;font-size:15px;min-height:52px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;" onclick="srSelectLeva('${escapeHtml(lv)}')">⚽ ${escapeHtml(lv)}</button>`
+  ).join('');
+}
+
+// Selezione leva → filtra _srApiPlayers e vai a step 2
+function srSelectLeva(levaKey) {
+  _srSelectedLeva = levaKey;
+  _srFilteredPlayers = (_srApiPlayers || []).filter(p => p.levaKey === levaKey);
+  _selfRegSelectedIds = [];
+  const badge = document.getElementById('srStep2LevaBadge');
+  if (badge) {
+    badge.style.display = 'block';
+    badge.innerHTML = `Leva: <strong>${escapeHtml(levaKey)}</strong> · <a href="#" style="color:var(--cp);font-weight:600;" onclick="srStep2Back();return false;">Cambia</a>`;
+  }
+  srShowStep(2);
+  renderSrRoster();
+}
 
 // ── Cerca una società per codice chiamando l'API backend (legge da MySQL).
 // Fallback su in-memory se l'API non è raggiungibile.
@@ -11713,12 +11766,34 @@ async function srNextStep1(){
     }
 
     _srApplySocietaContext(found.socId, found.soc);
-    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
     _selfRegSelectedIds = [];
-    srShowStep(2);
-    renderSrRoster();
-    // Load API players for GDPR-flow roster
-    srLoadApiPlayers(v);
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    const badge = document.getElementById('srStep2LevaBadge');
+    if (badge) badge.style.display = 'none';
+
+    // Carica giocatori API (await per decidere il flusso leva)
+    if (btn) btn.textContent = '⏳ Carico giocatori…';
+    await srLoadApiPlayers(v);
+    if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
+
+    // Ricava leve disponibili
+    const leveDisponibili = [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))].sort();
+    if (leveDisponibili.length > 1) {
+      // Più leve → mostra step1b per scelta
+      renderSrLevaList(leveDisponibili);
+      srShowStep('1b');
+    } else if (leveDisponibili.length === 1) {
+      // 1 sola leva → preseleziona e vai a step 2
+      _srSelectedLeva = leveDisponibili[0];
+      _srFilteredPlayers = _srApiPlayers.filter(p => p.levaKey === _srSelectedLeva);
+      srShowStep(2);
+      renderSrRoster();
+    } else {
+      // Nessuna leva nei giocatori (o nessun giocatore API) → vai a step 2 senza filtro
+      srShowStep(2);
+      renderSrRoster();
+    }
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
@@ -11979,17 +12054,21 @@ function renderSrRoster(){
   // Lista UNIFICATA con dedup: per ogni id MySQL preferisci API player (id `api_X`).
   // Senza dedup, lo stesso giocatore appare 2 volte: il genitore sceglie da blob (id numerico)
   // e submitSelfReg non chiama il claim → guardian mai creato → resta in 'Attesa genitore'.
-  const apiByMyId = new Map(_srApiPlayers.map(p => [p.id, p]));
+  // Usa _srFilteredPlayers se settato (filtro per leva da step 1b)
+  const apiPlayersToShow = (_srFilteredPlayers && _srFilteredPlayers.length) ? _srFilteredPlayers : _srApiPlayers;
+  const apiByMyId = new Map(apiPlayersToShow.map(p => [p.id, p]));
   let list = [];
-  _srApiPlayers.forEach(p => list.push({
+  apiPlayersToShow.forEach(p => list.push({
     displayId:   'api_' + p.id,
     displayName: p.firstName + ' ' + p.lastNameInitial,
     displaySub:  [p.levaKey || null, p.shirtNumber ? '#'+p.shirtNumber : null].filter(Boolean).join(' · '),
     isApi:       true,
     sortKey:     (p.levaKey || '') + '|' + ((p.firstName||'') + (p.lastNameInitial||''))
   }));
+  // Aggiungi anche blob players, filtrati per leva selezionata se presente
   players.forEach(p => {
     if (apiByMyId.has(p.id)) return; // dedup: già in API list
+    if (_srSelectedLeva && p.leva !== _srSelectedLeva) return; // filtro leva
     list.push({
       displayId:   p.id,
       displayName: (p.nome || '') + ' ' + (p.cogn || p.cogn_iniziale || ''),
@@ -12023,6 +12102,20 @@ function renderSrRoster(){
       infoEl.style.cssText = 'font-size:.78rem;color:var(--text2);font-weight:400;margin-bottom:6px;min-height:18px;';
       infoEl.textContent = 'Seleziona almeno un figlio/a per continuare.';
     }
+  }
+
+  // Warning: nomi simili selezionati (es. 2 Diego Bagnasco duplicati in rosa)
+  const dupWarnEl = document.getElementById('srDupWarn');
+  if (dupWarnEl) {
+    let hasDuplicate = false;
+    if (_selfRegSelectedIds.length > 1) {
+      const selectedNames = _selfRegSelectedIds.map(sid => {
+        const it = list.find(x => x.displayId === sid || x.displayId === String(sid));
+        return it ? it.displayName.toLowerCase().trim() : '';
+      }).filter(Boolean);
+      hasDuplicate = selectedNames.length !== new Set(selectedNames).size;
+    }
+    dupWarnEl.style.display = hasDuplicate ? 'block' : 'none';
   }
 }
 
