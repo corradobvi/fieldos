@@ -20,15 +20,36 @@ function wouldDowngrade(newJson: string, existingJson: string): boolean {
   try {
     const n = JSON.parse(newJson);
     const e = JSON.parse(existingJson);
+    const existingPlayers = Array.isArray(e.players) ? e.players.length : 0;
+    const newPlayers      = Array.isArray(n.players) ? n.players.length : 0;
+    const existingUsers   = Array.isArray(e.USERS_DB) ? e.USERS_DB.length : 0;
+    const newUsers        = Array.isArray(n.USERS_DB) ? n.USERS_DB.length : 0;
+
+    // Caso 1: nuovo stato completamente vuoto (originale)
     const existingHasRealData =
-      (Array.isArray(e.players) && e.players.length > 0) ||
-      (Array.isArray(e.USERS_DB) && e.USERS_DB.length > 6) ||
+      existingPlayers > 0 ||
+      existingUsers > 6 ||
       (typeof e.nextUserId === "number" && e.nextUserId > 7);
     const newIsEmpty =
-      (!Array.isArray(n.players) || n.players.length === 0) &&
-      (!Array.isArray(n.USERS_DB) || n.USERS_DB.length <= 6) &&
+      newPlayers === 0 &&
+      newUsers <= 6 &&
       (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
-    return existingHasRealData && newIsEmpty;
+    if (existingHasRealData && newIsEmpty) return true;
+
+    // Caso 2: downgrade PARZIALE players (device con stato vecchio sovrascrive rosa cresciuta)
+    const PLAYER_LOSS_THRESHOLD = 3;
+    if (existingPlayers >= 5 && newPlayers < existingPlayers - PLAYER_LOSS_THRESHOLD) {
+      console.warn(`[state] downgrade parziale players: existing=${existingPlayers} new=${newPlayers}`);
+      return true;
+    }
+
+    // Caso 3: downgrade PARZIALE utenti
+    if (existingUsers > 6 && newUsers < existingUsers - 2) {
+      console.warn(`[state] downgrade parziale users: existing=${existingUsers} new=${newUsers}`);
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

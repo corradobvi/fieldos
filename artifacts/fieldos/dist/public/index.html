@@ -6189,6 +6189,7 @@ async function saveMinorPlayer() {
     players.push(newP);
     if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
 
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '👶 Crea profilo minore'; }
     closeM('mPlayer');
     renderRosa();
     toast('👶 Profilo minore creato — in attesa del genitore');
@@ -6239,7 +6240,7 @@ function openPlayerModal(id) {
       });
       if (currentLeva) levaSelect.value = currentLeva;
     }
-    if (saveBtn) { saveBtn.textContent = '👶 Crea profilo'; saveBtn.onclick = function(){ saveMinorPlayer(); }; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '👶 Crea profilo'; saveBtn.onclick = function(){ saveMinorPlayer(); }; }
   } else {
     // EDIT — form completo invariato
     const p = players.find(x => x.id === id);

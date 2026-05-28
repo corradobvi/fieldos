@@ -77474,9 +77474,23 @@ function wouldDowngrade(newJson, existingJson) {
   try {
     const n = JSON.parse(newJson);
     const e = JSON.parse(existingJson);
-    const existingHasRealData = Array.isArray(e.players) && e.players.length > 0 || Array.isArray(e.USERS_DB) && e.USERS_DB.length > 6 || typeof e.nextUserId === "number" && e.nextUserId > 7;
-    const newIsEmpty = (!Array.isArray(n.players) || n.players.length === 0) && (!Array.isArray(n.USERS_DB) || n.USERS_DB.length <= 6) && (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
-    return existingHasRealData && newIsEmpty;
+    const existingPlayers = Array.isArray(e.players) ? e.players.length : 0;
+    const newPlayers = Array.isArray(n.players) ? n.players.length : 0;
+    const existingUsers = Array.isArray(e.USERS_DB) ? e.USERS_DB.length : 0;
+    const newUsers = Array.isArray(n.USERS_DB) ? n.USERS_DB.length : 0;
+    const existingHasRealData = existingPlayers > 0 || existingUsers > 6 || typeof e.nextUserId === "number" && e.nextUserId > 7;
+    const newIsEmpty = newPlayers === 0 && newUsers <= 6 && (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
+    if (existingHasRealData && newIsEmpty) return true;
+    const PLAYER_LOSS_THRESHOLD = 3;
+    if (existingPlayers >= 5 && newPlayers < existingPlayers - PLAYER_LOSS_THRESHOLD) {
+      console.warn(`[state] downgrade parziale players: existing=${existingPlayers} new=${newPlayers}`);
+      return true;
+    }
+    if (existingUsers > 6 && newUsers < existingUsers - 2) {
+      console.warn(`[state] downgrade parziale users: existing=${existingUsers} new=${newUsers}`);
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
