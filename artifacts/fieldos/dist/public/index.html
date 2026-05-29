@@ -6039,7 +6039,7 @@ async function _syncRosaFromMySQL() {
       if (!local) return;
       const newIncomplete = !!srv.incomplete;
       if (local.incomplete !== newIncomplete) { local.incomplete = newIncomplete; changed = true; }
-      if (srv.cognome && local.cognome_iniziale && local.cogn !== srv.cognome) { local.cogn = srv.cognome; changed = true; }
+      if (srv.cognome && local.cogn !== srv.cognome) { local.cogn = srv.cognome; changed = true; }
       if (local.approval_status !== srv.approval_status) { local.approval_status = srv.approval_status; changed = true; }
       if (srv.birth_date && local.birth_date !== srv.birth_date) { local.birth_date = srv.birth_date; changed = true; }
     });
@@ -6338,7 +6338,7 @@ function openPlayerModal(id) {
     document.getElementById('pSopr').value  = p.soprannome || '';
     document.getElementById('pNum').value   = p.num;
     document.getElementById('pRuolo').value = p.ruolo;
-    document.getElementById('pAnno').value  = p.anno;
+    document.getElementById('pAnno').value  = p.anno || (p.birth_date ? new Date(p.birth_date).getFullYear() : '');
     document.getElementById('pTel').value   = p.tel || '';
     document.getElementById('btnDelPlayer').style.display = 'inline-flex';
     const _archBtn = document.getElementById('btnArchPlayer');
