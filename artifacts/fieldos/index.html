@@ -4054,6 +4054,9 @@ let _gcTorneoGironiQUI = [];
 let _gcTorneoGironiFUI = [];
 let _gcTorneoGironiUI = [];
 let _gcTorneiEspansi = new Set();
+// Campionato — stato accordion "Giornata N" per renderGcCampionato. Set di chiavi 'leva/gn'.
+// Default: tutte chiuse (Set vuoto). Persiste tra re-render.
+let _gcCampGiornataOpen = new Set();
 let _gcShowArchiviati = false;
 let _ptMostraArchiviati = false;
 let _importPdfStep = 1;
@@ -19866,16 +19869,36 @@ function renderGcCampionato() {
   };
   const mkOther = (m) => {
     const eC=`qrcc_${m.id}`,eO=`qrco_${m.id}`;
-    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:(canEdit?`<span style="display:flex;align-items:center;gap:3px;"><input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><span style="color:var(--text3);font-size:.7rem;">–</span><input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><button class="btn btn-p btn-sm" onclick="saveQuickResult('campionato','${m.id}','${eC}','${eO}')">✓</button></span>`:`<span class="mc-score nd">Da giocare</span>`);
+    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:(canEdit?`<span style="display:flex;align-items:center;gap:3px;"><input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><span style="color:var(--text3);font-size:.7rem;">–</span><input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;"><button class="btn btn-p btn-sm" onclick="saveQuickResult('campionato','${m.id}','${eC}','${eO}')">✓</button></span>`:`<span class="mc-score nd">${m.data ? 'Da giocare' : 'Da programmare'}</span>`);
     const editBtn=m.played&&canEdit?`<button class="btn btn-g btn-sm" onclick="openRisultato('campionato',${m.id})">📊</button>`:'';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}</div></div>`;
+    const gInput=canEdit?`<input type="number" min="1" max="99" value="${m.giornata||''}" placeholder="Gior." title="Giornata" onchange="_gcCampSetGiornata(${m.id},this.value)" onclick="event.stopPropagation();" style="width:52px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-size:.78rem;text-align:center;">`:'';
+    const dateLbl = m.data ? fmtMatchDate(m.data) : '— da impostare —';
+    return `<div class="mc"><div class="mc-date">${dateLbl}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${gInput}${editBtn}</div></div>`;
   };
-  const calHtml = gioNums.map(gn => {
-    const gDate = (camp.giornate||[]).find(g=>g.num===gn)?.data;
-    const label = gn===0 ? 'Senza giornata' : `Giornata ${gn}${gDate?' — '+fmtMatchDate(gDate):''}`;
+  // Riordino: gn=0 ('Da assegnare') in CIMA, poi giornate crescenti
+  const gnOrder = [...gioNums].sort((a,b) => {
+    if (a === 0 && b !== 0) return -1;
+    if (b === 0 && a !== 0) return 1;
+    return a - b;
+  });
+  const calHtml = gnOrder.map(gn => {
     const matches = gioMap[gn];
-    const html = matches.map(m=>(m.casa===polis||m.ospite===polis)?mkMc(m):mkOther(m)).join('');
-    return `<div class="fase-sep">${escapeHtml(label)}</div>${html}`;
+    if (!matches || !matches.length) return '';
+    const gDate = (camp.giornate||[]).find(g=>g.num===gn)?.data;
+    const label = gn === 0
+      ? '📥 Da assegnare'
+      : `Giornata ${gn}${gDate?' — '+fmtMatchDate(gDate):''}`;
+    const count = matches.length;
+    const countLbl = `${count} partit${count===1?'a':'e'}`;
+    const key = currentLeva + '/' + gn;
+    const open = _gcCampGiornataOpen.has(key);
+    const icon = open ? '▾' : '▸';
+    const bodyHtml = matches.map(m => (m.casa===polis||m.ospite===polis) ? mkMc(m) : mkOther(m)).join('');
+    return `<div class="fase-sep" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;" onclick="gcCampToggleGiornata(${gn})">
+      <span>${escapeHtml(label)} <span style="font-weight:400;color:var(--text3);text-transform:none;font-size:.8rem;">· ${countLbl}</span></span>
+      <span style="font-size:.85rem;color:var(--text3);">${icon}</span>
+    </div>
+    <div style="${open?'':'display:none;'}">${bodyHtml}</div>`;
   }).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:10px 0;">Nessuna partita programmata.</div>';
   const addBtn = canEdit?`<button class="btn btn-p btn-sm" onclick="openGcAddMatch()">+ Partita</button>`:'';
   const genBtn = canEdit && (camp.squadre||[]).length >= 2
@@ -19886,6 +19909,26 @@ function renderGcCampionato() {
 }
 
 // ─── GC: Tornei ───
+// Campionato — toggle accordion sezione giornata; chiave 'leva/gn' (gn=0 = "Da assegnare")
+function gcCampToggleGiornata(gn) {
+  const key = currentLeva + '/' + gn;
+  if (_gcCampGiornataOpen.has(key)) _gcCampGiornataOpen.delete(key);
+  else _gcCampGiornataOpen.add(key);
+  renderGcCampionato();
+}
+// Campionato — setter giornata da input nelle righe avversari (mkOther)
+function _gcCampSetGiornata(matchId, val) {
+  const camp = campionato[currentLeva];
+  if (!camp || !Array.isArray(camp.partite)) return;
+  const m = camp.partite.find(x => x.id === matchId);
+  if (!m) return;
+  const num = parseInt(val);
+  m.giornata = isNaN(num) ? null : num;
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  renderGestComp(); renderCal();
+  toast(num ? `Spostata in Giornata ${num}` : 'Spostata in "Da assegnare"');
+}
+
 function gcToggleTorneo(id) {
   if (_gcTorneiEspansi.has(id)) _gcTorneiEspansi.delete(id); else _gcTorneiEspansi.add(id);
   const body = document.getElementById('tc-body-'+id);
