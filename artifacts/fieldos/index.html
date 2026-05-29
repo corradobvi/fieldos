@@ -1308,10 +1308,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   body.chat-kb-open .topbar,
   body.chat-kb-open header.topbar{display:none!important;height:0!important;padding:0!important;border:0!important;}
   /* Nav: serve specificità + reset di height/padding/border perché .mob-nav ha
-     `height:calc(72px + env(...)) !important` (regola successiva nel file). */
+     `height:calc(72px + env(...)) !important` (regola successiva nel file).
+     Aggiunti alias difensivi per qualunque eventuale variante futura. */
   body.chat-kb-open .mob-nav,
   body.chat-kb-open #mobNav,
-  body.chat-kb-open nav.mob-nav{display:none!important;height:0!important;min-height:0!important;padding:0!important;border:0!important;}
+  body.chat-kb-open nav.mob-nav,
+  body.chat-kb-open nav[class*="mob-nav"],
+  body.chat-kb-open .bottom-nav,
+  body.chat-kb-open [data-bottom-nav]{display:none!important;height:0!important;min-height:0!important;padding:0!important;border:0!important;}
   /* Pannello chat con tastiera aperta: garantisci ancora left:0/right:0/width:100%
      anche se _setupChatKb tocca solo top/height; usa important per battere lo style
      inline residuo che potrebbe non includere left/right. */
@@ -3162,7 +3166,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;">MyVivaio v<span id="mvVersionTxt">2026-05-29.1</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.2</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -29938,6 +29942,29 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.readyState === 'complete') _readVersion();
   else window.addEventListener('load', _readVersion);
   navigator.serviceWorker.addEventListener('controllerchange', _readVersion);
+})();
+
+// Live computed-display della bottom nav reale (#mobNav). Diagnosi temporanea.
+(function(){
+  function _updateNavDisp(){
+    var n = document.getElementById('mobNav');
+    var t = document.getElementById('mvNavDispTxt');
+    if (!t) return;
+    if (!n) { t.textContent = 'nav: (no #mobNav)'; return; }
+    var disp = '?';
+    try { disp = getComputedStyle(n).display; } catch(_){}
+    var kb = document.body.classList.contains('chat-kb-open') ? 'YES' : 'NO';
+    t.textContent = 'nav: ' + disp + ' · kb-open: ' + kb;
+  }
+  if (document.readyState === 'complete') _updateNavDisp();
+  else window.addEventListener('load', _updateNavDisp);
+  document.addEventListener('focusin',  _updateNavDisp, true);
+  document.addEventListener('focusout', _updateNavDisp, true);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', _updateNavDisp);
+    window.visualViewport.addEventListener('scroll', _updateNavDisp);
+  }
+  setInterval(_updateNavDisp, 1000);
 })();
 </script>
 
