@@ -1303,10 +1303,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .msg-b{word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;}
   .msg-img{max-width:100%;height:auto;}
   /* Tastiera aperta: nascondi topbar + bottom nav. L'altezza/posizione del pannello
-     è gestita inline da _setupChatKb via visualViewport (no !important per non
-     sovrascrivere lo style inline). */
-  body.chat-kb-open .topbar{display:none!important;}
-  body.chat-kb-open .mob-nav{display:none!important;}
+     è gestita inline da _setupChatKb via visualViewport (no !important sulle
+     proprietà top/height/left/width per non sovrascrivere lo style inline). */
+  body.chat-kb-open .topbar,
+  body.chat-kb-open header.topbar{display:none!important;height:0!important;padding:0!important;border:0!important;}
+  /* Nav: serve specificità + reset di height/padding/border perché .mob-nav ha
+     `height:calc(72px + env(...)) !important` (regola successiva nel file). */
+  body.chat-kb-open .mob-nav,
+  body.chat-kb-open #mobNav,
+  body.chat-kb-open nav.mob-nav{display:none!important;height:0!important;min-height:0!important;padding:0!important;border:0!important;}
+  /* Pannello chat con tastiera aperta: garantisci ancora left:0/right:0/width:100%
+     anche se _setupChatKb tocca solo top/height; usa important per battere lo style
+     inline residuo che potrebbe non includere left/right. */
+  body.chat-kb-open #pg-chat.on{left:0!important;right:0!important;width:100%!important;max-width:100%!important;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
   #presMobCards{display:flex!important;flex-direction:column;gap:8px;}
@@ -22134,7 +22143,10 @@ function selectChat(chatId, skipListRefresh) {
         document.body.classList.remove('chat-kb-open');
         // Reset esplicito stile inline → ripristina default CSS (top:52px / bottom:calc(...)).
         const _pg = document.getElementById('pg-chat');
-        if (_pg) { _pg.style.top = ''; _pg.style.height = ''; _pg.style.bottom = ''; }
+        if (_pg) {
+          _pg.style.top = ''; _pg.style.height = ''; _pg.style.bottom = '';
+          _pg.style.left = ''; _pg.style.width = '';
+        }
         const msgs = document.getElementById('chatMsgs');
         if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
       });
@@ -22172,11 +22184,17 @@ function _setupChatKb() {
       el.style.top = vv.offsetTop + 'px';
       el.style.height = vv.height + 'px';
       el.style.bottom = 'auto';
+      // Difetto 3: layout viewport ≠ visual viewport su iOS in landscape o zoom →
+      // ancora anche left e width al visual viewport per evitare overflow a destra.
+      el.style.left = vv.offsetLeft + 'px';
+      el.style.width = vv.width + 'px';
     } else {
       // Tastiera CHIUSA: reset stile inline → torna a top:52px / bottom:calc(...) da CSS.
       el.style.top = '';
       el.style.height = '';
       el.style.bottom = '';
+      el.style.left = '';
+      el.style.width = '';
     }
     const msgs = document.getElementById('chatMsgs');
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
@@ -22188,7 +22206,10 @@ function _setupChatKb() {
     vv.removeEventListener('scroll', _update);
     document.body.classList.remove('chat-kb-open');
     const el = document.getElementById('pg-chat');
-    if (el) { el.style.top = ''; el.style.height = ''; el.style.bottom = ''; }
+    if (el) {
+      el.style.top = ''; el.style.height = ''; el.style.bottom = '';
+      el.style.left = ''; el.style.width = '';
+    }
   };
 }
 
