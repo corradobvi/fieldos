@@ -18787,6 +18787,7 @@ function saveEvento(){
       return;
     }
     if (campoIdSel && campoIdSel !== ev.campoId) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
+    const _oldDate = ev.date, _oldStart = ev.start, _oldLuogo = ev.luogo;
     if (ev._fromApi) {
       // Evento API: aggiorna via REST
       const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
@@ -18798,12 +18799,24 @@ function saveEvento(){
       }).then(function(r) {
         if (!r.ok) { toast('⛔ Errore aggiornamento evento'); return; }
         toast('✅ Evento aggiornato');
+        if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
+          const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+          const _pidsE = new Set();
+          USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pidsE.add(u.id); });
+          _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+        }
         _loadCalEvents();
       }).catch(function() { toast('⛔ Errore di rete'); });
     } else {
       // Evento blob (es. partita/torneo): aggiorna in memoria
       Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
       toast('✅ Evento aggiornato');
+      if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
+        const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+        const _pidsE = new Set();
+        USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pidsE.add(u.id); });
+        _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+      }
       closeM('mEvento');
       renderCal();
       if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -18854,6 +18867,13 @@ function deleteCurrentEvento(){
     return;
   }
   if (!confirm('Eliminare l\'evento "' + ev.title + '"?')) return;
+  const _evSnap = { leve: Array.isArray(ev.leve)?ev.leve.slice():[], title: ev.title, date: ev.date, start: ev.start, luogo: ev.luogo, type: ev.type };
+  function _notifyDelSingle() {
+    const _tlD = { allenamento:'❌ Allenamento annullato', allenamento_portieri:'❌ Allenamento portieri annullato', partita:'❌ Partita annullata', torneo:'❌ Torneo annullato', altro:'❌ Evento annullato' };
+    const _pidsD = new Set();
+    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _evSnap.leve.includes(u.leva)) _pidsD.add(u.id); });
+    _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlD[_evSnap.type]||'❌ Evento annullato'), body: (_evSnap.title ? _evSnap.title+'\n' : '')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:''), eventId: null }); });
+  }
   if (ev._fromApi) {
     closeM('mEvento');
     fetch(API_BASE + '/api/v2/events/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + _v2Token } })
@@ -18861,6 +18881,7 @@ function deleteCurrentEvento(){
         if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
         purgeEventRefs(id);
         toast('🗑 Evento eliminato');
+        _notifyDelSingle();
         _loadCalEvents();
       }).catch(function() { toast('⛔ Errore di rete'); });
     return;
@@ -18870,12 +18891,33 @@ function deleteCurrentEvento(){
   closeM('mEvento'); renderCal();
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('🗑 Evento eliminato');
+  _notifyDelSingle();
 }
 function applyDeleteChoice() {
   if (!_deleteTargetId) return;
   const choice = (document.querySelector('#mDeleteChoice input[name="delChoice"]:checked') || {}).value || 'solo';
   const ev = events.find(e => e.id === _deleteTargetId);
   if (!ev) { _deleteTargetId = null; closeM('mDeleteChoice'); return; }
+  const _evSnap = { leve: Array.isArray(ev.leve)?ev.leve.slice():[], title: ev.title, date: ev.date, start: ev.start, luogo: ev.luogo, type: ev.type };
+  function _notifyDelChoice(ch, count) {
+    const _tlS = { allenamento:'❌ Allenamento annullato', allenamento_portieri:'❌ Allenamento portieri annullato', partita:'❌ Partita annullata', torneo:'❌ Torneo annullato', altro:'❌ Evento annullato' };
+    const _tlF = { allenamento:'❌ Allenamenti annullati', allenamento_portieri:'❌ Allenamenti portieri annullati', partita:'❌ Partite annullate', torneo:'❌ Tornei annullati', altro:'❌ Eventi annullati' };
+    const _tlT = { allenamento:'❌ Serie di allenamenti annullata', allenamento_portieri:'❌ Serie di allenamenti portieri annullata', partita:'❌ Serie di partite annullata', torneo:'❌ Serie di tornei annullata', altro:'❌ Serie di eventi annullata' };
+    let _t, _b;
+    if (ch === 'solo') {
+      _t = _tlS[_evSnap.type]||'❌ Evento annullato';
+      _b = (_evSnap.title?_evSnap.title+'\n':'')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:'');
+    } else if (ch === 'futuri') {
+      _t = (_tlF[_evSnap.type]||'❌ Eventi annullati') + ' (dal ' + fmtDateLong(parseYmd(_evSnap.date)) + ')';
+      _b = count + ' event' + (count===1?'o':'i') + (_evSnap.title?' · '+_evSnap.title:'');
+    } else {
+      _t = _tlT[_evSnap.type]||'❌ Serie di eventi annullata';
+      _b = count + ' event' + (count===1?'o':'i') + (_evSnap.title?' · '+_evSnap.title:'');
+    }
+    const _pidsD = new Set();
+    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _evSnap.leve.includes(u.leva)) _pidsD.add(u.id); });
+    _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title: _t, body: _b, eventId: null }); });
+  }
 
   if (ev._fromApi) {
     // Conta per il messaggio di conferma
@@ -18897,6 +18939,7 @@ function applyDeleteChoice() {
         if (!r.ok) { toast('⛔ Errore eliminazione'); return; }
         purgeEventRefs(ev.id);
         toast('🗑 Eliminat' + (n===1?'o':'i') + ' ' + n + ' event' + (n===1?'o':'i'));
+        _notifyDelChoice(choice, n);
         _loadCalEvents();
       }).catch(function() { toast('⛔ Errore di rete'); });
     return;
@@ -18925,6 +18968,7 @@ function applyDeleteChoice() {
   closeM('mDeleteChoice'); renderCal();
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   toast('🗑 Eliminat' + (toDelete.length===1?'o':'i') + ' ' + toDelete.length + ' event' + (toDelete.length===1?'o':'i'));
+  _notifyDelChoice(choice, toDelete.length);
 }
 
 // Kept for backward-compat if called from anywhere
