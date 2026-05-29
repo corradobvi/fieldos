@@ -3070,9 +3070,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
           </div>
           <div class="card"><div class="ch"><div class="ct">🔔 Notifiche</div></div>
             <div style="display:flex;flex-direction:column;gap:10px;">
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Convocazioni via email</span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Quote scadute — sollecito auto</span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Risultati partite</span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
+              <div id="notifQuoteRow" style="display:none;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Quote scadute — sollecito auto</span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:9px;background:var(--bg);border-radius:8px;"><span style="font-size:.83rem;font-weight:600;">Risultati partite <span style="font-weight:400;color:var(--text2);">(tutti i genitori della leva)</span></span><input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--cp);"></div>
             </div>
           </div>
           <div class="card" id="leveCard" style="grid-column:span 2;">
@@ -5407,6 +5406,13 @@ function goTo(pgId) {
     const _quoteShow = _isStaff && me.role !== 'allenatore' &&
       (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa');
     if (_quoteCardEl) _quoteCardEl.style.display = _quoteShow ? '' : 'none';
+    // Toggle "Quote scadute — sollecito auto" (in card Notifiche): visibile solo per piano Società (omaggio=societa)
+    const _notifQuoteRow = document.getElementById('notifQuoteRow');
+    if (_notifQuoteRow) {
+      const _quoteNotifShow = _isStaff && me.role !== 'allenatore' &&
+        (currentSocietaId === DEMO_STELLA_ID || _pianoCerto === 'societa' || currentSocietyMeta?.billingMode === 'omaggio');
+      _notifQuoteRow.style.display = _quoteNotifShow ? 'flex' : 'none';
+    }
     // BUG 5: "+ Aggiungi utente" disabilitato su piano Mister (non include collaboratori)
     const _btnAddUser = document.querySelector('#usersCard .ch button.btn-p');
     if (_btnAddUser) {
@@ -8268,6 +8274,34 @@ function recipientsForCoachesOfLeva(leva, gkOnly) {
     if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
     else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+  });
+  return [...ids];
+}
+
+// Tutti i genitori/nonni con almeno un figlio nella leva indicata (convocati o non)
+function recipientsForGenitoriOfLeva(leva) {
+  const ids = new Set();
+  if (!leva) return [];
+  USERS_DB.forEach(u => {
+    if (u.stato && u.stato !== 'attivo') return;
+    if (u.role !== 'genitore' && u.role !== 'nonno') return;
+    // Match via figliIds → leva del player
+    if (Array.isArray(u.figliIds) && u.figliIds.length) {
+      const inLeva = u.figliIds.some(pid => {
+        const p = players.find(x => x.id === pid);
+        return p && p.leva === leva;
+      });
+      if (inLeva) { ids.add(u.id); return; }
+    }
+    // Fallback per nome (legacy): u.figli ['Nome Cogn',...] → cerca player con stesso nome+cogn e leva
+    const figliNames = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
+    if (figliNames.length) {
+      const inLeva = players.some(p => p.leva === leva && (
+        figliNames.includes(p.nome + ' ' + p.cogn) ||
+        figliNames.includes(p.nome + ' ' + (p.cogn_iniziale || ''))
+      ));
+      if (inLeva) ids.add(u.id);
+    }
   });
   return [...ids];
 }
@@ -20928,6 +20962,8 @@ function saveQuickResult(tipo, ref, idC, idO) {
   }
   if (!match) { toast('⚠️ Partita non trovata'); return; }
   match.golCasa = gc; match.golOspiti = go; match.played = true;
+  // Notifica risultato a TUTTI i genitori della leva (convocati o non), via card notifica in-app
+  _notifyRisultatoToGenitori(tipo, match, gc, go);
   // INTEGRATION HOOK — finestra per integrazioni esterne (altri gestionali, feed risultati, giornalino):
   // window.__fieldosExternalFeed = { onResult(ctx) { /* ctx: {tipo, ref, golCasa, golOspiti} */ } }
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
@@ -20935,6 +20971,40 @@ function saveQuickResult(tipo, ref, idC, idO) {
   }
   // fix: rerender completo dopo save (audit 21/05)
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
+}
+
+// Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
+function _notifyRisultatoToGenitori(tipo, match, gc, go) {
+  try {
+    let leva = match && match.leva;
+    let avversario = '';
+    let tipoLabel = '';
+    if (tipo === 'amichevole') {
+      tipoLabel = 'Amichevole';
+      avversario = match.avversario || '';
+    } else if (tipo === 'campionato') {
+      tipoLabel = 'Campionato';
+      leva = leva || currentLeva;
+      const polis = (typeof _campPolis === 'function') ? _campPolis(leva) : (nomeSocieta + ' ' + leva);
+      avversario = (match.casa === polis) ? (match.ospite || '') : (match.casa || '');
+    } else if (tipo === 'torneo') {
+      tipoLabel = 'Torneo';
+      avversario = `${match.casa || ''} vs ${match.ospite || ''}`;
+      // Per torneo la leva potrebbe non essere su match: fallback al torneo padre se disponibile
+      if (!leva) {
+        const t = tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m.id === match.id)));
+        if (t) leva = t.leva;
+      }
+    }
+    if (!leva) return;
+    const ids = recipientsForGenitoriOfLeva(leva);
+    if (!ids.length) return;
+    const score = `${gc}–${go}`;
+    const title = `⚽ Risultato ${tipoLabel} (${leva}): ${score}`;
+    const body = avversario ? `vs ${avversario}` : '';
+    ids.forEach(uid => pushNotifica(uid, { type: 'risultato_partita', title, body }));
+    if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
+  } catch(_) { /* non bloccante */ }
 }
 
 // ─── MODALI AMICHEVOLE ───
@@ -21390,6 +21460,8 @@ function savePtRisultato() {
   }
   const cambiSec = document.getElementById('ptRisCambiSection');
   if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
+  // Notifica risultato a TUTTI i genitori della leva (convocati o non)
+  _notifyRisultatoToGenitori(tipo, match, gc, go);
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
