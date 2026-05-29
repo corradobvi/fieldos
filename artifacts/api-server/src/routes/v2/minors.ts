@@ -22,6 +22,18 @@ router.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (r
   if (!levaKey?.trim()) return res.status(400).json({ error: "levaKey_required" });
 
   try {
+    // Check duplicati: nome + cognome_iniziale già esistenti nella società. Non blocca (frontend ha già chiesto conferma).
+    const [existingCheck] = (await pool.execute(
+      `SELECT id, nome, cognome_iniziale FROM players
+       WHERE society_id = ? AND LOWER(nome) = LOWER(?) AND LOWER(cognome_iniziale) = LOWER(?)
+       LIMIT 1`,
+      [societyId, firstName.trim(), initial]
+    )) as [any[], any];
+    if ((existingCheck as any[]).length > 0) {
+      const ex = (existingCheck as any[])[0];
+      logger.warn({ societyId, firstName, lastNameInitial: initial, existingId: ex.id }, "[minor] Possibile duplicato");
+    }
+
     const [result] = (await pool.execute(
       `INSERT INTO players
          (society_id, nome, cognome, cognome_iniziale, numero, leva, incomplete,

@@ -84704,6 +84704,16 @@ router13.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async 
   }
   if (!levaKey?.trim()) return res.status(400).json({ error: "levaKey_required" });
   try {
+    const [existingCheck] = await pool.execute(
+      `SELECT id, nome, cognome_iniziale FROM players
+       WHERE society_id = ? AND LOWER(nome) = LOWER(?) AND LOWER(cognome_iniziale) = LOWER(?)
+       LIMIT 1`,
+      [societyId, firstName.trim(), initial]
+    );
+    if (existingCheck.length > 0) {
+      const ex = existingCheck[0];
+      logger.warn({ societyId, firstName, lastNameInitial: initial, existingId: ex.id }, "[minor] Possibile duplicato");
+    }
     const [result] = await pool.execute(
       `INSERT INTO players
          (society_id, nome, cognome, cognome_iniziale, numero, leva, incomplete,

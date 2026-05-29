@@ -6178,6 +6178,24 @@ async function saveMinorPlayer() {
   if (!levaKey) { _err('⚠️ Seleziona la leva.'); return; }
   if (!_v2Token) { _err('⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.'); return; }
 
+  // Check duplicati nella rosa locale
+  const nomeCheck = firstName.toLowerCase();
+  const inizialeCheck = initial.toLowerCase();
+  const duplicato = players.find(p =>
+    p.nome && p.cogn_iniziale &&
+    p.nome.toLowerCase() === nomeCheck &&
+    p.cogn_iniziale.toLowerCase() === inizialeCheck
+  );
+  if (duplicato) {
+    const label = duplicato.cogn
+      ? `${duplicato.nome} ${duplicato.cogn}`
+      : `${duplicato.nome} ${duplicato.cogn_iniziale}`;
+    const conferma = confirm(
+      `⚠️ Esiste già un giocatore con questo nome nella rosa: "${label}".\n\nVuoi crearne comunque uno nuovo?`
+    );
+    if (!conferma) return;
+  }
+
   const saveBtn = document.getElementById('pBtnSave');
   if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='⏳ Creazione…'; }
 
