@@ -29907,5 +29907,50 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
+<!-- ════════ DEBUG CHAT KB — overlay diagnostico temporaneo ════════ -->
+<div id="kbDbg" style="position:fixed;top:0;left:0;right:0;z-index:2147483647;font:11px/1.4 monospace;background:rgba(0,0,0,.8);color:#0f0;padding:4px 8px;pointer-events:none;white-space:pre;"></div>
+<script>
+(function(){
+  var BUILD = '08bb393';
+  var box = document.getElementById('kbDbg');
+  if (!box) return;
+  function _afName(){
+    var ae = document.activeElement;
+    if (!ae || ae === document.body) return 'none';
+    return ae.id ? ('#' + ae.id) : (ae.className ? ('.' + String(ae.className).split(' ').join('.')) : ae.tagName);
+  }
+  function _navDisp(){
+    var n = document.getElementById('mobNav');
+    if (!n) return '(no #mobNav)';
+    try { return getComputedStyle(n).display; } catch(_){ return '?'; }
+  }
+  function _render(){
+    var vv = window.visualViewport;
+    var vvH = vv ? Math.round(vv.height) : -1;
+    var inH = window.innerHeight;
+    var dlt = vv ? Math.round(inH - vv.height) : -1;
+    var kb  = document.body.classList.contains('chat-kb-open') ? 'YES' : 'NO';
+    box.textContent =
+      'BUILD: '   + BUILD + '\n' +
+      'kb-open: ' + kb    + '\n' +
+      'innerH: '  + inH   + '\n' +
+      'vvH: '     + vvH   + '\n' +
+      'delta: '   + dlt   + '\n' +
+      'navDisp: ' + _navDisp() + '\n' +
+      'focus: '   + _afName();
+  }
+  _render();
+  document.addEventListener('focusin',  _render, true);
+  document.addEventListener('focusout', _render, true);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', _render);
+    window.visualViewport.addEventListener('scroll', _render);
+  }
+  // tick di backup ogni 500ms (cattura cambi di classe non eventati)
+  setInterval(_render, 500);
+})();
+</script>
+<!-- ════════ /DEBUG CHAT KB ════════ -->
+
 </body>
 </html>
