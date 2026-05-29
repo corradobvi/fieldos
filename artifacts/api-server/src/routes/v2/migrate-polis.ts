@@ -50,6 +50,13 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
       ? Math.trunc(rawTarget)
       : null;
 
+  // Override esplicito chiave blob da leggere: utile quando il blob storico Polis non è 'fieldos_state_v1'.
+  const rawBlobKey = req.body?.blobKey;
+  const blobKey: string =
+    typeof rawBlobKey === "string" && rawBlobKey.trim()
+      ? rawBlobKey.trim()
+      : POLIS_BLOB_KEY;
+
   try {
     let polisMysqlId: number;
     let polisMeta: { id: number; nome: any; stato: any; piano: any };
@@ -113,16 +120,30 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
       };
     }
 
-    // 2) Carica blob fieldos_state_v1
+    // 2) Carica blob utenti dalla chiave indicata (default fieldos_state_v1)
     const [blobRows] = (await pool.execute(
       "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [POLIS_BLOB_KEY]
+      [blobKey]
     )) as [any[], any];
 
     if (!blobRows.length) {
-      return res.status(404).json({
-        error: "polis_blob_not_found",
-        detail: `Nessuna riga in society_state con key='${POLIS_BLOB_KEY}'.`,
+      // Diagnostica sola lettura: lista delle chiavi disponibili (SOLO nome + size, MAI contenuto).
+      const [availableStateKeys] = (await pool.execute(
+        "SELECT `key`, CHAR_LENGTH(state_json) AS size FROM `society_state` ORDER BY `key`"
+      )) as [any[], any];
+
+      logger.info(
+        { polisFound: true, blobFound: false, blobKey, availableCount: availableStateKeys.length },
+        "superadmin/migrate-polis-users: blob key not found, listing available keys"
+      );
+
+      return res.json({
+        dryRun: true,
+        polisFound: true,
+        polis: polisMeta,
+        blobKey,
+        blobFound: false,
+        availableStateKeys,
       });
     }
 
@@ -133,6 +154,7 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
       return res.status(500).json({
         error: "polis_blob_invalid_json",
         detail: parseErr?.message,
+        blobKey,
       });
     }
 
@@ -142,6 +164,8 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
         dryRun: true,
         polisFound: true,
         polis: polisMeta,
+        blobKey,
+        blobFound: true,
         totalUsers: 0,
         toInsert: 0,
         toUpdate: 0,
@@ -215,6 +239,8 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
       dryRun: true,
       polisFound: true,
       polis: polisMeta,
+      blobKey,
+      blobFound: true,
       totalUsers: usersDb.length,
       toInsert,
       toUpdate,

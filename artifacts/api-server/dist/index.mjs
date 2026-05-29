@@ -91844,6 +91844,8 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
   }
   const rawTarget = req.body?.targetSocietyId;
   const targetSocietyId = typeof rawTarget === "number" && Number.isFinite(rawTarget) && rawTarget > 0 ? Math.trunc(rawTarget) : null;
+  const rawBlobKey = req.body?.blobKey;
+  const blobKey = typeof rawBlobKey === "string" && rawBlobKey.trim() ? rawBlobKey.trim() : POLIS_BLOB_KEY;
   try {
     let polisMysqlId;
     let polisMeta;
@@ -91900,12 +91902,23 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
     }
     const [blobRows] = await pool.execute(
       "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [POLIS_BLOB_KEY]
+      [blobKey]
     );
     if (!blobRows.length) {
-      return res.status(404).json({
-        error: "polis_blob_not_found",
-        detail: `Nessuna riga in society_state con key='${POLIS_BLOB_KEY}'.`
+      const [availableStateKeys] = await pool.execute(
+        "SELECT `key`, CHAR_LENGTH(state_json) AS size FROM `society_state` ORDER BY `key`"
+      );
+      logger.info(
+        { polisFound: true, blobFound: false, blobKey, availableCount: availableStateKeys.length },
+        "superadmin/migrate-polis-users: blob key not found, listing available keys"
+      );
+      return res.json({
+        dryRun: true,
+        polisFound: true,
+        polis: polisMeta,
+        blobKey,
+        blobFound: false,
+        availableStateKeys
       });
     }
     let state;
@@ -91914,7 +91927,8 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
     } catch (parseErr) {
       return res.status(500).json({
         error: "polis_blob_invalid_json",
-        detail: parseErr?.message
+        detail: parseErr?.message,
+        blobKey
       });
     }
     const usersDb = Array.isArray(state?.USERS_DB) ? state.USERS_DB : [];
@@ -91923,6 +91937,8 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
         dryRun: true,
         polisFound: true,
         polis: polisMeta,
+        blobKey,
+        blobFound: true,
         totalUsers: 0,
         toInsert: 0,
         toUpdate: 0,
@@ -91978,6 +91994,8 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
       dryRun: true,
       polisFound: true,
       polis: polisMeta,
+      blobKey,
+      blobFound: true,
       totalUsers: usersDb.length,
       toInsert,
       toUpdate,
