@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>MyVivaio</title>
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -1302,24 +1302,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
   .msg-b{word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;}
   .msg-img{max-width:100%;height:auto;}
-  /* Tastiera aperta: nascondi topbar + bottom nav. L'altezza/posizione del pannello
-     è gestita inline da _setupChatKb via visualViewport (no !important sulle
-     proprietà top/height/left/width per non sovrascrivere lo style inline). */
-  body.chat-kb-open .topbar,
-  body.chat-kb-open header.topbar{display:none!important;height:0!important;padding:0!important;border:0!important;}
-  /* Nav: serve specificità + reset di height/padding/border perché .mob-nav ha
-     `height:calc(72px + env(...)) !important` (regola successiva nel file).
-     Aggiunti alias difensivi per qualunque eventuale variante futura. */
-  body.chat-kb-open .mob-nav,
-  body.chat-kb-open #mobNav,
-  body.chat-kb-open nav.mob-nav,
-  body.chat-kb-open nav[class*="mob-nav"],
-  body.chat-kb-open .bottom-nav,
-  body.chat-kb-open [data-bottom-nav]{display:none!important;height:0!important;min-height:0!important;padding:0!important;border:0!important;}
-  /* Pannello chat con tastiera aperta: garantisci ancora left:0/right:0/width:100%
-     anche se _setupChatKb tocca solo top/height; usa important per battere lo style
-     inline residuo che potrebbe non includere left/right. */
-  body.chat-kb-open #pg-chat.on{left:0!important;right:0!important;width:100%!important;max-width:100%!important;}
+  /* Conversazione aperta = schermata full-screen sopra header + bottom nav.
+     L'altezza usa 100dvh (con fallback 100vh) e il meta viewport
+     "interactive-widget=resizes-content" → quando la tastiera sale, il viewport
+     dinamico si riduce e l'input resta in fondo all'area visibile. Niente piu'
+     manipolazione inline di top/height/left/width, niente chat-kb-open. */
+  #pg-chat.on.chat-panel-open{
+    position:fixed!important;
+    top:0!important;left:0!important;right:0!important;bottom:0!important;
+    height:100vh!important;height:100dvh!important;
+    width:100%!important;max-width:100%!important;
+    z-index:9000!important;background:var(--bg);padding:0!important;overflow:hidden;
+  }
+  #pg-chat.on.chat-panel-open .sec-h{display:none!important;}
+  #pg-chat.on.chat-panel-open .chat-wrap{height:100%!important;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
   #presMobCards{display:flex!important;flex-direction:column;gap:8px;}
@@ -3166,7 +3162,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.4</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.5</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -4115,7 +4111,6 @@ let chatMessaggi = [];
 let nextChatMsgId = 1;
 let chatLastSeen = {};
 let currentChatId = null;
-let _chatKbCleanup = null;
 let torneoChats = {};
 let adHocChats = [];
 let nextAdHocChatId = 1;
@@ -22171,56 +22166,18 @@ function selectChat(chatId, skipListRefresh) {
   }
   renderChatMessages();
   refreshChatBadges();
-  // Mobile: mostra il pannello messaggi
+  // Mobile: la conversazione passa in modalità full-screen (overlay sopra header+nav).
+  // La barra input resta in fondo al flex column; con il meta viewport
+  // interactive-widget=resizes-content, l'altezza si riduce da sola con la tastiera.
   const wrap = document.getElementById('chatWrap');
   if (wrap) wrap.classList.add('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.add('chat-panel-open');
-  // Mobile: marca lo stato conversazione (usato da _setupChatKb) + delega focusin/focusout.
-  // focus/blur NON bubblano: usiamo focusin/focusout sul document, più robusti contro
-  // re-render dell'input e differenze iOS Safari/PWA.
-  if (window.innerWidth <= 640) {
-    document.body.classList.add('in-chat-conv');
-    if (_chatKbCleanup) { try { _chatKbCleanup(); } catch(_e) {} }
-    _chatKbCleanup = _setupChatKb();
-    if (!document.documentElement.dataset.chatKbDelegated) {
-      document.documentElement.dataset.chatKbDelegated = '1';
-      const _isChatInputTarget = (t) => !!(t && (t.id === 'chatInp' || (t.closest && t.closest('.cm-inp'))));
-      document.addEventListener('focusin', (e) => {
-        if (window.innerWidth > 640) return;
-        if (!_isChatInputTarget(e.target)) return;
-        document.body.classList.add('chat-kb-open');
-        // Applica il riposizionamento immediato senza aspettare vv.resize.
-        const _vv = window.visualViewport;
-        const _el = document.getElementById('pg-chat');
-        if (_vv && _el && _el.classList.contains('on')) {
-          _el.style.top    = _vv.offsetTop + 'px';
-          _el.style.height = _vv.height    + 'px';
-          _el.style.bottom = 'auto';
-          // Niente width/left inline: il CSS body.chat-kb-open #pg-chat.on{left:0;right:0}
-          // vincola la larghezza al viewport visibile; un width esplicito poteva sforare.
-          _el.style.left   = '';
-          _el.style.width  = '';
-        }
-        const _msgs = document.getElementById('chatMsgs');
-        if (_msgs) {
-          _msgs.scrollTop = _msgs.scrollHeight;
-          setTimeout(() => { _msgs.scrollTop = _msgs.scrollHeight; }, 320);
-        }
-      }, true);
-      document.addEventListener('focusout', (e) => {
-        if (!_isChatInputTarget(e.target)) return;
-        document.body.classList.remove('chat-kb-open');
-        const _el = document.getElementById('pg-chat');
-        if (_el) {
-          _el.style.top = ''; _el.style.height = ''; _el.style.bottom = '';
-          _el.style.left = ''; _el.style.width = '';
-        }
-        const _msgs = document.getElementById('chatMsgs');
-        if (_msgs) setTimeout(() => { _msgs.scrollTop = _msgs.scrollHeight; }, 60);
-      }, true);
-    }
-  }
+  // Scroll all'ultimo messaggio dopo che il layout fullscreen è applicato.
+  setTimeout(() => {
+    const _msgs = document.getElementById('chatMsgs');
+    if (_msgs) _msgs.scrollTop = _msgs.scrollHeight;
+  }, 60);
   if (!skipListRefresh) renderChatList();
 }
 
@@ -22229,56 +22186,6 @@ function chatGoBack() {
   if (wrap) wrap.classList.remove('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.remove('chat-panel-open');
-  // Ripristina stato + cleanup handler tastiera + classe kb-open per sicurezza
-  document.body.classList.remove('in-chat-conv');
-  document.body.classList.remove('chat-kb-open');
-  if (_chatKbCleanup) { try { _chatKbCleanup(); } catch(_e) {} _chatKbCleanup = null; }
-}
-
-function _setupChatKb() {
-  const vv = window.visualViewport;
-  if (!vv) return null;
-  function _update() {
-    const el = document.getElementById('pg-chat');
-    if (!el || !el.classList.contains('on')) return;
-    // chat-kb-open NON dipende dal delta — viene aggiunta/rimossa solo da focusin/focusout
-    // sull'input chat (vedi selectChat). Qui ci limitiamo a riposizionare il pannello.
-    // Race precedente: durante l'animazione tastiera (~250ms) delta<60 e la safety
-    // rimuoveva la classe appena aggiunta → la nav riappariva fino al primo scroll.
-    if (document.body.classList.contains('chat-kb-open')) {
-      // Tastiera APERTA: pannello ancorato all'area visibile (sopra la tastiera).
-      // SOLO top/height/bottom inline: per la larghezza ci affidiamo al CSS
-      // (body.chat-kb-open #pg-chat.on{left:0!important;right:0!important;max-width:100%!important}).
-      // vv.width inline poteva sforare di 1-2px su iOS → "Invia" usciva.
-      el.style.top = vv.offsetTop + 'px';
-      el.style.height = vv.height + 'px';
-      el.style.bottom = 'auto';
-      // Pulizia esplicita di qualsiasi residuo da build precedenti.
-      el.style.left = '';
-      el.style.width = '';
-    } else {
-      // Tastiera CHIUSA: reset stile inline → torna a top:52px / bottom:calc(...) da CSS.
-      el.style.top = '';
-      el.style.height = '';
-      el.style.bottom = '';
-      el.style.left = '';
-      el.style.width = '';
-    }
-    const msgs = document.getElementById('chatMsgs');
-    if (msgs) msgs.scrollTop = msgs.scrollHeight;
-  }
-  vv.addEventListener('resize', _update);
-  vv.addEventListener('scroll', _update);
-  return function() {
-    vv.removeEventListener('resize', _update);
-    vv.removeEventListener('scroll', _update);
-    document.body.classList.remove('chat-kb-open');
-    const el = document.getElementById('pg-chat');
-    if (el) {
-      el.style.top = ''; el.style.height = ''; el.style.bottom = '';
-      el.style.left = ''; el.style.width = '';
-    }
-  };
 }
 
 function renderChatMessages() {
@@ -29936,59 +29843,6 @@ document.addEventListener('DOMContentLoaded', () => {
   navigator.serviceWorker.addEventListener('controllerchange', _readVersion);
 })();
 
-// Live computed-display della bottom nav reale (#mobNav) — aggiorna il badge versione in Impostazioni.
-(function(){
-  function _updateNavDisp(){
-    var n = document.getElementById('mobNav');
-    var t = document.getElementById('mvNavDispTxt');
-    if (!t) return;
-    if (!n) { t.textContent = 'nav: (no #mobNav)'; return; }
-    var disp = '?';
-    try { disp = getComputedStyle(n).display; } catch(_){}
-    var kb = document.body.classList.contains('chat-kb-open') ? 'YES' : 'NO';
-    t.textContent = 'nav: ' + disp + ' · kb-open: ' + kb;
-  }
-  if (document.readyState === 'complete') _updateNavDisp();
-  else window.addEventListener('load', _updateNavDisp);
-  document.addEventListener('focusin',  _updateNavDisp, true);
-  document.addEventListener('focusout', _updateNavDisp, true);
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', _updateNavDisp);
-    window.visualViewport.addEventListener('scroll', _updateNavDisp);
-  }
-  setInterval(_updateNavDisp, 1000);
-})();
-
-// ═══════════════════ DEBUG TEMPORANEO ═══════════════════
-// Overlay fisso in alto visibile su TUTTE le pagine (anche dentro la chat).
-// Mostra in tempo reale il display computed di #mobNav e lo stato chat-kb-open.
-// Da rimuovere appena confermato il comportamento.
-(function(){
-  if (document.getElementById('kbDbgGlobal')) return;
-  var box = document.createElement('div');
-  box.id = 'kbDbgGlobal';
-  box.style.cssText = 'position:fixed;top:0;left:0;z-index:2147483647;font:11px monospace;background:rgba(0,0,0,.8);color:#0f0;padding:3px 6px;pointer-events:none;white-space:pre;';
-  box.textContent = 'nav: ? · kb-open: NO';
-  function _attach(){
-    if (document.body) document.body.appendChild(box);
-    else window.addEventListener('DOMContentLoaded', _attach, { once:true });
-  }
-  _attach();
-  function _render(){
-    var n = document.getElementById('mobNav');
-    var disp = n ? (function(){ try { return getComputedStyle(n).display; } catch(_){ return '?'; } })() : '(no #mobNav)';
-    var kb = document.body && document.body.classList.contains('chat-kb-open') ? 'YES' : 'NO';
-    box.textContent = 'nav: ' + disp + ' · kb-open: ' + kb;
-  }
-  document.addEventListener('focusin',  _render, true);
-  document.addEventListener('focusout', _render, true);
-  if (window.visualViewport){
-    window.visualViewport.addEventListener('resize', _render);
-    window.visualViewport.addEventListener('scroll', _render);
-  }
-  setInterval(_render, 1000);
-})();
-// ═══════════════════ /DEBUG TEMPORANEO ═══════════════════
 </script>
 
 </body>
