@@ -17818,7 +17818,8 @@ function renderCalWeek() {
       dayEvs.innerHTML = `<div style="font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:12px 0 8px;">📅 ${selLabel}</div>`
         + dayEvList.map(ev=>{
           const cls = (ev.type==='allenamento'||ev.type==='allenamento_portieri')?'ev-a':ev.type==='partita'||ev.type==='campionato'?'ev-p':'ev-e';
-          return `<div class="cal-day-ev-item ${cls}" onclick="if(ev)openEditEvento&&openEditEvento(ev)">
+          const idLit = typeof ev.id === 'number' ? ev.id : `'${String(ev.id).replace(/'/g, "\\'")}'`;
+          return `<div class="cal-day-ev-item ${cls}" onclick="openEventoModal(${idLit})">
             <div style="font-weight:700;font-size:.92rem;">${escapeHtml(ev.title||ev.type||'')}</div>
             <div style="font-size:.76rem;color:var(--text2);margin-top:3px;">${ev.start||''}${ev.luogo?' · '+escapeHtml(ev.luogo):''}</div>
           </div>`;
