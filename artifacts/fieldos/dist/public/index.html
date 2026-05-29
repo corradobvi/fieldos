@@ -20174,7 +20174,10 @@ function _gcFaseMatches(t, f) {
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
-  return polisHtml + altriHtml + addBtn;
+  const genBtn = canEdit && (!f.tipo || f.tipo === 'girone') && (f.squadre||[]).length >= 2
+    ? `<button class="btn btn-s btn-sm" style="margin-top:6px;margin-left:6px;" onclick="openGenCalendar('${t.id}','${f.id}')">📅 Genera calendario girone</button>`
+    : '';
+  return polisHtml + altriHtml + addBtn + genBtn;
 }
 
 function _gcTorneoScorers(t) {
@@ -21284,6 +21287,67 @@ function savePtFaseMatch() {
   closeM('mPtFaseMatch');
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Partita aggiunta!');
+}
+
+// ─── GENERA CALENDARIO GIRONE (round-robin) ───
+function openGenCalendar(torneoId, faseId) {
+  const t = tornei.find(x => x.id === torneoId);
+  const f = t && t.fasi.find(x => x.id === faseId);
+  if (!f) return;
+  const sq = f.squadre || [];
+  if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre nel girone'); return; }
+  document.getElementById('gcGenTorneoId').value = torneoId;
+  document.getElementById('gcGenFaseId').value = faseId;
+  document.getElementById('gcGenFaseLabel').textContent = f.nome + ' · ' + sq.length + ' squadre';
+  const _r = document.querySelector('input[name="gcGenMode"][value="andata"]');
+  if (_r) _r.checked = true;
+  openM('mGenCalendar');
+}
+
+function generateGironeCalendar() {
+  const tid = document.getElementById('gcGenTorneoId').value;
+  const fid = document.getElementById('gcGenFaseId').value;
+  const mode = (document.querySelector('input[name="gcGenMode"]:checked') || {}).value || 'andata';
+  const t = tornei.find(x => x.id === tid);
+  const f = t && t.fasi.find(x => x.id === fid);
+  if (!f) return;
+  const sq = f.squadre || [];
+  if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre'); return; }
+  if (!Array.isArray(f.partite)) f.partite = [];
+  // Crea partita con default IDENTICI a savePtFaseMatch
+  const pushMatch = (casa, ospite) => {
+    f.partite.push({id:'tm'+nextTornMatchId++, data:'', orario:'', casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+  };
+  let created = 0;
+  // Andata: per ogni coppia (i<j), salta se esiste già un match in qualsiasi direzione
+  for (let i = 0; i < sq.length; i++) {
+    for (let j = i + 1; j < sq.length; j++) {
+      const a = sq[i], b = sq[j];
+      const exists = f.partite.some(m => (m.casa === a && m.ospite === b) || (m.casa === b && m.ospite === a));
+      if (!exists) { pushMatch(a, b); created++; }
+    }
+  }
+  // Ritorno: solo se mode === 'andata_ritorno' → aggiungo la direzione mancante
+  if (mode === 'andata_ritorno') {
+    for (let i = 0; i < sq.length; i++) {
+      for (let j = i + 1; j < sq.length; j++) {
+        const a = sq[i], b = sq[j];
+        const aCasa = f.partite.some(m => m.casa === a && m.ospite === b);
+        const bCasa = f.partite.some(m => m.casa === b && m.ospite === a);
+        if (aCasa && !bCasa) { pushMatch(b, a); created++; }
+        else if (!aCasa && bCasa) { pushMatch(a, b); created++; }
+        // aCasa && bCasa → già completo, skip
+      }
+    }
+  }
+  closeM('mGenCalendar');
+  if (created === 0) {
+    toast('ℹ️ Calendario già completo, nessuna partita aggiunta');
+  } else {
+    toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
+  }
+  window.__fieldosSaveState();
+  renderGestComp(); renderPartite(); renderCal();
 }
 
 // ─── MODAL RISULTATO (condiviso) ───
@@ -27435,6 +27499,33 @@ async function doRejoinSocieta() {
     <div style="display:flex;gap:10px;margin-top:18px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtFaseMatch')">Annulla</button>
       <button class="btn btn-p" style="flex:1;" onclick="savePtFaseMatch()">Aggiungi</button>
+    </div>
+  </div>
+</div>
+
+<!-- Genera calendario girone (round-robin) -->
+<div class="ov" id="mGenCalendar">
+  <div class="modal">
+    <div class="mh"><div class="mt">📅 Genera calendario girone</div><button class="mx" onclick="closeM('mGenCalendar')">✕</button></div>
+    <input type="hidden" id="gcGenTorneoId">
+    <input type="hidden" id="gcGenFaseId">
+    <div style="font-size:.85rem;color:var(--text2);margin-bottom:14px;" id="gcGenFaseLabel">—</div>
+    <div class="fg" style="margin-bottom:0;">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;cursor:pointer;">
+        <input type="radio" name="gcGenMode" value="andata" checked style="margin-top:3px;">
+        <span><strong>Solo andata</strong><br><span style="font-size:.75rem;color:var(--text2);">Ogni squadra incontra le altre 1 volta</span></span>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;cursor:pointer;border-top:1px solid var(--border);">
+        <input type="radio" name="gcGenMode" value="andata_ritorno" style="margin-top:3px;">
+        <span><strong>Andata e ritorno</strong><br><span style="font-size:.75rem;color:var(--text2);">Ogni squadra incontra le altre 2 volte, invertendo casa/ospite</span></span>
+      </label>
+    </div>
+    <div style="font-size:.75rem;color:var(--text3);margin-top:10px;line-height:1.4;">
+      Le partite verranno create senza data e senza orario (le compili dopo). Le partite già esistenti non saranno modificate.
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mGenCalendar')">Annulla</button>
+      <button class="btn btn-p" style="flex:1;" onclick="generateGironeCalendar()">Genera</button>
     </div>
   </div>
 </div>
