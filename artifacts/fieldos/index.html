@@ -10616,7 +10616,7 @@ function computeTorneoRisultato(t){
 }
 function renderStatsTornei(el){
   if (!el) return;
-  const levaT = tornei.filter(t=>t.leva===currentLeva).sort((a,b)=>(b.dataInizio||'').localeCompare(a.dataInizio||''));
+  const levaT = _sortTorneiByData(tornei.filter(t=>t.leva===currentLeva));
   const list  = players.filter(p=>p.leva===currentLeva).sort(byCogn);
   if (!levaT.length){
     el.innerHTML=`<div class="card"><div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo registrato per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Crea tornei dalla sezione Partite & Tornei.</div></div></div>`;
