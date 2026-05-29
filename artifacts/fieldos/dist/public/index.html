@@ -1286,6 +1286,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   body.in-chat-conv .mob-nav{display:none!important;}
   body.in-chat-conv #pg-chat.on{bottom:0!important;}
   .msg{font-size:.93rem;line-height:1.45;}
+  /* FIX 1 chat mobile — ancoraggio messaggi in basso (no overflow) */
+  .cm-msgs{justify-content:flex-end;}
+  .cm-msgs > :first-child{margin-top:auto;}
+  /* FIX 1 chat mobile — bubble+avatar mai oltre il viewport */
+  .msg{max-width:min(82%,calc(100vw - 72px));}
+  .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
+  .msg-b{word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;}
+  .msg-img{max-width:100%;height:auto;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
   #presMobCards{display:flex!important;flex-direction:column;gap:8px;}
