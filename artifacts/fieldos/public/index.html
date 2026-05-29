@@ -12774,13 +12774,13 @@ function panoNextMatchForLeva(lv) {
   // Amichevoli
   (amichevoli||[]).filter(m => m.leva === lv && !m.annullata && m.data >= todayStr).forEach(m => {
     const isH = (m.tipo || 'casa') === 'casa';
-    cands.push({ date: m.data, start: m.orario||'', title: (isH ? polisName(lv) : m.avversario) + ' vs ' + (isH ? m.avversario : polisName(lv)), type: 'amichevole', luogo: m.luogo||'' });
+    cands.push({ date: m.data, start: m.orario||'', title: (isH ? polisName(lv) : m.avversario) + ' vs ' + (isH ? m.avversario : polisName(lv)), type: 'amichevole', luogo: m.luogo||'', id: 'amich_' + m.id });
   });
   // Campionato
   const camp = campionato[lv];
   if (camp) (camp.partite||[]).filter(m => !m.played && m.data >= todayStr && (m.casa === polis || m.ospite === polis)).forEach(m => {
     const avv = (m.casa===polis ? m.ospite : m.casa) || '—';
-    cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv, type: 'partita', luogo: m.luogo||'' });
+    cands.push({ date: m.data, start: m.orario||'', title: polis + ' vs ' + avv, type: 'partita', luogo: m.luogo||'', id: 'camp_' + lv + '_' + m.id });
   });
   // Tornei
   (tornei||[]).filter(t => t.leva === lv).forEach(t => {
@@ -12788,7 +12788,7 @@ function panoNextMatchForLeva(lv) {
     (t.fasi||[]).forEach(f => (f.partite||[]).filter(m => !m.played && m.data >= todayStr && (mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite))).forEach(m => {
       const mia = mieSquadre.includes(m.casa) ? m.casa : m.ospite;
       const avv = (mieSquadre.includes(m.casa) ? m.ospite : m.casa) || '—';
-      cands.push({ date: m.data, start: m.orario||'', title: mia + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'' });
+      cands.push({ date: m.data, start: m.orario||'', title: mia + ' vs ' + avv + ' (' + t.nome + ')', type: 'torneo', luogo: m.luogo||t.luogo||'', id: t.id });
     }));
   });
   // Fallback a eventi calendario se nessun dato strutturato
