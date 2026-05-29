@@ -19855,12 +19855,14 @@ function renderGcCampionato() {
   const gioNums = Object.keys(gioMap).map(Number).sort((a,b)=>a-b);
   const mkMc = (m) => {
     const isH=m.casa===polis; const tag=isH?'<span class="mc-tag" style="background:#e8f9f1;color:#0b7a3e;font-size:.65rem;">Casa</span>':'<span class="mc-tag" style="background:#fff3e0;color:#e65100;font-size:.65rem;">Trasferta</span>';
-    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
+    const score=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('camp','${currentLeva}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">${m.data ? 'Da giocare' : 'Da programmare'}</span>`;
     const timeStr=m.orario?` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>`:'';
     const luogoStr=m.luogo?` <span style="font-size:.65rem;color:var(--text3);">📍${escapeHtml(m.luogo)}</span>`:'';
-    const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
-    const delBtn=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id})" title="Elimina">🗑</button>`:'';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,currentLeva,[polis]):''}<div class="mc-actions">${risBtn}${delBtn}</div></div>`;
+    const risBtn=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="event.stopPropagation();openRisultato('campionato',${m.id})">${m.played?'📊':'⚽ Risultato'}</button>`:'';
+    const delBtn=canEdit?`<button class="btn btn-r btn-sm" onclick="event.stopPropagation();deleteGcCampMatch(${m.id})" title="Elimina">🗑</button>`:'';
+    const rowClick=canEdit?` onclick="openGcAddMatch(${m.id})" style="cursor:pointer;"`:'';
+    const dateLbl = m.data ? fmtMatchDate(m.data) : '— da impostare —';
+    return `<div class="mc"${rowClick}><div class="mc-date">${dateLbl}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,currentLeva,[polis]):''}<div class="mc-actions">${risBtn}${delBtn}</div></div>`;
   };
   const mkOther = (m) => {
     const eC=`qrcc_${m.id}`,eO=`qrco_${m.id}`;
@@ -19876,9 +19878,11 @@ function renderGcCampionato() {
     return `<div class="fase-sep">${escapeHtml(label)}</div>${html}`;
   }).join('') || '<div style="color:var(--text3);font-size:.8rem;padding:10px 0;">Nessuna partita programmata.</div>';
   const addBtn = canEdit?`<button class="btn btn-p btn-sm" onclick="openGcAddMatch()">+ Partita</button>`:'';
+  const genBtn = canEdit && (camp.squadre||[]).length >= 2
+    ? `<button class="btn btn-s btn-sm" onclick="openGenCampCalendar('${currentLeva.replace(/'/g,"\\'")}')">📅 Genera calendario</button>` : '';
   const gioBtn = canEdit?`<button class="btn btn-g btn-sm" onclick="openGcGiornate()">📋 Giornate</button>`:'';
   const delCampBtn = canEdit?`<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;"><button class="btn btn-r btn-sm" onclick="deleteCampionato('${currentLeva.replace(/'/g,"\\'")}')">🗑 Elimina campionato</button></div>`:'';
-  c.innerHTML = `${metaHtml}${seniorBanner}<div class="g2" style="margin-bottom:14px;"><div class="card"><div class="ch"><div class="ct">🏅 Classifica</div></div>${stHtml}</div><div class="card"><div class="ch"><div class="ct">⚽ Marcatori</div></div>${scHtml}</div></div><div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Calendario</div><div style="display:flex;gap:6px;">${gioBtn}${addBtn}</div></div>${calHtml}</div>${delCampBtn}`;
+  c.innerHTML = `${metaHtml}${seniorBanner}<div class="g2" style="margin-bottom:14px;"><div class="card"><div class="ch"><div class="ct">🏅 Classifica</div></div>${stHtml}</div><div class="card"><div class="ch"><div class="ct">⚽ Marcatori</div></div>${scHtml}</div></div><div class="card" style="margin-bottom:14px;"><div class="ch"><div class="ct">📅 Calendario</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${gioBtn}${genBtn}${addBtn}</div></div>${calHtml}</div>${delCampBtn}`;
 }
 
 // ─── GC: Tornei ───
@@ -20510,27 +20514,57 @@ function saveGcCamp() {
 }
 
 // ─── Campionato: aggiungi/elimina partita manuale ───
-function openGcAddMatch() {
+function openGcAddMatch(matchId) {
   const leva = currentLeva;
   const camp = campionato[leva];
   if (!camp?.squadre?.length) { toast('⚠️ Configura prima le squadre del campionato'); return; }
   document.getElementById('gcAddMatchLeva').value = leva;
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('gcAddMatchData').value = today;
-  document.getElementById('gcAddMatchOrario').value = '';
-  document.getElementById('gcAddMatchTipo').value = 'casa';
-  document.getElementById('gcAddMatchGiornata').value = '';
-  document.getElementById('gcAddMatchLuogo').value = '';
   const polis = polisName(leva);
   const avvSel = document.getElementById('gcAddMatchAvv');
   const altri = camp.squadre.filter(s => s !== polis);
   if (!altri.length) { toast('⚠️ Aggiungi almeno un avversario nel campionato'); return; }
   avvSel.innerHTML = altri.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  const _editEl  = document.getElementById('gcAddMatchEditId');
+  const _titleEl = document.getElementById('gcAddMatchTitle');
+  const _saveBtn = document.getElementById('gcAddMatchSaveBtn');
+  if (matchId != null && matchId !== '') {
+    // Edit mode — modale polis-centrica: matchabile solo se la partita coinvolge polis
+    const match = (camp.partite||[]).find(m => String(m.id) === String(matchId));
+    if (!match) { toast('⚠️ Partita non trovata'); return; }
+    if (match.casa !== polis && match.ospite !== polis) {
+      toast('⚠️ Le partite tra avversari non sono editabili qui'); return;
+    }
+    const isHome = match.casa === polis;
+    const avv = isHome ? match.ospite : match.casa;
+    if (_editEl)  _editEl.value = String(matchId);
+    if (_titleEl) _titleEl.textContent = '✏️ Modifica partita';
+    if (_saveBtn) _saveBtn.textContent = '💾 Salva modifiche';
+    document.getElementById('gcAddMatchData').value     = match.data || '';
+    document.getElementById('gcAddMatchOrario').value   = match.orario || '';
+    document.getElementById('gcAddMatchTipo').value     = isHome ? 'casa' : 'trasferta';
+    document.getElementById('gcAddMatchGiornata').value = match.giornata != null ? match.giornata : '';
+    document.getElementById('gcAddMatchLuogo').value    = match.luogo || '';
+    // Seleziona l'avversario nella select (se presente)
+    if (Array.from(avvSel.options).some(o => o.value === avv)) avvSel.value = avv;
+  } else {
+    // Create mode — flusso originale invariato
+    if (_editEl)  _editEl.value = '';
+    if (_titleEl) _titleEl.textContent = '⚽ Aggiungi partita';
+    if (_saveBtn) _saveBtn.textContent = '💾 Aggiungi partita';
+    const today = new Date().toISOString().slice(0,10);
+    document.getElementById('gcAddMatchData').value = today;
+    document.getElementById('gcAddMatchOrario').value = '';
+    document.getElementById('gcAddMatchTipo').value = 'casa';
+    document.getElementById('gcAddMatchGiornata').value = '';
+    document.getElementById('gcAddMatchLuogo').value = '';
+  }
   openM('mGcAddMatch');
 }
 
 function saveGcAddMatch() {
   const leva = document.getElementById('gcAddMatchLeva').value;
+  const _editEl = document.getElementById('gcAddMatchEditId');
+  const editId  = _editEl ? _editEl.value : '';
   const data = document.getElementById('gcAddMatchData').value;
   if (!data) { toast('⚠️ Inserisci la data della partita'); return; }
   const avv = document.getElementById('gcAddMatchAvv').value;
@@ -20544,17 +20578,46 @@ function saveGcAddMatch() {
   const luogo  = document.getElementById('gcAddMatchLuogo').value.trim() || null;
   if (!campionato[leva]) campionato[leva] = {squadre:[], partite:[]};
   if (!campionato[leva].partite) campionato[leva].partite = [];
-  const newMatchId = nextCampId++;
-  campionato[leva].partite.push({id: newMatchId, giornata: gior, data, orario, casa, ospite, luogo, played: false, golCasa: 0, golOspiti: 0, stats: []});
-  autoCreateConvocazione(`camp_${leva}_${newMatchId}`, leva);
-  const campNome = campionato[leva].nome || leva;
-  USERS_DB.filter(u => (u.role==='allenatore'||u.role==='dirigente') && u.leva===leva && u.stato==='attivo').forEach(u => {
-    pushNotifica(u.id, { type:'campionato', title:`📅 Nuova partita ${tipo==='casa'?'in casa':'in trasferta'}`, body:`${polis} ${tipo==='casa'?'vs':'@'} ${avv} · ${data}${orario?' ore '+orario:''} (${campNome})` });
-  });
+
+  let matchId = null;
+  if (editId) {
+    // UPDATE: modifica data, orario, luogo, casa/ospite (via tipo+avversario), giornata.
+    // Preserva: id, played, golCasa, golOspiti, stats.
+    const match = campionato[leva].partite.find(m => String(m.id) === String(editId));
+    if (!match) { toast('⚠️ Partita non trovata'); if (_editEl) _editEl.value = ''; return; }
+    match.data = data;
+    match.orario = orario;
+    match.luogo = luogo;
+    match.casa = casa;
+    match.ospite = ospite;
+    match.giornata = gior;
+    matchId = match.id;
+    if (_editEl) _editEl.value = '';
+  } else {
+    // CREATE
+    matchId = nextCampId++;
+    campionato[leva].partite.push({id: matchId, giornata: gior, data, orario, casa, ospite, luogo, played: false, golCasa: 0, golOspiti: 0, stats: []});
+  }
+
+  // Autocreate convocazione SOLO se: data valorizzata, partita coinvolge polis, non esiste già.
+  // Cosi: round-robin generate (data='') → zero convocazioni; il mister mette la data → nasce.
+  const eventId = `camp_${leva}_${matchId}`;
+  if (data && (casa === polis || ospite === polis) && !getConvocazione(eventId)) {
+    autoCreateConvocazione(eventId, leva);
+  }
+
+  // Notifica push a staff allenatore/dirigente (solo per CREATE; in UPDATE non spamma)
+  if (!editId) {
+    const campNome = campionato[leva].nome || leva;
+    USERS_DB.filter(u => (u.role==='allenatore'||u.role==='dirigente') && u.leva===leva && u.stato==='attivo').forEach(u => {
+      pushNotifica(u.id, { type:'campionato', title:`📅 Nuova partita ${tipo==='casa'?'in casa':'in trasferta'}`, body:`${polis} ${tipo==='casa'?'vs':'@'} ${avv} · ${data}${orario?' ore '+orario:''} (${campNome})` });
+    });
+  }
+
   closeM('mGcAddMatch');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
-  toast('✅ Partita aggiunta!');
+  toast(editId ? '✅ Partita aggiornata!' : '✅ Partita aggiunta!');
 }
 
 function deleteGcCampMatch(matchId) {
@@ -21345,7 +21408,45 @@ function savePtFaseMatch() {
   toast('✅ Partita aggiunta!');
 }
 
-// ─── GENERA CALENDARIO GIRONE (round-robin) ───
+// ─── GENERA CALENDARIO (round-robin) — condiviso girone-torneo e campionato ───
+
+// Helper agnostico: dato un array partite esistente e una squadra list, ritorna le pairs
+// (casa, ospite) da CREARE per completare il round-robin nella modalità scelta.
+// Idempotente: skippa coppie già presenti.
+// matchesArr: array di {casa, ospite, ...}
+// squadre: array di nomi squadra
+// mode: 'andata' | 'andata_ritorno'
+function _roundRobinPairs(matchesArr, squadre, mode) {
+  const out = [];
+  const existsAnyDir = (a, b) => matchesArr.some(m => (m.casa === a && m.ospite === b) || (m.casa === b && m.ospite === a));
+  const existsExact  = (a, b) => matchesArr.some(m => m.casa === a && m.ospite === b);
+  // Andata: per ogni coppia (i<j), salta se esiste già un match in qualsiasi direzione
+  for (let i = 0; i < squadre.length; i++) {
+    for (let j = i + 1; j < squadre.length; j++) {
+      const a = squadre[i], b = squadre[j];
+      if (!existsAnyDir(a, b)) out.push({casa: a, ospite: b});
+    }
+  }
+  // Ritorno: per ogni coppia, aggiungo direzione mancante (considerando anche le pairs già pianificate sopra)
+  if (mode === 'andata_ritorno') {
+    const planned = matchesArr.concat(out);
+    for (let i = 0; i < squadre.length; i++) {
+      for (let j = i + 1; j < squadre.length; j++) {
+        const a = squadre[i], b = squadre[j];
+        const aCasa = planned.some(m => m.casa === a && m.ospite === b) || out.some(m => m.casa === a && m.ospite === b);
+        const bCasa = planned.some(m => m.casa === b && m.ospite === a) || out.some(m => m.casa === b && m.ospite === a);
+        // Riuso existsExact su matchesArr originale
+        const aCasaOrig = existsExact(a, b) || out.some(m => m.casa === a && m.ospite === b);
+        const bCasaOrig = existsExact(b, a) || out.some(m => m.casa === b && m.ospite === a);
+        if (aCasaOrig && !bCasaOrig) out.push({casa: b, ospite: a});
+        else if (!aCasaOrig && bCasaOrig) out.push({casa: a, ospite: b});
+      }
+    }
+  }
+  return out;
+}
+
+// ── Tornei: girone ──
 function openGenCalendar(torneoId, faseId) {
   const t = tornei.find(x => x.id === torneoId);
   const f = t && t.fasi.find(x => x.id === faseId);
@@ -21354,6 +21455,7 @@ function openGenCalendar(torneoId, faseId) {
   if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre nel girone'); return; }
   document.getElementById('gcGenTorneoId').value = torneoId;
   document.getElementById('gcGenFaseId').value = faseId;
+  document.getElementById('gcGenLeva').value = '';
   document.getElementById('gcGenFaseLabel').textContent = f.nome + ' · ' + sq.length + ' squadre';
   const _r = document.querySelector('input[name="gcGenMode"][value="andata"]');
   if (_r) _r.checked = true;
@@ -21370,40 +21472,65 @@ function generateGironeCalendar() {
   const sq = f.squadre || [];
   if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre'); return; }
   if (!Array.isArray(f.partite)) f.partite = [];
-  // Crea partita con default IDENTICI a savePtFaseMatch
-  const pushMatch = (casa, ospite) => {
+  const pairs = _roundRobinPairs(f.partite, sq, mode);
+  pairs.forEach(({casa, ospite}) => {
     f.partite.push({id:'tm'+nextTornMatchId++, data:'', orario:'', casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
-  };
-  let created = 0;
-  // Andata: per ogni coppia (i<j), salta se esiste già un match in qualsiasi direzione
-  for (let i = 0; i < sq.length; i++) {
-    for (let j = i + 1; j < sq.length; j++) {
-      const a = sq[i], b = sq[j];
-      const exists = f.partite.some(m => (m.casa === a && m.ospite === b) || (m.casa === b && m.ospite === a));
-      if (!exists) { pushMatch(a, b); created++; }
-    }
-  }
-  // Ritorno: solo se mode === 'andata_ritorno' → aggiungo la direzione mancante
-  if (mode === 'andata_ritorno') {
-    for (let i = 0; i < sq.length; i++) {
-      for (let j = i + 1; j < sq.length; j++) {
-        const a = sq[i], b = sq[j];
-        const aCasa = f.partite.some(m => m.casa === a && m.ospite === b);
-        const bCasa = f.partite.some(m => m.casa === b && m.ospite === a);
-        if (aCasa && !bCasa) { pushMatch(b, a); created++; }
-        else if (!aCasa && bCasa) { pushMatch(a, b); created++; }
-        // aCasa && bCasa → già completo, skip
-      }
-    }
-  }
+  });
   closeM('mGenCalendar');
-  if (created === 0) {
-    toast('ℹ️ Calendario già completo, nessuna partita aggiunta');
-  } else {
-    toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
-  }
+  const created = pairs.length;
+  if (created === 0) toast('ℹ️ Calendario già completo, nessuna partita aggiunta');
+  else toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
   window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
+}
+
+// ── Campionato: stesso modal, branch su #gcGenLeva (no torneo/fase) ──
+function openGenCampCalendar(leva) {
+  const camp = campionato[leva];
+  if (!camp) { toast('⚠️ Configura prima il campionato'); return; }
+  const sq = camp.squadre || [];
+  if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre nel campionato'); return; }
+  document.getElementById('gcGenTorneoId').value = '';
+  document.getElementById('gcGenFaseId').value = '';
+  document.getElementById('gcGenLeva').value = leva;
+  document.getElementById('gcGenFaseLabel').textContent = 'Campionato ' + leva + ' · ' + sq.length + ' squadre';
+  const _r = document.querySelector('input[name="gcGenMode"][value="andata"]');
+  if (_r) _r.checked = true;
+  openM('mGenCalendar');
+}
+
+function generateCampCalendar() {
+  const leva = document.getElementById('gcGenLeva').value;
+  if (!leva) return;
+  const mode = (document.querySelector('input[name="gcGenMode"]:checked') || {}).value || 'andata';
+  if (!campionato[leva]) campionato[leva] = {squadre:[], partite:[]};
+  if (!Array.isArray(campionato[leva].partite)) campionato[leva].partite = [];
+  const sq = campionato[leva].squadre || [];
+  if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre'); return; }
+  const pairs = _roundRobinPairs(campionato[leva].partite, sq, mode);
+  // Schema partita campionato: id (nextCampId), giornata (null), data (''), orario (''),
+  // casa, ospite, luogo (''), played:false, golCasa:0, golOspiti:0, stats:[]
+  pairs.forEach(({casa, ospite}) => {
+    campionato[leva].partite.push({
+      id: nextCampId++, giornata: null, data: '', orario: '',
+      casa, ospite, luogo: '',
+      played: false, golCasa: 0, golOspiti: 0, stats: []
+    });
+  });
+  // NON chiamo autoCreateConvocazione qui: la convocazione nasce quando il mister setta la data
+  // (vedi saveGcAddMatch UPDATE branch).
+  closeM('mGenCalendar');
+  const created = pairs.length;
+  if (created === 0) toast('ℹ️ Calendario già completo, nessuna partita aggiunta');
+  else toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
+  window.__fieldosSaveState();
+  renderGestComp(); renderPartite(); renderCal();
+}
+
+// Dispatcher comune chiamato dal bottone "Genera" del modal mGenCalendar
+function _generateCalendarDispatch() {
+  if (document.getElementById('gcGenLeva').value) generateCampCalendar();
+  else generateGironeCalendar();
 }
 
 // ─── MODAL RISULTATO (condiviso) ───
@@ -27568,6 +27695,7 @@ async function doRejoinSocieta() {
     <div class="mh"><div class="mt">📅 Genera calendario girone</div><button class="mx" onclick="closeM('mGenCalendar')">✕</button></div>
     <input type="hidden" id="gcGenTorneoId">
     <input type="hidden" id="gcGenFaseId">
+    <input type="hidden" id="gcGenLeva">
     <div style="font-size:.85rem;color:var(--text2);margin-bottom:14px;" id="gcGenFaseLabel">—</div>
     <div class="fg" style="margin-bottom:0;">
       <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;cursor:pointer;">
@@ -27584,7 +27712,7 @@ async function doRejoinSocieta() {
     </div>
     <div style="display:flex;gap:10px;margin-top:18px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGenCalendar')">Annulla</button>
-      <button class="btn btn-p" style="flex:1;" onclick="generateGironeCalendar()">Genera</button>
+      <button class="btn btn-p" style="flex:1;" onclick="_generateCalendarDispatch()">Genera</button>
     </div>
   </div>
 </div>
@@ -27783,8 +27911,9 @@ async function doRejoinSocieta() {
 <!-- ── MODAL: Aggiungi partita campionato ── -->
 <div class="ov" id="mGcAddMatch">
   <div class="modal" style="max-width:480px;width:94vw;">
-    <div class="mh"><div class="mt">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mGcAddMatch')">✕</button></div>
+    <div class="mh"><div class="mt" id="gcAddMatchTitle">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mGcAddMatch')">✕</button></div>
     <input type="hidden" id="gcAddMatchLeva">
+    <input type="hidden" id="gcAddMatchEditId">
     <div class="g2">
       <div class="fg"><label class="fl">Data *</label><input class="fi" id="gcAddMatchData" type="date"></div>
       <div class="fg"><label class="fl">Orario</label><input class="fi" id="gcAddMatchOrario" type="time"></div>
@@ -27802,7 +27931,7 @@ async function doRejoinSocieta() {
     <div class="fg"><label class="fl">Luogo</label><input class="fi" id="gcAddMatchLuogo" placeholder="es. Campo Primavera — Genova"></div>
     <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mGcAddMatch')">Annulla</button>
-      <button class="btn btn-p" style="flex:1;" onclick="saveGcAddMatch()">💾 Aggiungi partita</button>
+      <button class="btn btn-p" style="flex:1;" id="gcAddMatchSaveBtn" onclick="saveGcAddMatch()">💾 Aggiungi partita</button>
     </div>
   </div>
 </div>
