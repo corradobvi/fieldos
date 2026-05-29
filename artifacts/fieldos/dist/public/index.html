@@ -4135,6 +4135,7 @@ let currentPresMonthFilter = null;
 let currentPresPortieriMode = false; // true = mostra solo portieri (con allenamenti portieri)
 // Comunicazioni
 let _commActiveTab = 'pubblica';
+let _commTabExplicitlyChosen = false;
 let _commSearchQ = '';
 // Statistiche
 let currentStatsTab = 'panoramica';
@@ -9501,7 +9502,7 @@ function renderComunicazioni() {
 
   const scopes = commVisibleScopes();
   if (!scopes.length) { cont.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2);">Nessuna bacheca disponibile.</div>'; return; }
-  if (me && (me.role === 'genitore' || me.role === 'nonno') && _commActiveTab === 'pubblica') _commActiveTab = 'notifiche';
+  if (me && (me.role === 'genitore' || me.role === 'nonno') && _commActiveTab === 'pubblica' && !_commTabExplicitlyChosen) _commActiveTab = 'notifiche';
   if (!scopes.find(s=>s.id===_commActiveTab) && _commActiveTab !== 'notifiche') _commActiveTab = scopes[0].id;
 
   const unreadPerScope = {};
@@ -9532,11 +9533,13 @@ function renderComunicazioni() {
       markAllNotificheRead(me.id);
     }
     refreshNotificheBadge();
+    if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   }, 700);
 }
 
 function commSwitchTab(tabId) {
   _commActiveTab = tabId;
+  _commTabExplicitlyChosen = true;
   _commSearchQ = '';
   renderComunicazioni();
 }
