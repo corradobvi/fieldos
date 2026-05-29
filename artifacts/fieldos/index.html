@@ -21900,6 +21900,8 @@ function getChatsForUser(user) {
       const isGioc = user.role === 'giocatore' && giocatoriConvocati.includes(user.id);
       const belongs = isGenit || isDirig || isGioc;
       if (belongs && members.length > 0) {
+        // FIX 3: chat torneo scrivibile per i genitori convocati (come la chat leva).
+        // Membership invariata; il flag genitoriScrivono resta solo per compat dati esistenti.
         out.push({
           id: 'torneo_' + t.id,
           name: '🏆 ' + t.nome + ' — ' + t.leva,
@@ -21909,7 +21911,7 @@ function getChatsForUser(user) {
           kind: 'torneo',
           torneoId: t.id,
           genitoriScrivono,
-          readOnly: isGenit && !genitoriScrivono
+          readOnly: false
         });
       }
     });
@@ -22085,14 +22087,10 @@ function selectChat(chatId, skipListRefresh) {
   if (noticeEl) {
     if (c.readOnly) {
       noticeEl.style.display = 'block';
-      noticeEl.innerHTML = '<span style="font-size:.78rem;">👁️ Sei in sola lettura — i genitori non possono scrivere in questa chat</span>';
+      noticeEl.innerHTML = '<span style="font-size:.78rem;">👁️ Sei in sola lettura</span>';
       if (inpArea) inpArea.style.display = 'none';
-    } else if (c.kind === 'torneo' && (me.role === 'dirigente' || isAdminLike())) {
-      noticeEl.style.display = 'block';
-      const gsCurrent = c.genitoriScrivono;
-      noticeEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;font-size:.78rem;"><span>Genitori: ${gsCurrent ? '✅ possono scrivere' : '🔒 sola lettura'}</span><button class="btn btn-xs btn-sm" onclick="toggleTorneoScrivono('${c.torneoId}')">${gsCurrent ? '🔒 Disabilita' : '✅ Abilita'} scrittura</button></div>`;
-      if (inpArea) inpArea.style.display = '';
     } else {
+      // FIX 3: niente toggle "genitori scrivono" sul torneo — sempre scrivibile come la chat leva.
       noticeEl.style.display = 'none';
       if (inpArea) inpArea.style.display = '';
     }
