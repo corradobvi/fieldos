@@ -3162,6 +3162,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;">MyVivaio v<span id="mvVersionTxt">2026-05-29.1</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -29909,6 +29910,33 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
   </div>
 </div>
+
+<script>
+// MyVivaio version badge — sincronizza il testo "v<BUILD>" con la versione
+// dichiarata dal service worker attivo (postMessage GET_VERSION).
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  function _readVersion(){
+    navigator.serviceWorker.getRegistration().then(function(reg){
+      var sw = reg && (reg.active || reg.waiting || reg.installing);
+      if (!sw) return;
+      try {
+        var ch = new MessageChannel();
+        ch.port1.onmessage = function(e){
+          if (e.data && e.data.build) {
+            var t = document.getElementById('mvVersionTxt');
+            if (t) t.textContent = e.data.build;
+          }
+        };
+        sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]);
+      } catch(_){ /* SW pre-versione: ignora, resta il fallback hardcoded nel markup */ }
+    }).catch(function(){});
+  }
+  if (document.readyState === 'complete') _readVersion();
+  else window.addEventListener('load', _readVersion);
+  navigator.serviceWorker.addEventListener('controllerchange', _readVersion);
+})();
+</script>
 
 </body>
 </html>

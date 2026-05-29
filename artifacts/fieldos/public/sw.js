@@ -1,8 +1,9 @@
 'use strict';
 // MyVivaio Service Worker — skip-waiting update pattern
-// Bump CACHE_NAME on each deploy to trigger update detection
-const CACHE_NAME    = 'myvivaio-v9';
-const RUNTIME_CACHE = 'myvivaio-runtime-v9';
+// BUILD: bumpa ad ogni deploy per forzare invalidazione cache e update detection.
+const BUILD         = '2026-05-29.1';
+const CACHE_NAME    = 'myvivaio-' + BUILD;
+const RUNTIME_CACHE = 'myvivaio-runtime-' + BUILD;
 
 // Files to precache (app shell)
 const PRECACHE = [
@@ -17,11 +18,17 @@ const PRECACHE = [
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE))
+    caches.open(CACHE_NAME)
+      .then(c => c.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
   );
-  // Do NOT skipWaiting here — let the main app show the banner first
-  // Auto skip after 60 s if the app hasn't responded
-  setTimeout(() => self.skipWaiting(), 60000);
+});
+
+// Risposta al messaggio "GET_VERSION" dell'app
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'GET_VERSION') {
+    if (e.ports && e.ports[0]) e.ports[0].postMessage({ build: BUILD });
+  }
 });
 
 self.addEventListener('activate', e => {
