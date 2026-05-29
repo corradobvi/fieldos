@@ -51,9 +51,26 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
     )) as [any[], any];
 
     if (!socRows.length) {
-      return res.status(404).json({
-        error: "polis_society_not_found",
-        detail: `Nessuna riga in societies con codice='${POLIS_CODICE}'.`,
+      // Diagnostica sola lettura: nessuna scrittura. Aiuta a capire se Polis
+      // è in MySQL sotto altro codice/nome o non c'è affatto.
+      const [polisCandidates] = (await pool.execute(
+        "SELECT id, codice, nome, stato, piano FROM societies WHERE LOWER(nome) LIKE '%polis%' OR UPPER(codice) LIKE '%POLIS%' ORDER BY id"
+      )) as [any[], any];
+      const [allSocieties] = (await pool.execute(
+        "SELECT id, codice, nome, stato FROM societies ORDER BY id"
+      )) as [any[], any];
+
+      logger.info(
+        { polisFound: false, candidates: polisCandidates.length, total: allSocieties.length },
+        "superadmin/migrate-polis-users: polis not found by code, diagnostic dump"
+      );
+
+      return res.json({
+        dryRun: true,
+        polisFound: false,
+        searchedCodice: POLIS_CODICE,
+        polisCandidates,
+        allSocieties,
       });
     }
     const polisMysqlId: number = socRows[0].id;
@@ -91,6 +108,7 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
     if (!usersDb.length) {
       return res.json({
         dryRun: true,
+        polisFound: true,
         polis: polisMeta,
         totalUsers: 0,
         toInsert: 0,
@@ -163,6 +181,7 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
 
     return res.json({
       dryRun: true,
+      polisFound: true,
       polis: polisMeta,
       totalUsers: usersDb.length,
       toInsert,
