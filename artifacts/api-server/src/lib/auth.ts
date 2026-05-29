@@ -5,7 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-const JWT_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
+const JWT_EXPIRY_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
 export interface JwtPayload {
   userId: number;

@@ -77578,7 +77578,7 @@ var JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is required");
 }
-var JWT_EXPIRY_SECONDS = 7 * 24 * 60 * 60;
+var JWT_EXPIRY_SECONDS = 30 * 24 * 60 * 60;
 var PLAN_BYPASS_SUFFIX = ["/societies/select-plan"];
 function _pathBypassesPlanCheck(originalUrl) {
   const path4 = (originalUrl || "").split("?")[0];
