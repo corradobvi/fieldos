@@ -20167,10 +20167,11 @@ function _gcFaseMatches(t, f) {
   const canEdit = canEditPt(t.leva);
   const sorted = [...(f.partite||[])].sort((a,b)=>(a.data||'').localeCompare(b.data||''));
   const polisHtml = sorted.filter(m=>mieSquadre.includes(m.casa)||mieSquadre.includes(m.ospite)).map(m=>{
-    const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
+    const rb=canEdit?`<button class="${m.played?'btn btn-g':'btn btn-p'} btn-sm" onclick="event.stopPropagation();openRisultato('torneo','${t.id}__${f.id}__${m.id}')">${m.played?'📊':'⚽'}</button>`:'';
     const db=canEdit?`<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${t.id}','${f.id}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`:'';
     const sc=m.played?`<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa}–${m.golOspiti}</span>`:`<span class="mc-score nd">Da giocare</span>`;
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre)+renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
+    const rowClick=canEdit?` onclick="openPtFaseMatch('${t.id}','${f.id}','${m.id}')" style="cursor:pointer;"`:'';
+    return `<div class="mc"${rowClick}><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${sc}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre)+renderMatchEvents(m,t.leva):''}<div class="mc-actions">${rb}${db}</div></div>`;
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
@@ -20930,11 +20931,11 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
     const score = m.played
       ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('${_dettTipo}','${ref}')">${m.golCasa} – ${m.golOspiti}</span>`
       : (canEdit
-          ? `<span style="display:flex;align-items:center;gap:3px;">
-               <input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;">
+          ? `<span style="display:flex;align-items:center;gap:3px;" onclick="event.stopPropagation();">
+               <input id="${eC}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;" onclick="event.stopPropagation();">
                <span style="color:var(--text3);font-size:.7rem;">–</span>
-               <input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;">
-               <button class="btn btn-p btn-sm" onclick="saveQuickResult('${tipo}','${ref}','${eC}','${eO}')">✓</button>
+               <input id="${eO}" type="number" min="0" max="30" value="0" style="width:34px;padding:2px 3px;border:1px solid var(--border);border-radius:5px;font-size:.8rem;text-align:center;" onclick="event.stopPropagation();">
+               <button class="btn btn-p btn-sm" onclick="event.stopPropagation();saveQuickResult('${tipo}','${ref}','${eC}','${eO}')">✓</button>
              </span>`
           : `<span class="mc-score nd">Da giocare</span>`);
     const editBtn = m.played && canEdit
@@ -20945,7 +20946,9 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
           ? `<button class="btn btn-r btn-sm" onclick="deleteGcCampMatch(${m.id});event.stopPropagation();" title="Elimina">🗑</button>`
           : `<button class="btn btn-r btn-sm" onclick="deleteTorneoMatch('${torneoId}','${faseId}','${m.id}');event.stopPropagation();" title="Elimina">🗑</button>`)
       : '';
-    return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}${tipo==='torneo'&&m.orario?' · '+m.orario:''}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
+    // Riga cliccabile solo per partite torneo (con torneoId/faseId disponibili) e canEdit
+    const rowClick = (tipo === 'torneo' && canEdit) ? ` onclick="openPtFaseMatch('${torneoId}','${faseId}','${m.id}')" style="cursor:pointer;"` : '';
+    return `<div class="mc"${rowClick}><div class="mc-date">${fmtMatchDate(m.data)}${tipo==='torneo'&&m.orario?' · '+m.orario:''}</div>${m.giornata?`<span class="mc-tag gior">G${m.giornata}</span>`:''}<div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div><div class="mc-actions">${editBtn}${delMatchBtn}</div></div>`;
   }).join('');
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
@@ -21272,18 +21275,38 @@ function savePtFase() {
   renderGestComp(); renderPartite(); renderCal();
   toast(`✅ Fase "${nome}" aggiunta!`);
 }
-function openPtFaseMatch(torneoId, faseId) {
+function openPtFaseMatch(torneoId, faseId, matchId) {
   const t = tornei.find(x => x.id === torneoId);
   const f = t && t.fasi.find(x => x.id === faseId);
   if (!f) return;
   document.getElementById('ptFMTorneoId').value = torneoId;
   document.getElementById('ptFMFaseId').value   = faseId;
-  document.getElementById('ptFMData').value = t.dataInizio || t.dataFine || '';
-  document.getElementById('ptFMOrario').value = '';
   const opts = (f.squadre||[]).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   document.getElementById('ptFMCasa').innerHTML   = opts;
   document.getElementById('ptFMOspite').innerHTML = opts;
-  if (f.squadre.length > 1) document.getElementById('ptFMOspite').selectedIndex = 1;
+  const _editEl   = document.getElementById('ptFMEditId');
+  const _titleEl  = document.getElementById('ptFMTitle');
+  const _saveBtn  = document.getElementById('ptFMSaveBtn');
+  if (matchId != null && matchId !== '') {
+    // Edit mode — precompila campi dalla partita esistente
+    const match = (f.partite||[]).find(m => String(m.id) === String(matchId));
+    if (!match) { toast('⚠️ Partita non trovata'); return; }
+    if (_editEl)  _editEl.value = String(matchId);
+    if (_titleEl) _titleEl.textContent = '✏️ Modifica partita';
+    if (_saveBtn) _saveBtn.textContent = 'Salva';
+    document.getElementById('ptFMData').value   = match.data || '';
+    document.getElementById('ptFMOrario').value = match.orario || '';
+    document.getElementById('ptFMCasa').value   = match.casa || '';
+    document.getElementById('ptFMOspite').value = match.ospite || '';
+  } else {
+    // Create mode — flusso originale invariato
+    if (_editEl)  _editEl.value = '';
+    if (_titleEl) _titleEl.textContent = '⚽ Aggiungi partita';
+    if (_saveBtn) _saveBtn.textContent = 'Aggiungi';
+    document.getElementById('ptFMData').value = t.dataInizio || t.dataFine || '';
+    document.getElementById('ptFMOrario').value = '';
+    if (f.squadre.length > 1) document.getElementById('ptFMOspite').selectedIndex = 1;
+  }
   openM('mPtFaseMatch');
 }
 function savePtFaseMatch() {
@@ -21297,6 +21320,24 @@ function savePtFaseMatch() {
   const t = tornei.find(x => x.id === tid);
   const f = t && t.fasi.find(x => x.id === fid);
   if (!f) return;
+  const _editEl = document.getElementById('ptFMEditId');
+  const editId = _editEl ? _editEl.value : '';
+  if (editId) {
+    // UPDATE: modifica SOLO casa, ospite, data, orario. NON tocca id, played, gol*, stats.
+    const match = (f.partite||[]).find(m => String(m.id) === String(editId));
+    if (!match) { toast('⚠️ Partita non trovata'); if (_editEl) _editEl.value = ''; return; }
+    match.casa = casa;
+    match.ospite = ospite;
+    match.data = data;
+    match.orario = orario;
+    if (_editEl) _editEl.value = '';
+    window.__fieldosSaveState();
+    closeM('mPtFaseMatch');
+    renderGestComp(); renderPartite(); renderCal();
+    toast('✅ Partita aggiornata!');
+    return;
+  }
+  // CREATE: flusso originale invariato
   f.partite.push({id:'tm'+nextTornMatchId++, data, orario, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
   window.__fieldosSaveState();
   closeM('mPtFaseMatch');
@@ -27502,9 +27543,10 @@ async function doRejoinSocieta() {
 <!-- Aggiungi partita a fase torneo -->
 <div class="ov" id="mPtFaseMatch">
   <div class="modal">
-    <div class="mh"><div class="mt">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mPtFaseMatch')">✕</button></div>
+    <div class="mh"><div class="mt" id="ptFMTitle">⚽ Aggiungi partita</div><button class="mx" onclick="closeM('mPtFaseMatch')">✕</button></div>
     <input type="hidden" id="ptFMTorneoId">
     <input type="hidden" id="ptFMFaseId">
+    <input type="hidden" id="ptFMEditId">
     <div class="fr">
       <div class="fg"><label class="fl">Data</label><input class="fi" id="ptFMData" type="date"></div>
       <div class="fg"><label class="fl">Orario (opzionale)</label><input class="fi" id="ptFMOrario" type="time"></div>
@@ -27515,7 +27557,7 @@ async function doRejoinSocieta() {
     </div>
     <div style="display:flex;gap:10px;margin-top:18px;">
       <button class="btn btn-g" style="flex:1;" onclick="closeM('mPtFaseMatch')">Annulla</button>
-      <button class="btn btn-p" style="flex:1;" onclick="savePtFaseMatch()">Aggiungi</button>
+      <button class="btn btn-p" style="flex:1;" id="ptFMSaveBtn" onclick="savePtFaseMatch()">Aggiungi</button>
     </div>
   </div>
 </div>
