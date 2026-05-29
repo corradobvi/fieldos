@@ -43,43 +43,75 @@ router.post("/superadmin/migrate-polis-users", async (req, res) => {
     });
   }
 
+  // Override esplicito: se il caller passa targetSocietyId, salta la ricerca per POLIS18.
+  const rawTarget = req.body?.targetSocietyId;
+  const targetSocietyId =
+    typeof rawTarget === "number" && Number.isFinite(rawTarget) && rawTarget > 0
+      ? Math.trunc(rawTarget)
+      : null;
+
   try {
-    // 1) Risolvi POLIS_MYSQL_ID dal codice POLIS18
-    const [socRows] = (await pool.execute(
-      "SELECT id, nome, stato, piano FROM societies WHERE codice = ? LIMIT 1",
-      [POLIS_CODICE]
-    )) as [any[], any];
+    let polisMysqlId: number;
+    let polisMeta: { id: number; nome: any; stato: any; piano: any };
 
-    if (!socRows.length) {
-      // Diagnostica sola lettura: nessuna scrittura. Aiuta a capire se Polis
-      // è in MySQL sotto altro codice/nome o non c'è affatto.
-      const [polisCandidates] = (await pool.execute(
-        "SELECT id, codice, nome, stato, piano FROM societies WHERE LOWER(nome) LIKE '%polis%' OR UPPER(codice) LIKE '%POLIS%' ORDER BY id"
+    if (targetSocietyId !== null) {
+      // 1a) Risolvi via targetSocietyId esplicito
+      const [byIdRows] = (await pool.execute(
+        "SELECT id, codice, nome, stato, piano FROM societies WHERE id = ? LIMIT 1",
+        [targetSocietyId]
       )) as [any[], any];
-      const [allSocieties] = (await pool.execute(
-        "SELECT id, codice, nome, stato FROM societies ORDER BY id"
+      if (!byIdRows.length) {
+        return res.status(404).json({
+          error: "target_society_not_found",
+          detail: `Nessuna riga in societies con id=${targetSocietyId}.`,
+          targetSocietyId,
+        });
+      }
+      polisMysqlId = byIdRows[0].id;
+      polisMeta = {
+        id: polisMysqlId,
+        nome: byIdRows[0].nome,
+        stato: byIdRows[0].stato,
+        piano: byIdRows[0].piano,
+      };
+    } else {
+      // 1b) Risolvi POLIS_MYSQL_ID dal codice POLIS18
+      const [socRows] = (await pool.execute(
+        "SELECT id, nome, stato, piano FROM societies WHERE codice = ? LIMIT 1",
+        [POLIS_CODICE]
       )) as [any[], any];
 
-      logger.info(
-        { polisFound: false, candidates: polisCandidates.length, total: allSocieties.length },
-        "superadmin/migrate-polis-users: polis not found by code, diagnostic dump"
-      );
+      if (!socRows.length) {
+        // Diagnostica sola lettura: nessuna scrittura. Aiuta a capire se Polis
+        // è in MySQL sotto altro codice/nome o non c'è affatto.
+        const [polisCandidates] = (await pool.execute(
+          "SELECT id, codice, nome, stato, piano FROM societies WHERE LOWER(nome) LIKE '%polis%' OR UPPER(codice) LIKE '%POLIS%' ORDER BY id"
+        )) as [any[], any];
+        const [allSocieties] = (await pool.execute(
+          "SELECT id, codice, nome, stato FROM societies ORDER BY id"
+        )) as [any[], any];
 
-      return res.json({
-        dryRun: true,
-        polisFound: false,
-        searchedCodice: POLIS_CODICE,
-        polisCandidates,
-        allSocieties,
-      });
+        logger.info(
+          { polisFound: false, candidates: polisCandidates.length, total: allSocieties.length },
+          "superadmin/migrate-polis-users: polis not found by code, diagnostic dump"
+        );
+
+        return res.json({
+          dryRun: true,
+          polisFound: false,
+          searchedCodice: POLIS_CODICE,
+          polisCandidates,
+          allSocieties,
+        });
+      }
+      polisMysqlId = socRows[0].id;
+      polisMeta = {
+        id: polisMysqlId,
+        nome: socRows[0].nome,
+        stato: socRows[0].stato,
+        piano: socRows[0].piano,
+      };
     }
-    const polisMysqlId: number = socRows[0].id;
-    const polisMeta = {
-      id: polisMysqlId,
-      nome: socRows[0].nome,
-      stato: socRows[0].stato,
-      piano: socRows[0].piano,
-    };
 
     // 2) Carica blob fieldos_state_v1
     const [blobRows] = (await pool.execute(

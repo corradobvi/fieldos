@@ -91842,37 +91842,62 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
       detail: "Questo endpoint accetta solo dryRun=true. La modalit\xE0 di scrittura verr\xE0 attivata in uno step successivo."
     });
   }
+  const rawTarget = req.body?.targetSocietyId;
+  const targetSocietyId = typeof rawTarget === "number" && Number.isFinite(rawTarget) && rawTarget > 0 ? Math.trunc(rawTarget) : null;
   try {
-    const [socRows] = await pool.execute(
-      "SELECT id, nome, stato, piano FROM societies WHERE codice = ? LIMIT 1",
-      [POLIS_CODICE]
-    );
-    if (!socRows.length) {
-      const [polisCandidates] = await pool.execute(
-        "SELECT id, codice, nome, stato, piano FROM societies WHERE LOWER(nome) LIKE '%polis%' OR UPPER(codice) LIKE '%POLIS%' ORDER BY id"
+    let polisMysqlId;
+    let polisMeta;
+    if (targetSocietyId !== null) {
+      const [byIdRows] = await pool.execute(
+        "SELECT id, codice, nome, stato, piano FROM societies WHERE id = ? LIMIT 1",
+        [targetSocietyId]
       );
-      const [allSocieties] = await pool.execute(
-        "SELECT id, codice, nome, stato FROM societies ORDER BY id"
+      if (!byIdRows.length) {
+        return res.status(404).json({
+          error: "target_society_not_found",
+          detail: `Nessuna riga in societies con id=${targetSocietyId}.`,
+          targetSocietyId
+        });
+      }
+      polisMysqlId = byIdRows[0].id;
+      polisMeta = {
+        id: polisMysqlId,
+        nome: byIdRows[0].nome,
+        stato: byIdRows[0].stato,
+        piano: byIdRows[0].piano
+      };
+    } else {
+      const [socRows] = await pool.execute(
+        "SELECT id, nome, stato, piano FROM societies WHERE codice = ? LIMIT 1",
+        [POLIS_CODICE]
       );
-      logger.info(
-        { polisFound: false, candidates: polisCandidates.length, total: allSocieties.length },
-        "superadmin/migrate-polis-users: polis not found by code, diagnostic dump"
-      );
-      return res.json({
-        dryRun: true,
-        polisFound: false,
-        searchedCodice: POLIS_CODICE,
-        polisCandidates,
-        allSocieties
-      });
+      if (!socRows.length) {
+        const [polisCandidates] = await pool.execute(
+          "SELECT id, codice, nome, stato, piano FROM societies WHERE LOWER(nome) LIKE '%polis%' OR UPPER(codice) LIKE '%POLIS%' ORDER BY id"
+        );
+        const [allSocieties] = await pool.execute(
+          "SELECT id, codice, nome, stato FROM societies ORDER BY id"
+        );
+        logger.info(
+          { polisFound: false, candidates: polisCandidates.length, total: allSocieties.length },
+          "superadmin/migrate-polis-users: polis not found by code, diagnostic dump"
+        );
+        return res.json({
+          dryRun: true,
+          polisFound: false,
+          searchedCodice: POLIS_CODICE,
+          polisCandidates,
+          allSocieties
+        });
+      }
+      polisMysqlId = socRows[0].id;
+      polisMeta = {
+        id: polisMysqlId,
+        nome: socRows[0].nome,
+        stato: socRows[0].stato,
+        piano: socRows[0].piano
+      };
     }
-    const polisMysqlId = socRows[0].id;
-    const polisMeta = {
-      id: polisMysqlId,
-      nome: socRows[0].nome,
-      stato: socRows[0].stato,
-      piano: socRows[0].piano
-    };
     const [blobRows] = await pool.execute(
       "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
       [POLIS_BLOB_KEY]
