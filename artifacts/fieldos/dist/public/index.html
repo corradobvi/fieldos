@@ -5220,7 +5220,7 @@ function bootApp(user) {
     // PWA: nascondi splash, richiedi push permission dopo 2s
     if (typeof window._pwaSplashHide === 'function') window._pwaSplashHide();
     const _sk = window._mvSocietaKey || null;
-    if (_sk && me) { const _uid = me.id; setTimeout(() => { if (me) requestPushPermission(_uid, _sk); }, 2000); }
+    if (_sk && me) { const _uid = me.id; setTimeout(() => { if (me) { try { Promise.resolve(requestPushPermission(_uid, _sk)).catch(() => {}); } catch(_) {} } }, 2000); }
   }, 380);
 }
 
@@ -29255,24 +29255,31 @@ async function subscribePush(userId, societyKey) {
 }
 
 // ── Request push permission then subscribe
+// Safari iOS fuori PWA NON espone window.Notification: il check va FATTO PRIMA di
+// qualunque accesso a `Notification` (anche optional chaining lancia ReferenceError
+// se la variabile globale non è dichiarata).
 async function requestPushPermission(userId, societyKey) {
-  console.log('[Push] requestPushPermission — userId:', userId, 'permission:', Notification?.permission);
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-    console.warn('[Push] requestPushPermission: Notification or serviceWorker not supported');
-    return;
+  try {
+    if (typeof Notification === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) {
+      console.warn('[Push] requestPushPermission: Notification or serviceWorker not supported');
+      return;
+    }
+    console.log('[Push] requestPushPermission — userId:', userId, 'permission:', Notification.permission);
+    if (Notification.permission === 'granted') {
+      await subscribePush(userId, societyKey);
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      console.warn('[Push] requestPushPermission: permission denied by user');
+      return;
+    }
+    console.log('[Push] requestPushPermission: requesting permission…');
+    const perm = await Notification.requestPermission();
+    console.log('[Push] requestPushPermission: result =', perm);
+    if (perm === 'granted') await subscribePush(userId, societyKey);
+  } catch (e) {
+    console.warn('[Push] requestPushPermission failed (non-blocking):', e);
   }
-  if (Notification.permission === 'granted') {
-    await subscribePush(userId, societyKey);
-    return;
-  }
-  if (Notification.permission === 'denied') {
-    console.warn('[Push] requestPushPermission: permission denied by user');
-    return;
-  }
-  console.log('[Push] requestPushPermission: requesting permission…');
-  const perm = await Notification.requestPermission();
-  console.log('[Push] requestPushPermission: result =', perm);
-  if (perm === 'granted') await subscribePush(userId, societyKey);
 }
 
 // ── Send push notification to a user via backend
