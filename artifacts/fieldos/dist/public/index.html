@@ -1302,10 +1302,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
   .msg-b{word-break:break-word;overflow-wrap:anywhere;max-width:100%;box-sizing:border-box;}
   .msg-img{max-width:100%;height:auto;}
-  /* Tastiera aperta: nascondi topbar + bottom nav, espandi #pg-chat full height */
+  /* Tastiera aperta: nascondi topbar + bottom nav. L'altezza/posizione del pannello
+     è gestita inline da _setupChatKb via visualViewport (no !important per non
+     sovrascrivere lo style inline). */
   body.chat-kb-open .topbar{display:none!important;}
   body.chat-kb-open .mob-nav{display:none!important;}
-  body.chat-kb-open #pg-chat.on{top:0!important;bottom:0!important;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
   #presMobCards{display:flex!important;flex-direction:column;gap:8px;}
@@ -22122,8 +22123,21 @@ function selectChat(chatId, skipListRefresh) {
     const _chatInp = document.getElementById('chatInp');
     if (_chatInp && !_chatInp.dataset.kbBound) {
       _chatInp.dataset.kbBound = '1';
-      _chatInp.addEventListener('focus', () => document.body.classList.add('chat-kb-open'));
-      _chatInp.addEventListener('blur',  () => document.body.classList.remove('chat-kb-open'));
+      _chatInp.addEventListener('focus', () => {
+        document.body.classList.add('chat-kb-open');
+        // vv.resize riposiziona top/height; qui solo scroll in fondo, riprovato dopo l'animazione tastiera.
+        const msgs = document.getElementById('chatMsgs');
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
+        setTimeout(() => { if (msgs) msgs.scrollTop = msgs.scrollHeight; }, 320);
+      });
+      _chatInp.addEventListener('blur', () => {
+        document.body.classList.remove('chat-kb-open');
+        // Reset esplicito stile inline → ripristina default CSS (top:52px / bottom:calc(...)).
+        const _pg = document.getElementById('pg-chat');
+        if (_pg) { _pg.style.top = ''; _pg.style.height = ''; _pg.style.bottom = ''; }
+        const msgs = document.getElementById('chatMsgs');
+        if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
+      });
     }
   }
   if (!skipListRefresh) renderChatList();
@@ -22143,14 +22157,27 @@ function chatGoBack() {
 function _setupChatKb() {
   const vv = window.visualViewport;
   if (!vv) return null;
-  const TOPBAR_H = 52;
   function _update() {
     const el = document.getElementById('pg-chat');
     if (!el || !el.classList.contains('on')) return;
-    el.style.top = (vv.offsetTop + TOPBAR_H) + 'px';
-    el.style.height = (vv.height - TOPBAR_H) + 'px';
-    el.style.bottom = 'auto';
-    // Scroll messaggi in fondo dopo resize
+    // Safety: se la tastiera è stata chiusa da gesture sistema (no blur scattato),
+    // riallinea lo stato — il blur su iOS può saltare con swipe-down sulla tastiera.
+    const kbClosed = (window.innerHeight - vv.height) < 60;
+    if (kbClosed && document.body.classList.contains('chat-kb-open')) {
+      document.body.classList.remove('chat-kb-open');
+    }
+    if (document.body.classList.contains('chat-kb-open')) {
+      // Tastiera APERTA: pannello ancorato all'area visibile (sopra la tastiera).
+      // Topbar è hidden via CSS, quindi non sottraiamo TOPBAR_H.
+      el.style.top = vv.offsetTop + 'px';
+      el.style.height = vv.height + 'px';
+      el.style.bottom = 'auto';
+    } else {
+      // Tastiera CHIUSA: reset stile inline → torna a top:52px / bottom:calc(...) da CSS.
+      el.style.top = '';
+      el.style.height = '';
+      el.style.bottom = '';
+    }
     const msgs = document.getElementById('chatMsgs');
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
   }
@@ -22159,6 +22186,7 @@ function _setupChatKb() {
   return function() {
     vv.removeEventListener('resize', _update);
     vv.removeEventListener('scroll', _update);
+    document.body.classList.remove('chat-kb-open');
     const el = document.getElementById('pg-chat');
     if (el) { el.style.top = ''; el.style.height = ''; el.style.bottom = ''; }
   };
