@@ -22189,8 +22189,10 @@ function selectChat(chatId, skipListRefresh) {
           _el.style.top    = _vv.offsetTop + 'px';
           _el.style.height = _vv.height    + 'px';
           _el.style.bottom = 'auto';
-          _el.style.left   = _vv.offsetLeft + 'px';
-          _el.style.width  = _vv.width     + 'px';
+          // Niente width/left inline: il CSS body.chat-kb-open #pg-chat.on{left:0;right:0}
+          // vincola la larghezza al viewport visibile; un width esplicito poteva sforare.
+          _el.style.left   = '';
+          _el.style.width  = '';
         }
         const _msgs = document.getElementById('chatMsgs');
         if (_msgs) {
@@ -22245,14 +22247,15 @@ function _setupChatKb() {
     }
     if (document.body.classList.contains('chat-kb-open')) {
       // Tastiera APERTA: pannello ancorato all'area visibile (sopra la tastiera).
-      // Topbar è hidden via CSS, quindi non sottraiamo TOPBAR_H.
+      // SOLO top/height/bottom inline: per la larghezza ci affidiamo al CSS
+      // (body.chat-kb-open #pg-chat.on{left:0!important;right:0!important;max-width:100%!important}).
+      // vv.width inline poteva sforare di 1-2px su iOS → "Invia" usciva.
       el.style.top = vv.offsetTop + 'px';
       el.style.height = vv.height + 'px';
       el.style.bottom = 'auto';
-      // Difetto 3: layout viewport ≠ visual viewport su iOS in landscape o zoom →
-      // ancora anche left e width al visual viewport per evitare overflow a destra.
-      el.style.left = vv.offsetLeft + 'px';
-      el.style.width = vv.width + 'px';
+      // Pulizia esplicita di qualsiasi residuo da build precedenti.
+      el.style.left = '';
+      el.style.width = '';
     } else {
       // Tastiera CHIUSA: reset stile inline → torna a top:52px / bottom:calc(...) da CSS.
       el.style.top = '';
