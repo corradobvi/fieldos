@@ -6088,13 +6088,14 @@ function renderRosa() {
     const displayName = p.incomplete
       ? escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn_iniziale || '')
       : escapeHtml(p.nome) + ' ' + escapeHtml(p.cogn);
+    const annoOrBirth = p.birth_date ? _fmtBirthDateIt(p.birth_date) : (p.anno || '');
     top.innerHTML = `
       ${playerAv(p, 40, '10px', true)}
       <div style="flex:1;min-width:0;">
         <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
         ${incompleteBadge}${indispBadge}
         ${p.soprannome ? `<div style="font-size:.71rem;color:var(--text3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${escapeHtml(p.soprannome)}"</div>` : ''}
-        <div class="pc-role">${escapeHtml(p.ruolo || '')} · ${p.anno || ''}</div>
+        <div class="pc-role">${escapeHtml(p.ruolo || '')}${annoOrBirth ? ' · ' + annoOrBirth : ''}</div>
       </div>
       <div class="pc-num">#${p.num}</div>`;
     card.appendChild(top);
@@ -8611,6 +8612,8 @@ function renderConvocazioneCard(ev) {
 }
 
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// Formatta birth_date ('YYYY-MM-DD' o ISO) in italiano gg/mm/aaaa. Fallback a stringa originale se shape inattesa.
+function _fmtBirthDateIt(bd){ if(!bd) return ''; const s=String(bd).slice(0,10); const p=s.split('-'); if(p.length!==3) return s; return p[2]+'/'+p[1]+'/'+p[0]; }
 
 // ─── MODALE CONVOCAZIONE (allenatore) ────────────────
 
