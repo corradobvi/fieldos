@@ -3166,7 +3166,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.2</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.3</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -29944,7 +29944,7 @@ document.addEventListener('DOMContentLoaded', () => {
   navigator.serviceWorker.addEventListener('controllerchange', _readVersion);
 })();
 
-// Live computed-display della bottom nav reale (#mobNav). Diagnosi temporanea.
+// Live computed-display della bottom nav reale (#mobNav) — aggiorna il badge versione in Impostazioni.
 (function(){
   function _updateNavDisp(){
     var n = document.getElementById('mobNav');
@@ -29966,6 +29966,37 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setInterval(_updateNavDisp, 1000);
 })();
+
+// ═══════════════════ DEBUG TEMPORANEO ═══════════════════
+// Overlay fisso in alto visibile su TUTTE le pagine (anche dentro la chat).
+// Mostra in tempo reale il display computed di #mobNav e lo stato chat-kb-open.
+// Da rimuovere appena confermato il comportamento.
+(function(){
+  if (document.getElementById('kbDbgGlobal')) return;
+  var box = document.createElement('div');
+  box.id = 'kbDbgGlobal';
+  box.style.cssText = 'position:fixed;top:0;left:0;z-index:2147483647;font:11px monospace;background:rgba(0,0,0,.8);color:#0f0;padding:3px 6px;pointer-events:none;white-space:pre;';
+  box.textContent = 'nav: ? · kb-open: NO';
+  function _attach(){
+    if (document.body) document.body.appendChild(box);
+    else window.addEventListener('DOMContentLoaded', _attach, { once:true });
+  }
+  _attach();
+  function _render(){
+    var n = document.getElementById('mobNav');
+    var disp = n ? (function(){ try { return getComputedStyle(n).display; } catch(_){ return '?'; } })() : '(no #mobNav)';
+    var kb = document.body && document.body.classList.contains('chat-kb-open') ? 'YES' : 'NO';
+    box.textContent = 'nav: ' + disp + ' · kb-open: ' + kb;
+  }
+  document.addEventListener('focusin',  _render, true);
+  document.addEventListener('focusout', _render, true);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', _render);
+    window.visualViewport.addEventListener('scroll', _render);
+  }
+  setInterval(_render, 1000);
+})();
+// ═══════════════════ /DEBUG TEMPORANEO ═══════════════════
 </script>
 
 </body>
