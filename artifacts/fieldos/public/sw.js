@@ -1,7 +1,7 @@
 'use strict';
 // MyVivaio Service Worker — skip-waiting update pattern
 // BUILD: bumpa ad ogni deploy per forzare invalidazione cache e update detection.
-const BUILD         = '2026-05-29.3';
+const BUILD         = '2026-05-29.4';
 const CACHE_NAME    = 'myvivaio-' + BUILD;
 const RUNTIME_CACHE = 'myvivaio-runtime-' + BUILD;
 

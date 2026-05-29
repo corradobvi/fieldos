@@ -3166,7 +3166,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.3</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.4</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -22241,18 +22241,10 @@ function _setupChatKb() {
   function _update() {
     const el = document.getElementById('pg-chat');
     if (!el || !el.classList.contains('on')) return;
-    const kbDelta = window.innerHeight - vv.height;
-    // Safety chiusura: gesture sistema senza blur → resetta classe.
-    if (kbDelta < 60 && document.body.classList.contains('chat-kb-open')) {
-      document.body.classList.remove('chat-kb-open');
-    }
-    // Fallback apertura: se siamo in conversazione e la viewport visuale è chiaramente
-    // ridotta dalla tastiera (>80px), ma focusin non ha applicato la classe (es. iOS
-    // PWA in cui l'evento può non bubblare), la applichiamo qui.
-    if (kbDelta > 80 && el.classList.contains('chat-panel-open') &&
-        !document.body.classList.contains('chat-kb-open')) {
-      document.body.classList.add('chat-kb-open');
-    }
+    // chat-kb-open NON dipende dal delta — viene aggiunta/rimossa solo da focusin/focusout
+    // sull'input chat (vedi selectChat). Qui ci limitiamo a riposizionare il pannello.
+    // Race precedente: durante l'animazione tastiera (~250ms) delta<60 e la safety
+    // rimuoveva la classe appena aggiunta → la nav riappariva fino al primo scroll.
     if (document.body.classList.contains('chat-kb-open')) {
       // Tastiera APERTA: pannello ancorato all'area visibile (sopra la tastiera).
       // SOLO top/height/bottom inline: per la larghezza ci affidiamo al CSS
