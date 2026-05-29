@@ -3166,7 +3166,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.2</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.3</span><br><span id="mvNavDispTxt" style="opacity:.7;">nav: ?</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -12028,15 +12028,15 @@ function _srBuildIdentityFields() {
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
       const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
-      // Verifica richiesta SOLO se incomplete (allinea col branch bp: secondi genitori NON ricompilano)
-      if (ap && ap.incomplete === true) toVerify.push({
+      // Verifica richiesta se needsCompletion (cognome/birth_date mancanti) o incomplete legacy
+      if (ap && (ap.needsCompletion === true || ap.incomplete === true)) toVerify.push({
         rawId:       String(ap.id),
         displayName: ap.firstName + ' ' + ap.lastNameInitial + (ap.shirtNumber ? ' #' + ap.shirtNumber : '') + ' · ' + (ap.levaKey || '')
       });
     } else {
-      // In-memory player — verifica richiesta SOLO se incomplete (creato con form GDPR)
+      // In-memory player — verifica richiesta se incomplete o senza cognome/birth_date nel blob
       const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
-      if (bp && bp.incomplete === true) toVerify.push({
+      if (bp && (bp.incomplete === true || !bp.cogn || !bp.birth_date)) toVerify.push({
         rawId:       String(bp.id),
         displayName: (bp.nome || '') + ' ' + (bp.cogn_iniziale || bp.cogn || '') + ' · ' + (bp.leva || '')
       });
@@ -12073,11 +12073,11 @@ function srStep3Next(){
   _selfRegSelectedIds.forEach(function(sid) {
     if (typeof sid === 'string' && apiIds.has(sid)) {
       const ap = _srApiPlayers.find(p => 'api_' + p.id === sid);
-      // Verifica richiesta SOLO se incomplete (allinea col branch bp)
-      if (ap && ap.incomplete === true) toValidate.push(sid.replace('api_',''));
+      // Verifica richiesta se needsCompletion o incomplete (allinea col branch bp)
+      if (ap && (ap.needsCompletion === true || ap.incomplete === true)) toValidate.push(sid.replace('api_',''));
     } else {
       const bp = (typeof players !== 'undefined' && Array.isArray(players)) ? players.find(p => p.id === sid) : null;
-      if (bp && bp.incomplete === true) toValidate.push(String(bp.id));
+      if (bp && (bp.incomplete === true || !bp.cogn || !bp.birth_date)) toValidate.push(String(bp.id));
     }
   });
   if (toValidate.length > 0) {

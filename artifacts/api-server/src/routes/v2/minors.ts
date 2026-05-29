@@ -99,6 +99,7 @@ router.get("/players/public-incomplete", async (req, res) => {
     const [rows] = (await pool.execute(
       `SELECT p.id, p.nome AS firstName, p.cognome_iniziale AS lastNameInitial,
               p.numero AS shirtNumber, p.leva AS levaKey, p.incomplete,
+              p.cognome AS _cognome, p.birth_date AS _birthDate,
               COUNT(pg.id) AS guardiansCount
        FROM players p
        LEFT JOIN player_guardians pg ON pg.player_id = p.id
@@ -108,6 +109,7 @@ router.get("/players/public-incomplete", async (req, res) => {
       levaKey ? [societyId, levaKey] : [societyId]
     )) as [any[], any];
 
+    // PRIVACY: esponi solo il booleano needsCompletion, MAI cognome/birth_date reali
     return res.json((rows as any[]).map((r: any) => ({
       id: r.id,
       firstName: r.firstName,
@@ -115,6 +117,7 @@ router.get("/players/public-incomplete", async (req, res) => {
       shirtNumber: r.shirtNumber,
       levaKey: r.levaKey,
       incomplete: !!r.incomplete,
+      needsCompletion: !!r.incomplete || !r._cognome || !r._birthDate,
       guardiansCount: Number(r.guardiansCount),
     })));
   } catch (e: any) {
@@ -181,7 +184,7 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
 
   try {
     const [players] = (await pool.execute(
-      "SELECT id, nome, cognome_iniziale, leva, incomplete, society_id FROM players WHERE id = ? AND society_id = ?",
+      "SELECT id, nome, cognome, cognome_iniziale, leva, incomplete, birth_date, society_id FROM players WHERE id = ? AND society_id = ?",
       [playerId, societyId]
     )) as [any[], any];
     if (!players.length) return res.status(404).json({ error: "player_not_found" });
@@ -201,10 +204,11 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
     )) as [any[], any];
     const isFirstClaim = ((gCountRows[0] as any).n ?? 0) === 0;
 
-    // Incomplete player: must supply full name + birth_date
-    if (player.incomplete) {
-      if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required_for_incomplete_player" });
-      if (!birthDate) return res.status(400).json({ error: "birthDate_required_for_incomplete_player" });
+    // Player needs completion: incomplete=1 OR cognome vuoto/NULL OR birth_date NULL
+    const needsCompletion = !!player.incomplete || !player.cognome || !player.birth_date;
+    if (needsCompletion) {
+      if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required" });
+      if (!birthDate) return res.status(400).json({ error: "birthDate_required" });
 
       await pool.execute(
         "UPDATE players SET cognome = ?, birth_date = ?, incomplete = 0 WHERE id = ?",
