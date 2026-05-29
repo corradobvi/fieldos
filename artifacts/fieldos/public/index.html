@@ -6178,6 +6178,24 @@ async function saveMinorPlayer() {
   if (!levaKey) { _err('⚠️ Seleziona la leva.'); return; }
   if (!_v2Token) { _err('⛔ Non autenticato. Ricarica la pagina e accedi di nuovo.'); return; }
 
+  // Check duplicati nella rosa locale
+  const nomeCheck = firstName.toLowerCase();
+  const inizialeCheck = initial.toLowerCase();
+  const duplicato = players.find(p =>
+    p.nome && p.cogn_iniziale &&
+    p.nome.toLowerCase() === nomeCheck &&
+    p.cogn_iniziale.toLowerCase() === inizialeCheck
+  );
+  if (duplicato) {
+    const label = duplicato.cogn
+      ? `${duplicato.nome} ${duplicato.cogn}`
+      : `${duplicato.nome} ${duplicato.cogn_iniziale}`;
+    const conferma = confirm(
+      `⚠️ Esiste già un giocatore con questo nome nella rosa: "${label}".\n\nVuoi crearne comunque uno nuovo?`
+    );
+    if (!conferma) return;
+  }
+
   const saveBtn = document.getElementById('pBtnSave');
   if (saveBtn) { saveBtn.disabled=true; saveBtn.textContent='⏳ Creazione…'; }
 
@@ -17948,26 +17966,36 @@ function renderCalGenMese() {
   const todayStr = ymd(new Date());
 
   const MESI_FULL = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-  const DAY_HEADS = ['L','M','M','G','V','S','D'];
+  // Stesse intestazioni del calendario mister
+  const DAY_HEADS = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
   const firstDow = new Date(calGenYear, calGenMonth, 1).getDay();
   const offset = firstDow === 0 ? 6 : firstDow - 1;
   const daysInMonth = new Date(calGenYear, calGenMonth + 1, 0).getDate();
+  const prevMonthLast = new Date(calGenYear, calGenMonth, 0).getDate();
 
-  let cells = DAY_HEADS.map(h => `<div class="cgm-head">${h}</div>`).join('');
-  for (let i = 0; i < offset; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
+  // Header giorni settimana (stesso markup mister: .cal-hd)
+  let headHtml = DAY_HEADS.map(h => `<div class="cal-hd">${h}</div>`).join('');
 
+  // Celle (stesso markup mister: .cal-d / .cal-dn) — eventi come pallini colorati (5 colori esistenti)
+  let cells = '';
+  for (let i = 0; i < offset; i++) {
+    cells += `<div class="cal-d om"><div class="cal-dn">${prevMonthLast - offset + 1 + i}</div></div>`;
+  }
   for (let day = 1; day <= daysInMonth; day++) {
     const ds = calGenYear + '-' + pad2(calGenMonth + 1) + '-' + pad2(day);
     const isToday = ds === todayStr;
     const markers = getMyDayMarkers(ds);
     const dots = _renderCalGenDots(markers);
-    const circleClass = 'cgm-day-circle' + (isToday ? ' cgm-today' : '');
-    cells += `<div class="cgm-cell" onclick="openCalDayModal('${ds}')"><div class="${circleClass}"><span class="cgm-num">${day}</span></div>${dots ? `<div class="cgm-dots">${dots}</div>` : ''}</div>`;
+    cells += `<div class="cal-d${isToday ? ' today' : ''}" onclick="openCalDayModal('${ds}')">
+      <div class="cal-dn">${day}</div>
+      ${dots ? `<div class="cgm-dots" style="justify-content:flex-start;margin:4px 0 0 0;">${dots}</div>` : ''}
+    </div>`;
   }
-
   const trailing = Math.ceil((offset + daysInMonth) / 7) * 7 - (offset + daysInMonth);
-  for (let i = 0; i < trailing; i++) cells += '<div class="cgm-cell cgm-other"><div class="cgm-day-circle"></div></div>';
+  for (let i = 1; i <= trailing; i++) {
+    cells += `<div class="cal-d om"><div class="cal-dn">${i}</div></div>`;
+  }
 
   body.innerHTML = `
     <div class="cgm-header">
@@ -17979,7 +18007,8 @@ function renderCalGenMese() {
       <span class="cgm-nav-label">${MESI_FULL[calGenMonth]} ${calGenYear}</span>
       <button class="cgm-nav-btn" onclick="calGenMove(1)">›</button>
     </div>
-    <div class="cgm-grid">${cells}</div>`;
+    <div class="cal-gw">${headHtml}</div>
+    <div class="cal-gw" style="margin-top:3px;">${cells}</div>`;
 }
 
 // Helper visivo: icona type evento
