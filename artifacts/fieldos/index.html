@@ -20964,9 +20964,11 @@ function saveQuickResult(tipo, ref, idC, idO) {
     match = f && f.partite.find(m => m.id === parts[2]);
   }
   if (!match) { toast('⚠️ Partita non trovata'); return; }
+  const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
   match.golCasa = gc; match.golOspiti = go; match.played = true;
-  // Notifica risultato a TUTTI i genitori della leva (convocati o non), via card notifica in-app
-  _notifyRisultatoToGenitori(tipo, match, gc, go);
+  const _isNewOrChanged = !_wasPlayed || _prevGc !== gc || _prevGo !== go;
+  // Notifica risultato a TUTTI i genitori della leva (convocati o non): card in-app sempre, webpush solo se nuovo/cambiato
+  _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
   // INTEGRATION HOOK — finestra per integrazioni esterne (altri gestionali, feed risultati, giornalino):
   // window.__fieldosExternalFeed = { onResult(ctx) { /* ctx: {tipo, ref, golCasa, golOspiti} */ } }
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
@@ -20977,7 +20979,9 @@ function saveQuickResult(tipo, ref, idC, idO) {
 }
 
 // Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
-function _notifyRisultatoToGenitori(tipo, match, gc, go) {
+// triggerWebpush=true → invia anche webpush nativo (destinatari risolti server-side).
+// Il caller deve passare true SOLO quando il risultato è nuovo o è cambiato.
+function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
   try {
     let leva = match && match.leva;
     let avversario = '';
@@ -21000,13 +21004,24 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go) {
       }
     }
     if (!leva) return;
-    const ids = recipientsForGenitoriOfLeva(leva);
-    if (!ids.length) return;
     const score = `${gc}–${go}`;
     const title = `⚽ Risultato ${tipoLabel} (${leva}): ${score}`;
     const body = avversario ? `vs ${avversario}` : '';
-    ids.forEach(uid => pushNotifica(uid, { type: 'risultato_partita', title, body }));
-    if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
+    const ids = recipientsForGenitoriOfLeva(leva);
+    if (ids.length) {
+      ids.forEach(uid => pushNotifica(uid, { type: 'risultato_partita', title, body }));
+      if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
+    }
+    // Webpush nativo — solo quando risultato è nuovo/cambiato. Lista destinatari risolta server-side.
+    if (triggerWebpush && typeof _v2Token !== 'undefined' && _v2Token) {
+      try {
+        fetch(API_BASE + '/api/v2/notifiche/risultato-partita', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+          body: JSON.stringify({ leva, title, body })
+        }).catch(() => { /* non bloccante */ });
+      } catch(_) { /* non bloccante */ }
+    }
   } catch(_) { /* non bloccante */ }
 }
 
@@ -21499,7 +21514,9 @@ function savePtRisultato() {
   if (gcRaw === '' || goRaw === '') { toast('⚠️ Inserisci il risultato prima di salvare'); return; }
   const gc = Math.max(0, parseInt(gcRaw) || 0);
   const go = Math.max(0, parseInt(goRaw) || 0);
+  const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
   match.golCasa = gc; match.golOspiti = go; match.played = true;
+  const _isNewOrChanged = !_wasPlayed || _prevGc !== gc || _prevGo !== go;
   // Read stats — merge with existing entry to preserve legacy fields (titolare/minuti/gialli/rossi)
   const stats = [];
   document.querySelectorAll('#ptRisStatsList .rprow:not(.rprow-hd)').forEach(row => {
@@ -21524,8 +21541,8 @@ function savePtRisultato() {
   }
   const cambiSec = document.getElementById('ptRisCambiSection');
   if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
-  // Notifica risultato a TUTTI i genitori della leva (convocati o non)
-  _notifyRisultatoToGenitori(tipo, match, gc, go);
+  // Notifica risultato a TUTTI i genitori della leva (convocati o non): card in-app sempre, webpush solo se nuovo/cambiato
+  _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}

@@ -31,6 +31,7 @@ import selectPlanRouter            from "./select-plan";
 import adminGenitoreDebugRouter    from "./admin-genitore-debug";
 import adminPushDebugRouter        from "./admin-push-debug";
 import adminCleanupPreviewRouter   from "./admin-cleanup-preview";
+import notificheRisultatoRouter    from "./notifiche-risultato";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -332,4 +333,5 @@ router.use(selectPlanRouter);
 router.use(adminGenitoreDebugRouter);
 router.use(adminPushDebugRouter);
 router.use(adminCleanupPreviewRouter);
+router.use(notificheRisultatoRouter);
 export default router;
