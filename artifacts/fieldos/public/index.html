@@ -22168,32 +22168,47 @@ function selectChat(chatId, skipListRefresh) {
   if (wrap) wrap.classList.add('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.add('chat-panel-open');
-  // Mobile: marca lo stato conversazione (usato da _setupChatKb) + hook focus/blur input
+  // Mobile: marca lo stato conversazione (usato da _setupChatKb) + delega focusin/focusout.
+  // focus/blur NON bubblano: usiamo focusin/focusout sul document, più robusti contro
+  // re-render dell'input e differenze iOS Safari/PWA.
   if (window.innerWidth <= 640) {
     document.body.classList.add('in-chat-conv');
     if (_chatKbCleanup) { try { _chatKbCleanup(); } catch(_e) {} }
     _chatKbCleanup = _setupChatKb();
-    const _chatInp = document.getElementById('chatInp');
-    if (_chatInp && !_chatInp.dataset.kbBound) {
-      _chatInp.dataset.kbBound = '1';
-      _chatInp.addEventListener('focus', () => {
+    if (!document.documentElement.dataset.chatKbDelegated) {
+      document.documentElement.dataset.chatKbDelegated = '1';
+      const _isChatInputTarget = (t) => !!(t && (t.id === 'chatInp' || (t.closest && t.closest('.cm-inp'))));
+      document.addEventListener('focusin', (e) => {
+        if (window.innerWidth > 640) return;
+        if (!_isChatInputTarget(e.target)) return;
         document.body.classList.add('chat-kb-open');
-        // vv.resize riposiziona top/height; qui solo scroll in fondo, riprovato dopo l'animazione tastiera.
-        const msgs = document.getElementById('chatMsgs');
-        if (msgs) msgs.scrollTop = msgs.scrollHeight;
-        setTimeout(() => { if (msgs) msgs.scrollTop = msgs.scrollHeight; }, 320);
-      });
-      _chatInp.addEventListener('blur', () => {
-        document.body.classList.remove('chat-kb-open');
-        // Reset esplicito stile inline → ripristina default CSS (top:52px / bottom:calc(...)).
-        const _pg = document.getElementById('pg-chat');
-        if (_pg) {
-          _pg.style.top = ''; _pg.style.height = ''; _pg.style.bottom = '';
-          _pg.style.left = ''; _pg.style.width = '';
+        // Applica il riposizionamento immediato senza aspettare vv.resize.
+        const _vv = window.visualViewport;
+        const _el = document.getElementById('pg-chat');
+        if (_vv && _el && _el.classList.contains('on')) {
+          _el.style.top    = _vv.offsetTop + 'px';
+          _el.style.height = _vv.height    + 'px';
+          _el.style.bottom = 'auto';
+          _el.style.left   = _vv.offsetLeft + 'px';
+          _el.style.width  = _vv.width     + 'px';
         }
-        const msgs = document.getElementById('chatMsgs');
-        if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 60);
-      });
+        const _msgs = document.getElementById('chatMsgs');
+        if (_msgs) {
+          _msgs.scrollTop = _msgs.scrollHeight;
+          setTimeout(() => { _msgs.scrollTop = _msgs.scrollHeight; }, 320);
+        }
+      }, true);
+      document.addEventListener('focusout', (e) => {
+        if (!_isChatInputTarget(e.target)) return;
+        document.body.classList.remove('chat-kb-open');
+        const _el = document.getElementById('pg-chat');
+        if (_el) {
+          _el.style.top = ''; _el.style.height = ''; _el.style.bottom = '';
+          _el.style.left = ''; _el.style.width = '';
+        }
+        const _msgs = document.getElementById('chatMsgs');
+        if (_msgs) setTimeout(() => { _msgs.scrollTop = _msgs.scrollHeight; }, 60);
+      }, true);
     }
   }
   if (!skipListRefresh) renderChatList();
@@ -22216,11 +22231,17 @@ function _setupChatKb() {
   function _update() {
     const el = document.getElementById('pg-chat');
     if (!el || !el.classList.contains('on')) return;
-    // Safety: se la tastiera è stata chiusa da gesture sistema (no blur scattato),
-    // riallinea lo stato — il blur su iOS può saltare con swipe-down sulla tastiera.
-    const kbClosed = (window.innerHeight - vv.height) < 60;
-    if (kbClosed && document.body.classList.contains('chat-kb-open')) {
+    const kbDelta = window.innerHeight - vv.height;
+    // Safety chiusura: gesture sistema senza blur → resetta classe.
+    if (kbDelta < 60 && document.body.classList.contains('chat-kb-open')) {
       document.body.classList.remove('chat-kb-open');
+    }
+    // Fallback apertura: se siamo in conversazione e la viewport visuale è chiaramente
+    // ridotta dalla tastiera (>80px), ma focusin non ha applicato la classe (es. iOS
+    // PWA in cui l'evento può non bubblare), la applichiamo qui.
+    if (kbDelta > 80 && el.classList.contains('chat-panel-open') &&
+        !document.body.classList.contains('chat-kb-open')) {
+      document.body.classList.add('chat-kb-open');
     }
     if (document.body.classList.contains('chat-kb-open')) {
       // Tastiera APERTA: pannello ancorato all'area visibile (sopra la tastiera).
