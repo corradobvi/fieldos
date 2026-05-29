@@ -1,7 +1,10 @@
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 import type { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev-secret-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 const JWT_EXPIRY_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 export interface JwtPayload {
