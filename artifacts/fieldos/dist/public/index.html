@@ -1316,9 +1316,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   #pg-chat.on.chat-panel-open .chat-wrap{height:100%!important;}
   /* Dentro la conversazione full-screen: header e barra input fissi,
      scorre solo la lista messaggi. */
-  #pg-chat.on.chat-panel-open .cm{height:100%;min-height:0;}
+  #pg-chat.on.chat-panel-open{max-width:100%;box-sizing:border-box;}
+  #pg-chat.on.chat-panel-open .cm{height:100%;min-height:0;max-width:100%;box-sizing:border-box;}
   #pg-chat.on.chat-panel-open .cm-tb,
   #pg-chat.on.chat-panel-open .cm-inp{flex-shrink:0;}
+  #pg-chat.on.chat-panel-open .cm-inp{max-width:100%;box-sizing:border-box;overflow:hidden;}
+  #pg-chat.on.chat-panel-open .cm-inp > input{flex:1 1 0;min-width:0;}
+  #pg-chat.on.chat-panel-open .cm-inp > .btn,
+  #pg-chat.on.chat-panel-open .cm-inp > .btn-attach{flex-shrink:0;}
   #pg-chat.on.chat-panel-open .cm-msgs{flex:1;min-height:0;overflow-y:auto;}
   /* Presenze: mostra cards, nascondi tabella */
   .pres-tbl-wrap{display:none!important;}
@@ -3178,7 +3183,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.6</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.7</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -22207,6 +22212,9 @@ function _chatPanelVvSetup() {
     pg.style.top = vv.offsetTop + 'px';
     pg.style.height = vv.height + 'px';
     pg.style.bottom = 'auto';
+    pg.style.left = vv.offsetLeft + 'px';
+    pg.style.width = vv.width + 'px';
+    pg.style.right = 'auto';
     const _msgs = document.getElementById('chatMsgs');
     if (_msgs) _msgs.scrollTop = _msgs.scrollHeight;
   };
@@ -22226,6 +22234,9 @@ function _chatPanelVvCleanup() {
     pg.style.top = '';
     pg.style.height = '';
     pg.style.bottom = '';
+    pg.style.left = '';
+    pg.style.width = '';
+    pg.style.right = '';
   }
 }
 
