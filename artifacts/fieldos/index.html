@@ -21185,15 +21185,26 @@ function saveQuickResult(tipo, ref, idC, idO) {
   const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
   match.golCasa = gc; match.golOspiti = go; match.played = true;
   const _isNewOrChanged = !_wasPlayed || _prevGc !== gc || _prevGo !== go;
-  // Notifica risultato a TUTTI i genitori della leva (convocati o non): card in-app sempre, webpush solo se nuovo/cambiato
-  _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
   // INTEGRATION HOOK — finestra per integrazioni esterne (altri gestionali, feed risultati, giornalino):
   // window.__fieldosExternalFeed = { onResult(ctx) { /* ctx: {tipo, ref, golCasa, golOspiti} */ } }
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
-  // fix: rerender completo dopo save (audit 21/05)
-  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal(); toast('✅ Risultato salvato!');
+  // Salvataggio locale (in-memory + localStorage + apiPush con retry): invariato.
+  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
+  // Notifica genitori + toast "salvato" SOLO dopo conferma PUT lato server.
+  if (typeof window.__fieldosSyncToCloud === 'function') {
+    window.__fieldosSyncToCloud().then(r => {
+      if (r && r.ok) {
+        _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+        toast('✅ Risultato salvato!');
+      } else {
+        toast('⚠️ Risultato non salvato — riprova');
+      }
+    }).catch(() => toast('⚠️ Risultato non salvato — riprova'));
+  } else {
+    _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+  }
 }
 
 // Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
@@ -21214,12 +21225,16 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       avversario = (match.casa === polis) ? (match.ospite || '') : (match.casa || '');
     } else if (tipo === 'torneo') {
       tipoLabel = 'Torneo';
-      avversario = `${match.casa || ''} vs ${match.ospite || ''}`;
-      // Per torneo la leva potrebbe non essere su match: fallback al torneo padre se disponibile
-      if (!leva) {
-        const t = tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m.id === match.id)));
-        if (t) leva = t.leva;
+      // Recupera il torneo padre per filtro mieSquadre + fallback leva.
+      const t = tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m.id === match.id)));
+      // FIX over-trigger: NON notificare per partite tra ALTRE squadre (Scontri tra avversari).
+      // Se conosciamo il torneo, filtra: il match deve coinvolgere almeno una "mia squadra".
+      if (t && typeof _getMieSquadre === 'function') {
+        const mie = _getMieSquadre(t);
+        if (!mie.includes(match.casa) && !mie.includes(match.ospite)) return;
       }
+      avversario = `${match.casa || ''} vs ${match.ospite || ''}`;
+      if (!leva && t) leva = t.leva;
     }
     if (!leva) return;
     const score = `${gc}–${go}`;
@@ -21861,16 +21876,26 @@ function savePtRisultato() {
   }
   const cambiSec = document.getElementById('ptRisCambiSection');
   if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
-  // Notifica risultato a TUTTI i genitori della leva (convocati o non): card in-app sempre, webpush solo se nuovo/cambiato
-  _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
-  // fix: rerender completo dopo save (audit 21/05)
+  // Salvataggio locale (in-memory + localStorage + apiPush con retry): invariato.
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
-  toast('✅ Risultato salvato!');
+  // Notifica genitori + toast "salvato" SOLO dopo conferma PUT lato server.
+  if (typeof window.__fieldosSyncToCloud === 'function') {
+    window.__fieldosSyncToCloud().then(r => {
+      if (r && r.ok) {
+        _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+        toast('✅ Risultato salvato!');
+      } else {
+        toast('⚠️ Risultato non salvato — riprova');
+      }
+    }).catch(() => toast('⚠️ Risultato non salvato — riprova'));
+  } else {
+    _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+  }
 }
 
 // ─── STATISTICHE GIOCATORE (scheda) ───
