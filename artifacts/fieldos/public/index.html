@@ -27295,7 +27295,6 @@ async function doRejoinSocieta() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body,
-        keepalive: true
       }).then(r => {
         if (r.ok || r.status === 409) {
           // 200 OK oppure 409 = il server ha rifiutato (protezione downgrade) — entrambi contati come risolti
