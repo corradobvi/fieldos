@@ -77466,9 +77466,33 @@ var CREATE_TABLE_SQL = `
     \`key\`      VARCHAR(255) PRIMARY KEY,
     state_json  LONGTEXT NOT NULL,
     is_demo     TINYINT(1) NOT NULL DEFAULT 0,
+    version     BIGINT UNSIGNED NOT NULL DEFAULT 0,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )
 `;
+var _versionColumnReady = false;
+async function ensureVersionColumn() {
+  if (_versionColumnReady) return;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'society_state' AND COLUMN_NAME = 'version'`
+    );
+    if (!rows.length) {
+      try {
+        await pool.execute(
+          "ALTER TABLE `society_state` ADD COLUMN `version` BIGINT UNSIGNED NOT NULL DEFAULT 0"
+        );
+        logger.info({}, "society_state.version column added");
+      } catch (e) {
+        if (e?.errno !== 1060 && e?.code !== "ER_DUP_FIELDNAME") throw e;
+      }
+    }
+    _versionColumnReady = true;
+  } catch (e) {
+    logger.warn({ err: e }, "ensureVersionColumn failed (non-blocking, will retry next request)");
+  }
+}
 var MIN_STATE_BYTES = 200;
 function wouldDowngrade(newJson, existingJson) {
   try {
@@ -77498,15 +77522,17 @@ function wouldDowngrade(newJson, existingJson) {
 router2.get("/state/:key", async (req, res) => {
   try {
     await pool.execute(CREATE_TABLE_SQL);
+    await ensureVersionColumn();
     const [rows] = await pool.execute(
-      "SELECT state_json, is_demo FROM `society_state` WHERE `key` = ?",
+      "SELECT state_json, is_demo, version FROM `society_state` WHERE `key` = ?",
       [req.params.key]
     );
     if (!rows.length) return res.status(404).json({ error: "not found" });
     return res.json({
       key: req.params.key,
       stateJson: rows[0].state_json,
-      isDemo: rows[0].is_demo === 1
+      isDemo: rows[0].is_demo === 1,
+      version: Number(rows[0].version)
     });
   } catch (e) {
     logger.error({ err: e }, "state GET failed");
@@ -77514,7 +77540,7 @@ router2.get("/state/:key", async (req, res) => {
   }
 });
 router2.put("/state/:key", async (req, res) => {
-  const { stateJson, isDemo } = req.body;
+  const { stateJson, isDemo, baseVersion } = req.body;
   if (typeof stateJson !== "string") {
     return res.status(400).json({ error: "stateJson must be a string" });
   }
@@ -77522,13 +77548,23 @@ router2.put("/state/:key", async (req, res) => {
   const isDemoVal = isDemoWrite ? 1 : 0;
   try {
     await pool.execute(CREATE_TABLE_SQL);
+    await ensureVersionColumn();
     const [existing] = await pool.execute(
-      "SELECT state_json, LENGTH(state_json) as sz, is_demo FROM `society_state` WHERE `key` = ?",
+      "SELECT state_json, LENGTH(state_json) as sz, is_demo, version FROM `society_state` WHERE `key` = ?",
       [req.params.key]
     );
     if (existing.length) {
       const existingSz = Number(existing[0].sz);
       const existingIsReal = existing[0].is_demo === 0;
+      const serverVersion = Number(existing[0].version);
+      if (typeof baseVersion === "number" && baseVersion !== serverVersion) {
+        logger.warn({ key: req.params.key, baseVersion, serverVersion }, "PUT rejected: stale base version");
+        return res.status(412).json({
+          error: "stale_base_version",
+          detail: "Il client si basa su una versione vecchia. Pull e ri-applica.",
+          server_version: serverVersion
+        });
+      }
       if (stateJson.length < MIN_STATE_BYTES && existingSz >= MIN_STATE_BYTES) {
         logger.warn(
           { key: req.params.key, newSize: stateJson.length, existingSize: existingSz },
@@ -77555,13 +77591,19 @@ router2.put("/state/:key", async (req, res) => {
       }
     }
     await pool.execute(
-      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`) VALUES (?, ?, ?)
+      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`, \`version\`) VALUES (?, ?, ?, 1)
        ON DUPLICATE KEY UPDATE
          \`state_json\` = ?,
-         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?)`,
+         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?),
+         \`version\`    = \`version\` + 1`,
       [req.params.key, stateJson, isDemoVal, stateJson, isDemoVal]
     );
-    return res.json({ key: req.params.key, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+    const [after] = await pool.execute(
+      "SELECT version FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [req.params.key]
+    );
+    const newVersion = after.length ? Number(after[0].version) : void 0;
+    return res.json({ key: req.params.key, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), version: newVersion });
   } catch (e) {
     logger.error({ err: e }, "state PUT failed");
     return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
