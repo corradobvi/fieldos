@@ -8372,6 +8372,36 @@ function recipientsForGenitoriOfLeva(leva) {
   return [...ids];
 }
 
+// Leva da mostrare per un utente in Gestione utenti.
+// Per genitori/nonni: deriva live dai figli (fonte di verità). Per staff: legge u.leva.
+function userLevaDisplay(u) {
+  if (u && (u.role === 'genitore' || u.role === 'nonno')) {
+    const pids = Array.isArray(u.figliIds) ? u.figliIds : [];
+    const leve = [...new Set(pids.map(pid => (players.find(p => p.id === pid) || {}).leva).filter(Boolean))];
+    if (leve.length) return leve.length === 1 ? escapeHtml(leve[0]) : escapeHtml(leve.join(' · '));
+    // Fallback legacy: u.leva persistito (genitori migrati dal blob)
+    return u.leva ? escapeHtml(u.leva) : '<span style="color:var(--text3);">—</span>';
+  }
+  return (u && u.leva) ? escapeHtml(u.leva) : '<span style="color:var(--text3);">—</span>';
+}
+
+// True se l'utente appartiene a (almeno una de)lle leve indicate.
+// Per genitori/nonni deriva dai figli; per staff usa u.leva (con fallback legacy per genitori senza figliIds).
+function _userInAnyLeva(u, leveList) {
+  if (!u || !Array.isArray(leveList) || !leveList.length) return false;
+  if (u.role === 'genitore' || u.role === 'nonno') {
+    const pids = Array.isArray(u.figliIds) ? u.figliIds : [];
+    if (pids.length) {
+      return pids.some(pid => {
+        const p = players.find(x => x.id === pid);
+        return p && leveList.includes(p.leva);
+      });
+    }
+    return !!u.leva && leveList.includes(u.leva);
+  }
+  return !!u.leva && leveList.includes(u.leva);
+}
+
 // ─── PAGINA CONVOCAZIONI ─────────────────────────────
 
 function renderConvocazioni() {
@@ -10964,7 +10994,7 @@ function renderUsersTable() {
         <td><strong>${u.nome} ${u.cogn}</strong>${figlioNote}</td>
         <td style="font-size:.77rem;color:var(--text2);">${u.email}</td>
         <td><span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span></td>
-        <td>${u.leva}</td>
+        <td>${userLevaDisplay(u)}</td>
         <td>${statoHtml}</td>
         <td style="display:flex;gap:5px;flex-wrap:wrap;">
           ${_editBtn}${_delBtn}${_slegaBtn}${_riattivaBtn}
@@ -11016,7 +11046,7 @@ function renderUsersTable() {
           </div>
           <div style="display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
             <span class="pill ${pillCls}" ${pillStyle}>${userRoleLabel(u)}</span>
-            ${u.leva ? `<span style="font-size:.78rem;color:var(--text2);">${escapeHtml(u.leva)}</span>` : ''}
+            <span style="font-size:.78rem;color:var(--text2);">${userLevaDisplay(u)}</span>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             ${_mEditBtn}${_mDelBtn}${_mSlegaBtn}${_mRiattivaBtn}
@@ -18886,7 +18916,7 @@ function saveEvento(){
         if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
           const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
           const _pidsE = new Set();
-          USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pidsE.add(u.id); });
+          USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
           _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
         }
         _loadCalEvents();
@@ -18898,7 +18928,7 @@ function saveEvento(){
       if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
         const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
         const _pidsE = new Set();
-        USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pidsE.add(u.id); });
+        USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
         _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
       }
       closeM('mEvento');
@@ -18914,7 +18944,7 @@ function saveEvento(){
     (function(){
       const _tl = { allenamento:'🏃 Allenamento aggiunto', allenamento_portieri:'🧤 Allenamento portieri', partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
       const _pids = new Set();
-      USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && leveSel.includes(u.leva)) _pids.add(u.id); });
+      USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pids.add(u.id); });
       _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
     })();
     closeM('mEvento');
@@ -18955,7 +18985,7 @@ function deleteCurrentEvento(){
   function _notifyDelSingle() {
     const _tlD = { allenamento:'❌ Allenamento annullato', allenamento_portieri:'❌ Allenamento portieri annullato', partita:'❌ Partita annullata', torneo:'❌ Torneo annullato', altro:'❌ Evento annullato' };
     const _pidsD = new Set();
-    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _evSnap.leve.includes(u.leva)) _pidsD.add(u.id); });
+    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
     _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlD[_evSnap.type]||'❌ Evento annullato'), body: (_evSnap.title ? _evSnap.title+'\n' : '')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:''), eventId: null }); });
   }
   if (ev._fromApi) {
@@ -18999,7 +19029,7 @@ function applyDeleteChoice() {
       _b = count + ' event' + (count===1?'o':'i') + (_evSnap.title?' · '+_evSnap.title:'');
     }
     const _pidsD = new Set();
-    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _evSnap.leve.includes(u.leva)) _pidsD.add(u.id); });
+    USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
     _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title: _t, body: _b, eventId: null }); });
   }
 
