@@ -6632,7 +6632,7 @@ function renderPIndispSection(p) {
     ${addBtn}`;
 }
 
-function savePlayer() {
+async function savePlayer() {
   const nome  = document.getElementById('pNome').value.trim();
   const cogn  = document.getElementById('pCogn').value.trim();
   const soprannome = document.getElementById('pSopr').value.trim();
@@ -6644,7 +6644,7 @@ function savePlayer() {
   if (!nome || !cogn) { toast('⚠️ Nome e cognome obbligatori'); return; }
 
   if (editingPlayerId === null) {
-    // CREATE — check plan limit
+    // CREATE — check plan limit (client-side, primo filtro)
     const _spSoc = saSocieties.find(x => x.id === currentSocietaId);
     if (!canAddPlayer(_spSoc, currentLeva)) {
       const def = getPianoDef(_spSoc);
@@ -6653,16 +6653,63 @@ function savePlayer() {
       openPianoModal(false);
       return;
     }
-    players.push({
-      id: nextPlayerId++,
-      nome, cogn, soprannome, num, ruolo, anno, tel,
-      leva: currentLeva,
-      partite: [],
-      presAll: [],
-      presPartite: [],
-      assenzeAvvisate: []
-    });
-    toast(`✅ ${nome} ${cogn} aggiunto!`);
+    // Demo: blob-only (id locale). Reali: POST /api/v2/players e usa id MySQL.
+    const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+    if (_isDemo) {
+      players.push({
+        id: nextPlayerId++,
+        nome, cogn, soprannome, num, ruolo, anno, tel,
+        leva: currentLeva,
+        partite: [],
+        presAll: [],
+        presPartite: [],
+        assenzeAvvisate: []
+      });
+      toast(`✅ ${nome} ${cogn} aggiunto!`);
+    } else {
+      if (!_v2Token) { toast('⚠️ Sessione scaduta. Esegui di nuovo l\'accesso.'); return; }
+      let r, body;
+      try {
+        r = await fetch(API_BASE + '/api/v2/players', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+          body: JSON.stringify({
+            nome,
+            cognome: cogn,
+            soprannome: soprannome || null,
+            numero: num || null,
+            ruoloCampo: ruolo || null,
+            annoNascita: anno || null,
+            leva: currentLeva,
+            telefonoGenitore: tel || null,
+          })
+        });
+        body = await r.json().catch(() => ({}));
+      } catch (e) {
+        toast('⛔ Errore di rete: giocatore non creato');
+        return;
+      }
+      if (r.status === 403 && body && body.error === 'plan_limit_reached') {
+        const _max = (typeof body.max === 'number') ? body.max : '?';
+        toast(`⚠️ Limite giocatori raggiunto (max ${_max}). Passa a un piano superiore.`);
+        return;
+      }
+      if (!r.ok || !body || typeof body.id !== 'number') {
+        const _err = (body && body.error) ? body.error : ('HTTP ' + r.status);
+        toast('⛔ Giocatore non creato: ' + _err);
+        return;
+      }
+      players.push({
+        id: body.id,
+        nome, cogn, soprannome, num, ruolo, anno, tel,
+        leva: currentLeva,
+        partite: [],
+        presAll: [],
+        presPartite: [],
+        assenzeAvvisate: []
+      });
+      toast(`✅ ${nome} ${cogn} aggiunto!`);
+    }
   } else {
     // UPDATE
     const p = players.find(x => x.id === editingPlayerId);
