@@ -4208,8 +4208,12 @@ let levaConvSettings = {};
 let notifiche = [];
 let nextNotificaId = 1;
 let comunicazioni = [];
-let nextComunicazioneId = 1;
-let nextCommentoId = 1;
+// Migrazione FASE 1 — comunicazioni vivono su MySQL (/api/v2/comunicazioni).
+// commenti/sondaggi non hanno BE → temporaneamente disattivati in UI (feature flag).
+const _COMM_FEATURE_COMMENTI_SONDAGGI = false;
+let _commLastFetchMs = 0;
+let nextComunicazioneId = 1; // legacy: non piu' usato per creare comunicazioni (id viene dal BE)
+let nextCommentoId = 1;      // legacy: commenti disabilitati (feature flag)
 let mediaItems   = [];
 let nextMediaId  = 1;
 let playerPhotos = {};
@@ -9461,6 +9465,14 @@ function commMarkRead(c) {
   if (!me || commIsRead(c)) return;
   if (!Array.isArray(c.readBy)) c.readBy = [];
   c.readBy.push(me.id);
+  // Persistenza server: POST /api/v2/comunicazioni/:id/read (fire-and-forget).
+  // Eseguito solo per id numerici (record persistiti) — non per eventuali bozze locali.
+  if (_v2Token && typeof c.id === 'number') {
+    fetch(API_BASE + '/api/v2/comunicazioni/' + c.id + '/read', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    }).catch(() => {});
+  }
 }
 
 function commTotalUnread() {
@@ -9510,10 +9522,56 @@ function refreshPendingUsersBadge() {
   });
 }
 
+// Mapping risposta BE → shape in-memory esistente (vedi punto B2: sondaggi/commenti nulli).
+function _mapApiComunicazione(row) {
+  const aN = (row.autore_nome || '').trim();
+  const aC = (row.autore_cognome || '').trim();
+  const mittente = (aN || aC) ? (aN + ' ' + aC).trim() : '—';
+  const ts = row.created_at ? Date.parse(row.created_at) : Date.now();
+  return {
+    id: row.id,
+    scope: (row.leva == null) ? 'pubblica' : ('leva:' + row.leva),
+    tipo: row.urgente ? 'urgente' : 'info',
+    titolo: row.titolo || '',
+    testo: row.testo || '',
+    mittente,
+    mittenteId: row.autore_id || null,
+    ts: Number.isFinite(ts) ? ts : Date.now(),
+    readBy: row.letto ? [(me && me.id) ? me.id : 0] : [],
+    commentiAbilitati: false,
+    commenti: [],
+    sondaggio: null,
+  };
+}
+
+// Stale-while-revalidate: fa GET /api/v2/comunicazioni?limit=500, sovrascrive l'array
+// e ri-renderizza il contenuto del tab attivo. Debounce 5s per ridurre il chiamato.
+async function _loadComunicazioniFromApi(force) {
+  if (!_v2Token) return;
+  if (!force && (Date.now() - _commLastFetchMs) < 5000) return;
+  _commLastFetchMs = Date.now();
+  try {
+    const r = await fetch(API_BASE + '/api/v2/comunicazioni?limit=500', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return;
+    comunicazioni = rows.map(_mapApiComunicazione);
+    if (typeof _renderCommTabContent === 'function' && document.getElementById('commTabContent')) {
+      _renderCommTabContent();
+    }
+    refreshNotificheBadge();
+  } catch (_) { /* offline → resta la lista precedente */ }
+}
+
 function renderComunicazioni() {
   const cont = document.getElementById('commContent');
   const acts = document.getElementById('commActions');
   if (!cont || !me) return;
+  // Stale-while-revalidate: il render parte con l'array in memoria (eventualmente vuoto al primo accesso),
+  // poi la fetch sovrascrive e _renderCommTabContent ridisegna.
+  _loadComunicazioniFromApi(false);
 
   if (acts) {
     acts.innerHTML = '';
@@ -9554,12 +9612,13 @@ function renderComunicazioni() {
 
   setTimeout(() => {
     if (_commActiveTab !== 'notifiche') {
+      // commMarkRead ora persiste server-side via POST /:id/read (no saveState blob).
       comunicazioni.filter(c=>c.scope===_commActiveTab).forEach(commMarkRead);
     } else {
       markAllNotificheRead(me.id);
+      if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
     }
     refreshNotificheBadge();
-    if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   }, 700);
 }
 
@@ -9645,7 +9704,10 @@ function _renderCommTabContent() {
     const commenti = Array.isArray(c.commenti) ? c.commenti : [];
     const nComm = commenti.length;
     const commBadge = nComm > 0 ? `<span style="background:var(--cp);color:white;border-radius:10px;padding:0 5px;font-size:.63rem;min-width:16px;display:inline-block;text-align:center;margin-left:2px;">${nComm}</span>` : '';
-    const commBtn = `<button class="btn btn-xs" style="display:inline-flex;align-items:center;gap:2px;font-size:.75rem;" onclick="openCommentiSheet(${c.id})">💬${commBadge}</button>`;
+    // FASE 2: commenti senza BE → bottone nascosto via feature flag.
+    const commBtn = _COMM_FEATURE_COMMENTI_SONDAGGI
+      ? `<button class="btn btn-xs" style="display:inline-flex;align-items:center;gap:2px;font-size:.75rem;" onclick="openCommentiSheet(${c.id})">💬${commBadge}</button>`
+      : '<span></span>';
     html += `<div style="${bgStyle}border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);">
       <div style="display:flex;gap:7px;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
@@ -9689,78 +9751,65 @@ function openNuovaComunicazione(scope) {
   openM('mCommNuova');
 }
 
-function saveNuovaComunicazione() {
+async function saveNuovaComunicazione() {
   const scope  = document.getElementById('commNuovaScope').value;
   const tipo   = document.getElementById('commNuovaTipo').value;
   const titolo = document.getElementById('commNuovaTitolo').value.trim();
   const testo  = document.getElementById('commNuovoTesto').value.trim();
   if (!titolo) { toast('⚠️ Inserisci un titolo'); return; }
+  if (!testo)  { toast('⚠️ Inserisci il testo'); return; }
   if (!canWriteToScope(scope)) { toast('⚠️ Permesso negato'); return; }
-  const commentiAbilitati = document.getElementById('commNuovaCommenti').checked;
-  let sondaggio = null;
-  if (_sondaggioFormOpen) {
-    const domanda = document.getElementById('sondDomanda').value.trim();
-    const opzioni = [];
-    for (let i = 0; i < 4; i++) { const el = document.getElementById('sondOp'+i); if (el) { const v = el.value.trim(); if (v) opzioni.push(v); } }
-    if (domanda && opzioni.length >= 2) {
-      sondaggio = { domanda, opzioni, anonimo: document.getElementById('sondAnonimo').checked, scadenza: document.getElementById('sondScadenza').value || null, chiuso: false, voti: [] };
-    }
-  }
-  const c = {
-    id: nextComunicazioneId++,
-    scope, tipo, titolo, testo,
-    mittente: (me.nome||'')+' '+(me.cogn||''),
-    mittenteId: me.id,
-    ts: Date.now(),
-    readBy: [me.id],
-    commentiAbilitati,
-    commenti: [],
-    sondaggio
+  if (!_v2Token) { toast('⚠️ Sessione scaduta'); return; }
+  // POST /api/v2/comunicazioni — il BE gestisce gia' il push notification a destinatari.
+  // Mapping:
+  //   leva    ← null se scope === 'pubblica', altrimenti scope.slice(5)
+  //   urgente ← 1 se tipo del form === 'urgente'
+  //   tipo    ← 'comunicazione' (default BE; il tipo del form 'info'/'avviso'/'evento'/'urgente'
+  //            non ha enum corrispondente lato schema; viene normalizzato a urgente boolean)
+  const body = {
+    tipo: 'comunicazione',
+    titolo,
+    testo,
+    bacheca: 'generale',
+    leva: (scope === 'pubblica') ? null : scope.replace(/^leva:/, ''),
+    urgente: (tipo === 'urgente') ? 1 : 0,
   };
-  comunicazioni.push(c);
-  // Notify recipients
-  const scopeLv = scope.startsWith('leva:') ? scope.slice(5) : null;
-  USERS_DB.filter(u => u.id !== me.id && u.stato !== 'sospeso').forEach(u => {
-    let canSee = scope === 'pubblica';
-    if (!canSee && scopeLv) {
-      const ul = (() => {
-        if (u.role==='admin') return leve.slice();
-        if (u.role==='genitore'||u.role==='nonno') {
-          let figliPl = [];
-          if (Array.isArray(u.figliIds) && u.figliIds.length) {
-            figliPl = players.filter(pl => u.figliIds.includes(pl.id));
-          }
-          if (!figliPl.length) {
-            const figli = Array.isArray(u.figli)?u.figli:(u.figlio?[u.figlio]:[]);
-            figliPl = players.filter(p => figli.includes(p.nome+' '+p.cogn) || figli.includes(p.nome+' '+(p.cogn_iniziale||'')));
-          }
-          const ls = [...new Set(figliPl.map(p => p.leva).filter(Boolean))];
-          return ls.length?ls:[];
-        }
-        const l=u.leva;
-        if (Array.isArray(l)) return l;
-        if (l==='Tutte'||l==='tutte') return leve.slice();
-        return l?[l]:[];
-      })();
-      canSee = ul.includes(scopeLv);
-    }
-    if (canSee) pushNotifica(u.id, { type:'comunicazione', title: tipo==='urgente' ? `🚨 URGENTE: ${titolo}` : `📣 ${titolo}`, body:testo.slice(0,120)+(testo.length>120?'…':'')+'\nDa: '+c.mittente });
-  });
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  closeM('mCommNuova');
-  _commActiveTab = scope;
-  renderComunicazioni();
-  refreshNotificheBadge();
-  toast('📣 Comunicazione pubblicata');
+  try {
+    const r = await fetch(API_BASE + '/api/v2/comunicazioni', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (r.status === 403) { toast('⛔ Permesso negato'); return; }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); toast('❌ ' + (d.error || 'Errore pubblicazione')); return; }
+    closeM('mCommNuova');
+    _commActiveTab = scope;
+    // Ricarica server-side per avere id reale + dati canonici (evita drift).
+    await _loadComunicazioniFromApi(true);
+    renderComunicazioni();
+    refreshNotificheBadge();
+    toast('📣 Comunicazione pubblicata');
+  } catch (e) {
+    toast('❌ Errore di rete');
+  }
 }
 
-function deleteComunicazione(id) {
+async function deleteComunicazione(id) {
   if (!me || !isAdminLike()) { toast('⚠️ Solo l\'admin può eliminare'); return; }
   if (!confirm('Eliminare questa comunicazione?')) return;
-  comunicazioni = comunicazioni.filter(c => c.id !== id);
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  renderComunicazioni();
-  toast('🗑️ Eliminata');
+  if (!_v2Token) { toast('⚠️ Sessione scaduta'); return; }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/comunicazioni/' + id, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.status === 403) { toast('⛔ Solo gli admin possono eliminare lato server'); return; }
+    if (r.status === 404) { toast('⚠️ Comunicazione non trovata'); return; }
+    if (!r.ok) { toast('❌ Errore eliminazione'); return; }
+    comunicazioni = comunicazioni.filter(c => c.id !== id);
+    renderComunicazioni();
+    toast('🗑️ Eliminata');
+  } catch (_) { toast('❌ Errore di rete'); }
 }
 
 function canComment(c) {
@@ -27181,9 +27230,8 @@ async function doRejoinSocieta() {
       nextTorneoId: nextTorneoId,
       nextFaseId: nextFaseId,
       nextTornMatchId: nextTornMatchId,
-      comunicazioni: comunicazioni,
-      nextComunicazioneId: nextComunicazioneId,
-      nextCommentoId: nextCommentoId,
+      // comunicazioni / nextComunicazioneId / nextCommentoId: rimossi dallo snapshot —
+      // fonte di verita' MySQL (/api/v2/comunicazioni). Vedi _loadComunicazioniFromApi.
       mediaItems:   mediaItems,
       nextMediaId:  nextMediaId,
       playerPhotos: playerPhotos,
@@ -27397,9 +27445,8 @@ async function doRejoinSocieta() {
       if (typeof s.nextTorneoId === 'number') nextTorneoId = s.nextTorneoId;
       if (typeof s.nextFaseId === 'number') nextFaseId = s.nextFaseId;
       if (typeof s.nextTornMatchId === 'number') nextTornMatchId = s.nextTornMatchId;
-      if (Array.isArray(s.comunicazioni)) comunicazioni = s.comunicazioni;
-      if (typeof s.nextComunicazioneId === 'number') nextComunicazioneId = s.nextComunicazioneId;
-      if (typeof s.nextCommentoId === 'number') nextCommentoId = s.nextCommentoId;
+      // comunicazioni / nextComunicazioneId / nextCommentoId: NON ripristinati dal blob.
+      // La lista comunicazioni viene caricata via GET /api/v2/comunicazioni a renderComunicazioni.
       if (Array.isArray(s.mediaItems))                  mediaItems   = s.mediaItems;
       if (typeof s.nextMediaId === 'number')             nextMediaId  = s.nextMediaId;
       if (s.playerPhotos && typeof s.playerPhotos === 'object') playerPhotos = s.playerPhotos;
@@ -28340,15 +28387,16 @@ async function doRejoinSocieta() {
             <label class="fl">Testo</label>
             <textarea class="fta" id="commNuovoTesto" placeholder="Scrivi il contenuto del messaggio..." style="min-height:120px;"></textarea>
           </div>
-          <hr style="border:none;border-top:1px solid var(--border);margin:12px 0 10px;">
-          <div class="fg" style="margin-bottom:8px;">
+          <!-- FASE 2: separatore + commenti + sondaggio (no BE) — nascosti via feature flag -->
+          <hr data-comm-fase2-only style="display:none;border:none;border-top:1px solid var(--border);margin:12px 0 10px;">
+          <div class="fg" data-comm-fase2-only style="display:none;margin-bottom:8px;">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
               <input type="checkbox" id="commNuovaCommenti" style="width:15px;height:15px;accent-color:var(--cp);">
               <span style="font-size:.85rem;font-weight:600;">Abilita commenti per tutti</span>
             </label>
             <div style="font-size:.74rem;color:var(--text3);margin-top:3px;margin-left:23px;">Se disabilitato, solo staff può commentare</div>
           </div>
-          <div style="margin-bottom:10px;">
+          <div data-comm-fase2-only style="display:none;margin-bottom:10px;">
             <button type="button" class="btn btn-g btn-sm" id="btnAddSondaggio" onclick="toggleSondaggioForm()">📊 + Aggiungi sondaggio</button>
             <div id="sondaggioForm" style="display:none;margin-top:10px;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:14px;">
               <div class="fg"><label class="fl">Domanda del sondaggio</label><input class="fi" id="sondDomanda" placeholder="Es: Siete disponibili sabato?"></div>
