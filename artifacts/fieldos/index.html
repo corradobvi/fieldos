@@ -27209,6 +27209,10 @@ async function doRejoinSocieta() {
   let lastSnap = '';
 
   function snapshot() {
+    // events / nextEventId: per le societa' REALI vivono su MySQL (/api/v2/events) → niente nel blob.
+    // Le societa' DEMO continuano a serializzare events nel blob perche' _loadCalEvents le salta.
+    // eventTypes / nextEventTypeId: SEMPRE nello snapshot (tassonomia, nessun equivalente MySQL).
+    const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
     return {
       USERS_DB: USERS_DB,
       players: players,
@@ -27216,9 +27220,8 @@ async function doRejoinSocieta() {
       nextPlayerId: nextPlayerId,
       leve: leve,
       currentLeva: currentLeva,
-      events: events,
+      ...(_isDemo ? { events: events, nextEventId: nextEventId } : {}),
       eventTypes: eventTypes,
-      nextEventId: nextEventId,
       nextEventTypeId: nextEventTypeId,
       convocazioni: convocazioni,
       nextConvocazioneId: nextConvocazioneId,
@@ -27418,9 +27421,12 @@ async function doRejoinSocieta() {
       if (typeof s.nextPlayerId === 'number') nextPlayerId = s.nextPlayerId;
       if (Array.isArray(s.leve) && s.leve.length) leve = s.leve;
       if (typeof s.currentLeva === 'string') currentLeva = s.currentLeva;
-      if (Array.isArray(s.events)) events = s.events;
+      // events / nextEventId: rehydrate solo per societa' DEMO (per le reali li ripopola _loadCalEvents da MySQL).
+      // eventTypes / nextEventTypeId: rehydrate SEMPRE (tassonomia tipi, nessun equivalente MySQL).
+      const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+      if (_isDemoSoc && Array.isArray(s.events)) events = s.events;
       if (Array.isArray(s.eventTypes) && s.eventTypes.length) eventTypes = s.eventTypes;
-      if (typeof s.nextEventId === 'number') nextEventId = s.nextEventId;
+      if (_isDemoSoc && typeof s.nextEventId === 'number') nextEventId = s.nextEventId;
       if (typeof s.nextEventTypeId === 'number') nextEventTypeId = s.nextEventTypeId;
       if (Array.isArray(s.convocazioni)) convocazioni = s.convocazioni;
       if (typeof s.nextConvocazioneId === 'number') nextConvocazioneId = s.nextConvocazioneId;
