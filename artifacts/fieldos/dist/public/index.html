@@ -10877,7 +10877,12 @@ function renderCollabCounter() {
   const el = document.getElementById('collabCounter');
   if (!el) return;
   const soc = saSocieties.find(x => x.id === currentSocietaId);
+  const meta = (typeof currentSocietyMeta !== 'undefined') ? currentSocietyMeta : null;
+  // Piano: getEffectivePlan ora legge prima da currentSocietyMeta (vedi fix centrale).
   const plan = getEffectivePlan(soc);
+  // Omaggio: nessun cap collaboratori, comportati come Societa' (illimitato).
+  const isOmaggio = (meta?.billingMode || soc?.billingMode) === 'omaggio';
+  if (isOmaggio) { el.style.display = 'none'; return; }
   const planDef = PIANI_DEF[plan] || PIANI_DEF.mister;
   const lim = planDef.collab;
 
@@ -22768,7 +22773,18 @@ function getPianoDef(soc) {
   return PIANI_DEF[pianoNorm(soc?.piano)] || PIANI_DEF.societa;
 }
 function getEffectivePlan(soc) {
-  if (!soc) return 'mister';
+  // Fonte primaria: currentSocietyMeta (fresca da MySQL al login).
+  // saSocieties puo' non contenere la societa' corrente sul device del singolo utente
+  // (es. Baiardo id=53 non presente nel SA blob del device del mister) → senza questa
+  // riga getEffectivePlan(undefined) cadeva sul fallback 'mister' anche per piani Pro/Soc.
+  // Tutti i caller passano la societa' "corrente" (saSocieties.find(currentSocietaId)),
+  // quindi e' sicuro privilegiare currentSocietyMeta che e' sempre fresca per la corrente.
+  const meta = (typeof currentSocietyMeta !== 'undefined') ? currentSocietyMeta : null;
+  const fromMeta = pianoNorm(meta?.piano);
+  // Solo se meta dichiara un piano "concreto" (non demo): demo richiede la logica completa
+  // su soc per gestire scadenza/expired_demo.
+  if (fromMeta && fromMeta !== 'demo') return fromMeta;
+  if (!soc) return fromMeta || 'mister';
   const status = getPianoStatus(soc);
   if (status === 'active_demo') return pianoNorm(soc.demoPlanKey) || 'mister';
   return pianoNorm(soc.piano);
