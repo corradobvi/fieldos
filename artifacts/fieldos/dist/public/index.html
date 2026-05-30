@@ -27246,6 +27246,10 @@ async function doRejoinSocieta() {
   // Aggiornata da apiPull (boot/poll/dopo-conflitto) e dalla response 200 di apiPush.
   // Inviata come baseVersion in ogni PUT; se diversa da quella server → 412 stale_base_version.
   let _serverVersion = 0;
+  // True dopo il primo apiPull/init dal boot: finché è false, l'autosave NON pusha
+  // (eviterebbe race FAST-PATH dove autosave 1.5s parte prima che apiPull post-boot ritorni
+  // con _serverVersion=0 → 412 spurio). Il salvataggio LOCALE in localStorage avviene comunque.
+  let _serverVersionInitDone = false;
 
   function snapshot() {
     // events / nextEventId: per le societa' REALI vivono su MySQL (/api/v2/events) → niente nel blob.
@@ -27455,7 +27459,10 @@ async function doRejoinSocieta() {
         lastSnap = data;
         // Mai sincronizzare sessioni demo al DB condiviso
         const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
-        if (!_isDemo) apiPush(KEY, data);
+        // Gate: aspetta che _serverVersion sia stata allineata da apiPull/login prima di pushare.
+        // Senza gate, primo autosave potrebbe partire con _serverVersion=0 → 412 spurio.
+        // Lo stato resta salvato in localStorage; verrà pushato non appena init è completato.
+        if (!_isDemo && _serverVersionInitDone) apiPush(KEY, data);
       }
     } catch (e) {
       console.error('FieldOS: salvataggio fallito', e);
@@ -27655,6 +27662,9 @@ async function doRejoinSocieta() {
       startSyncPoll();
       // Controlla in background se ci sono aggiornamenti da altri dispositivi
       apiPull(KEY, 5000).then(serverJson => {
+        // Dopo il primo pull (qualunque esito), _serverVersion è allineata (success) o resta
+        // 0 (errore/empty); in ogni caso da qui in poi l'autosave può pushare con confidenza.
+        _serverVersionInitDone = true;
         if (serverJson && serverJson !== _PULL_EMPTY) {
           _applyServerUpdate(serverJson);
         } else if (serverJson === _PULL_EMPTY) {
@@ -27679,6 +27689,7 @@ async function doRejoinSocieta() {
     } else {
       // ── SLOW PATH: nessun dato locale → aspetta il server (primo accesso nuovo dispositivo) ──
       apiPull(KEY, 5000).then(serverJson => {
+        _serverVersionInitDone = true; // primo pull completato → autosave abilitato
         if (serverJson && serverJson !== _PULL_EMPTY) {
           applyServerState(serverJson);
           const fresh = USERS_DB.find(u => (u.email || '').toLowerCase() === _email);
@@ -27728,19 +27739,41 @@ async function doRejoinSocieta() {
   window.__fieldosRestoreState = restoreState;
   // Hook per propagare la version del blob dal login response (opzionale).
   // Se il backend del login espone stateVersion → evita un trip 412 al primo autosave.
-  window.__fieldosSetServerVersion = function(v) { if (typeof v === 'number') _serverVersion = v; };
+  // Marca anche init done: il login ha già dato la version senza bisogno di apiPull.
+  window.__fieldosSetServerVersion = function(v) {
+    if (typeof v === 'number') { _serverVersion = v; _serverVersionInitDone = true; }
+  };
 
-  // Sincronizzazione manuale esplicita
-  window.__fieldosSyncToCloud = function() {
+  // Sincronizzazione manuale esplicita.
+  // Ritorna la Response originale per compat con i chiamanti (sincronizzaCloud usa resp.status + resp.json()).
+  // Side-effect: su 200 aggiorna _serverVersion; su 412 fa partire _handleStaleConflict.
+  // I chiamanti che gateano su r.ok (saveQuickResult/savePtRisultato) vedranno r.ok=false su 412
+  // → niente notifica genitori, niente toast "salvato": comportamento corretto.
+  window.__fieldosSyncToCloud = async function() {
     const data = JSON.stringify(snapshot());
     localStorage.setItem(KEY, data);
     lastSnap = data;
     const stripped = data.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
-    return fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
+    const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stateJson: stripped })
+      body: JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion })
     });
+    if (resp.status === 412) {
+      // STALE: non distruggere il lavoro altrui. Backup locale + pull + ricarica (toast UX onesto).
+      console.warn('[__fieldosSyncToCloud] 412 stale_base_version');
+      _handleStaleConflict(KEY);
+      return resp; // resp.ok=false → caller skippa notifica e mostra "non salvato"
+    }
+    if (resp.ok) {
+      // Aggiorna _serverVersion senza consumare il body (i chiamanti potrebbero rileggerlo).
+      try {
+        const j = await resp.clone().json();
+        if (j && typeof j.version === 'number') _serverVersion = j.version;
+      } catch (_) {}
+    }
+    // 409 e altri: invariati → resp ritornata raw, caller decide (oggi gateano su r.ok).
+    return resp;
   };
 
   // Cambia la chiave attiva — il pull dal server lo fa bootApp subito dopo
@@ -27749,6 +27782,7 @@ async function doRejoinSocieta() {
     window._mvSocietaKey = newKey;
     lastSnap = '';
     _serverVersion = 0; // reset: la version appartiene a una specifica chiave; bootApp/apiPull la ripopolerà
+    _serverVersionInitDone = false; // forza il gate finché non riallineiamo con la nuova chiave
     restoreState();
   };
 
