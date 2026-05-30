@@ -316,7 +316,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .msg-img{max-width:220px;max-height:220px;border-radius:10px;display:block;cursor:pointer;object-fit:cover;}
 .msg-t{font-size:.61rem;color:var(--text3);margin-top:2px;}
 .cm-inp{padding:11px 14px;background:var(--white);border-top:1px solid var(--border);display:flex;gap:7px;align-items:center;box-sizing:border-box;width:100%;}
-.cm-inp input{flex:1;min-width:0;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:.83rem;background:var(--bg);color:var(--text);}
+.cm-inp input,.cm-inp textarea{flex:1;min-width:0;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;background:var(--bg);color:var(--text);}
 .cm-inp input:focus{outline:none;border-color:var(--cp);}
 .btn-attach{background:none;border:1.5px solid var(--border);border-radius:8px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;color:var(--text2);transition:all .15s;flex-shrink:0;}
 .btn-attach:hover{border-color:var(--cp);color:var(--cp);background:var(--cl);}
@@ -1287,7 +1287,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   #pg-chat .cm-msgs,
   #pg-chat .cm-inp{width:100%;max-width:100%;min-width:0;}
   .cm-inp{padding:10px max(10px,env(safe-area-inset-right,0px)) 10px max(10px,env(safe-area-inset-left,0px));gap:8px;flex-wrap:nowrap;overflow:hidden;}
-  .cm-inp > input{flex:1 1 0;min-width:0;width:auto;font-size:15px!important;padding:11px 14px;border-radius:22px;}
+  .cm-inp > input,.cm-inp > textarea{flex:1 1 0;min-width:0;width:auto;font-size:16px!important;padding:11px 14px;border-radius:22px;}
   .cm-inp > .btn{flex-shrink:0;min-height:44px;padding:10px 16px;}
   .cm-inp > .btn-attach{flex-shrink:0;}
   /* Messaggi — padding-right safe area */
@@ -3189,7 +3189,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.12</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.13</span></div>
       </div>
 
     </main>
