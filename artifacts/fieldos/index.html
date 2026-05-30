@@ -3189,7 +3189,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.9</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.10</span></div>
       </div>
 
     </main>
@@ -6692,8 +6692,14 @@ function updateRosaLimitBar() {
   const el = document.getElementById('rosaLimitBar');
   if (!el) return;
   const soc = saSocieties.find(x => x.id === currentSocietaId);
-  const plan = getEffectivePlan(soc);
-  const maxGioc = soc?.billingMode === 'omaggio' ? Infinity : (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
+  const meta = (typeof currentSocietyMeta !== 'undefined') ? currentSocietyMeta : null;
+  // FIX: currentSocietyMeta (fresco da MySQL al login) e' la fonte primaria.
+  // Il blob saSocieties puo' non contenere la societa' corrente sul device del singolo utente
+  // (es. Baiardo id=53 non presente nel SA blob del device) → senza questa riga
+  // getEffectivePlan(undefined) cadeva sul fallback 'mister' (cap 25).
+  const plan = pianoNorm(meta?.piano) || getEffectivePlan(soc);
+  const isOmaggio = (meta?.billingMode || soc?.billingMode) === 'omaggio';
+  const maxGioc = isOmaggio ? Infinity : (PIANI_DEF[plan] || PIANI_DEF.mister).giocatori;
   if (!isFinite(maxGioc)) { el.innerHTML = ''; el.style.marginBottom = ''; return; }
   const used = players.filter(p => p.leva === currentLeva).length;
   const pct = Math.min(100, Math.round(used / maxGioc * 100));
@@ -23566,6 +23572,26 @@ function _acShowSubState(soc, data) {
   const pianoIc = icMap[piano] || '⏳';
   const planName = getPianoDef({ piano }).nome || 'Demo';
   const status = data?.status || soc?.subscriptionStatus || soc?.piano || 'demo';
+  // Reset preventivo dei CTA Stripe a visibile: il branch omaggio puo' averli nascosti
+  // in una call precedente; il branch pagante riprende dalla stessa view DOM.
+  document.querySelectorAll('#acSubStateOverview .ac-sub-btns').forEach(el => el.style.display = '');
+  // FIX: clienti omaggio/partner (billingMode=omaggio) hanno status='demo' in MySQL
+  // perche' non hanno sub Stripe — non vanno mai in vista "scegli un piano".
+  // Mostra il riepilogo del piano attivo etichettato come accesso omaggio.
+  const isOmaggio = (data?.billingMode || soc?.billingMode) === 'omaggio';
+  if (isOmaggio) {
+    _acShowStateOverview(piano, pianoIc, planName, {
+      ...(data || {}), currentPeriodEnd: null, cancelAtPeriodEnd: false,
+      intervallo: null, paymentMethod: null
+    });
+    // Tweak post-render: etichetta omaggio + nascondi i CTA Stripe (non applicabili).
+    const $ = id => document.getElementById(id);
+    if ($('acOvSub'))    $('acOvSub').textContent = 'Accesso omaggio · piano attivo';
+    if ($('acOvBadge')) { $('acOvBadge').textContent = 'Omaggio'; $('acOvBadge').className = 'ac-sub-badge active'; }
+    document.querySelectorAll('#acSubStateOverview .ac-sub-btns').forEach(el => el.style.display = 'none');
+    if ($('acOvCancelBtn')) $('acOvCancelBtn').style.display = 'none';
+    return;
+  }
   const isActive = status === 'active';
   if (!isActive) {
     _acShowStateA(soc, piano, pianoIc, planName);
@@ -29901,6 +29927,47 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 </script>
+
+<!-- ════════ DEBUG CHAT WIDTH — overlay diagnostico temporaneo ════════ -->
+<div id="kbWDbg" style="position:fixed;top:0;left:0;z-index:2147483647;font:10px monospace;background:rgba(0,0,0,.85);color:#0f0;padding:3px 6px;pointer-events:none;white-space:pre;"></div>
+<script>
+(function(){
+  var box = document.getElementById('kbWDbg');
+  if (!box) return;
+  function _w(el){ return el ? Math.round(el.getBoundingClientRect().width) : -1; }
+  function _findSend(){
+    var nodes = document.querySelectorAll('.cm-inp .btn');
+    for (var i=0; i<nodes.length; i++) {
+      if (!nodes[i].classList.contains('btn-attach')) return nodes[i];
+    }
+    return null;
+  }
+  function _render(){
+    var vv = window.visualViewport;
+    var pg  = document.getElementById('pg-chat');
+    var row = document.querySelector('.cm-inp');
+    var inp = document.getElementById('chatInp');
+    var snd = _findSend();
+    box.textContent =
+      'win: '     + window.innerWidth + '\n' +
+      'vvW: '     + (vv ? Math.round(vv.width) : -1) + '\n' +
+      'pg: '      + _w(pg) + '\n' +
+      'row: '     + _w(row) + '\n' +
+      'inp: '     + _w(inp) + '\n' +
+      'send: '    + _w(snd) + '\n' +
+      'scrollW: ' + document.documentElement.scrollWidth;
+  }
+  _render();
+  document.addEventListener('focusin',  _render, true);
+  document.addEventListener('focusout', _render, true);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', _render);
+    window.visualViewport.addEventListener('scroll', _render);
+  }
+  setInterval(_render, 1000);
+})();
+</script>
+<!-- ════════ /DEBUG CHAT WIDTH ════════ -->
 
 </body>
 </html>
