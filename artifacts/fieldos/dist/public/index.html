@@ -4995,6 +4995,11 @@ async function doLogin() {
           // Se scrivi dopo, restoreState() carica dati vecchi invece dei dati freschi da MySQL.
           localStorage.setItem(data.stateKey, data.stateJson);
         }
+        // Se il backend del login espone version, propagala al guard ottimistico SUBITO
+        // (evita race: autosave 1.5s che parte prima di apiPull post-boot con _serverVersion=0).
+        if (typeof data.stateVersion === 'number' && typeof window.__fieldosSetServerVersion === 'function') {
+          window.__fieldosSetServerVersion(data.stateVersion);
+        }
         window.__fieldosSetSocietaKey(data.stateKey);
       }
       // Carica SA state in background (per plan checks)
@@ -27237,6 +27242,10 @@ async function doRejoinSocieta() {
 (function() {
   let KEY = 'fieldos_state_v1';
   let lastSnap = '';
+  // Version-guard ottimistico (server: BIGINT incrementato a ogni UPDATE).
+  // Aggiornata da apiPull (boot/poll/dopo-conflitto) e dalla response 200 di apiPush.
+  // Inviata come baseVersion in ogni PUT; se diversa da quella server → 412 stale_base_version.
+  let _serverVersion = 0;
 
   function snapshot() {
     // events / nextEventId: per le societa' REALI vivono su MySQL (/api/v2/events) → niente nel blob.
@@ -27333,7 +27342,9 @@ async function doRejoinSocieta() {
 
   function apiPush(key, json) {
     const stripped = json.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
-    const body = JSON.stringify({ stateJson: stripped });
+    // baseVersion inviato a ogni PUT per check ottimistico server-side.
+    // Se assente o non-number nel backend retrocompat → server ignora il check (fallback upsert).
+    const body = JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion });
     _pendingPushes++;
     _updateSyncBar(_pendingPushes);
 
@@ -27345,11 +27356,24 @@ async function doRejoinSocieta() {
         headers: { 'Content-Type': 'application/json' },
         body,
       }).then(r => {
-        if (r.ok || r.status === 409) {
-          // 200 OK oppure 409 = il server ha rifiutato (protezione downgrade) — entrambi contati come risolti
+        if (r.ok) {
+          // 200 OK: aggiorna _serverVersion dalla response (il server l'ha incrementata).
           _pendingPushes = Math.max(0, _pendingPushes - 1);
           _updateSyncBar(_pendingPushes);
-          if (r.status === 409) console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
+          r.json().then(j => { if (j && typeof j.version === 'number') _serverVersion = j.version; }).catch(() => {});
+        } else if (r.status === 412) {
+          // STALE_BASE_VERSION: NON è success, NON ritentare (il body è già obsoleto per definizione).
+          // Backup locale + pull + ricarica via _handleStaleConflict (poi l'utente rifà l'azione su base fresca).
+          _pendingPushes = Math.max(0, _pendingPushes - 1);
+          _updateSyncBar(_pendingPushes);
+          console.warn('[apiPush] 412 stale_base_version: blob server è avanti rispetto al client', key);
+          _handleStaleConflict(key);
+        } else if (r.status === 409) {
+          // 409 = guard esistenti (would_overwrite_real_data / demo_cannot_overwrite_real / would_downgrade_data).
+          // INVARIATO: trattato come risolto (loggato, conteggio decrementato, banner verde).
+          _pendingPushes = Math.max(0, _pendingPushes - 1);
+          _updateSyncBar(_pendingPushes);
+          console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
         } else if (_retries < _maxRetries) {
           _retries++;
           _updateSyncBar(_pendingPushes, 'retry');
@@ -27371,6 +27395,32 @@ async function doRejoinSocieta() {
     doFetch();
   }
 
+  // Conflitto ottimistico: il blob server è più avanti di quello che il client ha pushato.
+  // Strategia meno-invasiva: salva backup locale (recuperabile a mano), poi pull + ricarica.
+  // L'utente perde solo le modifiche non ancora arrivate al server (per definizione non sicure),
+  // ma NON distrugge mai il lavoro degli altri device già salvato.
+  async function _handleStaleConflict(key) {
+    try {
+      // Backup difensivo del lastSnap locale prima di sovrascriverlo: ricuperabile via DevTools.
+      const backupKey = 'fieldos_conflict_backup_' + Date.now();
+      try { localStorage.setItem(backupKey, lastSnap || localStorage.getItem(key) || ''); } catch (_) {}
+      console.warn('[_handleStaleConflict] backup locale salvato in', backupKey, '— recuperabile da DevTools se necessario');
+      // Mantieni solo gli ultimi 3 backup di conflitto per non saturare localStorage
+      try {
+        const backups = Object.keys(localStorage).filter(k => k.startsWith('fieldos_conflict_backup_')).sort();
+        while (backups.length > 3) { localStorage.removeItem(backups.shift()); }
+      } catch (_) {}
+      if (typeof toast === 'function') toast('⚠️ Dati cambiati sul server, ricarico…');
+      const serverJson = await apiPull(key); // aggiorna _serverVersion centralmente
+      if (serverJson && serverJson !== _PULL_EMPTY) {
+        applyServerState(serverJson);
+        if (typeof toast === 'function') toast('🔄 Stato aggiornato. Controlla le tue ultime modifiche.');
+      }
+    } catch (e) {
+      console.error('[_handleStaleConflict] errore', e);
+    }
+  }
+
   // Sentinella: il server risponde esplicitamente "chiave non trovata" (DB vuoto per questa società)
   const _PULL_EMPTY = '__EMPTY__';
 
@@ -27387,6 +27437,8 @@ async function doRejoinSocieta() {
       if (resp.status === 404) return _PULL_EMPTY; // server dice esplicitamente: chiave non esiste
       if (!resp.ok) return null;                   // errore server → tratta come timeout
       const data = await resp.json();
+      // Aggiorna _serverVersion centralmente: ogni pull (boot/poll/post-conflitto) la rinfresca.
+      if (data && typeof data.version === 'number') _serverVersion = data.version;
       return data.stateJson || _PULL_EMPTY;        // risposta ok ma body vuoto = DB vuoto
     } catch (_) {
       return null; // timeout (AbortError) o rete non disponibile → non fare nulla al server
@@ -27674,6 +27726,9 @@ async function doRejoinSocieta() {
 
   window.__fieldosSaveState = saveState;
   window.__fieldosRestoreState = restoreState;
+  // Hook per propagare la version del blob dal login response (opzionale).
+  // Se il backend del login espone stateVersion → evita un trip 412 al primo autosave.
+  window.__fieldosSetServerVersion = function(v) { if (typeof v === 'number') _serverVersion = v; };
 
   // Sincronizzazione manuale esplicita
   window.__fieldosSyncToCloud = function() {
@@ -27693,6 +27748,7 @@ async function doRejoinSocieta() {
     KEY = newKey;
     window._mvSocietaKey = newKey;
     lastSnap = '';
+    _serverVersion = 0; // reset: la version appartiene a una specifica chiave; bootApp/apiPull la ripopolerà
     restoreState();
   };
 
