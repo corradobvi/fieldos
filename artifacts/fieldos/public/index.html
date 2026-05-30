@@ -21257,42 +21257,104 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
   return `<div class="card" style="margin-top:14px;"><div class="ch" style="flex-wrap:wrap;gap:6px;"><div class="ct">⚔️ Scontri tra avversari</div><span style="font-size:.72rem;color:var(--text3);font-weight:400;">Inserisci i risultati per aggiornare la classifica</span></div>${rows}</div>`;
 }
 
+// ─── MERGE-RETRY sui salvataggi risultato (versionamento ottimistico) ───
+// Lookup di un match per ID STABILE nello stato corrente. Non usa indici di array:
+// dopo applyServerState gli array sono rimpiazzati e qualunque riferimento è orfano,
+// ma l'id resta stabile (tm<n> per torneo, intero per campionato).
+function _findMatchByRef(tipo, ref) {
+  if (tipo === 'campionato') {
+    return (campionato[currentLeva] && campionato[currentLeva].partite || []).find(m => m.id === parseInt(ref));
+  }
+  if (tipo === 'torneo') {
+    const parts = String(ref).split('__');
+    const t = (Array.isArray(tornei) ? tornei : []).find(x => x.id === parts[0]);
+    const f = t && (t.fasi || []).find(x => x.id === parts[1]);
+    return f && (f.partite || []).find(m => m.id === parts[2]);
+  }
+  return null;
+}
+// Costruisce un applyResult RI-ESEGUIBILE e IDEMPOTENTE.
+// target: { golCasa, golOspiti, stats?, visibilitaSubito?, cambi? } — valori-obiettivo assoluti, NON delta.
+// Ritorna { applied, match, isNewOrChanged } a ogni invocazione (su stato fresco o stantio).
+function _buildApplyResult(tipo, ref, target) {
+  return function applyResult() {
+    const match = _findMatchByRef(tipo, ref);
+    if (!match) return { applied: false, match: null, isNewOrChanged: false };
+    const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
+    match.golCasa = target.golCasa;
+    match.golOspiti = target.golOspiti;
+    match.played = true;
+    if (Array.isArray(target.stats)) match.stats = target.stats.map(s => Object.assign({}, s));
+    if (typeof target.visibilitaSubito === 'boolean') match.visibilitaSubito = target.visibilitaSubito;
+    if (Array.isArray(target.cambi)) match.cambi = target.cambi.map(c => Object.assign({}, c));
+    const isNewOrChanged = !_wasPlayed || _prevGc !== target.golCasa || _prevGo !== target.golOspiti;
+    return { applied: true, match, isNewOrChanged };
+  };
+}
+// Salvataggio robusto con merge-retry sui conflitti 412.
+// Strategia: applyResult → sync → se 412 → pull silenzioso → re-applyResult sullo stato fresco → re-sync.
+// Su success: { ok:true, match, isNewOrChanged }. Su fallimento: { ok:false, match:last } (no toast qui:
+// è il caller a mostrare il toast onesto "non salvato — riprova").
+async function saveResultWithRetry(applyResult, maxRetries) {
+  const _maxRetries = (typeof maxRetries === 'number') ? maxRetries : 3;
+  let attempt = 0;
+  let last = { applied: false, match: null, isNewOrChanged: false };
+  while (attempt <= _maxRetries) {
+    last = applyResult();
+    if (!last.applied) {
+      // Match sparito dallo stato fresco (es. partita eliminata da un altro device): rinuncia onestamente
+      console.warn('[saveResultWithRetry] match non trovato nello stato corrente; abort');
+      return { ok: false, match: null, isNewOrChanged: false };
+    }
+    // Senza sync esposta: nessun gating possibile → comportamento legacy (success ottimistico)
+    if (typeof window.__fieldosSyncToCloud !== 'function') {
+      return { ok: true, match: last.match, isNewOrChanged: last.isNewOrChanged };
+    }
+    let resp = null;
+    try { resp = await window.__fieldosSyncToCloud(); } catch (_) { /* errore di rete → tratta come fail */ }
+    if (resp && resp.ok) return { ok: true, match: last.match, isNewOrChanged: last.isNewOrChanged };
+    // 412 → conflitto: pull silenzioso + ri-itera. Iterazioni intermedie NON fanno backup né toast
+    // (sennò una catena di 412 satura localStorage e spamma il banner). Backup avviene solo al fallback.
+    if (resp && resp.status === 412 && attempt < _maxRetries) {
+      attempt++;
+      if (typeof window.__fieldosPullAndApply === 'function') await window.__fieldosPullAndApply();
+      await new Promise(r => setTimeout(r, 150)); // breve attesa per stabilizzare il poll
+      continue; // ri-applica sullo stato fresco
+    }
+    // 412 dopo maxRetries → fallback: backup locale + ricarica stato fresco (no clobber), NO toast.
+    if (resp && resp.status === 412) {
+      if (typeof window.__fieldosHandleStaleConflict === 'function') {
+        try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
+      }
+      return { ok: false, match: last.match, isNewOrChanged: false };
+    }
+    // 409 / rete / altri: invariato → fail come oggi (caller mostra il toast onesto).
+    return { ok: false, match: last.match, isNewOrChanged: false };
+  }
+  return { ok: false, match: last.match, isNewOrChanged: false };
+}
+
 // Salva un risultato rapido (solo punteggio, senza statistiche giocatori)
-function saveQuickResult(tipo, ref, idC, idO) {
+async function saveQuickResult(tipo, ref, idC, idO) {
   const gc = parseInt(document.getElementById(idC)?.value) || 0;
   const go = parseInt(document.getElementById(idO)?.value) || 0;
-  let match;
-  if (tipo === 'campionato') {
-    match = (campionato[currentLeva]?.partite || []).find(m => m.id === parseInt(ref));
-  } else if (tipo === 'torneo') {
-    const parts = String(ref).split('__');
-    const t = tornei.find(x => x.id === parts[0]);
-    const f = t && t.fasi.find(x => x.id === parts[1]);
-    match = f && f.partite.find(m => m.id === parts[2]);
-  }
-  if (!match) { toast('⚠️ Partita non trovata'); return; }
-  const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
-  match.golCasa = gc; match.golOspiti = go; match.played = true;
-  const _isNewOrChanged = !_wasPlayed || _prevGc !== gc || _prevGo !== go;
-  // INTEGRATION HOOK — finestra per integrazioni esterne (altri gestionali, feed risultati, giornalino):
-  // window.__fieldosExternalFeed = { onResult(ctx) { /* ctx: {tipo, ref, golCasa, golOspiti} */ } }
+  // Pre-check esistenza partita (solo per messaggistica): il vero lookup è dentro applyResult.
+  if (!_findMatchByRef(tipo, ref)) { toast('⚠️ Partita non trovata'); return; }
+  // INTEGRATION HOOK — invariato (lasciato prima del sync, come oggi).
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
-  // Salvataggio locale (in-memory + localStorage + apiPush con retry): invariato.
+  // Mutazione idempotente catturata come target assoluto: applicabile a stato locale o fresco da server.
+  const applyResult = _buildApplyResult(tipo, ref, { golCasa: gc, golOspiti: go });
+  // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
+  applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
-  // Notifica genitori + toast "salvato" SOLO dopo conferma PUT lato server.
-  if (typeof window.__fieldosSyncToCloud === 'function') {
-    window.__fieldosSyncToCloud().then(r => {
-      if (r && r.ok) {
-        _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
-        toast('✅ Risultato salvato!');
-      } else {
-        toast('⚠️ Risultato non salvato — riprova');
-      }
-    }).catch(() => toast('⚠️ Risultato non salvato — riprova'));
+  const res = await saveResultWithRetry(applyResult);
+  if (res.ok) {
+    _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
+    toast('✅ Risultato salvato!');
   } else {
-    _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+    toast('⚠️ Risultato non salvato — riprova');
   }
 }
 
@@ -21930,7 +21992,7 @@ function _readRisCambi() {
   })).filter(c => c.en && c.us);
 }
 
-function savePtRisultato() {
+async function savePtRisultato() {
   if (!_risCtx) return;
   const {tipo, ref, match, leva} = _risCtx;
   const gcRaw = document.getElementById('ptRisGolC').value.trim();
@@ -21938,10 +22000,10 @@ function savePtRisultato() {
   if (gcRaw === '' || goRaw === '') { toast('⚠️ Inserisci il risultato prima di salvare'); return; }
   const gc = Math.max(0, parseInt(gcRaw) || 0);
   const go = Math.max(0, parseInt(goRaw) || 0);
-  const _prevGc = match.golCasa, _prevGo = match.golOspiti, _wasPlayed = !!match.played;
-  match.golCasa = gc; match.golOspiti = go; match.played = true;
-  const _isNewOrChanged = !_wasPlayed || _prevGc !== gc || _prevGo !== go;
   // Read stats — merge with existing entry to preserve legacy fields (titolare/minuti/gialli/rossi)
+  // NB: `match` (da _risCtx) può essere un riferimento orfano dopo applyServerState; lo usiamo SOLO
+  // per leggere gli stats "existing" all'apertura della modale (legacy fields). Per la mutazione finale
+  // applyResult userà il match aggiornato (lookup per id).
   const stats = [];
   document.querySelectorAll('#ptRisStatsList .rprow:not(.rprow-hd)').forEach(row => {
     const inputs = row.querySelectorAll('input[data-pid]');
@@ -21958,32 +22020,30 @@ function savePtRisultato() {
     });
     stats.push(s);
   });
-  match.stats = stats;
-  // Salva visibilitaSubito per partite torneo
-  if (tipo === 'torneo') {
-    match.visibilitaSubito = document.querySelector('input[name="ptRisVisib"]:checked')?.value === 'subito';
-  }
+  const visibilitaSubito = (tipo === 'torneo')
+    ? document.querySelector('input[name="ptRisVisib"]:checked')?.value === 'subito'
+    : undefined;
   const cambiSec = document.getElementById('ptRisCambiSection');
-  if (cambiSec && cambiSec.style.display !== 'none') match.cambi = _readRisCambi();
+  const cambi = (cambiSec && cambiSec.style.display !== 'none') ? _readRisCambi() : undefined;
   // INTEGRATION HOOK — vedi saveQuickResult per la firma completa
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
-  // Salvataggio locale (in-memory + localStorage + apiPush con retry): invariato.
+  // Mutazione idempotente catturata come target assoluto.
+  const target = { golCasa: gc, golOspiti: go, stats };
+  if (typeof visibilitaSubito === 'boolean') target.visibilitaSubito = visibilitaSubito;
+  if (Array.isArray(cambi)) target.cambi = cambi;
+  const applyResult = _buildApplyResult(tipo, ref, target);
+  // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
+  applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
-  // Notifica genitori + toast "salvato" SOLO dopo conferma PUT lato server.
-  if (typeof window.__fieldosSyncToCloud === 'function') {
-    window.__fieldosSyncToCloud().then(r => {
-      if (r && r.ok) {
-        _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
-        toast('✅ Risultato salvato!');
-      } else {
-        toast('⚠️ Risultato non salvato — riprova');
-      }
-    }).catch(() => toast('⚠️ Risultato non salvato — riprova'));
+  const res = await saveResultWithRetry(applyResult);
+  if (res.ok) {
+    _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
+    toast('✅ Risultato salvato!');
   } else {
-    _notifyRisultatoToGenitori(tipo, match, gc, go, _isNewOrChanged);
+    toast('⚠️ Risultato non salvato — riprova');
   }
 }
 
@@ -27403,7 +27463,8 @@ async function doRejoinSocieta() {
   // Strategia meno-invasiva: salva backup locale (recuperabile a mano), poi pull + ricarica.
   // L'utente perde solo le modifiche non ancora arrivate al server (per definizione non sicure),
   // ma NON distrugge mai il lavoro degli altri device già salvato.
-  async function _handleStaleConflict(key) {
+  async function _handleStaleConflict(key, opts) {
+    const silent = !!(opts && opts.silent); // true = no toast (usato dal fallback merge-retry)
     try {
       // Backup difensivo del lastSnap locale prima di sovrascriverlo: ricuperabile via DevTools.
       const backupKey = 'fieldos_conflict_backup_' + Date.now();
@@ -27414,11 +27475,11 @@ async function doRejoinSocieta() {
         const backups = Object.keys(localStorage).filter(k => k.startsWith('fieldos_conflict_backup_')).sort();
         while (backups.length > 3) { localStorage.removeItem(backups.shift()); }
       } catch (_) {}
-      if (typeof toast === 'function') toast('⚠️ Dati cambiati sul server, ricarico…');
+      if (!silent && typeof toast === 'function') toast('⚠️ Dati cambiati sul server, ricarico…');
       const serverJson = await apiPull(key); // aggiorna _serverVersion centralmente
       if (serverJson && serverJson !== _PULL_EMPTY) {
         applyServerState(serverJson);
-        if (typeof toast === 'function') toast('🔄 Stato aggiornato. Controlla le tue ultime modifiche.');
+        if (!silent && typeof toast === 'function') toast('🔄 Stato aggiornato. Controlla le tue ultime modifiche.');
       }
     } catch (e) {
       console.error('[_handleStaleConflict] errore', e);
@@ -27743,6 +27804,22 @@ async function doRejoinSocieta() {
   window.__fieldosSetServerVersion = function(v) {
     if (typeof v === 'number') { _serverVersion = v; _serverVersionInitDone = true; }
   };
+  // Pull silenzioso + apply: usato dal merge-retry interno per ri-allineare stato e _serverVersion
+  // senza toast UX (toast 'ricarico/aggiornato' si attiverebbero ad ogni iterazione → spam).
+  // Ritorna true se ha applicato uno stato fresco dal server, false altrimenti.
+  window.__fieldosPullAndApply = async function() {
+    try {
+      const serverJson = await apiPull(KEY); // aggiorna _serverVersion centralmente
+      _serverVersionInitDone = true;          // qualunque esito: init completato
+      if (serverJson && serverJson !== _PULL_EMPTY) {
+        applyServerState(serverJson);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  };
+  // Esposto per il fallback finale del merge-retry (backup locale + pull + apply, senza toast UX).
+  window.__fieldosHandleStaleConflict = function(opts) { return _handleStaleConflict(KEY, opts); };
 
   // Sincronizzazione manuale esplicita.
   // Ritorna la Response originale per compat con i chiamanti (sincronizzaCloud usa resp.status + resp.json()).
