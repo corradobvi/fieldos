@@ -3183,7 +3183,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
             <button class="btn btn-p btn-sm" onclick="_openAiAllowlist()">⚙️ Gestisci accesso AI</button>
           </div>
         </div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.7</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.8</span></div>
       </div>
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
@@ -22209,12 +22209,12 @@ function _chatPanelVvSetup() {
   const pg = document.getElementById('pg-chat');
   if (!pg || !vv) return;
   _chatPanelVvHandler = function() {
+    // Tocchiamo SOLO altezza (e top per iOS, dato l'offset della barra dinamica).
+    // left/right/width/max-width restano vincolati dal CSS → Invia mai tagliato,
+    // z-index della regola CSS copre sempre la bottom nav.
     pg.style.top = vv.offsetTop + 'px';
     pg.style.height = vv.height + 'px';
     pg.style.bottom = 'auto';
-    pg.style.left = vv.offsetLeft + 'px';
-    pg.style.width = vv.width + 'px';
-    pg.style.right = 'auto';
     const _msgs = document.getElementById('chatMsgs');
     if (_msgs) _msgs.scrollTop = _msgs.scrollHeight;
   };
@@ -22234,9 +22234,6 @@ function _chatPanelVvCleanup() {
     pg.style.top = '';
     pg.style.height = '';
     pg.style.bottom = '';
-    pg.style.left = '';
-    pg.style.width = '';
-    pg.style.right = '';
   }
 }
 
