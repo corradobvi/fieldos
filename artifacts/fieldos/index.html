@@ -19827,22 +19827,23 @@ function renderPtTornei() {
       return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}"><div style="color:var(--text3);font-size:.8rem;">⏳ Dettagli disponibili a breve</div></div></div>`;
     }
     const polis = polisName(t.leva);
+    const mieSquadre = _getMieSquadre(t);
     const fasiHtml = (t.fasi||[]).map(f => {
       const standings = computeStandings(f.squadre||[], f.partite||[]);
       const stHtml = standings.length === 0 ? '' : `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>DR</th><th>Pt</th></tr></thead><tbody>` +
         standings.map((sq,i) => {
-          const isPolis = sq.nome === polis;
+          const isPolis = mieSquadre.includes(sq.nome);
           const dr = sq.dr >= 0 ? '+'+sq.dr : String(sq.dr);
           return `<tr${isPolis?' class="polis"':''}><td>${i+1}</td><td>${escapeHtml(sq.nome)}${isPolis?' ⭐':''}</td><td>${sq.g}</td><td>${sq.v}</td><td>${sq.n}</td><td>${sq.p}</td><td>${dr}</td><td class="pts">${sq.pts}</td></tr>`;
         }).join('') + '</tbody></table></div>';
       const fSorted = [...(f.partite||[])].sort((a,b) => (a.data||'').localeCompare(b.data||''));
-      const polisMatches = fSorted.filter(m => m.casa === polis || m.ospite === polis);
-      const altriMatches = fSorted.filter(m => m.casa !== polis && m.ospite !== polis);
+      const polisMatches = fSorted.filter(m => mieSquadre.includes(m.casa) || mieSquadre.includes(m.ospite));
+      const altriMatches = fSorted.filter(m => !mieSquadre.includes(m.casa) && !mieSquadre.includes(m.ospite));
       const polisHtml = polisMatches.map(m => {
         if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
         const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
-        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,[polis]):''}<div class="mc-actions">${risBtn}</div></div>`;
+        return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre):''}<div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
       const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
