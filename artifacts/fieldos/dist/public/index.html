@@ -3189,7 +3189,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.11</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.12</span></div>
       </div>
 
     </main>
@@ -29930,47 +29930,6 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 
 </script>
-
-<!-- ════════ DEBUG CHAT WIDTH — overlay diagnostico temporaneo ════════ -->
-<div id="kbWDbg" style="position:fixed;top:0;left:0;z-index:2147483647;font:10px monospace;background:rgba(0,0,0,.85);color:#0f0;padding:3px 6px;pointer-events:none;white-space:pre;"></div>
-<script>
-(function(){
-  var box = document.getElementById('kbWDbg');
-  if (!box) return;
-  function _w(el){ return el ? Math.round(el.getBoundingClientRect().width) : -1; }
-  function _findSend(){
-    var nodes = document.querySelectorAll('.cm-inp .btn');
-    for (var i=0; i<nodes.length; i++) {
-      if (!nodes[i].classList.contains('btn-attach')) return nodes[i];
-    }
-    return null;
-  }
-  function _render(){
-    var vv = window.visualViewport;
-    var pg  = document.getElementById('pg-chat');
-    var row = document.querySelector('.cm-inp');
-    var inp = document.getElementById('chatInp');
-    var snd = _findSend();
-    box.textContent =
-      'win: '     + window.innerWidth + '\n' +
-      'vvW: '     + (vv ? Math.round(vv.width) : -1) + '\n' +
-      'pg: '      + _w(pg) + '\n' +
-      'row: '     + _w(row) + '\n' +
-      'inp: '     + _w(inp) + '\n' +
-      'send: '    + _w(snd) + '\n' +
-      'scrollW: ' + document.documentElement.scrollWidth;
-  }
-  _render();
-  document.addEventListener('focusin',  _render, true);
-  document.addEventListener('focusout', _render, true);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', _render);
-    window.visualViewport.addEventListener('scroll', _render);
-  }
-  setInterval(_render, 1000);
-})();
-</script>
-<!-- ════════ /DEBUG CHAT WIDTH ════════ -->
 
 </body>
 </html>
