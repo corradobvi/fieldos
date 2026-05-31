@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router41;
+    module.exports = Router43;
     module.exports.Route = Route;
-    function Router41(options) {
-      if (!(this instanceof Router41)) {
-        return new Router41(options);
+    function Router43(options) {
+      if (!(this instanceof Router43)) {
+        return new Router43(options);
       }
       const opts = options || {};
-      function router41(req, res, next) {
-        router41.handle(req, res, next);
+      function router43(req, res, next) {
+        router43.handle(req, res, next);
       }
-      Object.setPrototypeOf(router41, this);
-      router41.caseSensitive = opts.caseSensitive;
-      router41.mergeParams = opts.mergeParams;
-      router41.params = {};
-      router41.strict = opts.strict;
-      router41.stack = [];
-      return router41;
+      Object.setPrototypeOf(router43, this);
+      router43.caseSensitive = opts.caseSensitive;
+      router43.mergeParams = opts.mergeParams;
+      router43.params = {};
+      router43.strict = opts.strict;
+      router43.stack = [];
+      return router43;
     }
-    Router41.prototype = function() {
+    Router43.prototype = function() {
     };
-    Router41.prototype.param = function param(name, fn) {
+    Router43.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router41.prototype.handle = function handle(req, res, callback) {
+    Router43.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router41.prototype.use = function use(handler) {
+    Router43.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router41.prototype.route = function route(path4) {
+    Router43.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router41.prototype[method] = function(path4) {
+      Router43.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router41 = require_router();
+    var Router43 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router41 = null;
+      var router43 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router41 === null) {
-            router41 = new Router41({
+          if (router43 === null) {
+            router43 = new Router43({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router41;
+          return router43;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router41 = this.router;
+      var router43 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router41.use(path4, fn2);
+          return router43.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router41.use(path4, function mounted_app(req, res, next) {
+        router43.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router41 = require_router();
+    var Router43 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router41.Route;
-    exports.Router = Router41;
+    exports.Route = Router43.Route;
+    exports.Router = Router43;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express41 = __toESM(require_express2(), 1);
+var import_express43 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express40 = __toESM(require_express2(), 1);
+var import_express42 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78501,7 +78501,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express39 = __toESM(require_express2(), 1);
+var import_express41 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -78710,6 +78710,40 @@ CREATE TABLE IF NOT EXISTS player_guardians (
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS chat_polls (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  chat_id     VARCHAR(100) NOT NULL,
+  created_by  INT          NOT NULL,
+  question    TEXT         NOT NULL,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_chat_polls (society_id, chat_id, created_at),
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id)     ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_poll_options (
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  poll_id   INT          NOT NULL,
+  text      TEXT         NOT NULL,
+  position  INT          NOT NULL DEFAULT 0,
+  INDEX idx_poll_options (poll_id, position),
+  FOREIGN KEY (poll_id) REFERENCES chat_polls(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_poll_votes (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  poll_id    INT NOT NULL,
+  option_id  INT NOT NULL,
+  user_id    INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_vote (option_id, user_id),
+  INDEX idx_poll_votes (poll_id),
+  FOREIGN KEY (poll_id)   REFERENCES chat_polls(id)        ON DELETE CASCADE,
+  FOREIGN KEY (option_id) REFERENCES chat_poll_options(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)             ON DELETE CASCADE
+);
 `;
 var MIGRATIONS_SQL = `
 ALTER TABLE societies MODIFY COLUMN piano VARCHAR(50) NULL DEFAULT NULL;
@@ -78754,6 +78788,8 @@ ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE players ADD COLUMN approval_status ENUM('pending','approved') NOT NULL DEFAULT 'approved';
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
+ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
@@ -86673,7 +86709,7 @@ router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { limit = "50", before } = req.query;
   try {
     const [rows] = await pool.execute(
-      `SELECT m.id, m.autore_id, m.testo, m.foto_url, m.created_at,
+      `SELECT m.id, m.autore_id, m.testo, m.foto_url, m.tipo, m.meta, m.created_at,
               u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
        FROM chat_messages m
        LEFT JOIN users u ON u.id = m.autore_id
@@ -86686,6 +86722,160 @@ router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
     return res.json(rows.reverse());
   } catch (e) {
     logger.error({ err: e }, "GET chat messages error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+function _userDisplay(row) {
+  const n = (row.nome || "").trim();
+  const c = (row.cognome || "").trim();
+  return n || c ? `${n} ${c}`.trim() : "Utente";
+}
+async function _loadPollDetails(societyId, pollId, viewerId) {
+  const [polls] = await pool.execute(
+    `SELECT p.id, p.chat_id, p.created_by, p.question, p.created_at,
+            u.nome AS creator_nome, u.cognome AS creator_cognome
+       FROM chat_polls p
+       LEFT JOIN users u ON u.id = p.created_by
+      WHERE p.id = ? AND p.society_id = ? LIMIT 1`,
+    [pollId, societyId]
+  );
+  if (!polls.length) return null;
+  const p = polls[0];
+  const [options] = await pool.execute(
+    "SELECT id, text, position FROM chat_poll_options WHERE poll_id = ? ORDER BY position ASC, id ASC",
+    [pollId]
+  );
+  const [votes] = await pool.execute(
+    `SELECT v.option_id, v.user_id, u.nome, u.cognome
+       FROM chat_poll_votes v
+       LEFT JOIN users u ON u.id = v.user_id
+      WHERE v.poll_id = ?`,
+    [pollId]
+  );
+  const votersByOption = {};
+  const myOptionIds = [];
+  const uniqueVoters = /* @__PURE__ */ new Set();
+  for (const v of votes) {
+    const oid = Number(v.option_id);
+    if (!votersByOption[oid]) votersByOption[oid] = [];
+    votersByOption[oid].push({ userId: Number(v.user_id), name: _userDisplay(v) });
+    uniqueVoters.add(Number(v.user_id));
+    if (Number(v.user_id) === viewerId) myOptionIds.push(oid);
+  }
+  return {
+    id: Number(p.id),
+    chatId: p.chat_id,
+    question: p.question,
+    createdAt: p.created_at,
+    createdBy: Number(p.created_by),
+    createdByName: _userDisplay({ nome: p.creator_nome, cognome: p.creator_cognome }),
+    options: options.map((o) => ({
+      id: Number(o.id),
+      text: String(o.text),
+      position: Number(o.position),
+      count: (votersByOption[Number(o.id)] || []).length,
+      voters: votersByOption[Number(o.id)] || []
+    })),
+    totalVoters: uniqueVoters.size,
+    myOptionIds
+  };
+}
+router19.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  try {
+    const [ids] = await pool.execute(
+      "SELECT id FROM chat_polls WHERE society_id = ? AND chat_id = ? ORDER BY created_at ASC, id ASC",
+      [societyId, chatId]
+    );
+    const polls = [];
+    for (const r of ids) {
+      const d = await _loadPollDetails(societyId, Number(r.id), userId);
+      if (d) polls.push(d);
+    }
+    return res.json(polls);
+  } catch (e) {
+    logger.error({ err: e }, "GET chat polls error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router19.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  const { question, options } = req.body;
+  const [meRows] = await pool.execute(
+    "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+    [userId, societyId]
+  );
+  const ruolo = meRows[0]?.ruolo;
+  if (ruolo !== "admin" && ruolo !== "dirigente" && ruolo !== "mister_admin") {
+    return res.status(403).json({ error: "forbidden", detail: "Solo admin/dirigenti possono creare sondaggi." });
+  }
+  const q = typeof question === "string" ? question.trim() : "";
+  const opts = Array.isArray(options) ? options.map((o) => typeof o === "string" ? o.trim() : "").filter((o) => o.length > 0) : [];
+  if (!q) return res.status(400).json({ error: "question_required" });
+  if (opts.length < 2) return res.status(400).json({ error: "min_2_options" });
+  if (opts.length > 10) return res.status(400).json({ error: "max_10_options" });
+  try {
+    const [pollIns] = await pool.execute(
+      "INSERT INTO chat_polls (society_id, chat_id, created_by, question) VALUES (?, ?, ?, ?)",
+      [societyId, chatId, userId, q]
+    );
+    const pollId = pollIns.insertId;
+    for (let i = 0; i < opts.length; i++) {
+      await pool.execute(
+        "INSERT INTO chat_poll_options (poll_id, text, position) VALUES (?, ?, ?)",
+        [pollId, opts[i], i]
+      );
+    }
+    try {
+      await pool.execute(
+        "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, tipo, meta) VALUES (?, ?, ?, ?, 'poll', ?)",
+        [societyId, chatId, userId, q, JSON.stringify({ pollId })]
+      );
+    } catch (e) {
+      logger.warn({ err: e?.message?.slice(0, 80) }, "chat_messages tipo/meta insert skipped (migration pending?)");
+    }
+    const detail = await _loadPollDetails(societyId, pollId, userId);
+    return res.status(201).json(detail);
+  } catch (e) {
+    logger.error({ err: e }, "POST chat poll error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const pollId = parseInt(req.params.pollId);
+  const { optionId } = req.body;
+  if (!Number.isFinite(pollId) || !Number.isFinite(Number(optionId))) {
+    return res.status(400).json({ error: "invalid_args" });
+  }
+  const oid = Number(optionId);
+  try {
+    const [check] = await pool.execute(
+      `SELECT p.id AS pid, p.chat_id, o.id AS oid
+         FROM chat_polls p
+         INNER JOIN chat_poll_options o ON o.poll_id = p.id
+        WHERE p.id = ? AND o.id = ? AND p.society_id = ? LIMIT 1`,
+      [pollId, oid, societyId]
+    );
+    if (!check.length) return res.status(404).json({ error: "poll_or_option_not_found" });
+    const [existing] = await pool.execute(
+      "SELECT id FROM chat_poll_votes WHERE option_id = ? AND user_id = ? LIMIT 1",
+      [oid, userId]
+    );
+    if (existing.length) {
+      await pool.execute("DELETE FROM chat_poll_votes WHERE id = ?", [existing[0].id]);
+    } else {
+      await pool.execute(
+        "INSERT INTO chat_poll_votes (poll_id, option_id, user_id) VALUES (?, ?, ?)",
+        [pollId, oid, userId]
+      );
+    }
+    const detail = await _loadPollDetails(societyId, pollId, userId);
+    return res.json(detail);
+  } catch (e) {
+    logger.error({ err: e }, "POST chat poll vote error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -92139,8 +92329,224 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
 });
 var migrate_polis_default = router38;
 
-// src/routes/v2/index.ts
+// src/routes/v2/matches.ts
+var import_express39 = __toESM(require_express2(), 1);
 var router39 = (0, import_express39.Router)();
+router39.get("/matches", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const tipo = req.query.tipo || void 0;
+  const leva = req.query.leva || void 0;
+  if (tipo && !["campionato", "torneo", "amichevole"].includes(tipo)) {
+    return res.status(400).json({ error: "invalid_tipo" });
+  }
+  try {
+    const conds = ["m.societa_id = ?"];
+    const params = [societyId];
+    if (tipo) {
+      conds.push("m.tipo = ?");
+      params.push(tipo);
+    }
+    if (leva) {
+      conds.push("m.leva = ?");
+      params.push(leva);
+    }
+    const [rows] = await pool.execute(
+      `SELECT m.id, m.societa_id, m.tipo, m.event_key, m.legacy_match_id,
+              m.leva, m.fase_id, m.giornata,
+              m.data, m.orario,
+              m.casa, m.ospite, m.avversario, m.lato, m.luogo,
+              m.played, m.gol_casa, m.gol_ospiti,
+              m.visibilita_subito, m.annullata,
+              m.bracket_round, m.bracket_pos,
+              m.created_at,
+              tf.nome AS fase_nome, tf.tipo AS fase_tipo, tf.fase_gruppo AS fase_gruppo,
+              tf.torneo_id AS torneo_id, t.nome AS torneo_nome, t.leva AS torneo_leva
+       FROM matches m
+       LEFT JOIN tornei_fasi tf ON tf.id = m.fase_id
+       LEFT JOIN tornei t ON t.id = tf.torneo_id
+       WHERE ${conds.join(" AND ")}
+       ORDER BY m.data DESC, m.orario DESC, m.id DESC`,
+      params
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET matches error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.get("/tornei", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [tornei] = await pool.execute(
+      `SELECT id, societa_id, nome, leva, luogo,
+              data_inizio, data_fine,
+              spareggio, squadre_partecipanti, squadre_mie_flag, convocati,
+              convocazioni_per_partita, qual_per_girone, archiviato, created_at
+       FROM tornei
+       WHERE societa_id = ?
+       ORDER BY data_inizio DESC, id`,
+      [societyId]
+    );
+    if (!tornei.length) return res.json([]);
+    const ids = tornei.map((t) => t.id);
+    const placeholders = ids.map(() => "?").join(",");
+    const [fasi] = await pool.execute(
+      `SELECT id, torneo_id, nome, tipo, fase_gruppo, squadre, ordine, created_at
+       FROM tornei_fasi
+       WHERE torneo_id IN (${placeholders})
+       ORDER BY ordine, id`,
+      ids
+    );
+    const byTorneo = {};
+    for (const f of fasi) {
+      if (!byTorneo[f.torneo_id]) byTorneo[f.torneo_id] = [];
+      byTorneo[f.torneo_id].push(f);
+    }
+    for (const t of tornei) t.fasi = byTorneo[t.id] || [];
+    return res.json(tornei);
+  } catch (e) {
+    logger.error({ err: e }, "GET tornei error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var matches_default = router39;
+
+// src/routes/v2/stats.ts
+var import_express40 = __toESM(require_express2(), 1);
+var router40 = (0, import_express40.Router)();
+function zero() {
+  return { presenze: 0, gol: 0, assist: 0, minuti: 0, gialli: 0, rossi: 0, gol_sub: 0, cs: 0 };
+}
+function addRow(b, row) {
+  b.presenze += Number(row.presenze) || 0;
+  b.gol += Number(row.gol) || 0;
+  b.assist += Number(row.assist) || 0;
+  b.minuti += Number(row.minuti) || 0;
+  b.gialli += Number(row.gialli) || 0;
+  b.rossi += Number(row.rossi) || 0;
+  b.gol_sub += Number(row.gol_sub) || 0;
+  b.cs += Number(row.cs) || 0;
+}
+function sumBuckets(...bs) {
+  const out = zero();
+  for (const b of bs) {
+    out.presenze += b.presenze;
+    out.gol += b.gol;
+    out.assist += b.assist;
+    out.minuti += b.minuti;
+    out.gialli += b.gialli;
+    out.rossi += b.rossi;
+    out.gol_sub += b.gol_sub;
+    out.cs += b.cs;
+  }
+  return out;
+}
+var AGG_SELECT = `
+  SELECT ms.player_id,
+         m.tipo,
+         COUNT(DISTINCT m.id)                            AS presenze,
+         COALESCE(SUM(ms.gol), 0)                        AS gol,
+         COALESCE(SUM(ms.assist), 0)                     AS assist,
+         COALESCE(SUM(ms.minuti), 0)                     AS minuti,
+         COALESCE(SUM(ms.gialli), 0)                     AS gialli,
+         COALESCE(SUM(ms.rossi), 0)                      AS rossi,
+         COALESCE(SUM(ms.gol_sub), 0)                    AS gol_sub,
+         COALESCE(SUM(CASE WHEN ms.cs = 1 THEN 1 ELSE 0 END), 0) AS cs
+  FROM match_stats ms
+  JOIN matches m ON m.id = ms.match_id
+`;
+router40.get("/stats/player/:playerId", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const playerId = Number(req.params.playerId);
+  if (!Number.isFinite(playerId) || playerId <= 0) {
+    return res.status(400).json({ error: "invalid_player_id" });
+  }
+  const leva = req.query.leva || void 0;
+  try {
+    const conds = ["m.societa_id = ?", "m.played = 1", "ms.player_id = ?"];
+    const params = [societyId, playerId];
+    if (leva) {
+      conds.push("m.leva = ?");
+      params.push(leva);
+    }
+    const [rows] = await pool.execute(
+      `${AGG_SELECT}
+       WHERE ${conds.join(" AND ")}
+       GROUP BY ms.player_id, m.tipo`,
+      params
+    );
+    const out = {
+      amichevole: zero(),
+      campionato: zero(),
+      torneo: zero()
+    };
+    for (const r of rows) {
+      if (r.tipo === "amichevole" || r.tipo === "campionato" || r.tipo === "torneo") {
+        addRow(out[r.tipo], r);
+      }
+    }
+    return res.json({
+      player_id: playerId,
+      leva: leva ?? null,
+      amichevole: out.amichevole,
+      campionato: out.campionato,
+      torneo: out.torneo,
+      totale: sumBuckets(out.amichevole, out.campionato, out.torneo)
+    });
+  } catch (e) {
+    logger.error({ err: e }, "GET stats/player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router40.get("/stats/leva", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const leva = req.query.leva || void 0;
+  if (!leva) return res.status(400).json({ error: "leva_required" });
+  try {
+    const [players] = await pool.execute(
+      `SELECT id FROM players WHERE society_id = ? AND leva = ? ORDER BY cognome, nome`,
+      [societyId, leva]
+    );
+    const conds = ["m.societa_id = ?", "m.played = 1", "m.leva = ?"];
+    const params = [societyId, leva];
+    const [rows] = await pool.execute(
+      `${AGG_SELECT}
+       WHERE ${conds.join(" AND ")}
+       GROUP BY ms.player_id, m.tipo`,
+      params
+    );
+    const map = {};
+    for (const p of players) {
+      map[p.id] = { amichevole: zero(), campionato: zero(), torneo: zero() };
+    }
+    for (const r of rows) {
+      const pid = Number(r.player_id);
+      if (!map[pid]) map[pid] = { amichevole: zero(), campionato: zero(), torneo: zero() };
+      if (r.tipo === "amichevole" || r.tipo === "campionato" || r.tipo === "torneo") {
+        addRow(map[pid][r.tipo], r);
+      }
+    }
+    const out = Object.keys(map).map((k) => {
+      const pid = Number(k);
+      const b = map[pid];
+      return {
+        player_id: pid,
+        amichevole: b.amichevole,
+        campionato: b.campionato,
+        torneo: b.torneo,
+        totale: sumBuckets(b.amichevole, b.campionato, b.torneo)
+      };
+    });
+    return res.json({ leva, players: out });
+  } catch (e) {
+    logger.error({ err: e }, "GET stats/leva error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var stats_default = router40;
+
+// src/routes/v2/index.ts
+var router41 = (0, import_express41.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -92324,7 +92730,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router39.use(async (_req, _res, next) => {
+router41.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -92333,7 +92739,7 @@ router39.use(async (_req, _res, next) => {
     next();
   }
 });
-router39.get("/schema-info", async (_req, res) => {
+router41.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -92351,7 +92757,7 @@ router39.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router39.get("/health/ai-key", (_req, res) => {
+router41.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -92362,7 +92768,7 @@ router39.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router39.get("/health/schema-budget", async (_req, res) => {
+router41.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -92377,53 +92783,55 @@ router39.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router39.use(auth_default2);
-router39.use(self_register_default);
-router39.use(society_default);
-router39.use(leve_default);
-router39.use(minors_default);
-router39.use(players_default);
-router39.use(users_default);
-router39.use(events_default);
-router39.use(presenze_default);
-router39.use(comunicazioni_default);
-router39.use(chat_default);
-router39.use(quote_default);
-router39.use(migrate_default);
-router39.use(stripe_default);
-router39.use(demo_wa_default);
-router39.use(superadmin_default);
-router39.use(account_default);
-router39.use(notification_preferences_default);
-router39.use(allenamenti_default);
-router39.use(ai_allenamenti_default);
-router39.use(ai_tornei_default);
-router39.use(utm_stats_default);
-router39.use(admin_reset_demo_default);
-router39.use(admin_populate_sessioni_default);
-router39.use(select_plan_default);
-router39.use(admin_genitore_debug_default);
-router39.use(admin_push_debug_default);
-router39.use(admin_cleanup_preview_default);
-router39.use(notifiche_risultato_default);
-router39.use(migrate_polis_default);
-var v2_default = router39;
+router41.use(auth_default2);
+router41.use(self_register_default);
+router41.use(society_default);
+router41.use(leve_default);
+router41.use(minors_default);
+router41.use(players_default);
+router41.use(users_default);
+router41.use(events_default);
+router41.use(presenze_default);
+router41.use(comunicazioni_default);
+router41.use(chat_default);
+router41.use(quote_default);
+router41.use(migrate_default);
+router41.use(stripe_default);
+router41.use(demo_wa_default);
+router41.use(superadmin_default);
+router41.use(account_default);
+router41.use(notification_preferences_default);
+router41.use(allenamenti_default);
+router41.use(ai_allenamenti_default);
+router41.use(ai_tornei_default);
+router41.use(utm_stats_default);
+router41.use(admin_reset_demo_default);
+router41.use(admin_populate_sessioni_default);
+router41.use(select_plan_default);
+router41.use(admin_genitore_debug_default);
+router41.use(admin_push_debug_default);
+router41.use(admin_cleanup_preview_default);
+router41.use(notifiche_risultato_default);
+router41.use(migrate_polis_default);
+router41.use(matches_default);
+router41.use(stats_default);
+var v2_default = router41;
 
 // src/routes/index.ts
-var router40 = (0, import_express40.Router)();
-router40.use(health_default);
-router40.use(login_default);
-router40.use(auth_default);
-router40.use(state_default);
-router40.use(assist_default);
-router40.use(push_default);
-router40.use(upload_default);
-router40.use(public_default);
-router40.use("/v2", v2_default);
-var routes_default = router40;
+var router42 = (0, import_express42.Router)();
+router42.use(health_default);
+router42.use(login_default);
+router42.use(auth_default);
+router42.use(state_default);
+router42.use(assist_default);
+router42.use(push_default);
+router42.use(upload_default);
+router42.use(public_default);
+router42.use("/v2", v2_default);
+var routes_default = router42;
 
 // src/app.ts
-var app = (0, import_express41.default)();
+var app = (0, import_express43.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -92444,17 +92852,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express41.default.json({
+app.use(import_express43.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express41.default.urlencoded({ extended: true }));
+app.use(import_express43.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express41.default.static(staticDir));
+  app.use(import_express43.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });

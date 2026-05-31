@@ -2842,6 +2842,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
             <div class="cm-inp">
               <button class="btn-attach" onclick="document.getElementById('chatImgInput').click()" title="Allega foto">📎</button>
               <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="sendPhoto(this)">
+              <button class="btn-attach" id="chatPollBtn" onclick="openNuovoPoll()" title="Crea sondaggio" style="display:none;">📊</button>
               <input id="chatInp" placeholder="Scrivi un messaggio..." onkeydown="if(event.key==='Enter')sendMsg()">
               <button class="btn btn-p btn-sm" onclick="sendMsg()">Invia</button>
             </div>
@@ -3189,7 +3190,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.13</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.14</span></div>
       </div>
 
     </main>
@@ -22417,6 +22418,9 @@ function selectChat(chatId, skipListRefresh) {
   document.querySelectorAll('#chatList .ci').forEach(el => el.classList.remove('on'));
   const active = document.querySelector(`#chatList .ci[data-chatid="${CSS.escape(chatId)}"]`);
   if (active) active.classList.add('on');
+  // Bottone sondaggio + fetch sondaggi (solo chat torneo)
+  if (typeof refreshPollButton === 'function') refreshPollButton();
+  if (_isTorneoChat(chatId)) _loadPollsForChat(chatId, true);
   markChatRead(me, chatId);
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
@@ -22503,11 +22507,39 @@ function renderChatMessages() {
   const cont = document.getElementById('chatMsgs');
   if (!cont || !currentChatId) return;
   const msgs = chatMsgsFor(currentChatId);
-  if (msgs.length === 0) {
+  // Merge sondaggi (chat torneo, da MySQL) nel flusso cronologico via timestamp.
+  // I sondaggi diventano "voci" speciali con marker _kind='poll'.
+  const pollsForChat = (_isTorneoChat(currentChatId) ? (_chatPolls[currentChatId] || []) : []);
+  const pollItems = pollsForChat.map(p => ({
+    _kind: 'poll',
+    _poll: p,
+    ts: p.createdAt ? Date.parse(p.createdAt) : Date.now()
+  }));
+  const stream = msgs.map(m => Object.assign({ _kind: 'msg' }, m)).concat(pollItems).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  if (stream.length === 0) {
     cont.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.78rem;padding:30px;">Nessun messaggio in questa chat. Scrivi tu il primo!</div>';
     return;
   }
-  cont.innerHTML = msgs.map(m => {
+  cont.innerHTML = stream.map(item => {
+    if (item._kind === 'poll') {
+      // Card sondaggio nel flusso: avatar del creatore + bubble custom (no max-width fumetto).
+      const p = item._poll;
+      const u = USERS_DB.find(x => x.id === p.createdBy);
+      const isMe = p.createdBy === me.id;
+      const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '📊';
+      const color = u ? (ROLE_CFG[u.role] && ROLE_CFG[u.role].color || '#888') : '#1A7A4A';
+      const time = new Date(item.ts);
+      const timeStr = String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');
+      return `<div class="msg ${isMe?'me':''}">
+        <div class="msg-av" style="background:${color};color:white;">${av}</div>
+        <div>
+          ${!isMe ? `<div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;font-weight:700;">${escapeHtml(p.createdByName || '')}</div>` : ''}
+          ${_renderPollCard(p)}
+          <div class="msg-t">${timeStr}</div>
+        </div>
+      </div>`;
+    }
+    const m = item;
     const u = USERS_DB.find(x => x.id === m.userId);
     const isMe = m.userId === me.id;
     const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '??';
@@ -22589,6 +22621,168 @@ function sendPhoto(input) {
   };
   reader.readAsDataURL(file);
   input.value = '';
+}
+
+// ─── SONDAGGI CHAT TORNEO ──────────────────────────────────────────────────
+// Storage in-memory (per-chat) dei sondaggi caricati da MySQL.
+// Aggiornato a selectChat e ad ogni tick del polling esistente (startSyncPoll/poll blob).
+let _chatPolls = {};        // { chatId: [poll, ...] }
+let _chatPollsLastFetch = {}; // { chatId: ts } — debounce 4s per evitare spam
+let _pollOptDraftCount = 2;  // contatore opzioni form
+
+function _isTorneoChat(chatId) { return typeof chatId === 'string' && chatId.startsWith('torneo_'); }
+function _canCreatePoll() {
+  if (!me) return false;
+  return me.role === 'admin' || me.role === 'dirigente' || me.role === 'mister_admin';
+}
+
+// Aggiorna visibilità bottone "📊 Sondaggio" in base a chat corrente + ruolo
+function refreshPollButton() {
+  const btn = document.getElementById('chatPollBtn');
+  if (!btn) return;
+  btn.style.display = (_isTorneoChat(currentChatId) && _canCreatePoll()) ? '' : 'none';
+}
+
+async function _loadPollsForChat(chatId, force) {
+  if (!_isTorneoChat(chatId) || !_v2Token) return;
+  const now = Date.now();
+  if (!force && (now - (_chatPollsLastFetch[chatId] || 0)) < 4000) return;
+  _chatPollsLastFetch[chatId] = now;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/polls', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) return;
+    const polls = await r.json();
+    if (!Array.isArray(polls)) return;
+    _chatPolls[chatId] = polls;
+    // Se sono nella chat target, ridisegna per inserire le card sondaggio nel flusso
+    if (currentChatId === chatId) renderChatMessages();
+  } catch (_) { /* offline: niente */ }
+}
+
+function openNuovoPoll() {
+  if (!_canCreatePoll()) { toast('⛔ Solo admin/dirigenti possono creare sondaggi'); return; }
+  if (!_isTorneoChat(currentChatId)) { toast('⚠️ I sondaggi sono disponibili solo nelle chat torneo'); return; }
+  document.getElementById('pollQuestion').value = '';
+  document.getElementById('pollNewErr').style.display = 'none';
+  _pollOptDraftCount = 2;
+  _renderPollOptionInputs();
+  openM('mPollNew');
+}
+
+function _renderPollOptionInputs() {
+  const cont = document.getElementById('pollOptionsList');
+  if (!cont) return;
+  const items = [];
+  for (let i = 0; i < _pollOptDraftCount; i++) {
+    items.push(`<div style="display:flex;gap:6px;align-items:center;">
+      <input class="fi" data-poll-opt="${i}" placeholder="Opzione ${i+1}" maxlength="200" style="flex:1;">
+      ${i >= 2 ? `<button type="button" class="btn btn-r btn-sm" onclick="pollRemoveOption(${i})" title="Rimuovi">✕</button>` : ''}
+    </div>`);
+  }
+  cont.innerHTML = items.join('');
+  const addBtn = document.getElementById('pollAddOptBtn');
+  if (addBtn) addBtn.style.display = _pollOptDraftCount >= 10 ? 'none' : '';
+}
+function pollAddOption() {
+  if (_pollOptDraftCount >= 10) return;
+  // Conserva valori già digitati
+  const prev = [];
+  document.querySelectorAll('#pollOptionsList input[data-poll-opt]').forEach(inp => prev.push(inp.value));
+  _pollOptDraftCount++;
+  _renderPollOptionInputs();
+  document.querySelectorAll('#pollOptionsList input[data-poll-opt]').forEach((inp, i) => { if (prev[i] !== undefined) inp.value = prev[i]; });
+}
+function pollRemoveOption(idx) {
+  if (_pollOptDraftCount <= 2) return;
+  const prev = [];
+  document.querySelectorAll('#pollOptionsList input[data-poll-opt]').forEach(inp => prev.push(inp.value));
+  prev.splice(idx, 1);
+  _pollOptDraftCount--;
+  _renderPollOptionInputs();
+  document.querySelectorAll('#pollOptionsList input[data-poll-opt]').forEach((inp, i) => { if (prev[i] !== undefined) inp.value = prev[i]; });
+}
+
+async function createNuovoPoll() {
+  const errEl = document.getElementById('pollNewErr');
+  function _err(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+  errEl.style.display = 'none';
+  if (!_v2Token) { _err('⚠️ Sessione scaduta'); return; }
+  if (!_isTorneoChat(currentChatId)) { _err('⚠️ Sondaggio disponibile solo nelle chat torneo'); return; }
+  const question = (document.getElementById('pollQuestion').value || '').trim();
+  if (!question) { _err('⚠️ Inserisci la domanda'); return; }
+  const options = Array.from(document.querySelectorAll('#pollOptionsList input[data-poll-opt]'))
+    .map(inp => (inp.value || '').trim()).filter(o => o.length > 0);
+  if (options.length < 2) { _err('⚠️ Servono almeno 2 opzioni'); return; }
+  if (options.length > 10) { _err('⚠️ Massimo 10 opzioni'); return; }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(currentChatId) + '/polls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ question, options })
+    });
+    if (r.status === 403) { _err('⛔ Permesso negato (solo admin/dirigenti)'); return; }
+    if (!r.ok) { const d = await r.json().catch(() => ({})); _err('❌ ' + (d.error || 'Errore creazione')); return; }
+    closeM('mPollNew');
+    await _loadPollsForChat(currentChatId, true);
+    toast('📊 Sondaggio creato');
+  } catch (e) { _err('❌ Errore di rete'); }
+}
+
+async function pollVote(pollId, optionId) {
+  if (!_v2Token || !_isTorneoChat(currentChatId)) return;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/polls/' + pollId + '/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ optionId })
+    });
+    if (!r.ok) { toast('❌ Voto non registrato'); return; }
+    const updated = await r.json();
+    // Update in-memory: sostituisci il poll
+    const list = _chatPolls[currentChatId] || [];
+    const idx = list.findIndex(p => p.id === updated.id);
+    if (idx >= 0) list[idx] = updated; else list.push(updated);
+    _chatPolls[currentChatId] = list;
+    renderChatMessages();
+  } catch (_) { toast('❌ Errore di rete'); }
+}
+
+// Render card sondaggio (HTML), font Nunito, raggi/ombra coerenti coi bubble esistenti.
+function _renderPollCard(p) {
+  const myVotes = Array.isArray(p.myOptionIds) ? new Set(p.myOptionIds) : new Set();
+  const totalVoters = Number(p.totalVoters) || 0;
+  const opts = (p.options || []).slice().sort((a, b) => (a.position - b.position) || (a.id - b.id));
+  const totalVotes = opts.reduce((acc, o) => acc + (Number(o.count) || 0), 0);
+  const optsHtml = opts.map(o => {
+    const cnt = Number(o.count) || 0;
+    const pct = totalVotes > 0 ? Math.round((cnt / totalVotes) * 100) : 0;
+    const isMine = myVotes.has(o.id);
+    const voters = Array.isArray(o.voters) ? o.voters.map(v => escapeHtml(v.name || 'Utente')).join(', ') : '';
+    return `<div style="margin-bottom:9px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 8px;border-radius:8px;background:${isMine ? '#E8F6EE' : 'transparent'};">
+        <input type="checkbox" ${isMine ? 'checked' : ''} onchange="pollVote(${p.id},${o.id})" style="accent-color:#1A7A4A;width:16px;height:16px;flex-shrink:0;">
+        <span style="flex:1;font-size:.85rem;color:#2D3748;font-family:'Nunito',sans-serif;">${escapeHtml(o.text)}</span>
+        <span style="font-size:.75rem;color:#6B7280;font-weight:700;min-width:34px;text-align:right;">${cnt} (${pct}%)</span>
+      </label>
+      <div style="height:6px;background:#E5E7EB;border-radius:4px;overflow:hidden;margin:2px 8px 0;">
+        <div style="height:100%;width:${pct}%;background:#1A7A4A;transition:width .35s;"></div>
+      </div>
+      ${voters ? `<div style="font-size:.68rem;color:#6B7280;margin:3px 8px 0;font-family:'Nunito',sans-serif;">${voters}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:14px 16px;box-shadow:var(--sh);font-family:'Nunito',sans-serif;max-width:560px;">
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;">
+      <span style="font-size:1.05rem;flex-shrink:0;">📊</span>
+      <div style="font-weight:800;font-size:.95rem;color:#2D3748;flex:1;line-height:1.35;">${escapeHtml(p.question || '')}</div>
+    </div>
+    ${optsHtml}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;font-size:.7rem;color:#6B7280;">
+      <span>${totalVoters} votant${totalVoters === 1 ? 'e' : 'i'}</span>
+      <span>Creato da ${escapeHtml(p.createdByName || '—')}</span>
+    </div>
+  </div>`;
 }
 
 function openNewChatModal() {
@@ -27779,6 +27973,12 @@ async function doRejoinSocieta() {
         applyServerState(serverJson);
         if (typeof toast === 'function') toast('🔄 Dati aggiornati dal cloud');
       });
+      // Hook al polling esistente: aggiorna sondaggi della chat torneo aperta (no secondo timer)
+      try {
+        if (typeof window.currentChatId === 'string' && currentChatId && typeof _loadPollsForChat === 'function' && _isTorneoChat(currentChatId)) {
+          _loadPollsForChat(currentChatId, true);
+        }
+      } catch (_) {}
     }, 30000);
   }
 
@@ -29503,6 +29703,30 @@ html{
     <div style="display:flex;gap:8px;margin-top:14px;">
       <button class="btn btn-p" style="flex:1;" onclick="createAdHocChat()">Crea chat</button>
       <button class="btn btn-g" onclick="closeM('mNewChat')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modale: Nuovo sondaggio (chat torneo, solo admin/dirigenti) -->
+<div class="ov" id="mPollNew">
+  <div class="modal" style="max-width:440px;">
+    <div class="mh">
+      <div class="mt">📊 Nuovo sondaggio</div>
+      <button class="mx" onclick="closeM('mPollNew')">✕</button>
+    </div>
+    <div class="fg">
+      <label class="fl">Domanda</label>
+      <input class="fi" id="pollQuestion" placeholder="Es. A che ora ci troviamo?" autocapitalize="sentences" maxlength="300">
+    </div>
+    <div class="fg" style="margin-top:10px;">
+      <label class="fl">Opzioni (min 2, max 10)</label>
+      <div id="pollOptionsList" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;"></div>
+      <button type="button" class="btn btn-g btn-sm" id="pollAddOptBtn" onclick="pollAddOption()" style="margin-top:8px;">+ Aggiungi opzione</button>
+    </div>
+    <div id="pollNewErr" style="display:none;font-size:.82rem;color:#c0392b;padding:7px 10px;background:#fef2f2;border-radius:7px;margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-p" style="flex:1;" onclick="createNuovoPoll()">Crea</button>
+      <button class="btn btn-g" onclick="closeM('mPollNew')">Annulla</button>
     </div>
   </div>
 </div>

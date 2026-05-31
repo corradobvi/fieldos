@@ -204,6 +204,40 @@ CREATE TABLE IF NOT EXISTS player_guardians (
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS chat_polls (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  society_id  INT          NOT NULL,
+  chat_id     VARCHAR(100) NOT NULL,
+  created_by  INT          NOT NULL,
+  question    TEXT         NOT NULL,
+  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_chat_polls (society_id, chat_id, created_at),
+  FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id)     ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_poll_options (
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  poll_id   INT          NOT NULL,
+  text      TEXT         NOT NULL,
+  position  INT          NOT NULL DEFAULT 0,
+  INDEX idx_poll_options (poll_id, position),
+  FOREIGN KEY (poll_id) REFERENCES chat_polls(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chat_poll_votes (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  poll_id    INT NOT NULL,
+  option_id  INT NOT NULL,
+  user_id    INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_vote (option_id, user_id),
+  INDEX idx_poll_votes (poll_id),
+  FOREIGN KEY (poll_id)   REFERENCES chat_polls(id)        ON DELETE CASCADE,
+  FOREIGN KEY (option_id) REFERENCES chat_poll_options(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)             ON DELETE CASCADE
+);
 `;
 
 // Migrations: idempotent for existing databases
@@ -251,6 +285,8 @@ ALTER TABLE players ADD COLUMN birth_date DATE NULL;
 ALTER TABLE players ADD COLUMN incomplete TINYINT(1) NOT NULL DEFAULT 0;
 ALTER TABLE players ADD COLUMN approval_status ENUM('pending','approved') NOT NULL DEFAULT 'approved';
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
+ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
