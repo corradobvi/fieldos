@@ -417,7 +417,91 @@ ALTER TABLE users ADD COLUMN utm_campaign VARCHAR(255) NULL;
 ALTER TABLE users ADD COLUMN utm_content VARCHAR(255) NULL;
 ALTER TABLE users ADD COLUMN utm_term VARCHAR(255) NULL;
 ALTER TABLE users ADD COLUMN fbclid VARCHAR(500) NULL;
-ALTER TABLE sessioni_libreria ADD COLUMN grafica_url VARCHAR(500) NULL
+ALTER TABLE sessioni_libreria ADD COLUMN grafica_url VARCHAR(500) NULL;
+CREATE TABLE IF NOT EXISTS tornei (
+  id                       VARCHAR(36)  NOT NULL,
+  societa_id               INT          NOT NULL,
+  nome                     VARCHAR(255) NOT NULL,
+  leva                     VARCHAR(100),
+  luogo                    VARCHAR(255),
+  data_inizio              DATE,
+  data_fine                DATE,
+  spareggio                JSON         DEFAULT NULL,
+  squadre_partecipanti     JSON         DEFAULT NULL,
+  squadre_mie_flag         JSON         DEFAULT NULL,
+  convocati                JSON         DEFAULT NULL,
+  convocazioni_per_partita BOOLEAN      DEFAULT FALSE,
+  qual_per_girone          INT          NULL,
+  archiviato               BOOLEAN      DEFAULT FALSE,
+  created_at               TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_tornei_societa (societa_id),
+  FOREIGN KEY (societa_id) REFERENCES societies(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS tornei_fasi (
+  id           VARCHAR(36)  NOT NULL,
+  torneo_id    VARCHAR(36)  NOT NULL,
+  nome         VARCHAR(255),
+  tipo         VARCHAR(20),
+  fase_gruppo  VARCHAR(10)  NULL,
+  squadre      JSON         DEFAULT NULL,
+  ordine       INT          DEFAULT 0,
+  created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_tornei_fasi_torneo (torneo_id),
+  FOREIGN KEY (torneo_id) REFERENCES tornei(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS matches (
+  id                BIGINT       NOT NULL AUTO_INCREMENT,
+  societa_id        INT          NOT NULL,
+  tipo              VARCHAR(20)  NOT NULL,
+  event_key         VARCHAR(100) NOT NULL,
+  legacy_match_id   VARCHAR(36)  NULL,
+  leva              VARCHAR(100),
+  fase_id           VARCHAR(36)  NULL,
+  giornata          INT          NULL,
+  data              DATE,
+  orario            VARCHAR(10),
+  casa              VARCHAR(255),
+  ospite            VARCHAR(255),
+  avversario        VARCHAR(255) NULL,
+  lato              VARCHAR(20)  NULL,
+  luogo             VARCHAR(255),
+  played            BOOLEAN      DEFAULT FALSE,
+  gol_casa          INT          DEFAULT 0,
+  gol_ospiti        INT          DEFAULT 0,
+  visibilita_subito BOOLEAN      DEFAULT FALSE,
+  annullata         BOOLEAN      DEFAULT FALSE,
+  bracket_round     INT          NULL,
+  bracket_pos       INT          NULL,
+  created_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_matches_event_key (event_key),
+  INDEX idx_matches_societa_tipo (societa_id, tipo),
+  INDEX idx_matches_fase (fase_id),
+  FOREIGN KEY (societa_id) REFERENCES societies(id) ON DELETE CASCADE,
+  FOREIGN KEY (fase_id)    REFERENCES tornei_fasi(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS match_stats (
+  id          BIGINT      NOT NULL AUTO_INCREMENT,
+  match_id    BIGINT      NOT NULL,
+  player_id   INT         NOT NULL,
+  gol         INT         DEFAULT 0,
+  assist      INT         DEFAULT 0,
+  titolare    BOOLEAN     DEFAULT FALSE,
+  minuti      INT         DEFAULT 0,
+  gialli      INT         DEFAULT 0,
+  rossi       INT         DEFAULT 0,
+  gol_sub     INT         DEFAULT 0,
+  cs          BOOLEAN     DEFAULT FALSE,
+  created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_match_stats_player (match_id, player_id),
+  INDEX idx_match_stats_player (player_id),
+  INDEX idx_match_stats_match (match_id),
+  FOREIGN KEY (match_id)  REFERENCES matches(id) ON DELETE CASCADE,
+  FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+)
 `;
 
 export const SEED_SQL = `
