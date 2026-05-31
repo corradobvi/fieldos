@@ -451,6 +451,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ov.on{display:flex;}
 /* Le modali aperte sopra il login screen (z-index:9999) devono stare ancora più in alto */
 #mSelfReg, #mOnboard { z-index: 10001; }
+/* Modale "Nuovo sondaggio": apribile da DENTRO la conversazione chat full-screen
+   (#pg-chat.chat-panel-open ha z-index:9000) → backdrop a 9500, contenuto a 9600. */
+#mPollNew { z-index: 9500; }
+#mPollNew .modal { position: relative; z-index: 9600; }
 .modal{background:var(--white);border:1px solid var(--border2);border-radius:15px;padding:26px;width:480px;max-width:94vw;max-height:90vh;overflow-y:auto;animation:mIn .22s ease;box-shadow:0 24px 80px rgba(13,26,58,.18);}
 @keyframes mIn{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
@@ -3190,7 +3194,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.15</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.16</span></div>
       </div>
 
     </main>

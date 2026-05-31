@@ -451,6 +451,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ov.on{display:flex;}
 /* Le modali aperte sopra il login screen (z-index:9999) devono stare ancora più in alto */
 #mSelfReg, #mOnboard { z-index: 10001; }
+/* Modale "Nuovo sondaggio": apribile da DENTRO la conversazione chat full-screen
+   (#pg-chat.chat-panel-open ha z-index:9000) → backdrop a 9500, contenuto a 9600. */
+#mPollNew { z-index: 9500; }
+#mPollNew .modal { position: relative; z-index: 9600; }
 .modal{background:var(--white);border:1px solid var(--border2);border-radius:15px;padding:26px;width:480px;max-width:94vw;max-height:90vh;overflow-y:auto;animation:mIn .22s ease;box-shadow:0 24px 80px rgba(13,26,58,.18);}
 @keyframes mIn{from{transform:translateY(16px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
@@ -3190,7 +3194,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.15</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.16</span></div>
       </div>
 
     </main>
@@ -5702,6 +5706,7 @@ function renderProfiloFiglio(el) {
   const ms = playerMatchStats(p.id, p.leva);
   const totalGol = ms.a.gol + ms.c.gol + ms.t.gol;
   const totalAss = ms.a.assist + ms.c.assist + ms.t.assist;
+  const totalPresPartite = ms.a.pres + ms.c.pres + ms.t.pres;
   const pcColor = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
   const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
@@ -5757,9 +5762,9 @@ function renderProfiloFiglio(el) {
       <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
       <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
       <div class="mob-figlio-stats">
+        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalPresPartite}</div><div class="mob-figlio-stat-l">Pres. partite</div></div>
         <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalAss}</div><div class="mob-figlio-stat-l">Assist</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="mob-figlio-stat-l">Presenze</div></div>
+        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="mob-figlio-stat-l">% allen.</div></div>
       </div>
     </div>
     ${presBarHtml}
