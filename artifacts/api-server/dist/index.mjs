@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router44;
+    module.exports = Router45;
     module.exports.Route = Route;
-    function Router44(options) {
-      if (!(this instanceof Router44)) {
-        return new Router44(options);
+    function Router45(options) {
+      if (!(this instanceof Router45)) {
+        return new Router45(options);
       }
       const opts = options || {};
-      function router44(req, res, next) {
-        router44.handle(req, res, next);
+      function router45(req, res, next) {
+        router45.handle(req, res, next);
       }
-      Object.setPrototypeOf(router44, this);
-      router44.caseSensitive = opts.caseSensitive;
-      router44.mergeParams = opts.mergeParams;
-      router44.params = {};
-      router44.strict = opts.strict;
-      router44.stack = [];
-      return router44;
+      Object.setPrototypeOf(router45, this);
+      router45.caseSensitive = opts.caseSensitive;
+      router45.mergeParams = opts.mergeParams;
+      router45.params = {};
+      router45.strict = opts.strict;
+      router45.stack = [];
+      return router45;
     }
-    Router44.prototype = function() {
+    Router45.prototype = function() {
     };
-    Router44.prototype.param = function param(name, fn) {
+    Router45.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router44.prototype.handle = function handle(req, res, callback) {
+    Router45.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router44.prototype.use = function use(handler) {
+    Router45.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router44.prototype.route = function route(path4) {
+    Router45.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router44.prototype[method] = function(path4) {
+      Router45.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router44 = require_router();
+    var Router45 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router44 = null;
+      var router45 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router44 === null) {
-            router44 = new Router44({
+          if (router45 === null) {
+            router45 = new Router45({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router44;
+          return router45;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router44 = this.router;
+      var router45 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router44.use(path4, fn2);
+          return router45.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router44.use(path4, function mounted_app(req, res, next) {
+        router45.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router44 = require_router();
+    var Router45 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router44.Route;
-    exports.Router = Router44;
+    exports.Route = Router45.Route;
+    exports.Router = Router45;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express44 = __toESM(require_express2(), 1);
+var import_express45 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express43 = __toESM(require_express2(), 1);
+var import_express44 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78501,7 +78501,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express42 = __toESM(require_express2(), 1);
+var import_express43 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -92138,9 +92138,150 @@ router36.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => 
 });
 var admin_cleanup_preview_default = router36;
 
-// src/routes/v2/notifiche-risultato.ts
+// src/routes/v2/admin-backfill-roles.ts
 var import_express37 = __toESM(require_express2(), 1);
 var router37 = (0, import_express37.Router)();
+var RUOLO_WHITELIST = /* @__PURE__ */ new Set([
+  "admin",
+  "allenatore",
+  "dirigente",
+  "preparatore_portieri",
+  "mister_admin",
+  "genitore",
+  "nonno",
+  "giocatore",
+  "pendente"
+]);
+function checkAuth5(req, res) {
+  const secret = req.headers["x-sa-secret"];
+  const saSecret = process.env.SA_SECRET ?? "super123";
+  if (secret !== saSecret) {
+    res.status(401).json({ error: "unauthorized" });
+    return false;
+  }
+  return true;
+}
+router37.post("/superadmin/_backfill-roles", async (req, res) => {
+  if (!checkAuth5(req, res)) return;
+  const societyId = Number(req.body && req.body.societyId || 0);
+  const apply = req.body?.apply === true;
+  if (!Number.isFinite(societyId) || societyId <= 0) {
+    return res.status(400).json({ error: "invalid_societyId" });
+  }
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) {
+      return res.status(404).json({ error: "blob_not_found", stateKey });
+    }
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch (e) {
+      return res.status(500).json({ error: "blob_unparseable", detail: e?.message?.slice(0, 120) });
+    }
+    const blobUsers = Array.isArray(state.USERS_DB) ? state.USERS_DB : [];
+    if (!blobUsers.length) {
+      return res.json({
+        dryRun: !apply,
+        societyId,
+        totalBlobUsers: 0,
+        stats: { updated: 0, alreadyOk: 0, skippedInvalidRole: 0, skippedNoMysqlRow: 0 },
+        updates: [],
+        targetCheck: {}
+      });
+    }
+    const updates = [];
+    let cntUpdated = 0, cntAlreadyOk = 0, cntInvalidRole = 0, cntNoMysqlRow = 0;
+    for (const u of blobUsers) {
+      const uid = Number(u && u.id);
+      if (!Number.isFinite(uid) || uid <= 0) continue;
+      const blobRuolo = String(u && u.role || "").trim();
+      const name = String((u && u.nome || "") + " " + (u && u.cogn || "")).trim();
+      const email = String(u && u.email || "");
+      if (!RUOLO_WHITELIST.has(blobRuolo)) {
+        cntInvalidRole++;
+        updates.push({ id: uid, name, email, before: null, after: blobRuolo, action: "skip_invalid_blob_role" });
+        continue;
+      }
+      const [curRows] = await pool.execute(
+        "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+        [uid, societyId]
+      );
+      if (!curRows.length) {
+        cntNoMysqlRow++;
+        updates.push({ id: uid, name, email, before: null, after: blobRuolo, action: "skip_no_mysql_row" });
+        continue;
+      }
+      const currentRuolo = String(curRows[0].ruolo || "");
+      if (currentRuolo === blobRuolo) {
+        cntAlreadyOk++;
+        updates.push({ id: uid, name, email, before: currentRuolo, after: blobRuolo, action: "already_ok" });
+        continue;
+      }
+      if (apply) {
+        const [r] = await pool.execute(
+          "UPDATE users SET ruolo = ? WHERE id = ? AND society_id = ?",
+          [blobRuolo, uid, societyId]
+        );
+        const ok = r && r.affectedRows > 0;
+        if (ok) cntUpdated++;
+        else cntNoMysqlRow++;
+        updates.push({
+          id: uid,
+          name,
+          email,
+          before: currentRuolo,
+          after: blobRuolo,
+          action: ok ? "updated" : "update_no_rows"
+        });
+      } else {
+        updates.push({ id: uid, name, email, before: currentRuolo, after: blobRuolo, action: "would_update" });
+      }
+    }
+    const targetIds = [60, 87];
+    const targetCheck = {};
+    for (const tid of targetIds) {
+      const [r] = await pool.execute(
+        "SELECT id, nome, cognome, email, ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+        [tid, societyId]
+      );
+      targetCheck[String(tid)] = r.length ? { id: r[0].id, name: `${r[0].nome} ${r[0].cognome}`.trim(), email: r[0].email, ruolo: r[0].ruolo } : { found: false };
+    }
+    logger.info({
+      societyId,
+      apply,
+      updated: cntUpdated,
+      alreadyOk: cntAlreadyOk,
+      invalidRole: cntInvalidRole,
+      noMysqlRow: cntNoMysqlRow
+    }, "backfill-roles done");
+    return res.json({
+      dryRun: !apply,
+      societyId,
+      totalBlobUsers: blobUsers.length,
+      stats: {
+        updated: cntUpdated,
+        alreadyOk: cntAlreadyOk,
+        skippedInvalidRole: cntInvalidRole,
+        skippedNoMysqlRow: cntNoMysqlRow
+      },
+      updates,
+      targetCheck
+    });
+  } catch (e) {
+    logger.error({ err: e }, "backfill-roles error");
+    return res.status(500).json({ error: "server_error", detail: e?.sqlMessage || e?.message?.slice(0, 200) });
+  }
+});
+var admin_backfill_roles_default = router37;
+
+// src/routes/v2/notifiche-risultato.ts
+var import_express38 = __toESM(require_express2(), 1);
+var router38 = (0, import_express38.Router)();
 async function getGuardiansForLeva(societyId, leva, excludeUserId) {
   try {
     let q = `SELECT DISTINCT pg.user_id AS id
@@ -92160,7 +92301,7 @@ async function getGuardiansForLeva(societyId, leva, excludeUserId) {
     return [];
   }
 }
-router37.post(
+router38.post(
   "/notifiche/risultato-partita",
   requireAuth,
   requireRole("admin", "allenatore", "dirigente", "mister_admin"),
@@ -92186,11 +92327,11 @@ router37.post(
     }
   }
 );
-var notifiche_risultato_default = router37;
+var notifiche_risultato_default = router38;
 
 // src/routes/v2/migrate-polis.ts
-var import_express38 = __toESM(require_express2(), 1);
-var router38 = (0, import_express38.Router)();
+var import_express39 = __toESM(require_express2(), 1);
+var router39 = (0, import_express39.Router)();
 var SA_SECRET3 = process.env.SA_SECRET ?? "super123";
 var POLIS_BLOB_KEY = "fieldos_state_v1";
 var POLIS_CODICE = "POLIS18";
@@ -92208,7 +92349,7 @@ function _passwordHandling(rawPass) {
   if (typeof rawPass !== "string") return "default_changeme_temp";
   return _looksLikeValidHash(rawPass) ? "keep_hash" : "will_hash";
 }
-router38.post("/superadmin/migrate-polis-users", async (req, res) => {
+router39.post("/superadmin/migrate-polis-users", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET3) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -92385,11 +92526,11 @@ router38.post("/superadmin/migrate-polis-users", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var migrate_polis_default = router38;
+var migrate_polis_default = router39;
 
 // src/routes/v2/matches.ts
-var import_express39 = __toESM(require_express2(), 1);
-var router39 = (0, import_express39.Router)();
+var import_express40 = __toESM(require_express2(), 1);
+var router40 = (0, import_express40.Router)();
 var WRITE_ROLES2 = ["admin", "allenatore", "dirigente"];
 var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
 function rejectDemo(req, res) {
@@ -92400,7 +92541,7 @@ function rejectDemo(req, res) {
   }
   return false;
 }
-router39.get("/matches", requireAuth, async (req, res) => {
+router40.get("/matches", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const tipo = req.query.tipo || void 0;
   const leva = req.query.leva || void 0;
@@ -92442,7 +92583,7 @@ router39.get("/matches", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.get("/tornei", requireAuth, async (req, res) => {
+router40.get("/tornei", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [tornei] = await pool.execute(
@@ -92477,7 +92618,7 @@ router39.get("/tornei", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const b = req.body || {};
@@ -92542,7 +92683,7 @@ router39.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req,
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -92611,7 +92752,7 @@ router39.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const t = req.body || {};
@@ -92688,7 +92829,7 @@ router39.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, 
     conn.release();
   }
 });
-router39.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -92707,7 +92848,7 @@ router39.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const event_key = String(req.params.eventKey || "");
@@ -92724,7 +92865,7 @@ router39.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...W
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const id = String(req.params.id || "");
@@ -92741,7 +92882,7 @@ router39.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router39.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const leva = req.query.leva || "";
@@ -92757,11 +92898,11 @@ router39.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async 
     return res.status(500).json({ error: "server_error" });
   }
 });
-var matches_default = router39;
+var matches_default = router40;
 
 // src/routes/v2/stats.ts
-var import_express40 = __toESM(require_express2(), 1);
-var router40 = (0, import_express40.Router)();
+var import_express41 = __toESM(require_express2(), 1);
+var router41 = (0, import_express41.Router)();
 function zero() {
   return { presenze: 0, gol: 0, assist: 0, minuti: 0, gialli: 0, rossi: 0, gol_sub: 0, cs: 0 };
 }
@@ -92803,7 +92944,7 @@ var AGG_SELECT = `
   FROM match_stats ms
   JOIN matches m ON m.id = ms.match_id
 `;
-router40.get("/stats/player/:playerId", requireAuth, async (req, res) => {
+router41.get("/stats/player/:playerId", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const playerId = Number(req.params.playerId);
   if (!Number.isFinite(playerId) || playerId <= 0) {
@@ -92846,7 +92987,7 @@ router40.get("/stats/player/:playerId", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.get("/stats/leva", requireAuth, async (req, res) => {
+router41.get("/stats/leva", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const leva = req.query.leva || void 0;
   if (!leva) return res.status(400).json({ error: "leva_required" });
@@ -92891,11 +93032,11 @@ router40.get("/stats/leva", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var stats_default = router40;
+var stats_default = router41;
 
 // src/routes/v2/admin-backfill-matches.ts
-var import_express41 = __toESM(require_express2(), 1);
-var router41 = (0, import_express41.Router)();
+var import_express42 = __toESM(require_express2(), 1);
+var router42 = (0, import_express42.Router)();
 var DEMO_SOC_ID = 99;
 var DEMO_STELLA_ID = 99999;
 var DEMO_SOC_IDS3 = /* @__PURE__ */ new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
@@ -92918,7 +93059,7 @@ function ekTorneo(tId, fId, mId) {
 function ekAmich(mId) {
   return `amich_${mId}`;
 }
-router41.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) => {
+router42.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) => {
   const requested = parseInt(String(req.params.societaId), 10);
   if (!Number.isFinite(requested) || requested <= 0) {
     return res.status(400).json({ error: "invalid_societa_id" });
@@ -93283,10 +93424,10 @@ router41.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var admin_backfill_matches_default = router41;
+var admin_backfill_matches_default = router42;
 
 // src/routes/v2/index.ts
-var router42 = (0, import_express42.Router)();
+var router43 = (0, import_express43.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -93470,7 +93611,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router42.use(async (_req, _res, next) => {
+router43.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -93479,7 +93620,7 @@ router42.use(async (_req, _res, next) => {
     next();
   }
 });
-router42.get("/schema-info", async (_req, res) => {
+router43.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -93497,7 +93638,7 @@ router42.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router42.get("/health/ai-key", (_req, res) => {
+router43.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -93508,7 +93649,7 @@ router42.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router42.get("/health/schema-budget", async (_req, res) => {
+router43.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -93523,56 +93664,57 @@ router42.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router42.use(auth_default2);
-router42.use(self_register_default);
-router42.use(society_default);
-router42.use(leve_default);
-router42.use(minors_default);
-router42.use(players_default);
-router42.use(users_default);
-router42.use(events_default);
-router42.use(presenze_default);
-router42.use(comunicazioni_default);
-router42.use(chat_default);
-router42.use(quote_default);
-router42.use(migrate_default);
-router42.use(stripe_default);
-router42.use(demo_wa_default);
-router42.use(superadmin_default);
-router42.use(account_default);
-router42.use(notification_preferences_default);
-router42.use(allenamenti_default);
-router42.use(ai_allenamenti_default);
-router42.use(ai_tornei_default);
-router42.use(utm_stats_default);
-router42.use(admin_reset_demo_default);
-router42.use(admin_populate_sessioni_default);
-router42.use(select_plan_default);
-router42.use(admin_genitore_debug_default);
-router42.use(admin_push_debug_default);
-router42.use(admin_cleanup_preview_default);
-router42.use(notifiche_risultato_default);
-router42.use(migrate_polis_default);
-router42.use(matches_default);
-router42.use(stats_default);
-router42.use(admin_backfill_matches_default);
-var v2_default = router42;
+router43.use(auth_default2);
+router43.use(self_register_default);
+router43.use(society_default);
+router43.use(leve_default);
+router43.use(minors_default);
+router43.use(players_default);
+router43.use(users_default);
+router43.use(events_default);
+router43.use(presenze_default);
+router43.use(comunicazioni_default);
+router43.use(chat_default);
+router43.use(quote_default);
+router43.use(migrate_default);
+router43.use(stripe_default);
+router43.use(demo_wa_default);
+router43.use(superadmin_default);
+router43.use(account_default);
+router43.use(notification_preferences_default);
+router43.use(allenamenti_default);
+router43.use(ai_allenamenti_default);
+router43.use(ai_tornei_default);
+router43.use(utm_stats_default);
+router43.use(admin_reset_demo_default);
+router43.use(admin_populate_sessioni_default);
+router43.use(select_plan_default);
+router43.use(admin_genitore_debug_default);
+router43.use(admin_push_debug_default);
+router43.use(admin_cleanup_preview_default);
+router43.use(admin_backfill_roles_default);
+router43.use(notifiche_risultato_default);
+router43.use(migrate_polis_default);
+router43.use(matches_default);
+router43.use(stats_default);
+router43.use(admin_backfill_matches_default);
+var v2_default = router43;
 
 // src/routes/index.ts
-var router43 = (0, import_express43.Router)();
-router43.use(health_default);
-router43.use(login_default);
-router43.use(auth_default);
-router43.use(state_default);
-router43.use(assist_default);
-router43.use(push_default);
-router43.use(upload_default);
-router43.use(public_default);
-router43.use("/v2", v2_default);
-var routes_default = router43;
+var router44 = (0, import_express44.Router)();
+router44.use(health_default);
+router44.use(login_default);
+router44.use(auth_default);
+router44.use(state_default);
+router44.use(assist_default);
+router44.use(push_default);
+router44.use(upload_default);
+router44.use(public_default);
+router44.use("/v2", v2_default);
+var routes_default = router44;
 
 // src/app.ts
-var app = (0, import_express44.default)();
+var app = (0, import_express45.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -93593,17 +93735,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express44.default.json({
+app.use(import_express45.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express44.default.urlencoded({ extended: true }));
+app.use(import_express45.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express44.default.static(staticDir));
+  app.use(import_express45.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });
