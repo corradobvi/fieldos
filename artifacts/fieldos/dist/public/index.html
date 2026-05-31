@@ -33,7 +33,7 @@
 <!-- Microsoft tile -->
 <meta name="msapplication-TileColor" content="#1A7A4A">
 <meta name="msapplication-TileImage" content="/icons/icon-144.png">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --cp: #047857;
@@ -1499,7 +1499,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* Figlio tab — selettore figlio (chip) per genitori con 2+ figli */
 .mob-figli-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .mob-figli-chip{
-  padding:8px 16px;border-radius:999px;border:1px solid var(--border);
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px 6px 6px;border-radius:999px;border:1px solid var(--border);
   background:var(--white);color:var(--text);
   font-family:'Plus Jakarta Sans',sans-serif;font-size:.86rem;font-weight:700;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
@@ -1507,6 +1508,80 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   min-height:36px;
 }
 .mob-figli-chip.active{background:#1A7A4A;color:#fff;border-color:#1A7A4A;}
+.mob-figli-chip-av{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(26,122,74,.12);color:#1A7A4A;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.72rem;
+  flex-shrink:0;overflow:hidden;
+}
+.mob-figli-chip.active .mob-figli-chip-av{background:rgba(255,217,61,.4);color:#fff;}
+.mob-figli-chip-av img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* Tessera giocatore — design originale (no FIFA), brand verde #1A7A4A + accenti gialli #FFD93D */
+.tess-pl-card{
+  position:relative;overflow:hidden;
+  margin-bottom:14px;padding:22px 18px 18px;border-radius:22px;
+  background:linear-gradient(155deg,#1F8A55 0%,#1A7A4A 45%,#0E4D2C 100%);
+  color:#fff;
+  box-shadow:0 12px 28px rgba(14,77,44,.28), inset 0 0 0 1px rgba(255,217,61,.18);
+}
+.tess-pl-card::before{
+  content:'';position:absolute;left:-50px;top:-50px;width:170px;height:170px;
+  border-radius:50%;background:rgba(255,217,61,.09);pointer-events:none;
+}
+.tess-pl-card::after{
+  content:'';position:absolute;right:-60px;bottom:-60px;width:200px;height:200px;
+  border-radius:50%;background:rgba(255,217,61,.05);pointer-events:none;
+}
+.tess-pl-num{
+  position:absolute;top:14px;right:14px;z-index:1;
+  min-width:46px;height:36px;padding:0 10px;
+  background:#FFD93D;color:#0E4D2C;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.05rem;letter-spacing:-.5px;
+  box-shadow:0 4px 10px rgba(0,0,0,.16);
+}
+.tess-pl-photo-wrap{
+  display:flex;justify-content:center;margin:4px 0 12px;position:relative;z-index:1;
+}
+.tess-pl-photo{
+  width:108px;height:108px;border-radius:50%;
+  background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:2.4rem;color:#fff;
+  border:3px solid #FFD93D;
+  box-shadow:0 8px 22px rgba(0,0,0,.22);
+}
+.tess-pl-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.tess-pl-name{
+  position:relative;z-index:1;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.45rem;
+  text-align:center;line-height:1.12;letter-spacing:-.2px;
+}
+.tess-pl-sub{
+  position:relative;z-index:1;
+  text-align:center;font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  opacity:.88;margin-top:4px;
+}
+.tess-pl-stats{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;
+}
+.tess-pl-stat{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,217,61,.30);
+  border-radius:12px;padding:10px 4px 9px;text-align:center;
+}
+.tess-pl-stat-n{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.5rem;line-height:1;color:#fff;
+}
+.tess-pl-stat-l{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.58rem;
+  letter-spacing:1px;text-transform:uppercase;color:#FFD93D;
+  margin-top:5px;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5736,11 +5811,16 @@ function renderProfiloFiglio(el) {
     return;
   }
 
-  // Chip selettore (solo se ≥2 figli)
+  // Chip selettore (solo se ≥2 figli) — con mini-avatar foto/iniziali
   const chipsHtml = figliPlayers.length >= 2
-    ? `<div class="mob-figli-chips">${figliPlayers.map(fp =>
-        `<button class="mob-figli-chip${fp.id === p.id ? ' active' : ''}" onclick="_profSelectFiglio(${fp.id})">${escapeHtml(fp.nome||'')}</button>`
-      ).join('')}</div>`
+    ? `<div class="mob-figli-chips">${figliPlayers.map(fp => {
+        const _fpFoto = playerPhotos[fp.id];
+        const _fpIni = ((fp.nome||'?')[0] + (fp.cogn||'?')[0]).toUpperCase();
+        const _av = _fpFoto
+          ? `<span class="mob-figli-chip-av"><img src="${escapeHtml(_fpFoto)}" alt=""></span>`
+          : `<span class="mob-figli-chip-av">${escapeHtml(_fpIni)}</span>`;
+        return `<button class="mob-figli-chip${fp.id === p.id ? ' active' : ''}" onclick="_profSelectFiglio(${fp.id})">${_av}${escapeHtml(fp.nome||'')}</button>`;
+      }).join('')}</div>`
     : '';
 
   const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
@@ -5798,16 +5878,25 @@ function renderProfiloFiglio(el) {
     </div>`;
   }
 
+  // Tessera giocatore — foto se presente, altrimenti iniziali
+  const _pFoto = playerPhotos[p.id];
+  const _photoInner = _pFoto
+    ? `<img src="${escapeHtml(_pFoto)}" alt="${escapeHtml(p.nome||'')}">`
+    : ini;
+  const _numBadge = p.num ? `<div class="tess-pl-num">#${escapeHtml(String(p.num))}</div>` : '';
+  const _subRuoloLeva = `${escapeHtml(p.ruolo||'Ruolo')}${p.leva ? ' · ' + escapeHtml(p.leva) : ''}`;
+
   el.innerHTML = `
     ${chipsHtml}
-    <div class="mob-figlio-hero">
-      <div class="mob-figlio-av">${ini}</div>
-      <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-      <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
-      <div class="mob-figlio-stats">
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalPresPartite}</div><div class="mob-figlio-stat-l">Pres. partite</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="mob-figlio-stat-l">% allen.</div></div>
+    <div class="tess-pl-card">
+      ${_numBadge}
+      <div class="tess-pl-photo-wrap"><div class="tess-pl-photo">${_photoInner}</div></div>
+      <div class="tess-pl-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
+      <div class="tess-pl-sub">${_subRuoloLeva}</div>
+      <div class="tess-pl-stats">
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n">${totalGol}</div><div class="tess-pl-stat-l">Gol</div></div>
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n">${totalPresPartite}</div><div class="tess-pl-stat-l">Pres. partite</div></div>
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="tess-pl-stat-l">% allen.</div></div>
       </div>
     </div>
     ${presBarHtml}
