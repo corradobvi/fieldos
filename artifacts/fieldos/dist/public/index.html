@@ -3190,7 +3190,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.14</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.15</span></div>
       </div>
 
     </main>
@@ -22504,11 +22504,13 @@ function chatGoBack() {
 }
 
 function renderChatMessages() {
+  // Render SEMPRE e SOLO dentro il contenitore della conversazione aperta (.cm-msgs).
+  // Niente iniezione nella schermata-lista (.cl-list / .ci): i poll non hanno preview lì.
   const cont = document.getElementById('chatMsgs');
-  if (!cont || !currentChatId) return;
+  if (!cont || !cont.classList.contains('cm-msgs') || !currentChatId) return;
   const msgs = chatMsgsFor(currentChatId);
-  // Merge sondaggi (chat torneo, da MySQL) nel flusso cronologico via timestamp.
-  // I sondaggi diventano "voci" speciali con marker _kind='poll'.
+  // Stream UNIFICATO: messaggi (blob) + poll (backend, solo chat torneo) ordinati per timestamp crescente.
+  // p.createdAt è una stringa ISO/MySQL → Date.parse → ms epoch; ts dei messaggi è già epoch.
   const pollsForChat = (_isTorneoChat(currentChatId) ? (_chatPolls[currentChatId] || []) : []);
   const pollItems = pollsForChat.map(p => ({
     _kind: 'poll',
@@ -22717,21 +22719,39 @@ async function createNuovoPoll() {
   if (options.length < 2) { _err('⚠️ Servono almeno 2 opzioni'); return; }
   if (options.length > 10) { _err('⚠️ Massimo 10 opzioni'); return; }
   try {
-    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(currentChatId) + '/polls', {
+    const targetChatId = currentChatId; // cattura: la chat può cambiare durante la POST
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(targetChatId) + '/polls', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ question, options })
     });
     if (r.status === 403) { _err('⛔ Permesso negato (solo admin/dirigenti)'); return; }
     if (!r.ok) { const d = await r.json().catch(() => ({})); _err('❌ ' + (d.error || 'Errore creazione')); return; }
+    // Inserzione ottimistica con il poll completo restituito dal POST (no attesa GET successiva).
+    const created = await r.json().catch(() => null);
+    if (created && created.id != null) {
+      _chatPolls[targetChatId] = _chatPolls[targetChatId] || [];
+      // Evita duplicati se per qualche motivo arriva due volte
+      if (!_chatPolls[targetChatId].some(p => p.id === created.id)) {
+        _chatPolls[targetChatId].push(created);
+      }
+    }
     closeM('mPollNew');
-    await _loadPollsForChat(currentChatId, true);
+    // Render IMMEDIATO nell'area messaggi della conversazione aperta + scroll in fondo.
+    if (currentChatId === targetChatId) {
+      renderChatMessages();
+      const cont = document.getElementById('chatMsgs');
+      if (cont) cont.scrollTop = cont.scrollHeight;
+    }
     toast('📊 Sondaggio creato');
+    // Allineamento background, idempotente (bypassa debounce).
+    _loadPollsForChat(targetChatId, true);
   } catch (e) { _err('❌ Errore di rete'); }
 }
 
 async function pollVote(pollId, optionId) {
   if (!_v2Token || !_isTorneoChat(currentChatId)) return;
+  const targetChatId = currentChatId; // cattura per coerenza in caso di switch chat durante la POST
   try {
     const r = await fetch(API_BASE + '/api/v2/chat/polls/' + pollId + '/vote', {
       method: 'POST',
@@ -22740,12 +22760,13 @@ async function pollVote(pollId, optionId) {
     });
     if (!r.ok) { toast('❌ Voto non registrato'); return; }
     const updated = await r.json();
-    // Update in-memory: sostituisci il poll
-    const list = _chatPolls[currentChatId] || [];
+    // Aggiorna in-memory il poll della chat target (idempotente: sostituisce o aggiunge).
+    const list = _chatPolls[targetChatId] || [];
     const idx = list.findIndex(p => p.id === updated.id);
     if (idx >= 0) list[idx] = updated; else list.push(updated);
-    _chatPolls[currentChatId] = list;
-    renderChatMessages();
+    _chatPolls[targetChatId] = list;
+    // Ri-render SOLO se l'utente è ancora nella stessa conversazione (no clobber su altre).
+    if (currentChatId === targetChatId) renderChatMessages();
   } catch (_) { toast('❌ Errore di rete'); }
 }
 
