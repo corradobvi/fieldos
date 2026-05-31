@@ -85791,6 +85791,64 @@ router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
     return res.status(500).json({ error: "server_error" });
   }
 });
+var PATCH_RUOLO_WHITELIST = /* @__PURE__ */ new Set([
+  "admin",
+  "allenatore",
+  "dirigente",
+  "preparatore_portieri",
+  "mister_admin",
+  "genitore",
+  "nonno",
+  "giocatore",
+  "pendente"
+]);
+router15.patch("/users/:id", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { ruolo, leva, stato } = req.body;
+  try {
+    const [meRows] = await pool.execute(
+      "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    const callerRuolo = meRows[0]?.ruolo;
+    if (callerRuolo !== "admin" && callerRuolo !== "mister_admin") {
+      return res.status(403).json({ error: "forbidden", detail: "Solo admin possono aggiornare il ruolo di altri utenti." });
+    }
+  } catch (e) {
+    logger.error({ err: e }, "PATCH user \u2014 gating query error");
+    return res.status(500).json({ error: "server_error" });
+  }
+  if (ruolo !== void 0 && (typeof ruolo !== "string" || !PATCH_RUOLO_WHITELIST.has(ruolo))) {
+    return res.status(400).json({ error: "invalid_ruolo", allowed: [...PATCH_RUOLO_WHITELIST] });
+  }
+  const updates = [];
+  const params = [];
+  if (ruolo !== void 0) {
+    updates.push("ruolo = ?");
+    params.push(ruolo);
+  }
+  if (leva !== void 0) {
+    updates.push("leva = ?");
+    params.push(leva ?? null);
+  }
+  if (stato !== void 0) {
+    updates.push("stato = ?");
+    params.push(String(stato));
+  }
+  if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
+  try {
+    params.push(req.params.id, societyId);
+    const [result] = await pool.execute(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
+      params
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true, updated: result.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "PATCH user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 router15.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   if (String(userId) === req.params.id) return res.status(400).json({ error: "cannot_delete_self" });

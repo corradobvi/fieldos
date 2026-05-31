@@ -3204,7 +3204,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.16</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.17</span></div>
       </div>
 
     </main>
@@ -11531,6 +11531,23 @@ function saveUser() {
     }
     Object.assign(u, { nome, cogn, email, role, leva:levaFinal, stato, figli, figlio:figli[0]||null, anno, phone: phone||null, permissions });
     if (pass) { u.pass = pass; u.tempPassword = true; }
+    // Propaga ruolo/leva/stato a MySQL (gating server-side dei sondaggi e altri check live
+    // leggono users.ruolo da DB, non dal blob). Fire-and-forget, non blocca il salvataggio locale.
+    if (_v2Token && typeof u.id === 'number') {
+      fetch(API_BASE + '/api/v2/users/' + u.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ ruolo: role, leva: levaFinal, stato })
+      }).then(r => {
+        if (!r.ok) {
+          console.warn('[saveUser] PATCH ruolo fallito', r.status);
+          if (typeof toast === 'function') toast('⚠️ Ruolo salvato in app ma non sincronizzato col server');
+        }
+      }).catch(e => {
+        console.warn('[saveUser] PATCH ruolo errore di rete', e);
+        if (typeof toast === 'function') toast('⚠️ Ruolo salvato in app ma non sincronizzato col server');
+      });
+    }
     closeM('mNewUser');
     renderUsersTable();
     if (pass) {

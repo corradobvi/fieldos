@@ -149,6 +149,60 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
   }
 });
 
+// PATCH /api/v2/users/:id — sync mirato ruolo/leva/stato a MySQL.
+// Usato dal FE (saveUser in Gestione Utenti) per propagare la promozione/declassamento ruolo
+// che oggi vive solo nel blob USERS_DB. Gating LIVE (legge users.ruolo del chiamante da MySQL,
+// non si fida del JWT che potrebbe essere stale) + whitelist ruoli (no email/password/permissions).
+const PATCH_RUOLO_WHITELIST = new Set([
+  "admin", "allenatore", "dirigente", "preparatore_portieri", "mister_admin",
+  "genitore", "nonno", "giocatore", "pendente",
+]);
+router.patch("/users/:id", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { ruolo, leva, stato } = req.body as Record<string, any>;
+
+  // Gating LIVE: il chiamante deve essere admin/mister_admin nella sua società corrente.
+  try {
+    const [meRows] = (await pool.execute(
+      "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    )) as [any[], any];
+    const callerRuolo = meRows[0]?.ruolo as string | undefined;
+    if (callerRuolo !== "admin" && callerRuolo !== "mister_admin") {
+      return res.status(403).json({ error: "forbidden", detail: "Solo admin possono aggiornare il ruolo di altri utenti." });
+    }
+  } catch (e: any) {
+    logger.error({ err: e }, "PATCH user — gating query error");
+    return res.status(500).json({ error: "server_error" });
+  }
+
+  // Validazione whitelist ruolo (solo se presente).
+  if (ruolo !== undefined && (typeof ruolo !== "string" || !PATCH_RUOLO_WHITELIST.has(ruolo))) {
+    return res.status(400).json({ error: "invalid_ruolo", allowed: [...PATCH_RUOLO_WHITELIST] });
+  }
+
+  // Costruisci UPDATE con SOLO i campi presenti. email mai toccata (UNIQUE constraint).
+  const updates: string[] = [];
+  const params: any[] = [];
+  if (ruolo !== undefined) { updates.push("ruolo = ?"); params.push(ruolo); }
+  if (leva !== undefined)  { updates.push("leva = ?");  params.push(leva ?? null); }
+  if (stato !== undefined) { updates.push("stato = ?"); params.push(String(stato)); }
+  if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
+
+  try {
+    params.push(req.params.id, societyId);
+    const [result] = (await pool.execute(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
+      params
+    )) as [any, any];
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true, updated: result.affectedRows });
+  } catch (e: any) {
+    logger.error({ err: e }, "PATCH user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // DELETE /api/v2/users/:id
 router.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
