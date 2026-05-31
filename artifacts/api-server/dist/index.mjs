@@ -87186,11 +87186,11 @@ router22.post("/stripe/create-checkout", async (req, res) => {
   if (societyId) {
     params["metadata[societyId]"] = String(societyId);
   }
+  const DEMO_DAYS = 14;
   if (String(intervallo) === "annuale") {
     const anchorTs = getPreLaunchAnchorTs();
     if (anchorTs) {
-      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
-      params["subscription_data[trial_end]"] = anchorTs;
+      params["subscription_data[trial_end]"] = Math.floor((Date.now() + DEMO_DAYS * 86400 * 1e3) / 1e3);
     }
   }
   params["allow_promotion_codes"] = "true";

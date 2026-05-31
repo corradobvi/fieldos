@@ -217,13 +217,14 @@ router.post("/stripe/create-checkout", async (req, res) => {
     params["metadata[societyId]"] = String(societyId);
   }
 
-  // Pre-lancio (giu-lug 2026): ancora il ciclo al 1° agosto 2026, trial fino ad allora.
-  // Stagione normale e test pre-lancio: nessun anchor, Stripe usa 1 anno da oggi.
+  // Pre-lancio (giu-lug 2026): annuale con trial di DEMO_DAYS giorni, NIENTE anchor
+  // (no proration / no allineamento al 1° agosto).
+  // Stagione normale: nessuna modifica, Stripe usa il ciclo standard (1 anno da oggi).
+  const DEMO_DAYS = 14;
   if (String(intervallo) === "annuale") {
     const anchorTs = getPreLaunchAnchorTs();
     if (anchorTs) {
-      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
-      params["subscription_data[trial_end]"]            = anchorTs;
+      params["subscription_data[trial_end]"] = Math.floor((Date.now() + DEMO_DAYS * 86400 * 1000) / 1000);
     }
   }
 
