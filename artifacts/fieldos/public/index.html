@@ -4044,7 +4044,10 @@ let selectedRole = null;
 
 // ── SUPER ADMIN ──────────────────────────────────────────
 const SA_EMAIL = 'superadmin@fieldos.it';
-const SA_PASS  = 'super123';
+// Segreto SA: NON hardcoded. L'utente lo digita al login SA; validato server-side
+// (GET /api/v2/superadmin/societies con header X-SA-Secret); tenuto in memoria
+// solo per la sessione corrente (mai persistito su localStorage / blob).
+let _saSecret = null;
 const SA_KEY   = 'fieldos_sa_v1';
 // In locale punta al server di sviluppo, in produzione usa percorso relativo
 const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:3001' : '';
@@ -4861,8 +4864,31 @@ async function doLogin() {
     return;
   }
 
-  // ── 1. Super Admin (credenziali hardcoded, nessuna chiamata server) ──
-  if (email === SA_EMAIL.toLowerCase() && pass === SA_PASS) {
+  // ── 1. Super Admin: il segreto viene digitato e validato server-side ──
+  if (email === SA_EMAIL.toLowerCase()) {
+    // Valida il segreto SA con una chiamata read-only (no side effects).
+    let _msR;
+    try {
+      _msR = await fetch(API_BASE + '/api/v2/superadmin/societies', {
+        headers: { 'X-SA-Secret': pass }
+      });
+    } catch(_) {
+      toast('⛔ Errore di rete durante la verifica Super Admin');
+      _saSecret = null;
+      return;
+    }
+    if (_msR.status === 401 || _msR.status === 403) {
+      toast('❌ Segreto Super Admin errato');
+      _saSecret = null;
+      return;
+    }
+    if (!_msR.ok) {
+      toast('⛔ Errore server SA (' + _msR.status + ')');
+      _saSecret = null;
+      return;
+    }
+    // Segreto valido: salva in memoria per la sessione (no localStorage / blob).
+    _saSecret = pass;
     // Carica SA state dal server prima di mostrare il pannello
     try {
       const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY));
@@ -4880,11 +4906,8 @@ async function doLogin() {
     } catch(_) {}
     // Fallback: se server non risponde, usa localStorage
     if (!saSocieties.length) saLoadState();
-    // Merge da MySQL: aggiunge società non ancora nel blob SA
+    // Merge da MySQL: riusa la response gia' ottenuta sopra per la validazione.
     try {
-      const _msR = await fetch(API_BASE + '/api/v2/superadmin/societies', {
-        headers: { 'X-SA-Secret': SA_PASS }
-      });
       if (_msR.ok) {
         const _msD = await _msR.json();
         let _changed = false;
@@ -25236,6 +25259,17 @@ function _v2TokenHasPlan() {
         }
       } catch (_) {}
     }
+    // SA secret invalidato (es. cambio segreto su server): azzera _saSecret + torna a login SA.
+    if (resp && (resp.status === 401 || resp.status === 403) && _saSecret !== null) {
+      try {
+        const url = typeof arguments[0] === 'string'
+          ? arguments[0]
+          : (arguments[0] && arguments[0].url) || '';
+        if (/\/superadmin\//.test(url) && typeof _saHandleUnauthorized === 'function') {
+          _saHandleUnauthorized();
+        }
+      } catch (_) {}
+    }
     return resp;
   };
 })();
@@ -25748,6 +25782,7 @@ function hideSuperAdminPanel() {
 
 function saLogout() {
   saSaveState();
+  _saSecret = null;
   hideSuperAdminPanel();
   saViewMode = false;
   const ls = document.getElementById('loginScreen');
@@ -25755,6 +25790,17 @@ function saLogout() {
   setTimeout(() => ls.classList.remove('hide'), 10);
   document.getElementById('lEmail').value = '';
   document.getElementById('lPass').value = '';
+}
+
+// Gestione 401/403 globale per le chiamate SA: azzera il segreto e riporta al login.
+function _saHandleUnauthorized() {
+  if (_saSecret === null) return false;
+  _saSecret = null;
+  try {
+    if (typeof toast === 'function') toast('⚠️ Sessione Super Admin scaduta. Rifai l\'accesso.');
+  } catch(_){}
+  try { saLogout(); } catch(_){}
+  return true;
 }
 
 function saExtendDemo(id) {
@@ -25811,7 +25857,7 @@ async function doSaExtendDemo() {
   try {
     const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/extend-demo', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ days, reason })
     });
     if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
@@ -25855,7 +25901,7 @@ async function doSaResetPassword() {
   try {
     const resp = await fetch(API_BASE + '/api/v2/superadmin/reset-password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ email, societyId: id })
     });
     const data = await resp.json();
@@ -25880,7 +25926,7 @@ async function saOpenUtmStats() {
 
   try {
     const resp = await fetch(API_BASE + '/api/v2/admin/utm-stats?from=' + _saUtmFrom + '&to=' + _saUtmTo, {
-      headers: { 'X-SA-Secret': SA_PASS }
+      headers: { 'X-SA-Secret': _saSecret }
     });
     if (!resp.ok) { el.innerHTML = '<div style="padding:24px;color:#f87171;">Errore caricamento UTM stats.</div>'; return; }
     const d = await resp.json();
@@ -26248,7 +26294,7 @@ async function doSaSuspend() {
   try {
     const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/suspend', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ reason })
     });
     if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
@@ -26290,7 +26336,7 @@ async function doSaReactivate() {
   try {
     const resp = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/reactivate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({})
     });
     if (!resp.ok) { const d = await resp.json().catch(()=>({})); throw new Error(d.error || 'server_error'); }
@@ -26351,7 +26397,7 @@ function saEliminaDefinitivo(id) {
 function _saUpdatePianoServer(id, piano) {
   fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/set-plan', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+    headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
     body: JSON.stringify({ piano }),
     keepalive: true
   }).catch(() => {});
@@ -26495,7 +26541,7 @@ async function _saBMConfirmClick(btn, mode, cancelSub) {
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + drillId + '/set-billing-mode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ mode, cancel_stripe_sub: cancelSub })
     });
     let d;
@@ -26543,7 +26589,7 @@ async function saSaveBillingMode(mode, cancelSub) {
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + _saDrillId + '/set-billing-mode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ mode, cancel_stripe_sub: cancelSub })
     });
     const d = await r.json();
@@ -26566,7 +26612,7 @@ async function saSaveDrillPlan(btn) {
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + _saDrillId + '/set-plan', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ piano })
     });
     const d = await r.json();
@@ -26603,7 +26649,7 @@ async function _saDrillLoadAudit(id) {
   const fmt = (ts) => { try { const d=new Date(ts); return isNaN(d.getTime())?'—':d.toLocaleDateString('it-IT')+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); } catch(_){return '—';} };
   try {
     const r = await fetch(API_BASE + '/api/v2/superadmin/societies/' + id + '/audit-log?limit=50', {
-      headers: { 'X-SA-Secret': SA_PASS }
+      headers: { 'X-SA-Secret': _saSecret }
     });
     if (!r.ok) { el.innerHTML = '<span style="color:#f87171;font-size:.82rem;">Errore caricamento log.</span>'; return; }
     const d = await r.json();
@@ -26704,7 +26750,7 @@ async function saFinishCreate() {
   try {
     const resp = await fetch(API_BASE + '/api/v2/superadmin/societies', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': SA_PASS },
+      headers: { 'Content-Type': 'application/json', 'X-SA-Secret': _saSecret },
       body: JSON.stringify({ nome, citta, piano, adminNome: aNome, adminCogn: aCogn, adminEmail: aEmail, adminPass: aPass })
     });
     if (resp.status === 409) { alert('Email admin già registrata.'); if (btn) { btn.disabled = false; btn.textContent = '✅ Crea società'; } return; }
