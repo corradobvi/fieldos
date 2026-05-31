@@ -35,6 +35,7 @@ import notificheRisultatoRouter    from "./notifiche-risultato";
 import migratePolisRouter          from "./migrate-polis";
 import matchesRouter               from "./matches";
 import statsRouter                 from "./stats";
+import adminBackfillMatchesRouter  from "./admin-backfill-matches";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -340,4 +341,5 @@ router.use(notificheRisultatoRouter);
 router.use(migratePolisRouter);
 router.use(matchesRouter);
 router.use(statsRouter);
+router.use(adminBackfillMatchesRouter);
 export default router;

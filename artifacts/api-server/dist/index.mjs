@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router43;
+    module.exports = Router44;
     module.exports.Route = Route;
-    function Router43(options) {
-      if (!(this instanceof Router43)) {
-        return new Router43(options);
+    function Router44(options) {
+      if (!(this instanceof Router44)) {
+        return new Router44(options);
       }
       const opts = options || {};
-      function router43(req, res, next) {
-        router43.handle(req, res, next);
+      function router44(req, res, next) {
+        router44.handle(req, res, next);
       }
-      Object.setPrototypeOf(router43, this);
-      router43.caseSensitive = opts.caseSensitive;
-      router43.mergeParams = opts.mergeParams;
-      router43.params = {};
-      router43.strict = opts.strict;
-      router43.stack = [];
-      return router43;
+      Object.setPrototypeOf(router44, this);
+      router44.caseSensitive = opts.caseSensitive;
+      router44.mergeParams = opts.mergeParams;
+      router44.params = {};
+      router44.strict = opts.strict;
+      router44.stack = [];
+      return router44;
     }
-    Router43.prototype = function() {
+    Router44.prototype = function() {
     };
-    Router43.prototype.param = function param(name, fn) {
+    Router44.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router43.prototype.handle = function handle(req, res, callback) {
+    Router44.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router43.prototype.use = function use(handler) {
+    Router44.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router43.prototype.route = function route(path4) {
+    Router44.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router43.prototype[method] = function(path4) {
+      Router44.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router43 = require_router();
+    var Router44 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router43 = null;
+      var router44 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router43 === null) {
-            router43 = new Router43({
+          if (router44 === null) {
+            router44 = new Router44({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router43;
+          return router44;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router43 = this.router;
+      var router44 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router43.use(path4, fn2);
+          return router44.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router43.use(path4, function mounted_app(req, res, next) {
+        router44.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router43 = require_router();
+    var Router44 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router43.Route;
-    exports.Router = Router43;
+    exports.Route = Router44.Route;
+    exports.Router = Router44;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express43 = __toESM(require_express2(), 1);
+var import_express44 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express42 = __toESM(require_express2(), 1);
+var import_express43 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78501,7 +78501,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express41 = __toESM(require_express2(), 1);
+var import_express42 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -92545,8 +92545,400 @@ router40.get("/stats/leva", requireAuth, async (req, res) => {
 });
 var stats_default = router40;
 
-// src/routes/v2/index.ts
+// src/routes/v2/admin-backfill-matches.ts
+var import_express41 = __toESM(require_express2(), 1);
 var router41 = (0, import_express41.Router)();
+var DEMO_SOC_ID = 99;
+var DEMO_STELLA_ID = 99999;
+var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
+function newCounters() {
+  return {
+    tornei_inseriti: 0,
+    fasi_inserite: 0,
+    matches_inseriti: { campionato: 0, torneo: 0, amichevole: 0 },
+    stats_inserite: 0,
+    stats_saltate_player_mancante: 0,
+    matches_saltati_gia_presenti: 0
+  };
+}
+function ekCamp(leva, mId) {
+  return `camp_${leva}_${mId}`;
+}
+function ekTorneo(tId, fId, mId) {
+  return `torneo_${tId}_${fId}_${mId}`;
+}
+function ekAmich(mId) {
+  return `amich_${mId}`;
+}
+router41.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) => {
+  const requested = parseInt(String(req.params.societaId), 10);
+  if (!Number.isFinite(requested) || requested <= 0) {
+    return res.status(400).json({ error: "invalid_societa_id" });
+  }
+  if (DEMO_SOC_IDS2.has(requested)) {
+    return res.status(400).json({ error: "demo_society_not_allowed" });
+  }
+  const jwt = req.jwtUser;
+  if (jwt.role !== "admin") {
+    return res.status(403).json({ error: "admin_only" });
+  }
+  if (jwt.societyId !== requested) {
+    return res.status(403).json({ error: "society_mismatch" });
+  }
+  const dryRun = String(req.query.dryRun || "") === "1" || String(req.query.dryRun || "") === "true";
+  try {
+    const stateKey = `fieldos_state_soc_${requested}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) {
+      return res.status(404).json({ error: "blob_not_found", stateKey });
+    }
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch (e) {
+      return res.status(500).json({ error: "blob_parse_error", detail: e?.message });
+    }
+    const amichevoli = Array.isArray(state?.amichevoli) ? state.amichevoli : [];
+    const campionato = state?.campionato && typeof state.campionato === "object" ? state.campionato : {};
+    const tornei = Array.isArray(state?.tornei) ? state.tornei : [];
+    const [existRows] = await pool.execute(
+      "SELECT event_key FROM matches WHERE societa_id = ?",
+      [requested]
+    );
+    const existingKeys = new Set(existRows.map((r) => String(r.event_key)));
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE society_id = ?",
+      [requested]
+    );
+    const validPlayerIds = new Set(playerRows.map((r) => Number(r.id)));
+    const counters = newCounters();
+    const sample = [];
+    if (dryRun) {
+      for (const t of tornei) {
+        counters.tornei_inseriti += 1;
+        for (const f of t.fasi || []) {
+          counters.fasi_inserite += 1;
+          for (const m of f.partite || []) {
+            const ek = ekTorneo(t.id, f.id, m.id);
+            if (existingKeys.has(ek)) {
+              counters.matches_saltati_gia_presenti += 1;
+              continue;
+            }
+            counters.matches_inseriti.torneo += 1;
+            if (sample.length < 8) sample.push({ event_key: ek, tipo: "torneo" });
+            for (const s of m.stats || []) {
+              const pid = Number(s.playerId);
+              if (!validPlayerIds.has(pid)) {
+                counters.stats_saltate_player_mancante += 1;
+                continue;
+              }
+              counters.stats_inserite += 1;
+            }
+          }
+        }
+      }
+      for (const lv of Object.keys(campionato)) {
+        const camp = campionato[lv];
+        for (const m of camp.partite || []) {
+          const ek = ekCamp(lv, m.id);
+          if (existingKeys.has(ek)) {
+            counters.matches_saltati_gia_presenti += 1;
+            continue;
+          }
+          counters.matches_inseriti.campionato += 1;
+          if (sample.length < 8) sample.push({ event_key: ek, tipo: "campionato" });
+          for (const s of m.stats || []) {
+            const pid = Number(s.playerId);
+            if (!validPlayerIds.has(pid)) {
+              counters.stats_saltate_player_mancante += 1;
+              continue;
+            }
+            counters.stats_inserite += 1;
+          }
+        }
+      }
+      for (const a of amichevoli) {
+        const ek = ekAmich(a.id);
+        if (existingKeys.has(ek)) {
+          counters.matches_saltati_gia_presenti += 1;
+          continue;
+        }
+        counters.matches_inseriti.amichevole += 1;
+        if (sample.length < 8) sample.push({ event_key: ek, tipo: "amichevole" });
+        for (const s of a.stats || []) {
+          const pid = Number(s.playerId);
+          if (!validPlayerIds.has(pid)) {
+            counters.stats_saltate_player_mancante += 1;
+            continue;
+          }
+          counters.stats_inserite += 1;
+        }
+      }
+      return res.json({ dryRun: true, societaId: requested, counters, sample });
+    }
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const t of tornei) {
+        const [ins] = await conn.execute(
+          `INSERT IGNORE INTO tornei
+             (id, societa_id, nome, leva, luogo, data_inizio, data_fine,
+              spareggio, squadre_partecipanti, squadre_mie_flag, convocati,
+              convocazioni_per_partita, qual_per_girone, archiviato)
+           VALUES (?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON),?,?,?)`,
+          [
+            String(t.id),
+            requested,
+            String(t.nome || ""),
+            t.leva ?? null,
+            t.luogo ?? null,
+            t.dataInizio || null,
+            t.dataFine || null,
+            JSON.stringify(t.spareggio ?? null),
+            JSON.stringify(t.squadrePartecipanti ?? null),
+            JSON.stringify(t.squadreMieFlag ?? null),
+            JSON.stringify(t.convocati ?? null),
+            t.convocazioniPerPartita ? 1 : 0,
+            t.qualPerGirone ?? null,
+            t.archiviato ? 1 : 0
+          ]
+        );
+        if (ins.affectedRows > 0) counters.tornei_inseriti += 1;
+        for (let fi = 0; fi < (t.fasi || []).length; fi++) {
+          const f = t.fasi[fi];
+          const [insF] = await conn.execute(
+            `INSERT IGNORE INTO tornei_fasi
+               (id, torneo_id, nome, tipo, fase_gruppo, squadre, ordine)
+             VALUES (?,?,?,?,?,CAST(? AS JSON),?)`,
+            [
+              String(f.id),
+              String(t.id),
+              f.nome ?? null,
+              f.tipo ?? null,
+              f.faseGruppo ?? null,
+              JSON.stringify(f.squadre ?? null),
+              fi
+            ]
+          );
+          if (insF.affectedRows > 0) counters.fasi_inserite += 1;
+          for (const m of f.partite || []) {
+            const ek = ekTorneo(t.id, f.id, m.id);
+            if (existingKeys.has(ek)) {
+              counters.matches_saltati_gia_presenti += 1;
+              continue;
+            }
+            const [insM] = await conn.execute(
+              `INSERT INTO matches
+                 (societa_id, tipo, event_key, legacy_match_id, leva, fase_id,
+                  data, orario, casa, ospite, luogo, played, gol_casa, gol_ospiti,
+                  visibilita_subito, bracket_round, bracket_pos)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+              [
+                requested,
+                "torneo",
+                ek,
+                String(m.id ?? ""),
+                t.leva ?? null,
+                String(f.id),
+                m.data || null,
+                m.orario ?? null,
+                m.casa ?? null,
+                m.ospite ?? null,
+                m.luogo ?? null,
+                m.played ? 1 : 0,
+                Number(m.golCasa) || 0,
+                Number(m.golOspiti) || 0,
+                m.visibilitaSubito ? 1 : 0,
+                m.bracketRound ?? null,
+                m.bracketPos ?? null
+              ]
+            );
+            const newMatchId = insM.insertId;
+            counters.matches_inseriti.torneo += 1;
+            existingKeys.add(ek);
+            for (const s of m.stats || []) {
+              const pid = Number(s.playerId);
+              if (!validPlayerIds.has(pid)) {
+                counters.stats_saltate_player_mancante += 1;
+                continue;
+              }
+              await conn.execute(
+                `INSERT INTO match_stats
+                   (match_id, player_id, gol, assist, titolare, minuti, gialli, rossi, gol_sub, cs)
+                 VALUES (?,?,?,?,?,?,?,?,?,?)
+                 ON DUPLICATE KEY UPDATE
+                   gol=VALUES(gol), assist=VALUES(assist), titolare=VALUES(titolare),
+                   minuti=VALUES(minuti), gialli=VALUES(gialli), rossi=VALUES(rossi),
+                   gol_sub=VALUES(gol_sub), cs=VALUES(cs)`,
+                [
+                  newMatchId,
+                  pid,
+                  Number(s.gol) || 0,
+                  Number(s.assist) || 0,
+                  s.titolare ? 1 : 0,
+                  Number(s.minuti) || 0,
+                  Number(s.gialli) || 0,
+                  Number(s.rossi) || 0,
+                  Number(s.golSub) || 0,
+                  s.cs ? 1 : 0
+                ]
+              );
+              counters.stats_inserite += 1;
+            }
+          }
+        }
+      }
+      for (const lv of Object.keys(campionato)) {
+        const camp = campionato[lv];
+        for (const m of camp.partite || []) {
+          const ek = ekCamp(lv, m.id);
+          if (existingKeys.has(ek)) {
+            counters.matches_saltati_gia_presenti += 1;
+            continue;
+          }
+          const [insM] = await conn.execute(
+            `INSERT INTO matches
+               (societa_id, tipo, event_key, legacy_match_id, leva, giornata,
+                data, orario, casa, ospite, luogo, played, gol_casa, gol_ospiti,
+                visibilita_subito)
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+              requested,
+              "campionato",
+              ek,
+              String(m.id ?? ""),
+              lv,
+              m.giornata ?? null,
+              m.data || null,
+              m.orario ?? null,
+              m.casa ?? null,
+              m.ospite ?? null,
+              m.luogo ?? null,
+              m.played ? 1 : 0,
+              Number(m.golCasa) || 0,
+              Number(m.golOspiti) || 0,
+              m.visibilitaSubito ? 1 : 0
+            ]
+          );
+          const newMatchId = insM.insertId;
+          counters.matches_inseriti.campionato += 1;
+          existingKeys.add(ek);
+          for (const s of m.stats || []) {
+            const pid = Number(s.playerId);
+            if (!validPlayerIds.has(pid)) {
+              counters.stats_saltate_player_mancante += 1;
+              continue;
+            }
+            await conn.execute(
+              `INSERT INTO match_stats
+                 (match_id, player_id, gol, assist, titolare, minuti, gialli, rossi, gol_sub, cs)
+               VALUES (?,?,?,?,?,?,?,?,?,?)
+               ON DUPLICATE KEY UPDATE
+                 gol=VALUES(gol), assist=VALUES(assist), titolare=VALUES(titolare),
+                 minuti=VALUES(minuti), gialli=VALUES(gialli), rossi=VALUES(rossi),
+                 gol_sub=VALUES(gol_sub), cs=VALUES(cs)`,
+              [
+                newMatchId,
+                pid,
+                Number(s.gol) || 0,
+                Number(s.assist) || 0,
+                s.titolare ? 1 : 0,
+                Number(s.minuti) || 0,
+                Number(s.gialli) || 0,
+                Number(s.rossi) || 0,
+                Number(s.golSub) || 0,
+                s.cs ? 1 : 0
+              ]
+            );
+            counters.stats_inserite += 1;
+          }
+        }
+      }
+      for (const a of amichevoli) {
+        const ek = ekAmich(a.id);
+        if (existingKeys.has(ek)) {
+          counters.matches_saltati_gia_presenti += 1;
+          continue;
+        }
+        const [insM] = await conn.execute(
+          `INSERT INTO matches
+             (societa_id, tipo, event_key, legacy_match_id, leva,
+              data, orario, avversario, lato, luogo, played, gol_casa, gol_ospiti,
+              visibilita_subito, annullata)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [
+            requested,
+            "amichevole",
+            ek,
+            String(a.id ?? ""),
+            a.leva ?? null,
+            a.data || null,
+            a.orario ?? null,
+            a.avversario ?? null,
+            a.tipo === "trasferta" ? "trasferta" : a.tipo === "casa" ? "casa" : null,
+            a.luogo ?? null,
+            a.played ? 1 : 0,
+            Number(a.golCasa) || 0,
+            Number(a.golOspiti) || 0,
+            a.visibilitaSubito ? 1 : 0,
+            a.annullata ? 1 : 0
+          ]
+        );
+        const newMatchId = insM.insertId;
+        counters.matches_inseriti.amichevole += 1;
+        existingKeys.add(ek);
+        for (const s of a.stats || []) {
+          const pid = Number(s.playerId);
+          if (!validPlayerIds.has(pid)) {
+            counters.stats_saltate_player_mancante += 1;
+            continue;
+          }
+          await conn.execute(
+            `INSERT INTO match_stats
+               (match_id, player_id, gol, assist, titolare, minuti, gialli, rossi, gol_sub, cs)
+             VALUES (?,?,?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+               gol=VALUES(gol), assist=VALUES(assist), titolare=VALUES(titolare),
+               minuti=VALUES(minuti), gialli=VALUES(gialli), rossi=VALUES(rossi),
+               gol_sub=VALUES(gol_sub), cs=VALUES(cs)`,
+            [
+              newMatchId,
+              pid,
+              Number(s.gol) || 0,
+              Number(s.assist) || 0,
+              s.titolare ? 1 : 0,
+              Number(s.minuti) || 0,
+              Number(s.gialli) || 0,
+              Number(s.rossi) || 0,
+              Number(s.golSub) || 0,
+              s.cs ? 1 : 0
+            ]
+          );
+          counters.stats_inserite += 1;
+        }
+      }
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback().catch(() => {
+      });
+      logger.error({ err: e?.message, societaId: requested }, "backfill-matches transaction failed");
+      return res.status(500).json({ error: "transaction_failed", detail: e?.message });
+    } finally {
+      conn.release();
+    }
+    return res.json({ dryRun: false, societaId: requested, counters });
+  } catch (e) {
+    logger.error({ err: e?.message }, "POST backfill-matches error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+var admin_backfill_matches_default = router41;
+
+// src/routes/v2/index.ts
+var router42 = (0, import_express42.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -92730,7 +93122,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router41.use(async (_req, _res, next) => {
+router42.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -92739,7 +93131,7 @@ router41.use(async (_req, _res, next) => {
     next();
   }
 });
-router41.get("/schema-info", async (_req, res) => {
+router42.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -92757,7 +93149,7 @@ router41.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router41.get("/health/ai-key", (_req, res) => {
+router42.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -92768,7 +93160,7 @@ router41.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router41.get("/health/schema-budget", async (_req, res) => {
+router42.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -92783,55 +93175,56 @@ router41.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router41.use(auth_default2);
-router41.use(self_register_default);
-router41.use(society_default);
-router41.use(leve_default);
-router41.use(minors_default);
-router41.use(players_default);
-router41.use(users_default);
-router41.use(events_default);
-router41.use(presenze_default);
-router41.use(comunicazioni_default);
-router41.use(chat_default);
-router41.use(quote_default);
-router41.use(migrate_default);
-router41.use(stripe_default);
-router41.use(demo_wa_default);
-router41.use(superadmin_default);
-router41.use(account_default);
-router41.use(notification_preferences_default);
-router41.use(allenamenti_default);
-router41.use(ai_allenamenti_default);
-router41.use(ai_tornei_default);
-router41.use(utm_stats_default);
-router41.use(admin_reset_demo_default);
-router41.use(admin_populate_sessioni_default);
-router41.use(select_plan_default);
-router41.use(admin_genitore_debug_default);
-router41.use(admin_push_debug_default);
-router41.use(admin_cleanup_preview_default);
-router41.use(notifiche_risultato_default);
-router41.use(migrate_polis_default);
-router41.use(matches_default);
-router41.use(stats_default);
-var v2_default = router41;
+router42.use(auth_default2);
+router42.use(self_register_default);
+router42.use(society_default);
+router42.use(leve_default);
+router42.use(minors_default);
+router42.use(players_default);
+router42.use(users_default);
+router42.use(events_default);
+router42.use(presenze_default);
+router42.use(comunicazioni_default);
+router42.use(chat_default);
+router42.use(quote_default);
+router42.use(migrate_default);
+router42.use(stripe_default);
+router42.use(demo_wa_default);
+router42.use(superadmin_default);
+router42.use(account_default);
+router42.use(notification_preferences_default);
+router42.use(allenamenti_default);
+router42.use(ai_allenamenti_default);
+router42.use(ai_tornei_default);
+router42.use(utm_stats_default);
+router42.use(admin_reset_demo_default);
+router42.use(admin_populate_sessioni_default);
+router42.use(select_plan_default);
+router42.use(admin_genitore_debug_default);
+router42.use(admin_push_debug_default);
+router42.use(admin_cleanup_preview_default);
+router42.use(notifiche_risultato_default);
+router42.use(migrate_polis_default);
+router42.use(matches_default);
+router42.use(stats_default);
+router42.use(admin_backfill_matches_default);
+var v2_default = router42;
 
 // src/routes/index.ts
-var router42 = (0, import_express42.Router)();
-router42.use(health_default);
-router42.use(login_default);
-router42.use(auth_default);
-router42.use(state_default);
-router42.use(assist_default);
-router42.use(push_default);
-router42.use(upload_default);
-router42.use(public_default);
-router42.use("/v2", v2_default);
-var routes_default = router42;
+var router43 = (0, import_express43.Router)();
+router43.use(health_default);
+router43.use(login_default);
+router43.use(auth_default);
+router43.use(state_default);
+router43.use(assist_default);
+router43.use(push_default);
+router43.use(upload_default);
+router43.use(public_default);
+router43.use("/v2", v2_default);
+var routes_default = router43;
 
 // src/app.ts
-var app = (0, import_express43.default)();
+var app = (0, import_express44.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -92852,17 +93245,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express43.default.json({
+app.use(import_express44.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express43.default.urlencoded({ extended: true }));
+app.use(import_express44.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express43.default.static(staticDir));
+  app.use(import_express44.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });
