@@ -92390,6 +92390,16 @@ var migrate_polis_default = router38;
 // src/routes/v2/matches.ts
 var import_express39 = __toESM(require_express2(), 1);
 var router39 = (0, import_express39.Router)();
+var WRITE_ROLES2 = ["admin", "allenatore", "dirigente"];
+var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
+function rejectDemo(req, res) {
+  const sid = req.jwtUser?.societyId;
+  if (typeof sid !== "number" || DEMO_SOC_IDS2.has(sid)) {
+    res.status(400).json({ error: "demo_society_not_allowed" });
+    return true;
+  }
+  return false;
+}
 router39.get("/matches", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const tipo = req.query.tipo || void 0;
@@ -92464,6 +92474,286 @@ router39.get("/tornei", requireAuth, async (req, res) => {
     return res.json(tornei);
   } catch (e) {
     logger.error({ err: e }, "GET tornei error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const b = req.body || {};
+  const event_key = typeof b.event_key === "string" ? b.event_key.trim() : "";
+  const tipo = typeof b.tipo === "string" ? b.tipo : "";
+  if (!event_key) return res.status(400).json({ error: "event_key_required" });
+  if (!["campionato", "torneo", "amichevole"].includes(tipo)) {
+    return res.status(400).json({ error: "invalid_tipo" });
+  }
+  const lato = b.lato === "casa" || b.lato === "trasferta" ? b.lato : null;
+  try {
+    const [ins] = await pool.execute(
+      `INSERT INTO matches
+         (societa_id, tipo, event_key, legacy_match_id, leva, fase_id, giornata,
+          data, orario, casa, ospite, avversario, lato, luogo,
+          played, gol_casa, gol_ospiti,
+          visibilita_subito, annullata, bracket_round, bracket_pos)
+       VALUES (?,?,?,?,?,?,?, ?,?,?,?,?,?,?, ?,?,?, ?,?,?,?)
+       ON DUPLICATE KEY UPDATE
+         tipo=VALUES(tipo), legacy_match_id=VALUES(legacy_match_id),
+         leva=VALUES(leva), fase_id=VALUES(fase_id), giornata=VALUES(giornata),
+         data=VALUES(data), orario=VALUES(orario),
+         casa=VALUES(casa), ospite=VALUES(ospite),
+         avversario=VALUES(avversario), lato=VALUES(lato), luogo=VALUES(luogo),
+         played=VALUES(played), gol_casa=VALUES(gol_casa), gol_ospiti=VALUES(gol_ospiti),
+         visibilita_subito=VALUES(visibilita_subito), annullata=VALUES(annullata),
+         bracket_round=VALUES(bracket_round), bracket_pos=VALUES(bracket_pos)`,
+      [
+        societyId,
+        tipo,
+        event_key,
+        b.legacy_match_id != null ? String(b.legacy_match_id) : null,
+        b.leva ?? null,
+        b.fase_id != null ? String(b.fase_id) : null,
+        b.giornata != null ? Number(b.giornata) : null,
+        b.data || null,
+        b.orario ?? null,
+        b.casa ?? null,
+        b.ospite ?? null,
+        b.avversario ?? null,
+        lato,
+        b.luogo ?? null,
+        b.played ? 1 : 0,
+        Number(b.gol_casa) || 0,
+        Number(b.gol_ospiti) || 0,
+        b.visibilita_subito ? 1 : 0,
+        b.annullata ? 1 : 0,
+        b.bracket_round != null ? Number(b.bracket_round) : null,
+        b.bracket_pos != null ? Number(b.bracket_pos) : null
+      ]
+    );
+    const [rowR] = await pool.execute(
+      "SELECT id FROM matches WHERE societa_id = ? AND event_key = ? LIMIT 1",
+      [societyId, event_key]
+    );
+    if (!rowR.length) return res.status(500).json({ error: "match_lookup_failed" });
+    const id = Number(rowR[0].id);
+    const created = ins.affectedRows === 1;
+    return res.json({ id, created });
+  } catch (e) {
+    logger.error({ err: e?.message }, "POST matches upsert error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const matchId = Number(req.params.matchId);
+  if (!Number.isFinite(matchId) || matchId <= 0) {
+    return res.status(400).json({ error: "invalid_match_id" });
+  }
+  const stats = Array.isArray(req.body?.stats) ? req.body.stats : null;
+  if (!stats) return res.status(400).json({ error: "stats_array_required" });
+  try {
+    const [m] = await pool.execute(
+      "SELECT id FROM matches WHERE id = ? AND societa_id = ? LIMIT 1",
+      [matchId, societyId]
+    );
+    if (!m.length) return res.status(404).json({ error: "match_not_found" });
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE society_id = ?",
+      [societyId]
+    );
+    const validPlayerIds = new Set(playerRows.map((r) => Number(r.id)));
+    let upserted = 0;
+    let skipped_player_missing = 0;
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      for (const s of stats) {
+        const pid = Number(s?.player_id ?? s?.playerId);
+        if (!Number.isFinite(pid) || !validPlayerIds.has(pid)) {
+          skipped_player_missing++;
+          continue;
+        }
+        await conn.execute(
+          `INSERT INTO match_stats
+             (match_id, player_id, gol, assist, titolare, minuti, gialli, rossi, gol_sub, cs)
+           VALUES (?,?,?,?,?,?,?,?,?,?)
+           ON DUPLICATE KEY UPDATE
+             gol=VALUES(gol), assist=VALUES(assist), titolare=VALUES(titolare),
+             minuti=VALUES(minuti), gialli=VALUES(gialli), rossi=VALUES(rossi),
+             gol_sub=VALUES(gol_sub), cs=VALUES(cs)`,
+          [
+            matchId,
+            pid,
+            Number(s.gol) || 0,
+            Number(s.assist) || 0,
+            s.titolare ? 1 : 0,
+            Number(s.minuti) || 0,
+            Number(s.gialli) || 0,
+            Number(s.rossi) || 0,
+            Number(s.gol_sub ?? s.golSub) || 0,
+            s.cs ? 1 : 0
+          ]
+        );
+        upserted++;
+      }
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback().catch(() => {
+      });
+      logger.error({ err: e?.message, matchId }, "POST matches/:id/stats bulk failed");
+      return res.status(500).json({ error: "transaction_failed", detail: e?.message });
+    } finally {
+      conn.release();
+    }
+    return res.json({ ok: true, match_id: matchId, upserted, skipped_player_missing });
+  } catch (e) {
+    logger.error({ err: e?.message }, "POST matches/:id/stats error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const t = req.body || {};
+  if (!t.id || typeof t.id !== "string") return res.status(400).json({ error: "torneo_id_required" });
+  if (!t.nome) return res.status(400).json({ error: "torneo_nome_required" });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.execute(
+      `INSERT INTO tornei
+         (id, societa_id, nome, leva, luogo, data_inizio, data_fine,
+          spareggio, squadre_partecipanti, squadre_mie_flag, convocati,
+          convocazioni_per_partita, qual_per_girone, archiviato)
+       VALUES (?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON),?,?,?)
+       ON DUPLICATE KEY UPDATE
+         nome=VALUES(nome), leva=VALUES(leva), luogo=VALUES(luogo),
+         data_inizio=VALUES(data_inizio), data_fine=VALUES(data_fine),
+         spareggio=VALUES(spareggio),
+         squadre_partecipanti=VALUES(squadre_partecipanti),
+         squadre_mie_flag=VALUES(squadre_mie_flag),
+         convocati=VALUES(convocati),
+         convocazioni_per_partita=VALUES(convocazioni_per_partita),
+         qual_per_girone=VALUES(qual_per_girone),
+         archiviato=VALUES(archiviato)`,
+      [
+        String(t.id),
+        societyId,
+        String(t.nome),
+        t.leva ?? null,
+        t.luogo ?? null,
+        t.data_inizio || null,
+        t.data_fine || null,
+        JSON.stringify(t.spareggio ?? null),
+        JSON.stringify(t.squadre_partecipanti ?? null),
+        JSON.stringify(t.squadre_mie_flag ?? null),
+        JSON.stringify(t.convocati ?? null),
+        t.convocazioni_per_partita ? 1 : 0,
+        t.qual_per_girone != null ? Number(t.qual_per_girone) : null,
+        t.archiviato ? 1 : 0
+      ]
+    );
+    const fasi = Array.isArray(t.fasi) ? t.fasi : [];
+    let fasi_upserted = 0;
+    for (let i = 0; i < fasi.length; i++) {
+      const f = fasi[i];
+      if (!f?.id) continue;
+      await conn.execute(
+        `INSERT INTO tornei_fasi
+           (id, torneo_id, nome, tipo, fase_gruppo, squadre, ordine)
+         VALUES (?,?,?,?,?,CAST(? AS JSON),?)
+         ON DUPLICATE KEY UPDATE
+           torneo_id=VALUES(torneo_id), nome=VALUES(nome), tipo=VALUES(tipo),
+           fase_gruppo=VALUES(fase_gruppo), squadre=VALUES(squadre), ordine=VALUES(ordine)`,
+        [
+          String(f.id),
+          String(t.id),
+          f.nome ?? null,
+          f.tipo ?? null,
+          f.fase_gruppo ?? null,
+          JSON.stringify(f.squadre ?? null),
+          f.ordine != null ? Number(f.ordine) : i
+        ]
+      );
+      fasi_upserted++;
+    }
+    await conn.commit();
+    return res.json({ ok: true, id: String(t.id), fasi_upserted });
+  } catch (e) {
+    await conn.rollback().catch(() => {
+    });
+    logger.error({ err: e?.message }, "POST tornei upsert error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  } finally {
+    conn.release();
+  }
+});
+router39.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const matchId = Number(req.params.matchId);
+  if (!Number.isFinite(matchId) || matchId <= 0) {
+    return res.status(400).json({ error: "invalid_match_id" });
+  }
+  try {
+    const [r] = await pool.execute(
+      "DELETE FROM matches WHERE id = ? AND societa_id = ?",
+      [matchId, societyId]
+    );
+    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e?.message }, "DELETE matches/:id error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const event_key = String(req.params.eventKey || "");
+  if (!event_key) return res.status(400).json({ error: "event_key_required" });
+  try {
+    const [r] = await pool.execute(
+      "DELETE FROM matches WHERE event_key = ? AND societa_id = ?",
+      [event_key, societyId]
+    );
+    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e?.message }, "DELETE matches by-event-key error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const id = String(req.params.id || "");
+  if (!id) return res.status(400).json({ error: "torneo_id_required" });
+  try {
+    const [r] = await pool.execute(
+      "DELETE FROM tornei WHERE id = ? AND societa_id = ?",
+      [id, societyId]
+    );
+    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e?.message }, "DELETE tornei/:id error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router39.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const leva = req.query.leva || "";
+  if (!leva) return res.status(400).json({ error: "leva_required" });
+  try {
+    const [r] = await pool.execute(
+      "DELETE FROM matches WHERE societa_id = ? AND tipo = 'campionato' AND leva = ?",
+      [societyId, leva]
+    );
+    return res.json({ ok: true, deleted: r.affectedRows || 0 });
+  } catch (e) {
+    logger.error({ err: e?.message }, "DELETE campionato error");
     return res.status(500).json({ error: "server_error" });
   }
 });
@@ -92608,7 +92898,7 @@ var import_express41 = __toESM(require_express2(), 1);
 var router41 = (0, import_express41.Router)();
 var DEMO_SOC_ID = 99;
 var DEMO_STELLA_ID = 99999;
-var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
+var DEMO_SOC_IDS3 = /* @__PURE__ */ new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
 function newCounters() {
   return {
     tornei_inseriti: 0,
@@ -92633,7 +92923,7 @@ router41.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
   if (!Number.isFinite(requested) || requested <= 0) {
     return res.status(400).json({ error: "invalid_societa_id" });
   }
-  if (DEMO_SOC_IDS2.has(requested)) {
+  if (DEMO_SOC_IDS3.has(requested)) {
     return res.status(400).json({ error: "demo_society_not_allowed" });
   }
   const jwt = req.jwtUser;
