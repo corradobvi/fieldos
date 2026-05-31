@@ -13753,6 +13753,67 @@ function selectGenFiglio(playerId){
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Prossimo impegno per la PWA genitore: salta partite/tornei in cui il figlio è NON convocato,
+// mostra il primo impegno utile (allenamento / convocato / in attesa di convocazione).
+// convStatus: 'convocato' | 'attesa' | null (null = allenamento, nessun badge)
+function _genitoreNextImpegno(lv, playerId) {
+  if (!lv) return null;
+  var todayStr = ymd(new Date());
+  var todayMs = new Date().setHours(0,0,0,0);
+  var isTraining = function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  var cands = [];
+  // 1) eventi calendario (events[]) nei prossimi 45 gg
+  for (var i=0;i<45;i++) {
+    var d=new Date(todayMs); d.setDate(new Date(todayMs).getDate()+i);
+    var ds=ymd(d);
+    events.forEach(function(ev){
+      if ((!ev.leve||!ev.leve.length||ev.leve.includes(lv)) && eventOccursOn(ev,ds)) {
+        cands.push({date:ds,start:ev.start||'',title:ev.title||(isTraining(ev)?'Allenamento':'Evento'),type:ev.type||'',luogo:ev.luogo||'',id:ev.id,isTraining:isTraining(ev)});
+      }
+    });
+  }
+  // 2) partite strutturate (amichevoli / campionato / tornei) — stesso pattern di panoNextMatchForLeva
+  var polis = _campPolis(lv);
+  (amichevoli||[]).filter(function(m){return m.leva===lv && !m.annullata && m.data>=todayStr;}).forEach(function(m){
+    var isH=(m.tipo||'casa')==='casa';
+    cands.push({date:m.data,start:m.orario||'',title:(isH?polisName(lv):m.avversario)+' vs '+(isH?m.avversario:polisName(lv)),type:'amichevole',luogo:m.luogo||'',id:'amich_'+m.id,isTraining:false});
+  });
+  var camp = campionato[lv];
+  if (camp) (camp.partite||[]).filter(function(m){return !m.played && m.data>=todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
+    var avv=(m.casa===polis?m.ospite:m.casa)||'—';
+    cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'partita',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false});
+  });
+  (tornei||[]).filter(function(t){return t.leva===lv;}).forEach(function(t){
+    var mieSq = _getMieSquadre(t);
+    (t.fasi||[]).forEach(function(f){
+      (f.partite||[]).filter(function(m){return !m.played && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
+        var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
+        var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
+        var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
+        cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,isTraining:false});
+      });
+    });
+  });
+  cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
+  for (var j=0;j<cands.length;j++) {
+    var ce=cands[j];
+    var dm=parseYmd(ce.date);
+    var dfn=Math.max(0,Math.round((dm.getTime()-todayMs)/86400000));
+    if (ce.isTraining) {
+      return Object.assign({}, ce, {daysFromNow:dfn, convStatus:null});
+    }
+    var conv = ce.id ? getConvocazione(ce.id) : null;
+    if (conv && conv.playerIds) {
+      if (conv.playerIds.includes(playerId)) {
+        return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'convocato'});
+      }
+      continue; // non convocato → skip
+    }
+    return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'attesa'});
+  }
+  return null;
+}
+
 function buildMobDashboardGenitore(c) {
   var todayStr=ymd(new Date());
   var figliPlayers=[];
@@ -13825,7 +13886,7 @@ function buildMobDashboardGenitore(c) {
 
   // ── CARD 3: Prossimo impegno ─────────────────────────────────────────────
   var lv=p?p.leva:null;
-  var nxtEv=lv?_misterNextAnyEvent(lv):null;
+  var nxtEv=(lv&&p)?_genitoreNextImpegno(lv,p.id):null;
   var impegnoHtml='';
   if(nxtEv){
     var hDFN=nxtEv.daysFromNow;
@@ -13836,15 +13897,10 @@ function buildMobDashboardGenitore(c) {
     var cdSub3=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW3[_hDG.getDay()];
     var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
     var convBadge3='';
-    if(!isTrG){
-      var convG=nxtEv.id?getConvocazione(nxtEv.id):null;
-      if(convG&&convG.playerIds&&p){
-        convBadge3=convG.playerIds.includes(p.id)
-          ?'<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>'
-          :'<span style="display:inline-flex;align-items:center;gap:4px;background:var(--border);color:var(--text2);border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">⚪ NON CONVOCATO</span>';
-      } else {
-        convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟡 IN ATTESA DI CONVOCAZIONE</span>';
-      }
+    if(nxtEv.convStatus==='convocato'){
+      convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>';
+    } else if(nxtEv.convStatus==='attesa'){
+      convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#fef9c3;color:#854d0e;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟡 IN ATTESA DI CONVOCAZIONE</span>';
     }
     impegnoHtml='<div class="mob-dash-card" onclick="goTo(\'calendario\')" style="-webkit-tap-highlight-color:transparent;">'
       +'<div class="mob-dash-card-hd">📋 Prossimo impegno</div>'
