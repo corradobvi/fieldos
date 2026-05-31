@@ -13974,9 +13974,23 @@ function buildMobDashboardGenitore(c) {
     }).join('');
     assenzaListHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📩 Assenze segnalate</div>'+_aRows3+'</div>';
   }
-  var avvisaBtn3=canAvvisaAssenza()
-    ?'<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="openAvvisaModal()">📵 Segnala assenza</button>'
-    :'';
+  // Tasto contestuale al PROSSIMO IMPEGNO mostrato sopra (nxtEv).
+  // Allenamento → flusso assenza esistente (openAvvisaModal con data preselezionata).
+  // Partita/torneo → flusso indisponibilità esistente (openConvIndispModal per singolo evento).
+  // Nessun impegno → tasto nascosto.
+  var avvisaBtn3='';
+  if(canAvvisaAssenza() && nxtEv && p){
+    var _segLabel, _segAct;
+    if(nxtEv.isTraining){
+      _segLabel='Segnala assenza';
+      _segAct="openAvvisaModal('"+nxtEv.date+"')";
+    } else {
+      _segLabel='Segnala indisponibilità';
+      var _evIdJs = typeof nxtEv.id === 'string' ? "'"+String(nxtEv.id).replace(/'/g,"\\'")+"'" : nxtEv.id;
+      _segAct="openConvIndispModal("+_evIdJs+","+p.id+")";
+    }
+    avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
+  }
 
   c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+assenzaListHtml3+avvisaBtn3;
 }
