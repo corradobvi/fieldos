@@ -1496,7 +1496,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mob-quota-label{font-size:.85rem;font-weight:800;}
 .mob-quota-sub{font-size:.72rem;opacity:.85;margin-top:2px;}
 .mob-quota-amt{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;flex-shrink:0;}
-/* Figlio tab */
+/* Figlio tab — selettore figlio (chip) per genitori con 2+ figli */
+.mob-figli-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.mob-figli-chip{
+  padding:8px 16px;border-radius:999px;border:1px solid var(--border);
+  background:var(--white);color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:.86rem;font-weight:700;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background .15s,color .15s,border-color .15s;
+  min-height:36px;
+}
+.mob-figli-chip.active{background:#1A7A4A;color:#fff;border-color:#1A7A4A;}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -3192,7 +3202,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
 
       <!-- PROFILO UTENTE (genitore / giocatore) -->
       <div class="page" id="pg-profilo">
-        <div class="sec-h"><div class="sec-t">👤 Il mio profilo</div></div>
+        <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
         <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.16</span></div>
       </div>
@@ -5642,6 +5652,9 @@ function renderProfilo() {
     setTimeout(() => { initPwField('cpProfNew', 'cpProfConf'); }, 50);
     return;
   }
+  // Reset titolo per ruoli che non sono "mobile genitore" (titolo viene cambiato in nome figlio solo per genitore mobile)
+  const _titleEl0 = document.getElementById('profiloPageTitle');
+  if (_titleEl0) _titleEl0.textContent = '👤 Il mio profilo';
   const ROLE_IC2 = {admin:'🛡️',allenatore:'⚽',preparatore_portieri:'🧤',dirigente:'👔',genitore:'👨‍👧',nonno:'👴',giocatore:'🏃'};
   const ini = ((me.nome||'?')[0]+(me.cogn||'?')[0]).toUpperCase();
   const figli = me.figli && me.figli.length ? `<div style="margin-top:6px;font-size:.82rem;color:var(--text2);">Figlio/a: <strong>${me.figli.join(', ')}</strong></div>` : '';
@@ -5679,6 +5692,13 @@ function renderProfilo() {
   setTimeout(() => { initPwField('cpProfNew', 'cpProfConf'); }, 50);
 }
 
+// Switch figlio attivo per la schermata Profilo (chip). Solo questa schermata.
+function _profSelectFiglio(playerId){
+  if(!me) return;
+  try{ localStorage.setItem('gen_sel_profilo_'+me.id, String(playerId)); }catch(_){}
+  renderProfilo();
+}
+
 function renderProfiloFiglio(el) {
   // Match figli: priorità a figliIds (robusto dopo claim GDPR, cognome blob può essere ancora iniziale),
   // fallback al match per nome+cognome per utenti legacy.
@@ -5690,7 +5710,22 @@ function renderProfiloFiglio(el) {
     const figliNames = getFigliOf(me);
     figliPlayers = players.filter(p => figliNames.includes(p.nome + ' ' + p.cogn) || figliNames.includes(p.nome + ' ' + (p.cogn_iniziale||'')));
   }
-  const p = figliPlayers[0];
+
+  // Selezione figlio attivo SOLO per la schermata Profilo (indipendente dalla Home).
+  // Persistente per utente in localStorage. Default: primo figlio.
+  const _profScKey = 'gen_sel_profilo_' + (me ? me.id : 0);
+  let selectedPlayer = figliPlayers[0];
+  if (figliPlayers.length >= 2) {
+    try {
+      const _saved = localStorage.getItem(_profScKey);
+      if (_saved) { const _sf = figliPlayers.find(x => String(x.id) === _saved); if (_sf) selectedPlayer = _sf; }
+    } catch(_) {}
+  }
+  const p = selectedPlayer;
+
+  // Aggiorna titolo della pagina con il nome di battesimo del figlio attivo (o fallback).
+  const _titleEl = document.getElementById('profiloPageTitle');
+  if (_titleEl) _titleEl.textContent = p ? ('👤 ' + (p.nome || 'Profilo')) : '👤 Il mio profilo';
 
   if (!p) {
     el.innerHTML = `<div class="mob-dash-card" style="text-align:center;padding:32px 20px;">
@@ -5700,6 +5735,13 @@ function renderProfiloFiglio(el) {
     </div>`;
     return;
   }
+
+  // Chip selettore (solo se ≥2 figli)
+  const chipsHtml = figliPlayers.length >= 2
+    ? `<div class="mob-figli-chips">${figliPlayers.map(fp =>
+        `<button class="mob-figli-chip${fp.id === p.id ? ' active' : ''}" onclick="_profSelectFiglio(${fp.id})">${escapeHtml(fp.nome||'')}</button>`
+      ).join('')}</div>`
+    : '';
 
   const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
   const s = calcStats(p);
@@ -5757,6 +5799,7 @@ function renderProfiloFiglio(el) {
   }
 
   el.innerHTML = `
+    ${chipsHtml}
     <div class="mob-figlio-hero">
       <div class="mob-figlio-av">${ini}</div>
       <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
