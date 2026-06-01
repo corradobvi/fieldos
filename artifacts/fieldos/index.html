@@ -301,6 +301,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ci-time{font-size:.7rem;color:var(--text3);flex-shrink:0;font-weight:500;}
 .ci-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .ci-msg{font-size:.8rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+.ci-audience{font-size:.7rem;color:var(--text3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ci.has-unread .ci-msg{color:var(--text);font-weight:600;}
 .ci.has-unread .ci-time{color:var(--cp);font-weight:700;}
 .ci-un{background:var(--cp);color:#fff;font-size:.65rem;font-weight:800;min-width:20px;height:20px;padding:0 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -24070,6 +24071,42 @@ function isSeniorLeva(lv) {
   return m ? parseInt(m[1], 10) >= 14 : false;
 }
 
+// Etichetta "audience" derivata dai membri reali della chat (chi può leggerla).
+// Esamina chat.members → USERS_DB → raccoglie ruoli attivi → li mappa a label umane
+// e li compone in linguaggio naturale (es. "Genitori e dirigenti").
+// GUARD: se members vuoto/non determinabile o se nessun utente attivo trovato,
+// ritorna stringa vuota → la UI nasconde il descrittore (no audience inventata).
+function _chatAudienceLabel(chat) {
+  try {
+    if (!chat || !Array.isArray(chat.members) || !chat.members.length) return '';
+    var rolesSet = new Set();
+    for (var i = 0; i < chat.members.length; i++) {
+      var uid = chat.members[i];
+      var u = USERS_DB.find(function(x){return x.id === uid;});
+      if (!u) continue;
+      if (u.stato === 'sospeso') continue;
+      if (u.role) rolesSet.add(u.role);
+    }
+    if (!rolesSet.size) return '';
+    // Mapping ruolo → label aggregata. Ordine "famiglia → staff → giocatori"
+    // mette al primo posto chi tipicamente legge dal lato genitore.
+    var slots = [
+      { has: rolesSet.has('genitore') || rolesSet.has('nonno'),                       lbl: 'genitori' },
+      { has: rolesSet.has('dirigente'),                                               lbl: 'dirigenti' },
+      { has: rolesSet.has('admin') || rolesSet.has('mister_admin') || rolesSet.has('allenatore'), lbl: 'mister' },
+      { has: rolesSet.has('preparatore_portieri'),                                    lbl: 'preparatori' },
+      { has: rolesSet.has('giocatore'),                                               lbl: 'giocatori' },
+    ];
+    var labels = slots.filter(function(s){return s.has;}).map(function(s){return s.lbl;});
+    if (!labels.length) return '';
+    // Capitalizza la prima parola; join con virgole + "e" finale
+    labels[0] = labels[0].charAt(0).toUpperCase() + labels[0].slice(1);
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return labels[0] + ' e ' + labels[1];
+    return labels.slice(0, -1).join(', ') + ' e ' + labels[labels.length - 1];
+  } catch(_) { return ''; }
+}
+
 function getChatsForUser(user) {
   if (!user) return [];
   const out = [];
@@ -24300,10 +24337,13 @@ function renderChatList() {
     const cls = ['ci'];
     if (c.id === currentChatId) cls.push('on');
     if (unread > 0) cls.push('has-unread');
+    const audLbl = _chatAudienceLabel(c);
+    const audRow = audLbl ? `<div class="ci-audience">${escapeHtml(audLbl)}</div>` : '';
     return `<div class="${cls.join(' ')}" data-chatid="${escapeHtml(c.id)}">
       <div class="ci-av" style="background:${safeColor};color:white;">${escapeHtml(c.avatar)}</div>
       <div class="ci-body">
         <div class="ci-top"><span class="ci-name">${escapeHtml(c.name)}</span><span class="ci-time">${timeStr}</span></div>
+        ${audRow}
         <div class="ci-bottom"><span class="ci-msg">${previewText}</span>${unread>0 ? `<span class="ci-un">${unread}</span>` : ''}</div>
       </div>
     </div>`;
@@ -24335,7 +24375,9 @@ function selectChat(chatId, skipListRefresh) {
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
   document.getElementById('chatName').textContent = c.name;
-  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':c.kind==='leva-famiglie'?'Leva':c.kind==='squadra'?'Squadra':c.kind==='torneo'?'Torneo':c.kind==='adhoc'?'Chat':'');
+  // Subtitle = "<N partecipanti> · <audience>" (audience derivata dai membri reali).
+  var _chSubAud = _chatAudienceLabel(c);
+  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + (_chSubAud ? (' · ' + _chSubAud) : '');
   // show/hide read-only notice and input
   const noticeEl = document.getElementById('chatNotice');
   const inpArea = document.querySelector('.cm-inp');
