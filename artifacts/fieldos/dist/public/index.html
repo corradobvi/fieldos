@@ -6952,16 +6952,33 @@ async function _syncMatchFromMySQL(force) {
   if (!force && (now - _lastMatchSyncMs) < 5000) return;
   _lastMatchSyncMs = now;
   try {
-    const r = await fetch(API_BASE + '/api/v2/matches?includeStats=1', {
-      headers: { 'Authorization': 'Bearer ' + _v2Token }
-    });
-    if (!r.ok) { console.log('[matchSync] HTTP', r.status); return; }
-    const rows = await r.json();
+    // Carico in parallelo: matches (con stats) + lista tornei completa (con fasi).
+    // /api/v2/tornei è autoritativo per la lista tornei: garantisce che anche i tornei
+    // senza partite compaiano in __mysqlTornei (altrimenti la ricostruzione dai soli
+    // match perde i tornei vuoti).
+    const [rMatches, rTornei] = await Promise.all([
+      fetch(API_BASE + '/api/v2/matches?includeStats=1', { headers: { 'Authorization': 'Bearer ' + _v2Token } }),
+      fetch(API_BASE + '/api/v2/tornei',                  { headers: { 'Authorization': 'Bearer ' + _v2Token } })
+    ]);
+    if (!rMatches.ok) { console.log('[matchSync] HTTP /matches', rMatches.status); return; }
+    const rows = await rMatches.json();
     if (!Array.isArray(rows)) return;
+    const torneiRows = rTornei.ok ? await rTornei.json() : [];
 
     const mAm = [];
     const mCa = {};
     const mTo = {}; // by torneo_id
+
+    // Pre-popolo mTo da /api/v2/tornei: ogni torneo (anche senza partite) e ogni fase
+    // (anche vuota) ottiene la sua entry vuota; il loop sui match riempie le partite.
+    (Array.isArray(torneiRows) ? torneiRows : []).forEach(t => {
+      const tid = String(t.id);
+      mTo[tid] = { id: tid, nome: t.nome, leva: t.leva, fasi: {} };
+      (t.fasi || []).forEach(f => {
+        const fid = String(f.id);
+        mTo[tid].fasi[fid] = { id: fid, nome: f.nome, tipo: f.tipo, fase_gruppo: f.fase_gruppo, partite: [] };
+      });
+    });
 
     rows.forEach(row => {
       const blobStats = (row.stats || []).map(s => ({
@@ -6992,12 +7009,14 @@ async function _syncMatchFromMySQL(force) {
         if (!mCa[lv]) mCa[lv] = { partite: [] };
         mCa[lv].partite.push(m);
       } else if (row.tipo === 'torneo') {
-        const tid = row.torneo_id;
+        const tid = row.torneo_id != null ? String(row.torneo_id) : null;
         if (!tid) return;
+        // Se /api/v2/tornei non era disponibile o il torneo non era stato pre-popolato,
+        // ricado nei dati embed JOIN della risposta /matches (back-compat).
         if (!mTo[tid]) {
           mTo[tid] = { id: tid, nome: row.torneo_nome, leva: row.torneo_leva, fasi: {} };
         }
-        const fid = row.fase_id;
+        const fid = row.fase_id != null ? String(row.fase_id) : null;
         if (!fid) return;
         if (!mTo[tid].fasi[fid]) {
           mTo[tid].fasi[fid] = { id: fid, nome: row.fase_nome, tipo: row.fase_tipo, fase_gruppo: row.fase_gruppo, partite: [] };
@@ -7035,6 +7054,11 @@ async function _syncMatchFromMySQL(force) {
     };
     console.log('[matchSync] counts blob:', blobCounts);
     console.log('[matchSync] counts mysql:', mysqlCounts);
+    if (blobCounts.tornei !== mysqlCounts.tornei) {
+      const blobIds = (tornei||[]).map(t => t.id);
+      const mysqlIds = mTorneiArr.map(t => t.id);
+      console.log('[matchSync] tornei id-only diff — blob:', blobIds, 'mysql:', mysqlIds);
+    }
 
     // PMS confronto per la leva corrente
     function _pmsFrom(amArr, caObj, toArr, pid, lv) {
