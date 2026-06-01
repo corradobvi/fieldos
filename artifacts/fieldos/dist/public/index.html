@@ -1666,6 +1666,59 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
   color:var(--text2);font-style:italic;padding:6px 4px 10px;text-align:center;
 }
+
+/* Storico convocazioni — partite/tornei passati con stato (Conv / Indisp / NonConv) */
+.sc-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.sc-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:10px;
+}
+.sc-summary{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--sep);}
+.sc-summary-main{
+  font-family:'Nunito',sans-serif;font-weight:900;color:#1A7A4A;line-height:1.1;letter-spacing:-.3px;
+}
+.sc-num{font-size:1.9rem;}
+.sc-tot{font-weight:800;font-size:.96rem;color:var(--text2);margin-left:2px;}
+.sc-summary-sub{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.74rem;color:var(--text2);
+  margin-top:6px;letter-spacing:.2px;
+}
+.sc-row{
+  display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--sep);
+}
+.sc-row:last-child{border-bottom:none;}
+.sc-list-extra{display:none;}
+.sc-list-extra.open{display:block;}
+.sc-row-body{flex:1;min-width:0;}
+.sc-row-title{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.88rem;color:var(--text);line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sc-row-meta{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.72rem;color:var(--text2);margin-top:2px;
+}
+.sc-badge{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.6rem;
+  padding:4px 9px;border-radius:999px;letter-spacing:.5px;text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
+}
+.sc-badge.conv{background:#1A7A4A;color:#fff;}
+.sc-badge.indisp{background:#FFD93D;color:#6b4d04;}
+.sc-badge.notconv{background:#e5e7eb;color:#52555a;}
+.sc-toggle{
+  margin-top:8px;width:100%;padding:9px;
+  background:transparent;border:1px dashed #1A7A4A;color:#1A7A4A;
+  border-radius:10px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;
+  -webkit-tap-highlight-color:transparent;min-height:38px;
+}
+.sc-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5956,6 +6009,39 @@ function renderProfiloFiglio(el) {
     }
   </div>`;
 
+  // Storico convocazioni — partite/tornei passati con conv pubblicata.
+  // Stati: indisp (precedenza) | conv | notconv. Riusa getConvocazione + playerIndispForEvent.
+  const _scAll = (typeof _genitoreStoricoConv === 'function') ? _genitoreStoricoConv(p) : [];
+  const _scN = _scAll.length;
+  const _scConv = _scAll.filter(e => e.state === 'conv').length;
+  const _scIndisp = _scAll.filter(e => e.state === 'indisp').length;
+  const _scNotConv = _scAll.filter(e => e.state === 'notconv').length;
+  const _scBadgeLbl = { conv: 'Convocato', indisp: 'Indisponibile', notconv: 'Non convocato' };
+  const _scRow = (e) => `<div class="sc-row">
+    <div class="sc-row-body">
+      <div class="sc-row-title">${escapeHtml(e.title || '')}</div>
+      <div class="sc-row-meta">${escapeHtml(panoFmtDateShort(e.date))} · ${escapeHtml(e.tipoLabel || '')}</div>
+    </div>
+    <span class="sc-badge ${e.state}">${_scBadgeLbl[e.state] || ''}</span>
+  </div>`;
+  const _scFirst3 = _scAll.slice(0, 3);
+  const _scRest = _scAll.slice(3);
+  const storicoConvHtml = `<div class="sc-card">
+    <div class="sc-hd">🎯 Storico convocazioni</div>
+    ${_scN === 0
+      ? `<div class="sc-empty">Nessuna convocazione passata.</div>`
+      : `<div class="sc-summary">
+          <div class="sc-summary-main"><span class="sc-num">${_scConv}</span> <span class="sc-tot">su ${_scN}</span> convocato</div>
+          <div class="sc-summary-sub">⚪ Non convocato: ${_scNotConv} · 🟡 Indisponibile: ${_scIndisp}</div>
+        </div>
+        <div class="sc-list">
+          ${_scFirst3.map(_scRow).join('')}
+          ${_scRest.length ? `<div class="sc-list-extra">${_scRest.map(_scRow).join('')}</div>` : ''}
+        </div>
+        ${_scRest.length ? `<button class="sc-toggle" data-n="${_scRest.length}" onclick="_scToggle(this)">▾ Mostra tutte (${_scRest.length})</button>` : ''}`
+    }
+  </div>`;
+
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
   let docsHtml = '';
@@ -6034,6 +6120,7 @@ function renderProfiloFiglio(el) {
     </div>
     ${statPartiteHtml}
     ${presBarHtml}
+    ${storicoConvHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
@@ -14251,6 +14338,90 @@ function _genitoreNextImpegno(lv, playerId) {
     return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'attesa'});
   }
   return null;
+}
+
+// Storico convocazioni del figlio (PWA genitore, schermata Profilo).
+// Restituisce partite/tornei PASSATI con convocazione pubblicata, ordinati dal più recente.
+// Stato per evento: 'indisp' (precedenza) | 'conv' | 'notconv'.
+function _genitoreStoricoConv(p) {
+  if (!p || !p.leva) return [];
+  var lv = p.leva;
+  var todayStr = ymd(new Date());
+  var out = [];
+  var polis = _campPolis(lv);
+  // 1) Amichevoli passate
+  (amichevoli||[]).filter(function(m){return m.leva===lv && !m.annullata && m.data && m.data < todayStr;}).forEach(function(m){
+    var isH=(m.tipo||'casa')==='casa';
+    out.push({date:m.data, start:m.orario||'', id:'amich_'+m.id, tipo:'amichevole', tipoLabel:'🤝 Amichevole',
+      title:(isH?polisName(lv):m.avversario)+' vs '+(isH?m.avversario:polisName(lv))});
+  });
+  // 2) Campionato passate
+  var camp = campionato[lv];
+  if (camp) (camp.partite||[]).filter(function(m){return m.data && m.data < todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
+    var avv=(m.casa===polis?m.ospite:m.casa)||'—';
+    out.push({date:m.data, start:m.orario||'', id:'camp_'+lv+'_'+m.id, tipo:'campionato', tipoLabel:'🏅 Campionato',
+      title:polis+' vs '+avv});
+  });
+  // 3) Tornei passati: per-partita → enumera; legacy unificato → single entry sulla dataFine/Inizio
+  (tornei||[]).filter(function(t){return t.leva===lv;}).forEach(function(t){
+    if (t.convocazioniPerPartita) {
+      var mieSq = _getMieSquadre(t);
+      (t.fasi||[]).forEach(function(f){
+        (f.partite||[]).filter(function(m){return m.data && m.data < todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
+          var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
+          var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
+          out.push({date:m.data, start:m.orario||'', id:'torneo_'+t.id+'_'+f.id+'_'+m.id, tipo:'torneo', tipoLabel:'🏆 Torneo',
+            title:mia+' vs '+avv+' ('+t.nome+')'});
+        });
+      });
+    } else {
+      var endDate = t.dataFine || t.dataInizio;
+      if (endDate && endDate < todayStr) {
+        out.push({date:endDate, start:'', id:t.id, tipo:'torneo', tipoLabel:'🏆 Torneo',
+          title:t.nome||'Torneo'});
+      }
+    }
+  });
+  // 4) Eventi calendario partita/torneo/amichevole passati (manualmente aggiunti)
+  events.filter(function(ev){
+    if (!ev) return false;
+    if (ev.type!=='partita' && ev.type!=='torneo' && ev.type!=='amichevole') return false;
+    if (ev.recur && ev.recur!=='none') return false;
+    if (!ev.date || ev.date >= todayStr) return false;
+    if (ev.leve && ev.leve.length && !ev.leve.includes(lv)) return false;
+    return true;
+  }).forEach(function(ev){
+    out.push({date:ev.date, start:ev.start||'', id:ev.id, tipo:ev.type,
+      tipoLabel: ev.type==='torneo'?'🏆 Torneo':ev.type==='amichevole'?'🤝 Amichevole':'⚽ Partita',
+      title:ev.title||'Evento'});
+  });
+  // Filtra: solo eventi con convocazione pubblicata (esistente)
+  var filtered = out.filter(function(e){return !!getConvocazione(e.id);});
+  // Calcola stato: indisp prevale su non-convocato
+  filtered.forEach(function(e){
+    var conv = getConvocazione(e.id);
+    var indisp = (typeof playerIndispForEvent === 'function')
+      ? playerIndispForEvent(p.id, e.id, e.date)
+      : null;
+    if (indisp) { e.state = 'indisp'; }
+    else if (conv && conv.playerIds && conv.playerIds.includes(p.id)) { e.state = 'conv'; }
+    else { e.state = 'notconv'; }
+  });
+  // Ordina decrescente per data+orario
+  filtered.sort(function(a,b){return (b.date+(b.start||'')).localeCompare(a.date+(a.start||''));});
+  return filtered;
+}
+
+// Toggle "Mostra tutte (N) / Nascondi" del blocco storico convocazioni
+function _scToggle(btn){
+  if (!btn) return;
+  var card = btn.closest('.sc-card');
+  if (!card) return;
+  var extra = card.querySelector('.sc-list-extra');
+  if (!extra) return;
+  var open = extra.classList.toggle('open');
+  var n = btn.getAttribute('data-n') || '';
+  btn.innerHTML = open ? '▴ Nascondi' : ('▾ Mostra tutte (' + n + ')');
 }
 
 function buildMobDashboardGenitore(c) {
