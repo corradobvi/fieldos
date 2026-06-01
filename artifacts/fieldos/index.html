@@ -7270,10 +7270,11 @@ async function _syncMatchFromMySQL(force) {
 
     window.__msMysql = { amichevoli: mAm, campionato: mCa, tornei: mTorneiArr };
 
-    // ─── STEP3 — OVERWRITE (DISATTIVATO, in attesa di analisi render gironi) ──
-    // Il merge fill-missing dei 3 flag torneo non ha risolto: gironi/classifiche
-    // ancora rotte. Torno alle letture da blob; doppia scrittura invariata.
-    const MATCH_READ_FROM_MYSQL = false;
+    // ─── STEP3 — OVERWRITE: letture da MySQL ON (ricostruzione verificata in
+    // 3ce161f: date pulite via _normYmd, f.squadre + campi torneo copiati).
+    // MySQL e ora autoritativo; il blob locale potrebbe contenere date ISO
+    // sporcate dai tentativi precedenti e va considerato obsoleto.
+    const MATCH_READ_FROM_MYSQL = true;
     if (MATCH_READ_FROM_MYSQL) {
       amichevoli = mAm;
       campionato = mCa;
