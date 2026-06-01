@@ -7009,6 +7009,15 @@ async function _syncMatchFromMySQL(force) {
   const now = Date.now();
   if (!force && (now - _lastMatchSyncMs) < 5000) return;
   _lastMatchSyncMs = now;
+  // FIX B — normalizza una data MySQL → 'YYYY-MM-DD'.
+  // MySQL DATE arriva al FE come ISO timestamp ("2026-05-31T00:00:00.000Z");
+  // fmtMatchDate/parseYmd lavorano in 'YYYY-MM-DD' (split('-')).
+  function _normYmd(v) {
+    if (v == null || v === '') return '';
+    if (typeof v === 'string') return v.length >= 10 ? v.slice(0, 10) : v;
+    if (v instanceof Date) return v.toISOString().slice(0, 10);
+    return String(v).slice(0, 10);
+  }
   try {
     // Carico in parallelo: matches (con stats) + lista tornei completa (con fasi).
     // /api/v2/tornei è autoritativo per la lista tornei: garantisce che anche i tornei
@@ -7031,10 +7040,35 @@ async function _syncMatchFromMySQL(force) {
     // (anche vuota) ottiene la sua entry vuota; il loop sui match riempie le partite.
     (Array.isArray(torneiRows) ? torneiRows : []).forEach(t => {
       const tid = String(t.id);
-      mTo[tid] = { id: tid, nome: t.nome, leva: t.leva, fasi: {} };
+      // FIX A — copia TUTTI i campi torneo (snake_case → camelCase).
+      // FIX B — normalizza date DATE/ISO → 'YYYY-MM-DD' via _normYmd.
+      mTo[tid] = {
+        id: tid,
+        nome: t.nome,
+        leva: t.leva,
+        luogo: t.luogo,
+        dataInizio: _normYmd(t.data_inizio),
+        dataFine:   _normYmd(t.data_fine),
+        spareggio: t.spareggio,
+        qualPerGirone: t.qual_per_girone,
+        squadrePartecipanti: t.squadre_partecipanti,
+        squadreMieFlag: t.squadre_mie_flag,
+        convocati: t.convocati,
+        convocazioniPerPartita: !!t.convocazioni_per_partita,
+        archiviato: !!t.archiviato,
+        fasi: {}
+      };
       (t.fasi || []).forEach(f => {
         const fid = String(f.id);
-        mTo[tid].fasi[fid] = { id: fid, nome: f.nome, tipo: f.tipo, fase_gruppo: f.fase_gruppo, partite: [] };
+        // FIX A — copia anche `squadre` (input chiave di computeStandings).
+        mTo[tid].fasi[fid] = {
+          id: fid,
+          nome: f.nome,
+          tipo: f.tipo,
+          fase_gruppo: f.fase_gruppo,
+          squadre: f.squadre || [],
+          partite: []
+        };
       });
     });
 
@@ -7049,7 +7083,7 @@ async function _syncMatchFromMySQL(force) {
       const m = {
         id: row.legacy_match_id != null ? row.legacy_match_id : ('mysql_' + row.id),
         leva: row.leva,
-        data: row.data,
+        data: _normYmd(row.data),  // FIX B
         orario: row.orario,
         casa: row.casa, ospite: row.ospite,
         avversario: row.avversario, lato: row.lato, luogo: row.luogo,
@@ -7070,14 +7104,14 @@ async function _syncMatchFromMySQL(force) {
         const tid = row.torneo_id != null ? String(row.torneo_id) : null;
         if (!tid) return;
         // Se /api/v2/tornei non era disponibile o il torneo non era stato pre-popolato,
-        // ricado nei dati embed JOIN della risposta /matches (back-compat).
+        // ricado nei dati embed JOIN della risposta /matches (back-compat, no squadre).
         if (!mTo[tid]) {
           mTo[tid] = { id: tid, nome: row.torneo_nome, leva: row.torneo_leva, fasi: {} };
         }
         const fid = row.fase_id != null ? String(row.fase_id) : null;
         if (!fid) return;
         if (!mTo[tid].fasi[fid]) {
-          mTo[tid].fasi[fid] = { id: fid, nome: row.fase_nome, tipo: row.fase_tipo, fase_gruppo: row.fase_gruppo, partite: [] };
+          mTo[tid].fasi[fid] = { id: fid, nome: row.fase_nome, tipo: row.fase_tipo, fase_gruppo: row.fase_gruppo, squadre: [], partite: [] };
         }
         mTo[tid].fasi[fid].partite.push(m);
       }
