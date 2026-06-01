@@ -5741,10 +5741,11 @@ function buildMobNav(role) {
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
+    // Voce 🔔 "Avvisi" rimossa: duplicata con la campanella in alto a destra (header → comunicazioni).
+    // La pagina Comunicazioni resta raggiungibile dalla campanella in header e dal menu profilo.
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
   } else if (isMister || isAdminMister) {
