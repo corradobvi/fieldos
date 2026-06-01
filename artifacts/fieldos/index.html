@@ -10314,6 +10314,7 @@ function saveIndisp() {
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId2 = document.getElementById('convEventId')?.value;
     if (rawEvId2) openConvocazioneModal(/^\d+$/.test(rawEvId2) ? parseInt(rawEvId2) : rawEvId2);
@@ -10340,6 +10341,7 @@ function deleteIndisp() {
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId = document.getElementById('convEventId')?.value;
     if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
@@ -15053,6 +15055,7 @@ function _cmSaveExpiry(playerId){
   }
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   toast('💾 Scadenza certificato salvata');
 }
 
@@ -15067,6 +15070,7 @@ function _ipRemove(indispId){
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   toast('🗑 Indisponibilità rimossa');
 }
 
@@ -15211,6 +15215,38 @@ function buildMobDashboardGenitore(c) {
   }
   var settimanaHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')" style="cursor:pointer;">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+(weekRowsH3||'<div style="font-size:.82rem;color:var(--text2);">Nessun evento questa settimana.</div>')+'</div></div>';
 
+  // ── CARD 5b: Indisponibilità periodo (riusa stessa logica/store di Profilo Figlio)
+  // Stesso store indisponibilita[] + openIndispModal + _ipRemove. Figlio attivo = p.
+  var ipPeriodHomeHtml = '';
+  if (p) {
+    var _ipTodayHm = todayStr;
+    var _ipPeriodsHm = (Array.isArray(indisponibilita) ? indisponibilita : [])
+      .filter(function(i){return i.playerId === p.id && !i.eventId && i.dataFine >= _ipTodayHm;})
+      .sort(function(a,b){return a.dataInizio.localeCompare(b.dataInizio);});
+    var _ipFmtRangeHm = function(i){
+      if (i.dataFine === '2099-12-31') return 'Dal '+escapeHtml(panoFmtDateShort(i.dataInizio))+' · a tempo indefinito';
+      if (i.dataInizio === i.dataFine) return '📅 '+escapeHtml(panoFmtDateShort(i.dataInizio));
+      return '📅 dal '+escapeHtml(panoFmtDateShort(i.dataInizio))+' al '+escapeHtml(panoFmtDateShort(i.dataFine));
+    };
+    var _ipRowHm = function(i){
+      return '<div class="ip-row">'
+        + '<div class="ip-row-body">'
+        +   '<div class="ip-row-range">'+_ipFmtRangeHm(i)+'</div>'
+        +   (i.motivo ? '<div class="ip-row-motivo">'+escapeHtml(i.motivo)+'</div>' : '')
+        + '</div>'
+        + '<button class="ip-row-del" onclick="_ipRemove('+i.id+')" aria-label="Rimuovi indisponibilità">✕ Rimuovi</button>'
+        + '</div>';
+    };
+    ipPeriodHomeHtml = '<div class="ip-card">'
+      + '<div class="ip-hd">🗓️ Indisponibilità periodo</div>'
+      + '<div class="ip-info">Nei giorni indicati '+escapeHtml(p.nome||'tuo figlio')+' risulterà <strong>assente</strong> agli allenamenti e <strong>indisponibile</strong> per le partite.</div>'
+      + '<button class="ip-add-btn" onclick="openIndispModal('+p.id+', null)">➕ Aggiungi indisponibilità</button>'
+      + (_ipPeriodsHm.length
+          ? '<div class="ip-list">'+_ipPeriodsHm.map(_ipRowHm).join('')+'</div>'
+          : '<div class="ip-empty">Nessuna indisponibilità attiva.</div>')
+      + '</div>';
+  }
+
   // ── CARD 6: Assenze segnalate + Segnala assenza ──────────────────────────
   var _futAss3=[];
   figliPlayers.forEach(function(fp){
@@ -15251,7 +15287,7 @@ function buildMobDashboardGenitore(c) {
     avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+assenzaListHtml3+avvisaBtn3;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+avvisaBtn3;
 }
 
 function buildDashboard(role) {
