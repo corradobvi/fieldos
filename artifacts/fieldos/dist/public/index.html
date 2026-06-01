@@ -15459,7 +15459,7 @@ function buildMobDashboardGenitore(c) {
       var rowsHtml = (_dbg.candidates||[]).map(function(c){
         var idStr = (c.id == null) ? '∅' : escapeHtml(String(c.id));
         var torneoStr = c._torneoId != null ? ('_torneoId='+escapeHtml(String(c._torneoId))+' f='+escapeHtml(String(c._torneoFaseId||''))+' m='+escapeHtml(String(c._torneoMatchId||''))) : '';
-        var teamsStr = (c._casa || c._ospite) ? (' casa='+escapeHtml(String(c.\_casa||'-'))+' ospite='+escapeHtml(String(c._ospite||'-'))) : '';
+        var teamsStr = (c._casa || c._ospite) ? (' casa='+escapeHtml(String(c._casa||'-'))+' ospite='+escapeHtml(String(c._ospite||'-'))) : '';
         var convStr = c.convFound
           ? ('conv✓ eventId='+escapeHtml(String(c.convEventId))+' pIds='+escapeHtml(JSON.stringify(c.playerIds||[]).slice(0,160)))
           : 'conv✗';
