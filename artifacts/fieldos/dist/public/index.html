@@ -1305,6 +1305,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
      produce posizionamenti che si sovrappongono in iOS Safari. Lo scroll-to-end
      è già garantito da renderChatMessages (scrollTop=scrollHeight) e dal
      _chatPanelVvHandler (scrollTop=scrollHeight ad ogni resize tastiera). */
+  /* Impedisce la compressione verticale dei figli diretti di .cm-msgs:
+     a tastiera aperta lo scrollHeight del contenitore crolla e i .msg
+     (flex-shrink:1 di default) venivano compressi → fumetti sovrapposti.
+     Con flex-shrink:0 ogni messaggio mantiene la sua altezza naturale e
+     l'area diventa correttamente scrollabile. */
+  .cm-msgs > *{flex-shrink:0;}
   /* Bubble+avatar mai oltre il viewport */
   .msg{max-width:min(82%,calc(100vw - 72px));}
   .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
@@ -3635,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.19</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.20</span></div>
       </div>
 
     </main>
@@ -32719,63 +32725,6 @@ document.addEventListener('DOMContentLoaded', () => {
   navigator.serviceWorker.addEventListener('controllerchange', _readVersion);
 })();
 
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════════════
-     DEBUG OVERLAY chat (TEMPORANEO — da rimuovere dopo la diagnosi).
-     Mostra in alto a sinistra metriche live dei contenitori chat per
-     verificare: (a) fix flex-end/auto-margin attivo (jc=flex-start, mt=0),
-     (b) scroll raggiungibile (msgSH vs msg), (c) compressione colonna cm.
-     ═══════════════════════════════════════════════════════════════════════ -->
-<script>
-(function(){
-  function makeOverlay(){
-    var ov = document.getElementById('mvChatDebugOv');
-    if (ov) return ov;
-    ov = document.createElement('div');
-    ov.id = 'mvChatDebugOv';
-    ov.style.cssText = 'position:fixed;top:0;left:0;z-index:2147483647;font:10px monospace;background:rgba(0,0,0,.85);color:#0f0;padding:3px 6px;pointer-events:none;white-space:pre;';
-    document.body.appendChild(ov);
-    return ov;
-  }
-  function snap(){
-    try {
-      var ov = makeOverlay();
-      var vv = window.visualViewport;
-      var pg = document.getElementById('pg-chat');
-      var cm = document.getElementById('chatPanel');
-      var msgs = document.getElementById('chatMsgs');
-      var first = msgs && msgs.firstElementChild;
-      var lines = [
-        'vvH:'   + (vv ? Math.round(vv.height) : '-'),
-        'pg:'    + (pg ? pg.clientHeight : '-'),
-        'cm:'    + (cm ? cm.clientHeight : '-'),
-        'cmSH:'  + (cm ? cm.scrollHeight : '-'),
-        'msg:'   + (msgs ? msgs.clientHeight : '-'),
-        'msgSH:' + (msgs ? msgs.scrollHeight : '-'),
-        'top:'   + (msgs ? msgs.offsetTop : '-'),
-        'jc:'    + (msgs ? getComputedStyle(msgs).justifyContent : '-'),
-        'mt:'    + (first ? getComputedStyle(first).marginTop : '-')
-      ];
-      ov.textContent = lines.join('\n');
-    } catch(_){ /* mai bloccare la UI per la diagnostica */ }
-  }
-  function bind(){
-    snap();
-    document.addEventListener('focusin',  snap, true);
-    document.addEventListener('focusout', snap, true);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', snap);
-      window.visualViewport.addEventListener('scroll', snap);
-    }
-    setInterval(snap, 1000);
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bind);
-  } else {
-    bind();
-  }
-})();
 </script>
 
 </body>
