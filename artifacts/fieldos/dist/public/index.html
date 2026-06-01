@@ -5778,11 +5778,34 @@ function buildMobNav(role) {
   const isAdminMister = role === 'admin' && isAdminMisterForLeva(currentLeva);
   let items;
   if (role === 'genitore' || role === 'nonno') {
+    // Tab "FIGLIO": SOLO per il genitore mostra il nome di battesimo del figlio se 1 solo,
+    // "Figli" se 2+. Nonno resta su "Figlio" (scope: PWA genitore).
+    // Fallback sicuro a "Figlio" se la lista figli non è determinabile.
+    var _figliLbl = 'Figlio';
+    if (role === 'genitore' && typeof getFigliOf === 'function') {
+      try {
+        var _fig = getFigliOf(me) || [];
+        if (_fig.length === 1 && typeof _fig[0] === 'string' && _fig[0].trim()) {
+          var _first = _fig[0].trim().split(/\s+/)[0] || '';
+          if (_first) {
+            // Cap a 9 char + … per non rompere la nav (PARTITE è 7; HOME/CHAT più corti)
+            _figliLbl = _first.length > 9 ? (_first.slice(0,9) + '…') : _first;
+          }
+        } else if (_fig.length >= 2) {
+          _figliLbl = 'Figli';
+        } else {
+          // 0 figli o non determinabile → fallback marcato
+          console.warn('[mobNav] genitore senza figli determinabili: fallback "Figlio"');
+        }
+      } catch(_) {
+        console.warn('[mobNav] errore detect figli genitore: fallback "Figlio"');
+      }
+    }
     items = [
       {id:'dashboard',    ic:'🏠', lb:'Home'},
       {id:'chat',         ic:'💬', lb:'Chat',   badge:'mn-chat'},
       {id:'partite-gen',  ic:'⚽', lb:'Partite'},
-      {id:'profilo',      ic:'👤', lb:'Figlio'},
+      {id:'profilo',      ic:'👤', lb:_figliLbl},
     ];
   } else if (role === 'giocatore') {
     // Voce 🔔 "Avvisi" rimossa: duplicata con la campanella in alto a destra (header → comunicazioni).
@@ -7003,8 +7026,13 @@ window.__mysqlAmichevoli = [];
 window.__mysqlCampionato = {};
 window.__mysqlTornei     = [];
 let _lastMatchSyncMs = 0;
+// STEP3: skip-once. Settato (a) dopo una doppia scrittura per non sovrascrivere
+// la mutazione in-memory prima che MySQL la abbia processata, e (b) dal sync stesso
+// prima di chiamare renderPartite (evita loop renderPartite → sync → renderPartite).
+let _matchSyncSkipNext = false;
 
 async function _syncMatchFromMySQL(force) {
+  if (_matchSyncSkipNext) { _matchSyncSkipNext = false; return; }
   if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
   const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
