@@ -1767,6 +1767,65 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
   color:var(--text2);font-style:italic;padding:6px 4px 0;text-align:center;
 }
+
+/* Certificato medico — sola lettura (piano Società) o editabile (Mister / Mister Pro) */
+.cm-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.cm-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:10px;
+}
+.cm-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  margin-bottom:10px;line-height:1.2;
+}
+.cm-badge.ok       { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+.cm-badge.soon     { background:#fefce8; color:#854d0e; border:1px solid #fde68a; }
+.cm-badge.very-soon{ background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+.cm-badge.expired  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.cm-badge.none     { background:#f3f4f6; color:#52555a; border:1px solid #e5e7eb; }
+.cm-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 10px;background:#f6faf8;border:1px solid #d8e6e0;border-radius:10px;
+  margin-bottom:8px;
+}
+.cm-row-label{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  color:var(--text2);letter-spacing:.2px;
+}
+.cm-row-date{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.92rem;color:var(--text);
+}
+.cm-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;color:var(--text2);
+  font-style:italic;padding:10px 6px;text-align:center;
+  background:rgba(255,217,61,.10);border:1px dashed #FFD93D;border-radius:8px;
+}
+.cm-form{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.cm-label{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.74rem;color:var(--text2);
+  letter-spacing:.3px;
+}
+.cm-input{
+  width:100%;padding:10px 12px;min-height:44px;border:1px solid var(--border);
+  border-radius:10px;background:#fff;color:var(--text);
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.92rem;
+  -webkit-appearance:none;appearance:none;
+}
+.cm-input:focus{outline:none;border-color:#1A7A4A;box-shadow:0 0 0 3px rgba(26,122,74,.12);}
+.cm-save-btn{
+  width:100%;padding:10px;min-height:42px;background:#1A7A4A;color:#fff;
+  border:none;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.88rem;letter-spacing:.2px;
+}
+.cm-meta{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.7rem;color:var(--text3);
+  margin-top:8px;text-align:right;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -2154,6 +2213,77 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     height:calc(100vh - 52px - env(safe-area-inset-top,0px))!important;
   }
 }
+
+/* ── View-mode switch (dirigente ⇄ genitore) — solo PWA mobile ── */
+/* Altezza reale dello switch (settata da JS via renderModeSwitch) — fallback 64px */
+:root{ --mv-switch-h:64px; }
+.mv-modeswitch-host{
+  display:none;
+  padding:8px 12px;
+  background:var(--white,#fff);
+  border-bottom:1px solid var(--border,#e2e8f0);
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+/* Mostra SOLO su mobile e SOLO per utenti realmente duali (body class settata da JS).
+   Default (browser non-standalone): sticky immediatamente sotto la topbar (58px),
+   z-index sotto la topbar (200) ma sopra il contenuto scrollabile. */
+@media (max-width:640px){
+  body.mv-has-modeswitch .mv-modeswitch-host{
+    display:block;
+    position:sticky;
+    top:58px;             /* allineata sotto la .topbar (height:58px) */
+    z-index:199;
+  }
+}
+/* PWA standalone mobile: la topbar è position:fixed (height 52px + safe-area),
+   quindi anche lo switch deve essere fixed e il contenuto va shiftato. */
+@media all and (display-mode: standalone) and (max-width:640px){
+  body.mv-has-modeswitch .mv-modeswitch-host{
+    position:fixed;
+    top:calc(52px + env(safe-area-inset-top,0px));
+    left:0;right:0;
+    z-index:290;          /* sotto la topbar (300), sopra contenuto/sidebar */
+  }
+  /* Spinge il contenuto sotto topbar + switch (overrida il margin-top esistente) */
+  body.mv-has-modeswitch .app-body{
+    margin-top:calc(52px + env(safe-area-inset-top,0px) + var(--mv-switch-h,64px));
+  }
+  /* Anche la sidebar è top: calc(52px + safe-area) — la riallineiamo */
+  body.mv-has-modeswitch .sidebar{
+    top:calc(52px + env(safe-area-inset-top,0px) + var(--mv-switch-h,64px))!important;
+    height:calc(100vh - 52px - env(safe-area-inset-top,0px) - var(--mv-switch-h,64px))!important;
+  }
+}
+.mv-modeswitch{
+  display:flex;
+  gap:4px;
+  background:#f1f5f9;
+  border-radius:10px;
+  padding:4px;
+  max-width:420px;
+  margin:0 auto;
+}
+.mv-modeswitch-seg{
+  flex:1;
+  min-height:38px;
+  border:none;
+  border-radius:7px;
+  background:transparent;
+  color:#475569;
+  font-family:'Nunito',sans-serif;
+  font-weight:700;
+  font-size:.86rem;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  transition:background .15s, color .15s, box-shadow .15s;
+}
+.mv-modeswitch-seg.on{
+  background:#1A7A4A;
+  color:#fff;
+  box-shadow:0 1px 4px rgba(26,122,74,.25);
+}
+.mv-modeswitch-seg:active{transform:scale(.98);}
 
 /* ── SW Update banner ── */
 #swUpdateBanner{
@@ -3055,6 +3185,8 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       </div>
     </div>
   </header>
+  <!-- SWITCH VISTA Dirigente ⇄ Genitore (solo PWA, solo utenti duali) -->
+  <div id="modeSwitch" class="mv-modeswitch-host" style="display:none;"></div>
   <!-- MOBILE BOTTOM NAV (popolata da buildMobNav) -->
   <nav class="mob-nav" id="mobNav"></nav>
   <!-- BANNER DEMO -->
@@ -4794,6 +4926,25 @@ function isAdminMisterForLeva(leva) {
   return !!(me && me.role === 'admin' && leva && adminAsMister[leva] === true);
 }
 
+// ═══════════════════════════════════
+// DUAL-ROLE DETECTION (dirigente + genitore)
+// ═══════════════════════════════════
+// Logica condivisa, riusabile sia da PWA che (in futuro) da desktop.
+// "Dirigente + genitore" = utente con ruolo dirigente E almeno un figlio collegato in rosa.
+function userHasDirigenteRole(u){
+  // _viewModeOrigRole è valorizzato solo durante l'override del view mode:
+  // significa che il vero ruolo è 'dirigente' anche se me.role è stato swappato a 'genitore'.
+  if (!u) return false;
+  if (u === me && _viewModeOrigRole === 'dirigente') return true;
+  return u.role === 'dirigente';
+}
+function userHasGenitoreLink(u){
+  return !!(u && getFigliOf(u).length > 0);
+}
+function userIsDualDirigenteGenitore(u){
+  return userHasDirigenteRole(u) && userHasGenitoreLink(u);
+}
+
 // ─── Permessi granulari collaboratori ───
 // true se me ha il permesso key (admin→sempre; permissions null→legacy compat→true; altrimenti perms[key]===true)
 function hasPerm(key) {
@@ -5372,6 +5523,11 @@ function logout() {
   localStorage.removeItem('mv_session');
   localStorage.removeItem('mv_v2_token');
   _v2Token = null;
+  // Reset view-mode (dirigente⇄genitore): alla riapertura riparte da Dirigente
+  _viewMode = null; _viewModeOrigRole = null; _viewModeOrigLeva = null;
+  const _ms = document.getElementById('modeSwitch');
+  if (_ms) { _ms.style.display = 'none'; _ms.innerHTML = ''; }
+  document.body.classList.remove('mv-has-modeswitch');
   me = null;
   const _wb = document.getElementById('demo-wa-banner');
   if (_wb) _wb.remove();
@@ -5465,6 +5621,9 @@ function bootApp(user) {
   // Migrazione retroattiva chat admin (una-tantum)
   migraChatAdmin(user);
 
+  // Reset stato view-mode al boot: default = Dirigente per utenti duali (spec).
+  _viewMode = null; _viewModeOrigRole = null; _viewModeOrigLeva = null;
+
   // Persist session so a page refresh doesn't force re-login
   try {
     localStorage.setItem('mv_session', JSON.stringify({
@@ -5538,6 +5697,8 @@ function bootApp(user) {
     renderDemoWaBanner();
     // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
     if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
+    // View-mode switch (Dirigente⇄Genitore): visibile solo se l'utente è duale
+    try { renderModeSwitch(); } catch(_) {}
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
@@ -5580,10 +5741,11 @@ function buildMobNav(role) {
       {id:'profilo',      ic:'👤', lb:'Figlio'},
     ];
   } else if (role === 'giocatore') {
+    // Voce 🔔 "Avvisi" rimossa: duplicata con la campanella in alto a destra (header → comunicazioni).
+    // La pagina Comunicazioni resta raggiungibile dalla campanella in header e dal menu profilo.
     items = [
       {id:'dashboard',   ic:'🏠', lb:'Home'},
       {id:'chat',        ic:'💬', lb:'Chat',   badge:'mn-chat'},
-      {id:'comunicazioni',ic:'🔔',lb:'Avvisi', badge:'mn-comm'},
       {id:'profilo',     ic:'👤', lb:'Profilo'},
     ];
   } else if (isMister || isAdminMister) {
@@ -5698,6 +5860,115 @@ function renderSbLeve() {
     p.innerHTML = escapeHtml(l) + (frozen ? ' <span class="frozen-badge" title="Leva congelata — piano insufficiente">⚠️</span>' : '');
     p.onclick = () => switchLeva(l);
     pills.appendChild(p);
+  });
+}
+
+// ═══════════════════════════════════
+// VIEW MODE SWITCH (dirigente ⇄ genitore)
+// ═══════════════════════════════════
+// Stato in memoria: sopravvive alla navigazione tra tab dell'app,
+// si resetta a 'dirigente' alla riapertura (full reload / chiusura PWA).
+// _viewModeOrigRole conserva il ruolo reale (es. 'dirigente') quando me.role è
+// stato swappato a 'genitore' per simulare la vista famiglia.
+let _viewMode = null;            // null = nessun override (utente non duale); 'dirigente' | 'genitore' = override attivo
+let _viewModeOrigRole = null;    // ruolo originale dell'utente, durante override
+let _viewModeOrigLeva = null;    // leva originale, durante override
+
+function effectiveViewMode(){
+  return _viewMode;
+}
+
+function setViewMode(mode){
+  if (!me) return;
+  if (!(mode === 'dirigente' || mode === 'genitore')) return;
+  // Solo per utenti realmente duali (dirigente con figli collegati)
+  if (!userIsDualDirigenteGenitore(me)) return;
+  if (_viewMode === mode) return;
+
+  _viewMode = mode;
+
+  if (mode === 'genitore') {
+    // Salva ruolo/leva reali e simula vista famiglia
+    if (!_viewModeOrigRole) _viewModeOrigRole = me.role;
+    if (!_viewModeOrigLeva) _viewModeOrigLeva = currentLeva;
+    me.role = 'genitore';
+    // Allinea la leva alla leva del figlio (come fa bootApp per i genitori)
+    try {
+      const _myLv = (typeof userLeve === 'function') ? userLeve() : [];
+      if (_myLv.length && !_myLv.includes(currentLeva)) currentLeva = _myLv[0];
+    } catch(_) {}
+  } else {
+    // Torna alla vista dirigente: ripristina ruolo/leva reali
+    if (_viewModeOrigRole) { me.role = _viewModeOrigRole; _viewModeOrigRole = null; }
+    if (_viewModeOrigLeva) { currentLeva = _viewModeOrigLeva; _viewModeOrigLeva = null; }
+  }
+
+  // Rebuild UI a partire dal ruolo effettivo (post-swap)
+  try {
+    // Topbar: badge ruolo + leva
+    const _cfg = ROLE_CFG[me.role];
+    const _lbl = (typeof userRoleLabel === 'function') ? (userRoleLabel(me) || _cfg.label) : _cfg.label;
+    const _tbBadge = document.getElementById('tbBadge');
+    const _tbRole  = document.getElementById('tbRole');
+    if (_tbBadge) _tbBadge.textContent = _lbl;
+    if (_tbRole)  _tbRole.textContent  = _lbl.replace(/^[^\w]*\S+\s/, '');
+    const _useCP = (me.role === 'admin' || me.role === 'mister_admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente');
+    if (_tbBadge) {
+      _tbBadge.style.background  = _useCP ? 'var(--cl)' : _cfg.bg;
+      _tbBadge.style.color       = _useCP ? 'var(--cp)' : _cfg.color;
+      _tbBadge.style.borderColor = _useCP ? 'var(--cp)' : _cfg.color;
+    }
+    const _tbLeva = document.getElementById('tbLeva');
+    if (_tbLeva) _tbLeva.textContent = currentLeva;
+  } catch(_) {}
+
+  try { buildSidebar(me.role); } catch(_) {}
+  try { buildRoleContent(me.role); } catch(_) {}
+  // Atterra sulla home della nuova vista
+  try { goTo('dashboard'); } catch(_) {}
+  // Aggiorna i segmenti attivi del toggle
+  renderModeSwitch();
+  // Refresh badge chat/comm (la nav cambia tra le due viste)
+  try { if (typeof refreshChatBadges === 'function') refreshChatBadges(); } catch(_) {}
+  try { if (typeof refreshMobBadges === 'function') refreshMobBadges(); } catch(_) {}
+  // TODO badge cross-modalità: qui andrà il refresh del contatore "notifiche nell'altra vista".
+}
+
+function renderModeSwitch(){
+  const host = document.getElementById('modeSwitch');
+  if (!host) return;
+  // Visibile SOLO per utenti realmente duali e SOLO su mobile (PWA).
+  const _isMobile = window.innerWidth <= 640;
+  const _dual = me && userIsDualDirigenteGenitore(me);
+  const _show = !!(_dual && _isMobile);
+  // La body class abilita gli offset di layout (sticky/fixed + margin-top di .app-body)
+  document.body.classList.toggle('mv-has-modeswitch', _show);
+  if (!_show) {
+    host.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  // Default = 'dirigente' (rispetta lo spec: all'apertura riparte da Dirigente).
+  const _active = _viewMode || 'dirigente';
+  host.removeAttribute('style'); // lascia decidere al CSS
+  host.innerHTML =
+    '<div class="mv-modeswitch" role="tablist" aria-label="Cambia vista">' +
+      '<button type="button" class="mv-modeswitch-seg' + (_active === 'dirigente' ? ' on' : '') + '" ' +
+        'role="tab" aria-selected="' + (_active === 'dirigente') + '" ' +
+        'onclick="setViewMode(\'dirigente\')">👔 Dirigente</button>' +
+      '<button type="button" class="mv-modeswitch-seg' + (_active === 'genitore' ? ' on' : '') + '" ' +
+        'role="tab" aria-selected="' + (_active === 'genitore') + '" ' +
+        'onclick="setViewMode(\'genitore\')">👨‍👧 Genitore</button>' +
+      // TODO badge cross-modalità: aggiungere qui un .mv-modeswitch-badge sul segmento NON attivo
+      // quando ci sono notifiche non lette nell'altra vista.
+    '</div>';
+  // Misura l'altezza reale dello switch e pubblicala come CSS var,
+  // così .app-body / .sidebar in PWA standalone si shiftano dell'esatto offset.
+  requestAnimationFrame(() => {
+    try {
+      const h = host.getBoundingClientRect().height;
+      if (h > 0) document.documentElement.style.setProperty('--mv-switch-h', Math.round(h) + 'px');
+    } catch(_) {}
   });
 }
 
@@ -6119,6 +6390,69 @@ function renderProfiloFiglio(el) {
     }
   </div>`;
 
+  // Certificato medico — comportamento per piano del club.
+  // - Piano Società (o omaggio): SOLA lettura (data gestita dalla società).
+  // - Piano Mister / Mister Pro: genitore può inserire/modificare la data.
+  // Storage: stesso documenti[] esistente (cert_medico, dateOnly), no migration MySQL.
+  const _cmPiano = (typeof pianoNorm === 'function')
+    ? pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister')
+    : ((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const _cmIsOmaggio = !!(currentSocietyMeta && currentSocietyMeta.billingMode === 'omaggio');
+  const _cmSocietaPlan = (_cmPiano === 'societa') || _cmIsOmaggio;
+  const _cmCert = (Array.isArray(documenti) ? documenti : [])
+    .filter(d => d.playerId === p.id && d.tipo === 'cert_medico' && d.dataScadenza)
+    .sort((a,b) => (b.dataScadenza || '').localeCompare(a.dataScadenza || ''))[0] || null;
+  // Calcolo stato/badge con soglie del prompt: >30 ok, ≤30 giallo, ≤15 arancio, scaduto rosso
+  let _cmBadge = '';
+  if (_cmCert && _cmCert.dataScadenza) {
+    const _tMid = new Date(); _tMid.setHours(0,0,0,0);
+    const _dScad = parseYmd(_cmCert.dataScadenza);
+    const _daysLeft = Math.ceil((_dScad.getTime() - _tMid.getTime()) / 86400000);
+    let _lvl, _lbl;
+    if (_daysLeft < 0) {
+      _lvl = 'expired';
+      _lbl = `❌ Scaduto il ${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}`;
+    } else if (_daysLeft <= 15) {
+      _lvl = 'very-soon';
+      _lbl = `🔴 In scadenza tra ${_daysLeft} giorn${_daysLeft===1?'o':'i'}`;
+    } else if (_daysLeft <= 30) {
+      _lvl = 'soon';
+      _lbl = `🟡 In scadenza tra ${_daysLeft} giorni`;
+    } else {
+      _lvl = 'ok';
+      _lbl = `✅ Valido fino al ${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}`;
+    }
+    _cmBadge = `<div class="cm-badge ${_lvl}">${_lbl}</div>`;
+  } else if (!_cmSocietaPlan) {
+    _cmBadge = `<div class="cm-badge none">📝 Nessuna scadenza inserita</div>`;
+  }
+  let _cmBody = '';
+  if (_cmSocietaPlan) {
+    // READ-ONLY
+    if (_cmCert) {
+      _cmBody = `<div class="cm-row">
+          <div class="cm-row-label">Scadenza</div>
+          <div class="cm-row-date">${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}</div>
+        </div>
+        <div class="cm-meta">Gestito dalla società</div>`;
+    } else {
+      _cmBody = `<div class="cm-empty">Gestito dalla società</div>`;
+    }
+  } else {
+    // EDITABLE (Mister / Mister Pro)
+    _cmBody = `<div class="cm-form">
+        <label class="cm-label" for="cmExpiryInput-${p.id}">Data di scadenza</label>
+        <input type="date" id="cmExpiryInput-${p.id}" class="cm-input" value="${escapeHtml(_cmCert?_cmCert.dataScadenza:'')}">
+        <button class="cm-save-btn" onclick="_cmSaveExpiry(${p.id})">💾 Salva scadenza</button>
+      </div>
+      ${_cmCert && _cmCert.uploadedAt ? `<div class="cm-meta">Aggiornato il ${escapeHtml(fmtDateFull(ymd(new Date(_cmCert.uploadedAt))))}</div>` : ''}`;
+  }
+  const certMedicoHtml = `<div class="cm-card">
+    <div class="cm-hd">🏥 Certificato medico</div>
+    ${_cmBadge}
+    ${_cmBody}
+  </div>`;
+
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
   let docsHtml = '';
@@ -6199,6 +6533,7 @@ function renderProfiloFiglio(el) {
     ${presBarHtml}
     ${storicoConvHtml}
     ${indispPeriodoHtml}
+    ${certMedicoHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
@@ -6209,6 +6544,22 @@ function renderProfiloFiglio(el) {
       </div>
       <div id="figlioPersMsg" style="display:none;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:7px;margin-top:6px;"></div>
       <button class="btn btn-p" style="width:100%;margin-top:10px;min-height:44px;" onclick="saveFiglioPersonalData(${p.id})">💾 Salva dati</button>
+      ${(()=>{
+        // Cartellino FIGC — SOLA LETTURA per il genitore (inserito da mister/società).
+        // Fallback su più nomi candidati per essere robusto al campo futuro.
+        const _figc = p.cartellinoFigc || p.cartellinoFIGC || p.cartellino_figc
+                    || p.tesseraFigc || p.tessera_figc || p.numeroFigc || p.numero_figc
+                    || p.figc || '';
+        return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--sep);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-family:'Nunito',sans-serif;font-weight:800;font-size:.84rem;color:var(--text);">🆔 Cartellino FIGC</div>
+            ${_figc
+              ? `<div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;color:#1A7A4A;background:rgba(255,217,61,.18);border:1px solid #FFD93D;border-radius:8px;padding:5px 10px;letter-spacing:.3px;">${escapeHtml(String(_figc))}</div>`
+              : `<div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:.8rem;color:var(--text2);font-style:italic;">Non ancora inserito</div>`}
+          </div>
+          <div style="font-family:'Nunito',sans-serif;font-weight:700;font-size:.7rem;color:var(--text3);margin-top:4px;">Inserito dal mister o dalla società.</div>
+        </div>`;
+      })()}
     </div>
     ${docsHtml}
     ${(()=>{
@@ -9963,6 +10314,7 @@ function saveIndisp() {
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId2 = document.getElementById('convEventId')?.value;
     if (rawEvId2) openConvocazioneModal(/^\d+$/.test(rawEvId2) ? parseInt(rawEvId2) : rawEvId2);
@@ -9989,6 +10341,7 @@ function deleteIndisp() {
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId = document.getElementById('convEventId')?.value;
     if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
@@ -14672,6 +15025,40 @@ function _scToggle(btn){
   btn.innerHTML = open ? '▴ Nascondi' : ('▾ Mostra tutte (' + n + ')');
 }
 
+// Salva/aggiorna la data di scadenza del certificato medico del figlio (PWA genitore,
+// piani Mister / Mister Pro). Riusa documenti[] + cert_medico DOC_TYPE esistente:
+// nessuna migration. Documento "date-only" senza file (i flussi che leggono cert
+// guardano solo dataScadenza). Soc piano = read-only, non chiama questa funzione.
+function _cmSaveExpiry(playerId){
+  var inp = document.getElementById('cmExpiryInput-' + playerId);
+  if (!inp) return;
+  var dataScad = inp.value;
+  if (!dataScad) { toast('⚠️ Inserisci la data di scadenza'); return; }
+  var existing = documenti
+    .filter(function(d){return d.playerId === playerId && d.tipo === 'cert_medico';})
+    .sort(function(a,b){return (b.uploadedAt||0) - (a.uploadedAt||0);})[0];
+  if (existing) {
+    existing.dataScadenza = dataScad;
+    existing.uploadedAt = Date.now();
+    if (me) existing.uploadedBy = me.id;
+  } else {
+    documenti.push({
+      id: nextDocId++,
+      playerId: playerId,
+      tipo: 'cert_medico',
+      tipoLabel: 'Certificato medico sportivo',
+      dataScadenza: dataScad,
+      uploadedAt: Date.now(),
+      uploadedBy: me ? me.id : null,
+      dateOnly: true,
+    });
+  }
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
+  toast('💾 Scadenza certificato salvata');
+}
+
 // Rimozione inline di un periodo di indisponibilità dal blocco "Indisponibilità periodo"
 // (PWA genitore). Stessa fonte dati di Le mie indisponibilità (indisponibilita[]).
 function _ipRemove(indispId){
@@ -14683,6 +15070,7 @@ function _ipRemove(indispId){
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
   if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  if (me && document.getElementById('pg-dashboard')?.classList.contains('on')) buildDashboard(me.role);
   toast('🗑 Indisponibilità rimossa');
 }
 
@@ -14719,12 +15107,15 @@ function buildMobDashboardGenitore(c) {
   }
 
   // ── CARD 2: Profilo figlio ────────────────────────────────────────────────
+  // Hero stat allineata al blocco 1 (tessera Profilo Figlio):
+  // PRES. PARTITE | GOL | % ALLEN. (assist rimosso, stessi campi/logica).
   var heroHtml2='';
   if(p){
     var ms=playerMatchStats(p.id,p.leva);
     var totalGol=ms.a.gol+ms.c.gol+ms.t.gol;
-    var totalAss=ms.a.assist+ms.c.assist+ms.t.assist;
+    var totalPresPartite=ms.a.pres+ms.c.pres+ms.t.pres;
     var s=calcStats(p);
+    var pcColorH=s.percAll>=80?'var(--green)':s.percAll>=60?'var(--gold)':'var(--red)';
     var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
     heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
@@ -14736,16 +15127,16 @@ function buildMobDashboardGenitore(c) {
       +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
       +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalPresPartite+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Pres. partite</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
       +'</div>'
-      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalAss+'</div>'
-      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Assist</div>'
-      +'</div>'
       +'<div style="flex:1;text-align:center;padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
-      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Presenze</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:'+pcColorH+';">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">% allen.</div>'
       +'</div>'
       +'</div></div>';
   } else {
@@ -14824,6 +15215,38 @@ function buildMobDashboardGenitore(c) {
   }
   var settimanaHtml3='<div class="mob-dash-card"><div class="mob-dash-card-hd">📆 Settimana <a onclick="goTo(\'calendario\')" style="cursor:pointer;">Calendario →</a></div><div style="display:flex;flex-direction:column;gap:3px;">'+(weekRowsH3||'<div style="font-size:.82rem;color:var(--text2);">Nessun evento questa settimana.</div>')+'</div></div>';
 
+  // ── CARD 5b: Indisponibilità periodo (riusa stessa logica/store di Profilo Figlio)
+  // Stesso store indisponibilita[] + openIndispModal + _ipRemove. Figlio attivo = p.
+  var ipPeriodHomeHtml = '';
+  if (p) {
+    var _ipTodayHm = todayStr;
+    var _ipPeriodsHm = (Array.isArray(indisponibilita) ? indisponibilita : [])
+      .filter(function(i){return i.playerId === p.id && !i.eventId && i.dataFine >= _ipTodayHm;})
+      .sort(function(a,b){return a.dataInizio.localeCompare(b.dataInizio);});
+    var _ipFmtRangeHm = function(i){
+      if (i.dataFine === '2099-12-31') return 'Dal '+escapeHtml(panoFmtDateShort(i.dataInizio))+' · a tempo indefinito';
+      if (i.dataInizio === i.dataFine) return '📅 '+escapeHtml(panoFmtDateShort(i.dataInizio));
+      return '📅 dal '+escapeHtml(panoFmtDateShort(i.dataInizio))+' al '+escapeHtml(panoFmtDateShort(i.dataFine));
+    };
+    var _ipRowHm = function(i){
+      return '<div class="ip-row">'
+        + '<div class="ip-row-body">'
+        +   '<div class="ip-row-range">'+_ipFmtRangeHm(i)+'</div>'
+        +   (i.motivo ? '<div class="ip-row-motivo">'+escapeHtml(i.motivo)+'</div>' : '')
+        + '</div>'
+        + '<button class="ip-row-del" onclick="_ipRemove('+i.id+')" aria-label="Rimuovi indisponibilità">✕ Rimuovi</button>'
+        + '</div>';
+    };
+    ipPeriodHomeHtml = '<div class="ip-card">'
+      + '<div class="ip-hd">🗓️ Indisponibilità periodo</div>'
+      + '<div class="ip-info">Nei giorni indicati '+escapeHtml(p.nome||'tuo figlio')+' risulterà <strong>assente</strong> agli allenamenti e <strong>indisponibile</strong> per le partite.</div>'
+      + '<button class="ip-add-btn" onclick="openIndispModal('+p.id+', null)">➕ Aggiungi indisponibilità</button>'
+      + (_ipPeriodsHm.length
+          ? '<div class="ip-list">'+_ipPeriodsHm.map(_ipRowHm).join('')+'</div>'
+          : '<div class="ip-empty">Nessuna indisponibilità attiva.</div>')
+      + '</div>';
+  }
+
   // ── CARD 6: Assenze segnalate + Segnala assenza ──────────────────────────
   var _futAss3=[];
   figliPlayers.forEach(function(fp){
@@ -14864,7 +15287,7 @@ function buildMobDashboardGenitore(c) {
     avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+assenzaListHtml3+avvisaBtn3;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+avvisaBtn3;
 }
 
 function buildDashboard(role) {
@@ -22157,7 +22580,7 @@ function saveGcTorneo() {
   } else if (tipo === 2) {
     const qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     _gcTorneoGironiQUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:'Q',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
-    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[],partite:g.partite||[]}));
+    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
     // persist qualPerGirone on torneo object later
   } else if (tipo === 3) {
     _gcTorneoGironiUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:null,squadre:[...(g.squadre||[])],partite:g.partite||[]}));
@@ -31195,6 +31618,11 @@ function tryRestoreSession() {
     return false;
   }
 }
+
+// Mostra/nasconde lo switch dirigente⇄genitore al cambio viewport (rotazione, resize)
+window.addEventListener('resize', () => {
+  try { if (typeof renderModeSwitch === 'function' && me) renderModeSwitch(); } catch(_) {}
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();

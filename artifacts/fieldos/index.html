@@ -22580,7 +22580,7 @@ function saveGcTorneo() {
   } else if (tipo === 2) {
     const qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     _gcTorneoGironiQUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:'Q',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
-    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[],partite:g.partite||[]}));
+    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
     // persist qualPerGirone on torneo object later
   } else if (tipo === 3) {
     _gcTorneoGironiUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:null,squadre:[...(g.squadre||[])],partite:g.partite||[]}));
