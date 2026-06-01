@@ -1406,6 +1406,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 .mob-evt-cd-n{font-family:'Barlow Condensed',sans-serif;font-size:2.4rem;font-weight:900;line-height:1;color:#fff;}
 .mob-evt-cd-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;color:#fff;}
+.mob-evt-all{
+  position:absolute;left:18px;bottom:10px;
+  font-size:.72rem;font-weight:700;color:#fff;opacity:.85;
+  text-decoration:underline;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-evt-all:active{opacity:1;}
 .mob-dash-card{
   background:var(--white);border-radius:16px;
   padding:16px 14px;border:1px solid var(--border);
@@ -14786,23 +14793,45 @@ function buildMobDashboard(role, c) {
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   const lv = currentLeva;
 
-  // Prossimo evento
-  const allEv = (typeof getAllCalendarEvents === 'function') ? getAllCalendarEvents() : [];
-  const nextEv = allEv.filter(e => e.date >= todayStr).sort((a,b) => a.date.localeCompare(b.date))[0];
+  // Prossimo evento — usa la STESSA fonte dati del calendario completo
+  // (events[] + canSeeEvent + eventOccursOn) per coerenza coi pallini sul calendario.
+  // Forward-scan giornaliero, bounded a 366 giorni (l'orizzonte caricato da _loadCalEvents è ~12 mesi).
+  const DOW_IT = ['dom','lun','mar','mer','gio','ven','sab'];
+  const nextEv = (function(){
+    const t0 = new Date(); t0.setHours(0,0,0,0);
+    for (let i = 0; i < 366; i++) {
+      const d = new Date(t0); d.setDate(d.getDate() + i);
+      const ds = ymd(d);
+      const hits = events
+        .filter(ev => (typeof canSeeEvent === 'function' ? canSeeEvent(ev) : true)
+                   && (typeof eventOccursOn === 'function' ? eventOccursOn(ev, ds) : ev.date === ds))
+        .sort((a,b) => (a.start||'').localeCompare(b.start||''));
+      if (hits.length) return Object.assign({}, hits[0], { date: ds }); // forza la data dell'occorrenza (ricorrenze)
+    }
+    return null;
+  })();
   let nextEvHtml = '';
   if (nextEv) {
     const d = parseYmd(nextEv.date);
     const today = new Date(); today.setHours(0,0,0,0);
     const diffDays = Math.round((d-today)/86400000);
-    const colGrad = nextEv.type==='partita'||nextEv.type==='campionato'?'var(--cp),var(--cs)':nextEv.type==='torneo'?'#e03055,#f87171':'#7c3aed,#a78bfa';
-    nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')">
-      <div class="mob-evt-tag">${(nextEv.type==='allenamento'||nextEv.type==='allenamento_portieri')?'⚽ Prossimo allenamento':'📅 Prossimo evento'}</div>
-      <div class="mob-evt-title">${escapeHtml(nextEv.title||nextEv.type||'Evento')}</div>
-      <div class="mob-evt-meta">${d.getDate()} ${MESI[d.getMonth()]}${nextEv.start?' · '+nextEv.start:''}${nextEv.luogo?' · '+escapeHtml(nextEv.luogo):''}</div>
+    // Etichetta tipo: allenamento / partita / torneo / evento generico
+    const _t = nextEv.type || 'evento';
+    const _tag = (_t==='allenamento'||_t==='allenamento_portieri') ? '⚽ Prossimo allenamento'
+               : (_t==='partita'||_t==='campionato') ? '🏆 Prossima partita'
+               : (_t==='torneo') ? '🥇 Prossimo torneo'
+               : '📅 Prossimo evento';
+    const _title = nextEv.title || (_t.charAt(0).toUpperCase()+_t.slice(1));
+    const _dateLbl = `${DOW_IT[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]}`;
+    nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')" style="position:relative;">
+      <div class="mob-evt-tag">${_tag}</div>
+      <div class="mob-evt-title">${escapeHtml(_title)}</div>
+      <div class="mob-evt-meta">${_dateLbl}${nextEv.start?' · '+nextEv.start:''}${nextEv.luogo?' · '+escapeHtml(nextEv.luogo):''}</div>
       <div class="mob-evt-cd">
         <div class="mob-evt-cd-n">${diffDays===0?'OGG':diffDays===1?'DOM':diffDays}</div>
-        <div class="mob-evt-cd-l">${diffDays<=1?'':diffDays===1?'domani':'giorni'}</div>
+        <div class="mob-evt-cd-l">${diffDays<=1?'':'giorni'}</div>
       </div>
+      <a class="mob-evt-all" onclick="event.stopPropagation();goTo('calendario');">Vedi tutti →</a>
     </div>`;
   } else {
     nextEvHtml = `<div class="mob-next-evt" onclick="goTo('calendario')">
@@ -19471,6 +19500,13 @@ function _loadCalEvents() {
     (apiEvents || []).forEach(function(ev) { events.push(_normalizeApiEvent(ev)); });
     _blobPT.forEach(function(ev) { events.push(ev); });
     if (typeof renderCal === 'function') renderCal();
+    // Se l'utente è sulla home, rifresha la card "Prossimo evento" che potrebbe aver renderizzato prima dell'arrivo eventi.
+    try {
+      var _dashOn = document.getElementById('pg-dashboard');
+      if (_dashOn && _dashOn.classList.contains('on') && me && typeof buildDashboard === 'function') {
+        buildDashboard(me.role);
+      }
+    } catch(_) {}
   });
 }
 
