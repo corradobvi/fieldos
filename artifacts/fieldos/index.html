@@ -2214,6 +2214,55 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   }
 }
 
+/* ── View-mode switch (dirigente ⇄ genitore) — solo PWA mobile ── */
+.mv-modeswitch-host{
+  display:none;
+  padding:8px 12px;
+  background:#fff;
+  border-bottom:1px solid var(--border,#e2e8f0);
+}
+@media (max-width:640px){
+  .mv-modeswitch-host{display:block;}
+}
+@media all and (display-mode: standalone) and (max-width:640px){
+  /* In PWA standalone la topbar è fixed: lo switch va spostato sotto la safe area */
+  .mv-modeswitch-host{
+    position:sticky;
+    top:0;
+    z-index:280;
+  }
+}
+.mv-modeswitch{
+  display:flex;
+  gap:4px;
+  background:#f1f5f9;
+  border-radius:10px;
+  padding:4px;
+  max-width:420px;
+  margin:0 auto;
+}
+.mv-modeswitch-seg{
+  flex:1;
+  min-height:38px;
+  border:none;
+  border-radius:7px;
+  background:transparent;
+  color:#475569;
+  font-family:'Nunito',sans-serif;
+  font-weight:700;
+  font-size:.86rem;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  transition:background .15s, color .15s, box-shadow .15s;
+}
+.mv-modeswitch-seg.on{
+  background:#1A7A4A;
+  color:#fff;
+  box-shadow:0 1px 4px rgba(26,122,74,.25);
+}
+.mv-modeswitch-seg:active{transform:scale(.98);}
+
 /* ── SW Update banner ── */
 #swUpdateBanner{
   display:none;position:fixed;
@@ -3114,6 +3163,8 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       </div>
     </div>
   </header>
+  <!-- SWITCH VISTA Dirigente ⇄ Genitore (solo PWA, solo utenti duali) -->
+  <div id="modeSwitch" class="mv-modeswitch-host" style="display:none;"></div>
   <!-- MOBILE BOTTOM NAV (popolata da buildMobNav) -->
   <nav class="mob-nav" id="mobNav"></nav>
   <!-- BANNER DEMO -->
@@ -4853,6 +4904,25 @@ function isAdminMisterForLeva(leva) {
   return !!(me && me.role === 'admin' && leva && adminAsMister[leva] === true);
 }
 
+// ═══════════════════════════════════
+// DUAL-ROLE DETECTION (dirigente + genitore)
+// ═══════════════════════════════════
+// Logica condivisa, riusabile sia da PWA che (in futuro) da desktop.
+// "Dirigente + genitore" = utente con ruolo dirigente E almeno un figlio collegato in rosa.
+function userHasDirigenteRole(u){
+  // _viewModeOrigRole è valorizzato solo durante l'override del view mode:
+  // significa che il vero ruolo è 'dirigente' anche se me.role è stato swappato a 'genitore'.
+  if (!u) return false;
+  if (u === me && _viewModeOrigRole === 'dirigente') return true;
+  return u.role === 'dirigente';
+}
+function userHasGenitoreLink(u){
+  return !!(u && getFigliOf(u).length > 0);
+}
+function userIsDualDirigenteGenitore(u){
+  return userHasDirigenteRole(u) && userHasGenitoreLink(u);
+}
+
 // ─── Permessi granulari collaboratori ───
 // true se me ha il permesso key (admin→sempre; permissions null→legacy compat→true; altrimenti perms[key]===true)
 function hasPerm(key) {
@@ -5431,6 +5501,10 @@ function logout() {
   localStorage.removeItem('mv_session');
   localStorage.removeItem('mv_v2_token');
   _v2Token = null;
+  // Reset view-mode (dirigente⇄genitore): alla riapertura riparte da Dirigente
+  _viewMode = null; _viewModeOrigRole = null; _viewModeOrigLeva = null;
+  const _ms = document.getElementById('modeSwitch');
+  if (_ms) { _ms.style.display = 'none'; _ms.innerHTML = ''; }
   me = null;
   const _wb = document.getElementById('demo-wa-banner');
   if (_wb) _wb.remove();
@@ -5524,6 +5598,9 @@ function bootApp(user) {
   // Migrazione retroattiva chat admin (una-tantum)
   migraChatAdmin(user);
 
+  // Reset stato view-mode al boot: default = Dirigente per utenti duali (spec).
+  _viewMode = null; _viewModeOrigRole = null; _viewModeOrigLeva = null;
+
   // Persist session so a page refresh doesn't force re-login
   try {
     localStorage.setItem('mv_session', JSON.stringify({
@@ -5597,6 +5674,8 @@ function bootApp(user) {
     renderDemoWaBanner();
     // Inizializza defaults adminAsMister se admin (dopo che saSocieties è caricato)
     if (user.role === 'admin') { _seedAdminAsMister(); buildMobNav(user.role); }
+    // View-mode switch (Dirigente⇄Genitore): visibile solo se l'utente è duale
+    try { renderModeSwitch(); } catch(_) {}
     // Restore WA token from session if available (page reload)
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
@@ -5758,6 +5837,104 @@ function renderSbLeve() {
     p.onclick = () => switchLeva(l);
     pills.appendChild(p);
   });
+}
+
+// ═══════════════════════════════════
+// VIEW MODE SWITCH (dirigente ⇄ genitore)
+// ═══════════════════════════════════
+// Stato in memoria: sopravvive alla navigazione tra tab dell'app,
+// si resetta a 'dirigente' alla riapertura (full reload / chiusura PWA).
+// _viewModeOrigRole conserva il ruolo reale (es. 'dirigente') quando me.role è
+// stato swappato a 'genitore' per simulare la vista famiglia.
+let _viewMode = null;            // null = nessun override (utente non duale); 'dirigente' | 'genitore' = override attivo
+let _viewModeOrigRole = null;    // ruolo originale dell'utente, durante override
+let _viewModeOrigLeva = null;    // leva originale, durante override
+
+function effectiveViewMode(){
+  return _viewMode;
+}
+
+function setViewMode(mode){
+  if (!me) return;
+  if (!(mode === 'dirigente' || mode === 'genitore')) return;
+  // Solo per utenti realmente duali (dirigente con figli collegati)
+  if (!userIsDualDirigenteGenitore(me)) return;
+  if (_viewMode === mode) return;
+
+  _viewMode = mode;
+
+  if (mode === 'genitore') {
+    // Salva ruolo/leva reali e simula vista famiglia
+    if (!_viewModeOrigRole) _viewModeOrigRole = me.role;
+    if (!_viewModeOrigLeva) _viewModeOrigLeva = currentLeva;
+    me.role = 'genitore';
+    // Allinea la leva alla leva del figlio (come fa bootApp per i genitori)
+    try {
+      const _myLv = (typeof userLeve === 'function') ? userLeve() : [];
+      if (_myLv.length && !_myLv.includes(currentLeva)) currentLeva = _myLv[0];
+    } catch(_) {}
+  } else {
+    // Torna alla vista dirigente: ripristina ruolo/leva reali
+    if (_viewModeOrigRole) { me.role = _viewModeOrigRole; _viewModeOrigRole = null; }
+    if (_viewModeOrigLeva) { currentLeva = _viewModeOrigLeva; _viewModeOrigLeva = null; }
+  }
+
+  // Rebuild UI a partire dal ruolo effettivo (post-swap)
+  try {
+    // Topbar: badge ruolo + leva
+    const _cfg = ROLE_CFG[me.role];
+    const _lbl = (typeof userRoleLabel === 'function') ? (userRoleLabel(me) || _cfg.label) : _cfg.label;
+    const _tbBadge = document.getElementById('tbBadge');
+    const _tbRole  = document.getElementById('tbRole');
+    if (_tbBadge) _tbBadge.textContent = _lbl;
+    if (_tbRole)  _tbRole.textContent  = _lbl.replace(/^[^\w]*\S+\s/, '');
+    const _useCP = (me.role === 'admin' || me.role === 'mister_admin' || me.role === 'allenatore' || me.role === 'preparatore_portieri' || me.role === 'dirigente');
+    if (_tbBadge) {
+      _tbBadge.style.background  = _useCP ? 'var(--cl)' : _cfg.bg;
+      _tbBadge.style.color       = _useCP ? 'var(--cp)' : _cfg.color;
+      _tbBadge.style.borderColor = _useCP ? 'var(--cp)' : _cfg.color;
+    }
+    const _tbLeva = document.getElementById('tbLeva');
+    if (_tbLeva) _tbLeva.textContent = currentLeva;
+  } catch(_) {}
+
+  try { buildSidebar(me.role); } catch(_) {}
+  try { buildRoleContent(me.role); } catch(_) {}
+  // Atterra sulla home della nuova vista
+  try { goTo('dashboard'); } catch(_) {}
+  // Aggiorna i segmenti attivi del toggle
+  renderModeSwitch();
+  // Refresh badge chat/comm (la nav cambia tra le due viste)
+  try { if (typeof refreshChatBadges === 'function') refreshChatBadges(); } catch(_) {}
+  try { if (typeof refreshMobBadges === 'function') refreshMobBadges(); } catch(_) {}
+  // TODO badge cross-modalità: qui andrà il refresh del contatore "notifiche nell'altra vista".
+}
+
+function renderModeSwitch(){
+  const host = document.getElementById('modeSwitch');
+  if (!host) return;
+  // Visibile SOLO per utenti realmente duali e SOLO su mobile (PWA).
+  const _isMobile = window.innerWidth <= 640;
+  const _dual = me && userIsDualDirigenteGenitore(me);
+  if (!_dual || !_isMobile) {
+    host.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  // Default = 'dirigente' (rispetta lo spec: all'apertura riparte da Dirigente).
+  const _active = _viewMode || 'dirigente';
+  host.style.display = '';
+  host.innerHTML =
+    '<div class="mv-modeswitch" role="tablist" aria-label="Cambia vista">' +
+      '<button type="button" class="mv-modeswitch-seg' + (_active === 'dirigente' ? ' on' : '') + '" ' +
+        'role="tab" aria-selected="' + (_active === 'dirigente') + '" ' +
+        'onclick="setViewMode(\'dirigente\')">👔 Dirigente</button>' +
+      '<button type="button" class="mv-modeswitch-seg' + (_active === 'genitore' ? ' on' : '') + '" ' +
+        'role="tab" aria-selected="' + (_active === 'genitore') + '" ' +
+        'onclick="setViewMode(\'genitore\')">👨‍👧 Genitore</button>' +
+      // TODO badge cross-modalità: aggiungere qui un .mv-modeswitch-badge sul segmento NON attivo
+      // quando ci sono notifiche non lette nell'altra vista.
+    '</div>';
 }
 
 // ═══════════════════════════════════
@@ -31351,6 +31528,11 @@ function tryRestoreSession() {
     return false;
   }
 }
+
+// Mostra/nasconde lo switch dirigente⇄genitore al cambio viewport (rotazione, resize)
+window.addEventListener('resize', () => {
+  try { if (typeof renderModeSwitch === 'function' && me) renderModeSwitch(); } catch(_) {}
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   registerSW();
