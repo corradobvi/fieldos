@@ -14589,10 +14589,59 @@ var _MISTER_SC_ALL = {
 };
 var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
 
-function _misterGetShortcuts() {
-  var key = 'mister_sc_'+(me?me.id:0);
-  try{ var v=JSON.parse(localStorage.getItem(key)||'null'); if(Array.isArray(v)&&v.length===4) return v; }catch(e){}
+// Dirigente: shortcut pool. permKey = filtro permessi concessi al dirigente
+// (vedi defaults in renderRosaPermissions / hasPerm). Le voci senza permKey
+// sono sempre selezionabili.
+var _DIRIG_SC_ALL = {
+  panoramica:    {ic:'🏟️',lb:'Panoramica',   action:"goTo('panoramica')"},
+  rosa:          {ic:'👥',lb:'Rosa',          action:"goTo('rosa')"},
+  calendario:    {ic:'📅',lb:'Calendario',    action:"goTo('calendario')"},
+  chat:          {ic:'💬',lb:'Chat',          action:"goTo('chat')"},
+  documenti:     {ic:'📄',lb:'Documenti',     action:"goTo('documenti')"},
+  comunicazioni: {ic:'📣',lb:'Avvisi',        action:"goTo('comunicazioni')", permKey:'gestione_comunicazioni_bacheca'},
+  convocazioni:  {ic:'📋',lb:'Convocazioni',  action:"goTo('convocazioni')",  permKey:'gestione_convocazioni'},
+  presenze:      {ic:'✅',lb:'Presenze',      action:"goTo('presenze')",      permKey:'gestione_presenze'},
+  partite:       {ic:'⚽',lb:'Partite',       action:"goTo('partite')",       permKey:'gestione_risultati'},
+};
+// Default sicuro (tutte voci senza permKey, sempre disponibili)
+var _DIRIG_SC_DEF = ['rosa','calendario','chat','panoramica'];
+
+// Config per scope: mappa, default, prefisso storage key
+var _SC_SCOPES = {
+  mister:    { all:_MISTER_SC_ALL, def:_MISTER_SC_DEF, key:'mister_sc_' },
+  dirigente: { all:_DIRIG_SC_ALL,  def:_DIRIG_SC_DEF,  key:'dirig_sc_'  },
+};
+
+function _scScopeFor(role) { return role === 'dirigente' ? 'dirigente' : 'mister'; }
+
+// Per il dirigente: filtra il pool con i permessi concessi (hasPerm).
+// Se non ci sono restrizioni (permissions==null → legacy compat) hasPerm restituisce true.
+function _scAvailableIds(scope) {
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  return Object.keys(cfg.all).filter(function(id){
+    var pk = cfg.all[id].permKey;
+    if (!pk) return true;
+    return (typeof hasPerm === 'function') ? hasPerm(pk) : true;
+  });
+}
+
+function _scGetShortcuts(scope) {
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var key = cfg.key + (me ? me.id : 0);
+  try { var v = JSON.parse(localStorage.getItem(key) || 'null'); if (Array.isArray(v) && v.length === 4) return v; } catch(e) {}
+  // Default solo per dirigente (mister conserva il legacy: 4 slot vuoti).
+  if (scope === 'dirigente') {
+    var avail = new Set(_scAvailableIds('dirigente'));
+    var picked = cfg.def.filter(function(id){ return avail.has(id); }).slice(0, 4);
+    while (picked.length < 4) picked.push(null);
+    return picked;
+  }
   return [null,null,null,null];
+}
+
+function _misterGetShortcuts() {
+  // Backcompat wrapper
+  return _scGetShortcuts('mister');
 }
 
 // Returns the next event (any type: training, match, etc.) for the leva
@@ -14736,76 +14785,92 @@ function _scPickPlanLocked(cfg) {
   return (typeof isSectionLocked === 'function') && isSectionLocked('allenamenti', _soc) && cfg.pianoMin === 'mister_pro';
 }
 
-function openMisterShortcutPicker() {
+function openMisterShortcutPicker(scope) {
+  scope = scope || 'mister';
   if (document.getElementById('scPickerOv')) return;
-  var current=_misterGetShortcuts().filter(Boolean);
-  window._scPickCurrent=current.slice();
-  var allIds=Object.keys(_MISTER_SC_ALL);
-  var itemsHtml=allIds.map(function(id){
-    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
-    var locked=_scPickPlanLocked(cfg);
-    var proTag=cfg.pianoMin?'<span style="font-size:.64rem;font-weight:800;background:var(--ca);color:var(--ca-text);border-radius:4px;padding:1px 5px;flex-shrink:0;">PRO</span>':'';
+  window._scPickScope = scope;
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = _scGetShortcuts(scope).filter(Boolean);
+  window._scPickCurrent = current.slice();
+  // Per il dirigente: mostra solo le voci consentite dai permessi.
+  var allIds = (scope === 'dirigente') ? _scAvailableIds('dirigente') : Object.keys(cfg.all);
+  var itemsHtml = allIds.map(function(id){
+    var cfgEntry = cfg.all[id]; var sel = current.indexOf(id) >= 0; var idx = current.indexOf(id);
+    var locked = (scope === 'mister') ? _scPickPlanLocked(cfgEntry) : false;
+    var proTag = cfgEntry.pianoMin ? '<span style="font-size:.64rem;font-weight:800;background:var(--ca);color:var(--ca-text);border-radius:4px;padding:1px 5px;flex-shrink:0;">PRO</span>' : '';
     return '<div class="sc-pi'+(sel?' sel':'')+(locked?' sc-pi-locked':'')+'" id="scpi_'+id+'" onclick="'+(locked?'':('toggleScPick(\''+id+'\')'))+(locked?'toast(\'🔒 Disponibile con Mister Pro\')':'')+'">'
-      +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
-      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
+      +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfgEntry.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfgEntry.lb+'</span>'
       +proTag
       +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;margin-left:4px;"></span>')
       +'</div>';
   }).join('');
-  var el=document.createElement('div');
-  el.id='scPickerOv'; el.className='sc-picker-ov';
-  el.innerHTML='<div class="sc-picker-sheet">'
+  var subtitle = (scope === 'dirigente')
+    ? 'Scegli fino a 4 scorciatoie. Solo le sezioni a cui hai accesso sono selezionabili.'
+    : 'Scegli esattamente 4 scorciatoie (ordine di tocco = posizione).';
+  var el = document.createElement('div');
+  el.id = 'scPickerOv'; el.className = 'sc-picker-ov';
+  el.innerHTML = '<div class="sc-picker-sheet">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
     +'<div style="font-weight:800;font-size:1rem;">⚡ Scorciatoie home</div>'
     +'<button style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;color:var(--text2);line-height:1;" onclick="closeMisterShortcutPicker()">✕</button>'
     +'</div>'
-    +'<p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;">Scegli esattamente 4 scorciatoie (ordine di tocco = posizione).</p>'
+    +'<p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;">'+subtitle+'</p>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'+itemsHtml+'</div>'
     +'<div id="scPickErr" style="font-size:.82rem;color:var(--red);margin-bottom:8px;min-height:18px;"></div>'
     +'<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="saveMisterShortcuts()">✅ Salva</button>'
     +'</div>';
-  el.addEventListener('click',function(e){if(e.target===el) closeMisterShortcutPicker();});
+  el.addEventListener('click', function(e){ if (e.target === el) closeMisterShortcutPicker(); });
   document.body.appendChild(el);
 }
 
+// Wrapper esplicito per il dirigente — stesso meccanismo, scope diverso
+function openDirigShortcutPicker() { openMisterShortcutPicker('dirigente'); }
+
 function closeMisterShortcutPicker() {
-  var el=document.getElementById('scPickerOv'); if(el) el.remove();
+  var el = document.getElementById('scPickerOv'); if (el) el.remove();
+  window._scPickScope = null;
 }
 
 function toggleScPick(id) {
-  if (!window._scPickCurrent) window._scPickCurrent=[];
-  var idx=window._scPickCurrent.indexOf(id);
-  var errEl=document.getElementById('scPickErr');
-  if (idx>=0) {
-    window._scPickCurrent.splice(idx,1);
+  if (!window._scPickCurrent) window._scPickCurrent = [];
+  var idx = window._scPickCurrent.indexOf(id);
+  var errEl = document.getElementById('scPickErr');
+  if (idx >= 0) {
+    window._scPickCurrent.splice(idx, 1);
   } else {
-    if (window._scPickCurrent.length>=4){if(errEl)errEl.textContent='Puoi selezionare massimo 4 scorciatoie.';return;}
+    if (window._scPickCurrent.length >= 4) { if (errEl) errEl.textContent = 'Puoi selezionare massimo 4 scorciatoie.'; return; }
     window._scPickCurrent.push(id);
   }
-  if(errEl) errEl.textContent='';
+  if (errEl) errEl.textContent = '';
   _refreshScPickerUI();
 }
 
 function _refreshScPickerUI() {
-  var current=window._scPickCurrent||[];
-  Object.keys(_MISTER_SC_ALL).forEach(function(id){
-    var el=document.getElementById('scpi_'+id); if(!el) return;
-    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
-    el.className='sc-pi'+(sel?' sel':'');
-    el.innerHTML='<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
-      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
-      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;"></span>');
+  var scope = window._scPickScope || 'mister';
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = window._scPickCurrent || [];
+  var ids = (scope === 'dirigente') ? _scAvailableIds('dirigente') : Object.keys(cfg.all);
+  ids.forEach(function(id){
+    var el = document.getElementById('scpi_'+id); if (!el) return;
+    var cfgEntry = cfg.all[id]; var sel = current.indexOf(id) >= 0; var idx = current.indexOf(id);
+    el.className = 'sc-pi' + (sel ? ' sel' : '');
+    el.innerHTML = '<span style="font-size:1.15rem;flex-shrink:0;">'+cfgEntry.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfgEntry.lb+'</span>'
+      +(sel ? '<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>' : '<span style="width:22px;flex-shrink:0;"></span>');
   });
 }
 
 function saveMisterShortcuts() {
-  var current=window._scPickCurrent||[];
-  var errEl=document.getElementById('scPickErr');
-  if(current.length!==4){if(errEl)errEl.textContent='Seleziona esattamente 4 scorciatoie.';return;}
-  var key='mister_sc_'+(me?me.id:0);
-  localStorage.setItem(key,JSON.stringify(current));
+  var scope = window._scPickScope || 'mister';
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = window._scPickCurrent || [];
+  var errEl = document.getElementById('scPickErr');
+  if (current.length !== 4) { if (errEl) errEl.textContent = 'Seleziona esattamente 4 scorciatoie.'; return; }
+  var key = cfg.key + (me ? me.id : 0);
+  localStorage.setItem(key, JSON.stringify(current));
   closeMisterShortcutPicker();
-  if(me) buildDashboard(me.role);
+  if (me) buildDashboard(me.role);
   toast('⚡ Scorciatoie aggiornate');
 }
 
@@ -14894,21 +14959,41 @@ function buildMobDashboard(role, c) {
     : `<div style="font-size:.85rem;color:var(--text3);padding:8px 0;">Nessun avviso non letto</div>`;
 
   // Quick access tiles
-  const quickItems = role==='admin'
-    ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
-    : role==='allenatore'
-    ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'}]
-    : role==='dirigente'
-    ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
-    : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
+  // Dirigente: scorciatoie personalizzabili (stesso meccanismo del Mister) +
+  //            filtrate dai permessi concessi (hasPerm/permKey).
+  let quickHtml;
+  let quickHeaderExtra = '';
+  if (role === 'dirigente') {
+    const dSc = _scGetShortcuts('dirigente');
+    quickHeaderExtra = ` <a style="cursor:pointer;font-size:.78rem;font-weight:700;color:var(--cp);" onclick="openDirigShortcutPicker()">Modifica</a>`;
+    quickHtml = `<div class="mob-quick-grid">${dSc.map(sid => {
+      const cfg = sid ? _DIRIG_SC_ALL[sid] : null;
+      if (!cfg) {
+        return `<div class="mob-qi" style="border:2px dashed var(--border2);background:transparent;" onclick="openDirigShortcutPicker()">
+          <div class="mob-qi-ic" style="font-size:1.3rem;">＋</div>
+          <div class="mob-qi-lb" style="color:var(--text3);">Aggiungi</div>
+        </div>`;
+      }
+      return `<div class="mob-qi" onclick="${cfg.action}">
+        <div class="mob-qi-ic">${cfg.ic}</div>
+        <div class="mob-qi-lb">${cfg.lb}</div>
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const quickItems = role==='admin'
+      ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
+      : role==='allenatore'
+      ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'}]
+      : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
 
-  const _WIP_IDS = new Set(['fotovideo','pagamenti']);
-  const quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
-    <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
-      <div class="mob-qi-ic">${qi.ic}</div>
-      <div class="mob-qi-lb">${qi.lb}${_WIP_IDS.has(qi.id)?'<span style="display:block;font-size:9px;font-weight:700;background:#FFD93D;color:#2D3748;border-radius:3px;padding:1px 4px;margin-top:2px;">In sviluppo</span>':''}</div>
-      <div class="mob-qi-sub">${qi.sub||''}</div>
-    </div>`).join('')}</div>`;
+    const _WIP_IDS = new Set(['fotovideo','pagamenti']);
+    quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
+      <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
+        <div class="mob-qi-ic">${qi.ic}</div>
+        <div class="mob-qi-lb">${qi.lb}${_WIP_IDS.has(qi.id)?'<span style="display:block;font-size:9px;font-weight:700;background:#FFD93D;color:#2D3748;border-radius:3px;padding:1px 4px;margin-top:2px;">In sviluppo</span>':''}</div>
+        <div class="mob-qi-sub">${qi.sub||''}</div>
+      </div>`).join('')}</div>`;
+  }
 
   const avvisaBtnMob = (role === 'giocatore' && canAvvisaAssenza())
     ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
@@ -14917,7 +15002,7 @@ function buildMobDashboard(role, c) {
     ${nextEvHtml}
     ${avvisaBtnMob}
     <div class="mob-dash-card">
-      <div class="mob-dash-card-hd">Accesso rapido</div>
+      <div class="mob-dash-card-hd">Accesso rapido${quickHeaderExtra}</div>
       ${quickHtml}
     </div>
     ${lastR?`<div class="mob-dash-card"><div class="mob-dash-card-hd">Ultimo risultato · ${escapeHtml(lv)} <a onclick="goTo('partite')">Vedi tutti →</a></div>${lastRHtml}</div>`:''}
