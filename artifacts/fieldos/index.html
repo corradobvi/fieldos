@@ -15102,12 +15102,15 @@ function buildMobDashboardGenitore(c) {
   }
 
   // ── CARD 2: Profilo figlio ────────────────────────────────────────────────
+  // Hero stat allineata al blocco 1 (tessera Profilo Figlio):
+  // PRES. PARTITE | GOL | % ALLEN. (assist rimosso, stessi campi/logica).
   var heroHtml2='';
   if(p){
     var ms=playerMatchStats(p.id,p.leva);
     var totalGol=ms.a.gol+ms.c.gol+ms.t.gol;
-    var totalAss=ms.a.assist+ms.c.assist+ms.t.assist;
+    var totalPresPartite=ms.a.pres+ms.c.pres+ms.t.pres;
     var s=calcStats(p);
+    var pcColorH=s.percAll>=80?'var(--green)':s.percAll>=60?'var(--gold)':'var(--red)';
     var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
     heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
@@ -15119,16 +15122,16 @@ function buildMobDashboardGenitore(c) {
       +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
       +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalPresPartite+'</div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Pres. partite</div>'
+      +'</div>'
+      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
       +'</div>'
-      +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalAss+'</div>'
-      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Assist</div>'
-      +'</div>'
       +'<div style="flex:1;text-align:center;padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
-      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Presenze</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:'+pcColorH+';">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">% allen.</div>'
       +'</div>'
       +'</div></div>';
   } else {
