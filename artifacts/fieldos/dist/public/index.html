@@ -1582,6 +1582,39 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   letter-spacing:1px;text-transform:uppercase;color:#FFD93D;
   margin-top:5px;
 }
+
+/* Statistiche partite per categoria (Amich / Camp / Tornei) */
+.stat-cat-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.stat-cat-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;
+  color:#1A7A4A;letter-spacing:-.1px;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.stat-cat-grid-hdr,.stat-cat-grid-row{
+  display:grid;align-items:center;column-gap:4px;
+}
+.stat-cat-grid-hdr > div,.stat-cat-grid-row > div{padding:8px 4px;}
+.stat-cat-grid-hdr > div{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.6rem;
+  letter-spacing:1px;text-transform:uppercase;color:#1A7A4A;
+  text-align:center;border-bottom:2px solid #FFD93D;
+}
+.stat-cat-grid-hdr > div:first-child{text-align:left;}
+.stat-cat-grid-row > div{
+  text-align:center;border-bottom:1px solid var(--sep);
+  font-family:'Nunito',sans-serif;font-size:1.02rem;font-weight:900;color:var(--text);
+}
+.stat-cat-grid-row:last-child > div{border-bottom:none;}
+.stat-cat-grid-row .stat-cat-name{
+  text-align:left;font-size:.86rem;font-weight:800;color:var(--text);
+}
+.stat-cat-empty{
+  font-size:.78rem;color:var(--text2);font-style:italic;
+  padding:8px 4px;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5886,6 +5919,33 @@ function renderProfiloFiglio(el) {
   const _numBadge = p.num ? `<div class="tess-pl-num">#${escapeHtml(String(p.num))}</div>` : '';
   const _subRuoloLeva = `${escapeHtml(p.ruolo||'Ruolo')}${p.leva ? ' · ' + escapeHtml(p.leva) : ''}`;
 
+  // Statistiche partite per categoria (Amichevoli / Campionato / Tornei).
+  // Gate consistente con la tabella stagione esistente: showStatsToFamily.
+  // Granularità nel data model: gol+assist tracciati su tutte le leve;
+  // l'unica binary è advStats(leva)>=U14 (sblocca Minuti/Gialli/Rossi, NON gol/assist).
+  // Le colonne mostrate corrispondono ai campi tracciati: Partite (pres), Gol, Assist.
+  const _statsAllowed = !!(levaStatsSettings[p.leva] && levaStatsSettings[p.leva].showStatsToFamily);
+  const _statColsTpl = 'grid-template-columns:1.5fr repeat(3,1fr);';
+  const _statCatRows = [
+    ['🤝', 'Amichevoli', ms.a.pres, ms.a.gol, ms.a.assist],
+    ['🏅', 'Campionato', ms.c.pres, ms.c.gol, ms.c.assist],
+    ['🏆', 'Tornei',     ms.t.pres, ms.t.gol, ms.t.assist],
+  ];
+  const statPartiteHtml = _statsAllowed ? `
+    <div class="stat-cat-card">
+      <div class="stat-cat-hd">⚽ Statistiche partite</div>
+      <div class="stat-cat-grid-hdr" style="${_statColsTpl}">
+        <div>Categoria</div><div>Partite</div><div>Gol</div><div>Assist</div>
+      </div>
+      ${_statCatRows.map(([ic,lbl,partite,gol,assist]) => `
+        <div class="stat-cat-grid-row" style="${_statColsTpl}">
+          <div class="stat-cat-name">${ic} ${escapeHtml(lbl)}</div>
+          <div>${partite}</div>
+          <div>${gol}</div>
+          <div>${assist}</div>
+        </div>`).join('')}
+    </div>` : '';
+
   el.innerHTML = `
     ${chipsHtml}
     <div class="tess-pl-card">
@@ -5899,6 +5959,7 @@ function renderProfiloFiglio(el) {
         <div class="tess-pl-stat"><div class="tess-pl-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="tess-pl-stat-l">% allen.</div></div>
       </div>
     </div>
+    ${statPartiteHtml}
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
