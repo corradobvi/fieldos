@@ -7123,7 +7123,9 @@ async function _syncMatchFromMySQL(force) {
     window.__mysqlCampionato = mCa;
     window.__mysqlTornei     = mTorneiArr;
 
-    // ─── CONFRONTO ──────────────────────────────────────────────────────────
+    // ─── SANITÀ — calcolo blob vs MySQL PRIMA dell'overwrite ──────────────────
+    // (al primo sync di una sessione il "blob" è la rehydrate; ai successivi è
+    // già == MySQL, quindi il diff diventerà naturalmente 0 — è atteso).
     const lvCur = currentLeva;
     const blobCounts = {
       amichevoli: amichevoli.length,
@@ -7149,7 +7151,7 @@ async function _syncMatchFromMySQL(force) {
       console.log('[matchSync] tornei id-only diff — blob:', blobIds, 'mysql:', mysqlIds);
     }
 
-    // PMS confronto per la leva corrente
+    // PMS sanità per la leva corrente (blob pre-overwrite vs MySQL)
     function _pmsFrom(amArr, caObj, toArr, pid, lv) {
       const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
       const a = zero(), c = zero(), t = zero();
@@ -7194,8 +7196,52 @@ async function _syncMatchFromMySQL(force) {
     } else {
       console.log('[matchSync] playerMatchStats leva=' + lvCur + ' OK (0 differenze blob vs MySQL)');
     }
+
+    // ─── STEP3 — OVERWRITE: popola le strutture REALI con i dati MySQL ────────
+    // Sovrascrive la rehydrate dal blob. Avviene SOLO se la fetch è andata a buon
+    // fine (se /matches falliva siamo già usciti sopra con `return`). In caso di
+    // errore generale (catch sotto), il blob resta intatto come rete di sicurezza.
+    amichevoli = mAm;
+    campionato = mCa;
+    tornei     = mTorneiArr;
+
+    // next*Id: mantieni il max(corrente, max(id presenti)+1) per evitare collisioni
+    // su create successivi. Tornei usano id 't<N>'/'f<N>'/'tm<N>', amichevoli e
+    // campionato usano id numerico.
+    const _maxNumId = (arr, getter) => arr.reduce((mx, x) => {
+      const n = parseInt(String(getter(x) ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+      return n > mx ? n : mx;
+    }, 0);
+    nextAmichevoleId = Math.max(nextAmichevoleId || 1, _maxNumId(mAm, m => m.id) + 1);
+    let _maxCamp = 0;
+    Object.values(mCa).forEach(c => (c.partite||[]).forEach(m => {
+      const n = parseInt(String(m.id ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+      if (n > _maxCamp) _maxCamp = n;
+    }));
+    nextCampId      = Math.max(nextCampId || 1, _maxCamp + 1);
+    let _maxT = 0, _maxF = 0, _maxTm = 0;
+    mTorneiArr.forEach(t => {
+      const tn = parseInt(String(t.id ?? '').replace(/^t/, ''), 10) || 0; if (tn > _maxT) _maxT = tn;
+      (t.fasi || []).forEach(f => {
+        const fn = parseInt(String(f.id ?? '').replace(/^f/, ''), 10) || 0; if (fn > _maxF) _maxF = fn;
+        (f.partite || []).forEach(m => {
+          const mn = parseInt(String(m.id ?? '').replace(/^tm/, ''), 10) || 0; if (mn > _maxTm) _maxTm = mn;
+        });
+      });
+    });
+    nextTorneoId    = Math.max(nextTorneoId    || 1, _maxT  + 1);
+    nextFaseId      = Math.max(nextFaseId      || 1, _maxF  + 1);
+    nextTornMatchId = Math.max(nextTornMatchId || 1, _maxTm + 1);
+
+    // Re-render della sezione attualmente visibile (i render hanno guard interno).
+    // Skip-once per evitare il loop renderPartite → sync → renderPartite.
+    _matchSyncSkipNext = true;
+    try { if (typeof renderPartite === 'function') renderPartite(); } catch(_) {}
+    try { if (typeof renderGestComp === 'function') renderGestComp(); } catch(_) {}
+    try { if (typeof renderCal === 'function') renderCal(); } catch(_) {}
   } catch(e) {
     console.log('[matchSync] error', e && e.message);
+    // Su errore: NIENTE overwrite, il blob resta autoritativo (rete di sicurezza).
   }
 }
 
@@ -7238,6 +7284,7 @@ function _buildMatchBody(opts) {
 
 async function _postMatchUpsert(body) {
   if (!_matchSyncGate()) return null;
+  _matchSyncSkipNext = true; // STEP3 skip-after-save
   try {
     const r = await fetch(API_BASE + '/api/v2/matches', {
       method: 'POST',
@@ -7255,6 +7302,7 @@ async function _postMatchUpsert(body) {
 async function _postStatsUpsert(matchId, blobStats) {
   if (!_matchSyncGate()) return null;
   if (!matchId) return null;
+  _matchSyncSkipNext = true; // STEP3 skip-after-save
   const stats = (blobStats || []).map(s => ({
     player_id: Number(s.playerId),
     gol: s.gol | 0, assist: s.assist | 0,
@@ -7279,6 +7327,7 @@ async function _postStatsUpsert(matchId, blobStats) {
 async function _postTorneoUpsert(t) {
   if (!_matchSyncGate()) return null;
   if (!t || !t.id) return null;
+  _matchSyncSkipNext = true; // STEP3 skip-after-save
   const body = {
     id: String(t.id),
     nome: t.nome || '',
