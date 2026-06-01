@@ -1396,9 +1396,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   width:120px;height:120px;border-radius:50%;
   background:rgba(255,255,255,.07);
 }
-.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:10px;line-height:1.2;}
-.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.15;margin-bottom:10px;}
-.mob-evt-meta{font-size:.78rem;opacity:.8;line-height:1.45;}
+/* Riserva spazio orizzontale per il badge .mob-evt-cd (right:18px, min-width:56px + padding 8/12)
+   → ~90px sulla destra: il testo si ferma prima del badge e non gli va mai sotto. */
+.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:10px;line-height:1.2;padding-right:90px;}
+.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.15;margin-bottom:10px;padding-right:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.mob-evt-meta{font-size:.78rem;opacity:.8;line-height:1.45;padding-right:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .mob-evt-cd{
   position:absolute;right:18px;top:50%;transform:translateY(-50%);
   text-align:center;background:rgba(255,255,255,.15);
@@ -1409,7 +1411,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* "Vedi tutti" in-flow sotto la riga data/ora con margin-top dedicato per ritmo verticale */
 .mob-evt-all{
   display:inline-block;
-  margin-top:14px;
+  margin-top:14px;padding-right:90px;
   font-size:.72rem;font-weight:700;color:#fff;opacity:.85;
   text-decoration:underline;cursor:pointer;line-height:1.2;
   -webkit-tap-highlight-color:transparent;
