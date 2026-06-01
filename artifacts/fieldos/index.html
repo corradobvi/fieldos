@@ -5719,10 +5719,12 @@ function bootApp(user) {
 // ═══════════════════════════════════
 
 // ── Mobile bottom nav ──────────────────────
+// Voce 📣 Avvisi rimossa dal ramo default (admin/dirigente/preparatore_portieri):
+// duplicata con la campanella in header (#tbBell → goTo('comunicazioni')).
+// Le restanti voci hanno flex:1 e si ridistribuiscono automaticamente.
 const MOB_NAV_ITEMS = [
   {id:'dashboard',    ic:'🏠', lb:'Home'},
   {id:'chat',         ic:'💬', lb:'Chat',    badge:'mn-chat'},
-  {id:'comunicazioni',ic:'📣', lb:'Avvisi',  badge:'mn-comm'},
   {id:'calendario',   ic:'📅', lb:'Cal'},
   {id:'profilo',      ic:'👤', lb:'Profilo'},
 ];
