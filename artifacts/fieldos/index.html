@@ -6692,6 +6692,174 @@ async function _syncMatchFromMySQL(force) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP2 — helper di doppia scrittura MySQL (additivi, difensivi).
+// Tutte le funzioni: try/catch silenzioso, gating demo, gating token, log diagnostico.
+// I POST ritornano JSON o null; i DELETE ritornano { ok, status?, notFound? }.
+// 404 nei DELETE è considerato success-equivalente (match già non presente in MySQL).
+// ─────────────────────────────────────────────────────────────────────────────
+function _matchSyncGate() {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return false;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID) return false;
+  return true;
+}
+
+function _buildMatchBody(opts) {
+  const m = opts.match || {};
+  return {
+    tipo: opts.tipo,
+    event_key: opts.event_key,
+    legacy_match_id: m.id != null ? String(m.id) : null,
+    leva: opts.leva || m.leva || null,
+    fase_id: opts.fase_id != null ? String(opts.fase_id) : null,
+    giornata: (opts.giornata != null) ? opts.giornata : (m.giornata != null ? m.giornata : null),
+    data: m.data || null,
+    orario: m.orario || null,
+    casa: m.casa || null,
+    ospite: m.ospite || null,
+    avversario: opts.avversario != null ? opts.avversario : (m.avversario || null),
+    lato: opts.lato || (m.tipo === 'casa' || m.tipo === 'trasferta' ? m.tipo : null),
+    luogo: m.luogo || null,
+    played: !!m.played,
+    gol_casa: m.golCasa | 0,
+    gol_ospiti: m.golOspiti | 0,
+    visibilita_subito: !!m.visibilitaSubito,
+    annullata: !!m.annullata
+  };
+}
+
+async function _postMatchUpsert(body) {
+  if (!_matchSyncGate()) return null;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.log('[match2] POST /matches HTTP', r.status, body.event_key); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST /matches err', e && e.message);
+    return null;
+  }
+}
+
+async function _postStatsUpsert(matchId, blobStats) {
+  if (!_matchSyncGate()) return null;
+  if (!matchId) return null;
+  const stats = (blobStats || []).map(s => ({
+    player_id: Number(s.playerId),
+    gol: s.gol | 0, assist: s.assist | 0,
+    titolare: s.titolare ? 1 : 0,
+    minuti: s.minuti | 0, gialli: s.gialli | 0, rossi: s.rossi | 0,
+    gol_sub: s.golSub | 0, cs: s.cs ? 1 : 0
+  }));
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches/' + matchId + '/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ stats })
+    });
+    if (!r.ok) { console.log('[match2] POST stats HTTP', r.status, matchId); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST stats err', e && e.message);
+    return null;
+  }
+}
+
+async function _postTorneoUpsert(t) {
+  if (!_matchSyncGate()) return null;
+  if (!t || !t.id) return null;
+  const body = {
+    id: String(t.id),
+    nome: t.nome || '',
+    leva: t.leva || null,
+    luogo: t.luogo || null,
+    data_inizio: t.dataInizio || null,
+    data_fine: t.dataFine || null,
+    spareggio: t.spareggio || null,
+    squadre_partecipanti: t.squadrePartecipanti || null,
+    squadre_mie_flag: t.squadreMieFlag || null,
+    convocati: t.convocati || null,
+    convocazioni_per_partita: !!t.convocazioniPerPartita,
+    qual_per_girone: t.qualPerGirone != null ? Number(t.qualPerGirone) : null,
+    archiviato: !!t.archiviato,
+    fasi: (t.fasi || []).map((f, i) => ({
+      id: String(f.id),
+      nome: f.nome || null,
+      tipo: f.tipo || null,
+      fase_gruppo: f.faseGruppo || null,
+      squadre: f.squadre || null,
+      ordine: i
+    }))
+  };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/tornei', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.log('[match2] POST /tornei HTTP', r.status, t.id); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST /tornei err', e && e.message);
+    return null;
+  }
+}
+
+async function _deleteMatchByEventKey(eventKey) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches/by-event-key/' + encodeURIComponent(eventKey), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE match HTTP', r.status, eventKey);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE match err', e && e.message);
+    return { ok: false, error: e && e.message };
+  }
+}
+
+async function _deleteTorneoApi(id) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/tornei/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE /tornei HTTP', r.status, id);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE /tornei err', e && e.message);
+    return { ok: false, error: e && e.message };
+  }
+}
+
+async function _deleteCampionatoApi(leva) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/campionato?leva=' + encodeURIComponent(leva), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE /campionato HTTP', r.status, leva);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE /campionato err', e && e.message);
+    return { ok: false, error: e && e.message };
+  }
+}
+
 function _renderRosaInner() {
   // Inner re-render senza re-trigger del sync MySQL — usato da _syncRosaFromMySQL
   _rosaSkipSync = true;
@@ -21714,23 +21882,40 @@ function saveGcAddMatch() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
   toast(editId ? '✅ Partita aggiornata!' : '✅ Partita aggiunta!');
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva)
+  try {
+    const match = campionato[leva].partite.find(m => String(m.id) === String(matchId));
+    if (match) {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'campionato', event_key: 'camp_' + leva + '_' + matchId,
+        leva, giornata: gior, match
+      }));
+    }
+  } catch(_) {}
 }
 
-function deleteGcCampMatch(matchId) {
+async function deleteGcCampMatch(matchId) {
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   const leva = currentLeva;
   if (!campionato[leva]?.partite) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('camp_' + leva + '_' + matchId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   campionato[leva].partite = campionato[leva].partite.filter(m => m.id !== matchId);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Partita eliminata');
 }
 
-function deleteCampionato(leva) {
+async function deleteCampionato(leva) {
   if (!canEditPt(leva)) return;
   const camp = campionato[leva];
   if (!camp) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob (né convocazioni).
+  const dRes = await _deleteCampionatoApi(leva);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   convocazioni = convocazioni.filter(cv => !String(cv.eventId).startsWith('camp_' + leva + '_'));
   delete campionato[leva];
   window.__fieldosSaveState();
@@ -21738,10 +21923,13 @@ function deleteCampionato(leva) {
   toast('🗑 Campionato eliminato');
 }
 
-function deleteTorneo(torneoId) {
+async function deleteTorneo(torneoId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteTorneoApi(torneoId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   convocazioni = convocazioni.filter(cv => cv.eventId !== torneoId);
   tornei = tornei.filter(x => x.id !== torneoId);
   window.__fieldosSaveState();
@@ -21749,12 +21937,15 @@ function deleteTorneo(torneoId) {
   toast('🗑 Torneo eliminato');
 }
 
-function deleteTorneoMatch(torneoId, faseId, matchId) {
+async function deleteTorneoMatch(torneoId, faseId, matchId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
   const f = t.fasi && t.fasi.find(x => x.id === faseId);
   if (!f) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('torneo_' + torneoId + '_' + faseId + '_' + matchId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   f.partite = (f.partite || []).filter(m => m.id !== matchId);
   window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
@@ -22010,6 +22201,24 @@ function saveGcTorneo() {
   closeM('mGcTorneoEdit');
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Torneo salvato!');
+
+  // STEP2 — doppia scrittura: torneo + fasi, e poi le partite torneo eventualmente
+  // già presenti (generate da round-robin) via POST /matches con fase_id.
+  try {
+    const savedT = id ? tornei.find(x => x.id === id) : tornei[tornei.length - 1];
+    if (savedT) {
+      _postTorneoUpsert(savedT);
+      (savedT.fasi || []).forEach(f => {
+        (f.partite || []).forEach(m => {
+          _postMatchUpsert(_buildMatchBody({
+            tipo: 'torneo',
+            event_key: 'torneo_' + savedT.id + '_' + f.id + '_' + m.id,
+            leva: savedT.leva, fase_id: f.id, match: m
+          }));
+        });
+      });
+    }
+  } catch(_) {}
 }
 
 // ─── Virtual events calendario (partite Polis da amichevoli/campionato/tornei) ───
@@ -22211,6 +22420,32 @@ async function saveQuickResult(tipo, ref, idC, idO) {
   } else {
     toast('⚠️ Risultato non salvato — riprova');
   }
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva). Upsert solo del match.
+  try {
+    const match = _findMatchByRef(tipo, ref);
+    if (match) {
+      let ek = null, leva = null, fase_id = null;
+      if (tipo === 'campionato') {
+        leva = currentLeva;
+        ek = 'camp_' + leva + '_' + match.id;
+      } else if (tipo === 'amichevole') {
+        leva = match.leva;
+        ek = 'amich_' + match.id;
+      } else if (tipo === 'torneo') {
+        const parts = String(ref).split('__');
+        const tParent = tornei.find(x => x.id === parts[0]);
+        leva = tParent && tParent.leva;
+        fase_id = parts[1];
+        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+      }
+      if (ek) {
+        _postMatchUpsert(_buildMatchBody({
+          tipo, event_key: ek, leva, fase_id, match
+        }));
+      }
+    }
+  } catch(_) {}
 }
 
 // Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
@@ -22325,19 +22560,34 @@ function savePtAmich() {
   const annullata = document.getElementById('ptAmichAnnullata').checked;
   const visibilitaSubito = document.querySelector('input[name="ptAmichVisib"]:checked')?.value === 'subito';
   const idRaw = document.getElementById('ptAmichId').value;
+  let _amichId = null;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
     if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.campoId = luogoCampoId||undefined; m.orario = orario; m.tipo = tipo; m.annullata = annullata; m.visibilitaSubito = visibilitaSubito; }
+    _amichId = parseInt(idRaw);
   } else {
     const newId = nextAmichevoleId++;
     amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, campoId: luogoCampoId||undefined, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
     autoCreateConvocazione('amich_' + newId, leva);
+    _amichId = newId;
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva)
+  try {
+    const match = amichevoli.find(x => x.id === _amichId);
+    if (match) {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'amichevole',
+        event_key: 'amich_' + _amichId,
+        leva, lato: tipo, avversario: avv, match
+      }));
+    }
+  } catch(_) {}
 }
 
 function updatePtAmichLuogoSelect() {
@@ -22369,10 +22619,13 @@ function onPtAmichTipoChange() {
   onPtAmichLuogoChange();
 }
 
-function deletePtAmich(id) {
+async function deletePtAmich(id) {
   const m = amichevoli.find(x => x.id === id);
   if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('amich_' + id);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   amichevoli = amichevoli.filter(x => x.id !== id);
   purgeEventRefs('amich_' + id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -22900,6 +23153,35 @@ async function savePtRisultato() {
   } else {
     toast('⚠️ Risultato non salvato — riprova');
   }
+
+  // STEP2 — doppia scrittura MySQL: upsert match POI upsert stats[].
+  try {
+    const freshMatch = _findMatchByRef(tipo, ref);
+    if (freshMatch) {
+      let ek = null, _leva = null, fase_id = null;
+      if (tipo === 'campionato') {
+        _leva = currentLeva;
+        ek = 'camp_' + _leva + '_' + freshMatch.id;
+      } else if (tipo === 'amichevole') {
+        _leva = freshMatch.leva;
+        ek = 'amich_' + freshMatch.id;
+      } else if (tipo === 'torneo') {
+        const parts = String(ref).split('__');
+        const tParent = tornei.find(x => x.id === parts[0]);
+        _leva = tParent && tParent.leva;
+        fase_id = parts[1];
+        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+      }
+      if (ek) {
+        const upRes = await _postMatchUpsert(_buildMatchBody({
+          tipo, event_key: ek, leva: _leva, fase_id, match: freshMatch
+        }));
+        if (upRes && upRes.id) {
+          await _postStatsUpsert(upRes.id, freshMatch.stats || []);
+        }
+      }
+    }
+  } catch(_) {}
 }
 
 // ─── STATISTICHE GIOCATORE (scheda) ───

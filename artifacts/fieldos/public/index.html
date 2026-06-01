@@ -1615,6 +1615,158 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-size:.78rem;color:var(--text2);font-style:italic;
   padding:8px 4px;text-align:center;
 }
+
+/* Presenze allenamenti — conteggio + barre mensili (sostituisce "Ultime presenze") */
+.pa-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px 10px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.pa-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;
+}
+.pa-count-wrap{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+.pa-count-n{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.8rem;line-height:1;color:#1A7A4A;letter-spacing:-.5px;
+}
+.pa-count-tot{font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;color:var(--text2);}
+.pa-count-sub{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.74rem;
+  color:var(--text2);text-transform:lowercase;letter-spacing:.4px;
+}
+.pa-bars{
+  display:flex;align-items:flex-end;gap:8px;
+  padding:6px 2px 0;height:140px;overflow-x:auto;
+}
+.pa-bar-col{
+  display:flex;flex-direction:column;align-items:center;
+  flex:1 0 32px;min-width:32px;
+}
+.pa-bar-pct{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.62rem;
+  color:#1A7A4A;background:#FFD93D;border-radius:5px;padding:2px 6px;
+  margin-bottom:4px;min-width:30px;text-align:center;letter-spacing:-.2px;
+}
+.pa-bar-track{
+  width:26px;height:88px;
+  background:#f1f5f4;border-radius:8px;
+  display:flex;align-items:flex-end;overflow:hidden;
+  border:1px solid #e5ece8;
+}
+.pa-bar-fill{
+  width:100%;
+  background:linear-gradient(180deg,#2A9A65 0%,#1A7A4A 100%);
+  border-radius:8px 8px 0 0;min-height:3px;
+}
+.pa-bar-lbl{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.66rem;
+  color:var(--text2);margin-top:6px;text-transform:lowercase;letter-spacing:.3px;
+}
+.pa-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px 10px;text-align:center;
+}
+
+/* Storico convocazioni — partite/tornei passati con stato (Conv / Indisp / NonConv) */
+.sc-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.sc-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:10px;
+}
+.sc-summary{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--sep);}
+.sc-summary-main{
+  font-family:'Nunito',sans-serif;font-weight:900;color:#1A7A4A;line-height:1.1;letter-spacing:-.3px;
+}
+.sc-num{font-size:1.9rem;}
+.sc-tot{font-weight:800;font-size:.96rem;color:var(--text2);margin-left:2px;}
+.sc-summary-sub{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.74rem;color:var(--text2);
+  margin-top:6px;letter-spacing:.2px;
+}
+.sc-row{
+  display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--sep);
+}
+.sc-row:last-child{border-bottom:none;}
+.sc-list-extra{display:none;}
+.sc-list-extra.open{display:block;}
+.sc-row-body{flex:1;min-width:0;}
+.sc-row-title{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.88rem;color:var(--text);line-height:1.2;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sc-row-meta{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.72rem;color:var(--text2);margin-top:2px;
+}
+.sc-badge{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.6rem;
+  padding:4px 9px;border-radius:999px;letter-spacing:.5px;text-transform:uppercase;
+  white-space:nowrap;flex-shrink:0;
+}
+.sc-badge.conv{background:#1A7A4A;color:#fff;}
+.sc-badge.indisp{background:#FFD93D;color:#6b4d04;}
+.sc-badge.notconv{background:#e5e7eb;color:#52555a;}
+.sc-toggle{
+  margin-top:8px;width:100%;padding:9px;
+  background:transparent;border:1px dashed #1A7A4A;color:#1A7A4A;
+  border-radius:10px;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;
+  -webkit-tap-highlight-color:transparent;min-height:38px;
+}
+.sc-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px;text-align:center;
+}
+
+/* Indisponibilità periodo — gestione da/a per il figlio (riusa indisponibilita[]) */
+.ip-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.ip-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:8px;
+}
+.ip-info{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.76rem;
+  color:var(--text2);line-height:1.45;
+  background:rgba(255,217,61,.14);border-left:3px solid #FFD93D;
+  padding:8px 10px;border-radius:6px;margin-bottom:12px;
+}
+.ip-add-btn{
+  width:100%;padding:10px;min-height:40px;
+  background:#1A7A4A;color:#fff;border:none;border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.88rem;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-bottom:10px;letter-spacing:.2px;
+}
+.ip-list{display:flex;flex-direction:column;gap:6px;}
+.ip-row{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  background:#f6faf8;border:1px solid #d8e6e0;border-radius:10px;
+}
+.ip-row-body{flex:1;min-width:0;}
+.ip-row-range{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.86rem;color:var(--text);
+  line-height:1.2;
+}
+.ip-row-motivo{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.72rem;
+  color:var(--text2);margin-top:2px;
+}
+.ip-row-del{
+  background:transparent;border:1px solid #fecaca;color:#dc2626;
+  border-radius:8px;padding:5px 8px;cursor:pointer;flex-shrink:0;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.ip-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px 0;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5865,23 +6017,107 @@ function renderProfiloFiglio(el) {
   const pcColor = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
   const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
-  // Ultime 6 presenze agli allenamenti
-  const trainDates = getTrainingDatesForLeva(p.leva).slice(0, 6).reverse();
-  const presBarHtml = trainDates.length ? `<div class="mob-pres-bars">
-    <div class="mob-pres-bars-hd">Ultime presenze</div>
-    ${trainDates.map(dateStr => {
-      const stato = getPresenzaForDate(p, dateStr);
-      const barColor = stato === 'p' ? 'var(--green)' : stato === 'a' ? 'var(--red)' : stato === 'j' ? 'var(--gold)' : 'var(--border2)';
-      const barW = stato ? '100%' : '15%';
-      const valLabel = stato === 'p' ? 'P' : stato === 'a' ? 'A' : stato === 'j' ? 'G' : '—';
-      const d = parseYmd(dateStr);
-      return `<div class="mob-pres-bar-row">
-        <div class="mob-pres-bar-lbl">${d.getDate()} ${MESI_S[d.getMonth()].toLowerCase()}</div>
-        <div class="mob-pres-bar-track"><div class="mob-pres-bar-fill" style="width:${barW};background:${barColor};"></div></div>
-        <div class="mob-pres-bar-val">${valLabel}</div>
-      </div>`;
-    }).join('')}
-  </div>` : '';
+  // Presenze allenamenti — conteggio + barre mensili.
+  // Fonte dati: stessa di calcStats.percAll (p.presAll). Solo record con data <= oggi
+  // (niente date future con barre vuote). Mesi senza allenamenti svolti → niente barra.
+  const _paToday = ymd(new Date());
+  const _paPresAll = (Array.isArray(p.presAll) ? p.presAll : [])
+    .filter(r => r && typeof r === 'object' && r.date && r.date <= _paToday);
+  const _paTot = _paPresAll.length;
+  const _paPres = _paPresAll.filter(r => r.status === 'p').length;
+  // Raggruppa per YYYY-MM
+  const _paByMonth = {};
+  _paPresAll.forEach(r => {
+    const ym = r.date.slice(0, 7);
+    if (!_paByMonth[ym]) _paByMonth[ym] = { total: 0, present: 0 };
+    _paByMonth[ym].total++;
+    if (r.status === 'p') _paByMonth[ym].present++;
+  });
+  const _paMonths = Object.keys(_paByMonth).sort(); // cronologico
+  const _MESI_AB = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const _paBarsHtml = _paMonths.map(ym => {
+    const mm = parseInt(ym.split('-')[1], 10);
+    const st = _paByMonth[ym];
+    const pct = st.total ? Math.round(st.present / st.total * 100) : 0;
+    return `<div class="pa-bar-col">
+      <div class="pa-bar-pct">${pct}%</div>
+      <div class="pa-bar-track"><div class="pa-bar-fill" style="height:${pct}%;"></div></div>
+      <div class="pa-bar-lbl">${_MESI_AB[mm-1]||''}</div>
+    </div>`;
+  }).join('');
+  const presBarHtml = `<div class="pa-card">
+    <div class="pa-hd">📊 Presenze allenamenti</div>
+    ${_paTot > 0
+      ? `<div class="pa-count-wrap">
+          <span class="pa-count-n">${_paPres}</span><span class="pa-count-tot">/ ${_paTot}</span>
+          <span class="pa-count-sub">allenamenti svolti</span>
+        </div>
+        ${_paBarsHtml ? `<div class="pa-bars">${_paBarsHtml}</div>` : ''}`
+      : `<div class="pa-empty">Nessun allenamento svolto ancora.</div>`
+    }
+  </div>`;
+
+  // Storico convocazioni — partite/tornei passati con conv pubblicata.
+  // Stati: indisp (precedenza) | conv | notconv. Riusa getConvocazione + playerIndispForEvent.
+  const _scAll = (typeof _genitoreStoricoConv === 'function') ? _genitoreStoricoConv(p) : [];
+  const _scN = _scAll.length;
+  const _scConv = _scAll.filter(e => e.state === 'conv').length;
+  const _scIndisp = _scAll.filter(e => e.state === 'indisp').length;
+  const _scNotConv = _scAll.filter(e => e.state === 'notconv').length;
+  const _scBadgeLbl = { conv: 'Convocato', indisp: 'Indisponibile', notconv: 'Non convocato' };
+  const _scRow = (e) => `<div class="sc-row">
+    <div class="sc-row-body">
+      <div class="sc-row-title">${escapeHtml(e.title || '')}</div>
+      <div class="sc-row-meta">${escapeHtml(panoFmtDateShort(e.date))} · ${escapeHtml(e.tipoLabel || '')}</div>
+    </div>
+    <span class="sc-badge ${e.state}">${_scBadgeLbl[e.state] || ''}</span>
+  </div>`;
+  const _scFirst3 = _scAll.slice(0, 3);
+  const _scRest = _scAll.slice(3);
+  const storicoConvHtml = `<div class="sc-card">
+    <div class="sc-hd">🎯 Storico convocazioni</div>
+    ${_scN === 0
+      ? `<div class="sc-empty">Nessuna convocazione passata.</div>`
+      : `<div class="sc-summary">
+          <div class="sc-summary-main"><span class="sc-num">${_scConv}</span> <span class="sc-tot">su ${_scN}</span> convocato</div>
+          <div class="sc-summary-sub">⚪ Non convocato: ${_scNotConv} · 🟡 Indisponibile: ${_scIndisp}</div>
+        </div>
+        <div class="sc-list">
+          ${_scFirst3.map(_scRow).join('')}
+          ${_scRest.length ? `<div class="sc-list-extra">${_scRest.map(_scRow).join('')}</div>` : ''}
+        </div>
+        ${_scRest.length ? `<button class="sc-toggle" data-n="${_scRest.length}" onclick="_scToggle(this)">▾ Mostra tutte (${_scRest.length})</button>` : ''}`
+    }
+  </div>`;
+
+  // Indisponibilità periodo (da/a) — STESSA fonte dati di "Le mie indisponibilità"
+  // in Convocazioni (indisponibilita[] con tipoScadenza periodo/indefinita, eventId=null).
+  // Riusa openIndispModal (add/edit) e _ipRemove (delete che riusa lo stesso array).
+  const _ipTodayStr = ymd(new Date());
+  const _ipPeriods = (Array.isArray(indisponibilita) ? indisponibilita : [])
+    .filter(i => i.playerId === p.id && !i.eventId && i.dataFine >= _ipTodayStr)
+    .sort((a,b) => a.dataInizio.localeCompare(b.dataInizio));
+  const _ipFmtRange = (i) => {
+    if (i.dataFine === '2099-12-31') return `Dal ${escapeHtml(panoFmtDateShort(i.dataInizio))} · a tempo indefinito`;
+    if (i.dataInizio === i.dataFine) return `📅 ${escapeHtml(panoFmtDateShort(i.dataInizio))}`;
+    return `📅 dal ${escapeHtml(panoFmtDateShort(i.dataInizio))} al ${escapeHtml(panoFmtDateShort(i.dataFine))}`;
+  };
+  const _ipRowHtml = (i) => `<div class="ip-row">
+    <div class="ip-row-body">
+      <div class="ip-row-range">${_ipFmtRange(i)}</div>
+      ${i.motivo ? `<div class="ip-row-motivo">${escapeHtml(i.motivo)}</div>` : ''}
+    </div>
+    <button class="ip-row-del" onclick="_ipRemove(${i.id})" aria-label="Rimuovi indisponibilità">✕ Rimuovi</button>
+  </div>`;
+  const indispPeriodoHtml = `<div class="ip-card">
+    <div class="ip-hd">🗓️ Indisponibilità periodo</div>
+    <div class="ip-info">Nei giorni indicati ${escapeHtml(p.nome||'tuo figlio')} risulterà <strong>assente</strong> agli allenamenti e <strong>indisponibile</strong> per le partite.</div>
+    <button class="ip-add-btn" onclick="openIndispModal(${p.id}, null)">➕ Aggiungi indisponibilità</button>
+    ${_ipPeriods.length
+      ? `<div class="ip-list">${_ipPeriods.map(_ipRowHtml).join('')}</div>`
+      : `<div class="ip-empty">Nessuna indisponibilità attiva.</div>`
+    }
+  </div>`;
 
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
@@ -5961,6 +6197,8 @@ function renderProfiloFiglio(el) {
     </div>
     ${statPartiteHtml}
     ${presBarHtml}
+    ${storicoConvHtml}
+    ${indispPeriodoHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
@@ -6451,6 +6689,174 @@ async function _syncMatchFromMySQL(force) {
     }
   } catch(e) {
     console.log('[matchSync] error', e && e.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP2 — helper di doppia scrittura MySQL (additivi, difensivi).
+// Tutte le funzioni: try/catch silenzioso, gating demo, gating token, log diagnostico.
+// I POST ritornano JSON o null; i DELETE ritornano { ok, status?, notFound? }.
+// 404 nei DELETE è considerato success-equivalente (match già non presente in MySQL).
+// ─────────────────────────────────────────────────────────────────────────────
+function _matchSyncGate() {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return false;
+  if (currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID) return false;
+  return true;
+}
+
+function _buildMatchBody(opts) {
+  const m = opts.match || {};
+  return {
+    tipo: opts.tipo,
+    event_key: opts.event_key,
+    legacy_match_id: m.id != null ? String(m.id) : null,
+    leva: opts.leva || m.leva || null,
+    fase_id: opts.fase_id != null ? String(opts.fase_id) : null,
+    giornata: (opts.giornata != null) ? opts.giornata : (m.giornata != null ? m.giornata : null),
+    data: m.data || null,
+    orario: m.orario || null,
+    casa: m.casa || null,
+    ospite: m.ospite || null,
+    avversario: opts.avversario != null ? opts.avversario : (m.avversario || null),
+    lato: opts.lato || (m.tipo === 'casa' || m.tipo === 'trasferta' ? m.tipo : null),
+    luogo: m.luogo || null,
+    played: !!m.played,
+    gol_casa: m.golCasa | 0,
+    gol_ospiti: m.golOspiti | 0,
+    visibilita_subito: !!m.visibilitaSubito,
+    annullata: !!m.annullata
+  };
+}
+
+async function _postMatchUpsert(body) {
+  if (!_matchSyncGate()) return null;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.log('[match2] POST /matches HTTP', r.status, body.event_key); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST /matches err', e && e.message);
+    return null;
+  }
+}
+
+async function _postStatsUpsert(matchId, blobStats) {
+  if (!_matchSyncGate()) return null;
+  if (!matchId) return null;
+  const stats = (blobStats || []).map(s => ({
+    player_id: Number(s.playerId),
+    gol: s.gol | 0, assist: s.assist | 0,
+    titolare: s.titolare ? 1 : 0,
+    minuti: s.minuti | 0, gialli: s.gialli | 0, rossi: s.rossi | 0,
+    gol_sub: s.golSub | 0, cs: s.cs ? 1 : 0
+  }));
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches/' + matchId + '/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ stats })
+    });
+    if (!r.ok) { console.log('[match2] POST stats HTTP', r.status, matchId); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST stats err', e && e.message);
+    return null;
+  }
+}
+
+async function _postTorneoUpsert(t) {
+  if (!_matchSyncGate()) return null;
+  if (!t || !t.id) return null;
+  const body = {
+    id: String(t.id),
+    nome: t.nome || '',
+    leva: t.leva || null,
+    luogo: t.luogo || null,
+    data_inizio: t.dataInizio || null,
+    data_fine: t.dataFine || null,
+    spareggio: t.spareggio || null,
+    squadre_partecipanti: t.squadrePartecipanti || null,
+    squadre_mie_flag: t.squadreMieFlag || null,
+    convocati: t.convocati || null,
+    convocazioni_per_partita: !!t.convocazioniPerPartita,
+    qual_per_girone: t.qualPerGirone != null ? Number(t.qualPerGirone) : null,
+    archiviato: !!t.archiviato,
+    fasi: (t.fasi || []).map((f, i) => ({
+      id: String(f.id),
+      nome: f.nome || null,
+      tipo: f.tipo || null,
+      fase_gruppo: f.faseGruppo || null,
+      squadre: f.squadre || null,
+      ordine: i
+    }))
+  };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/tornei', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.log('[match2] POST /tornei HTTP', r.status, t.id); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST /tornei err', e && e.message);
+    return null;
+  }
+}
+
+async function _deleteMatchByEventKey(eventKey) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches/by-event-key/' + encodeURIComponent(eventKey), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE match HTTP', r.status, eventKey);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE match err', e && e.message);
+    return { ok: false, error: e && e.message };
+  }
+}
+
+async function _deleteTorneoApi(id) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/tornei/' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE /tornei HTTP', r.status, id);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE /tornei err', e && e.message);
+    return { ok: false, error: e && e.message };
+  }
+}
+
+async function _deleteCampionatoApi(leva) {
+  if (!_matchSyncGate()) return { ok: true, skipped: true };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/campionato?leva=' + encodeURIComponent(leva), {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (r.ok) return { ok: true };
+    if (r.status === 404) return { ok: true, notFound: true };
+    console.log('[match2] DELETE /campionato HTTP', r.status, leva);
+    return { ok: false, status: r.status };
+  } catch (e) {
+    console.log('[match2] DELETE /campionato err', e && e.message);
+    return { ok: false, error: e && e.message };
   }
 }
 
@@ -9556,6 +9962,7 @@ function saveIndisp() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId2 = document.getElementById('convEventId')?.value;
     if (rawEvId2) openConvocazioneModal(/^\d+$/.test(rawEvId2) ? parseInt(rawEvId2) : rawEvId2);
@@ -9581,6 +9988,7 @@ function deleteIndisp() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId = document.getElementById('convEventId')?.value;
     if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
@@ -14178,6 +14586,104 @@ function _genitoreNextImpegno(lv, playerId) {
     return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'attesa'});
   }
   return null;
+}
+
+// Storico convocazioni del figlio (PWA genitore, schermata Profilo).
+// Restituisce partite/tornei PASSATI con convocazione pubblicata, ordinati dal più recente.
+// Stato per evento: 'indisp' (precedenza) | 'conv' | 'notconv'.
+function _genitoreStoricoConv(p) {
+  if (!p || !p.leva) return [];
+  var lv = p.leva;
+  var todayStr = ymd(new Date());
+  var out = [];
+  var polis = _campPolis(lv);
+  // 1) Amichevoli passate
+  (amichevoli||[]).filter(function(m){return m.leva===lv && !m.annullata && m.data && m.data < todayStr;}).forEach(function(m){
+    var isH=(m.tipo||'casa')==='casa';
+    out.push({date:m.data, start:m.orario||'', id:'amich_'+m.id, tipo:'amichevole', tipoLabel:'🤝 Amichevole',
+      title:(isH?polisName(lv):m.avversario)+' vs '+(isH?m.avversario:polisName(lv))});
+  });
+  // 2) Campionato passate
+  var camp = campionato[lv];
+  if (camp) (camp.partite||[]).filter(function(m){return m.data && m.data < todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
+    var avv=(m.casa===polis?m.ospite:m.casa)||'—';
+    out.push({date:m.data, start:m.orario||'', id:'camp_'+lv+'_'+m.id, tipo:'campionato', tipoLabel:'🏅 Campionato',
+      title:polis+' vs '+avv});
+  });
+  // 3) Tornei passati: per-partita → enumera; legacy unificato → single entry sulla dataFine/Inizio
+  (tornei||[]).filter(function(t){return t.leva===lv;}).forEach(function(t){
+    if (t.convocazioniPerPartita) {
+      var mieSq = _getMieSquadre(t);
+      (t.fasi||[]).forEach(function(f){
+        (f.partite||[]).filter(function(m){return m.data && m.data < todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
+          var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
+          var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
+          out.push({date:m.data, start:m.orario||'', id:'torneo_'+t.id+'_'+f.id+'_'+m.id, tipo:'torneo', tipoLabel:'🏆 Torneo',
+            title:mia+' vs '+avv+' ('+t.nome+')'});
+        });
+      });
+    } else {
+      var endDate = t.dataFine || t.dataInizio;
+      if (endDate && endDate < todayStr) {
+        out.push({date:endDate, start:'', id:t.id, tipo:'torneo', tipoLabel:'🏆 Torneo',
+          title:t.nome||'Torneo'});
+      }
+    }
+  });
+  // 4) Eventi calendario partita/torneo/amichevole passati (manualmente aggiunti)
+  events.filter(function(ev){
+    if (!ev) return false;
+    if (ev.type!=='partita' && ev.type!=='torneo' && ev.type!=='amichevole') return false;
+    if (ev.recur && ev.recur!=='none') return false;
+    if (!ev.date || ev.date >= todayStr) return false;
+    if (ev.leve && ev.leve.length && !ev.leve.includes(lv)) return false;
+    return true;
+  }).forEach(function(ev){
+    out.push({date:ev.date, start:ev.start||'', id:ev.id, tipo:ev.type,
+      tipoLabel: ev.type==='torneo'?'🏆 Torneo':ev.type==='amichevole'?'🤝 Amichevole':'⚽ Partita',
+      title:ev.title||'Evento'});
+  });
+  // Filtra: solo eventi con convocazione pubblicata (esistente)
+  var filtered = out.filter(function(e){return !!getConvocazione(e.id);});
+  // Calcola stato: indisp prevale su non-convocato
+  filtered.forEach(function(e){
+    var conv = getConvocazione(e.id);
+    var indisp = (typeof playerIndispForEvent === 'function')
+      ? playerIndispForEvent(p.id, e.id, e.date)
+      : null;
+    if (indisp) { e.state = 'indisp'; }
+    else if (conv && conv.playerIds && conv.playerIds.includes(p.id)) { e.state = 'conv'; }
+    else { e.state = 'notconv'; }
+  });
+  // Ordina decrescente per data+orario
+  filtered.sort(function(a,b){return (b.date+(b.start||'')).localeCompare(a.date+(a.start||''));});
+  return filtered;
+}
+
+// Toggle "Mostra tutte (N) / Nascondi" del blocco storico convocazioni
+function _scToggle(btn){
+  if (!btn) return;
+  var card = btn.closest('.sc-card');
+  if (!card) return;
+  var extra = card.querySelector('.sc-list-extra');
+  if (!extra) return;
+  var open = extra.classList.toggle('open');
+  var n = btn.getAttribute('data-n') || '';
+  btn.innerHTML = open ? '▴ Nascondi' : ('▾ Mostra tutte (' + n + ')');
+}
+
+// Rimozione inline di un periodo di indisponibilità dal blocco "Indisponibilità periodo"
+// (PWA genitore). Stessa fonte dati di Le mie indisponibilità (indisponibilita[]).
+function _ipRemove(indispId){
+  var rec = indisponibilita.find(function(i){return i.id === indispId;});
+  if (!rec) return;
+  if (!confirm('Rimuovere questa indisponibilità?')) return;
+  indisponibilita = indisponibilita.filter(function(i){return i.id !== indispId;});
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+  if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  toast('🗑 Indisponibilità rimossa');
 }
 
 function buildMobDashboardGenitore(c) {
@@ -21376,23 +21882,40 @@ function saveGcAddMatch() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
   toast(editId ? '✅ Partita aggiornata!' : '✅ Partita aggiunta!');
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva)
+  try {
+    const match = campionato[leva].partite.find(m => String(m.id) === String(matchId));
+    if (match) {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'campionato', event_key: 'camp_' + leva + '_' + matchId,
+        leva, giornata: gior, match
+      }));
+    }
+  } catch(_) {}
 }
 
-function deleteGcCampMatch(matchId) {
+async function deleteGcCampMatch(matchId) {
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
   const leva = currentLeva;
   if (!campionato[leva]?.partite) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('camp_' + leva + '_' + matchId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   campionato[leva].partite = campionato[leva].partite.filter(m => m.id !== matchId);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
   toast('🗑 Partita eliminata');
 }
 
-function deleteCampionato(leva) {
+async function deleteCampionato(leva) {
   if (!canEditPt(leva)) return;
   const camp = campionato[leva];
   if (!camp) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob (né convocazioni).
+  const dRes = await _deleteCampionatoApi(leva);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   convocazioni = convocazioni.filter(cv => !String(cv.eventId).startsWith('camp_' + leva + '_'));
   delete campionato[leva];
   window.__fieldosSaveState();
@@ -21400,10 +21923,13 @@ function deleteCampionato(leva) {
   toast('🗑 Campionato eliminato');
 }
 
-function deleteTorneo(torneoId) {
+async function deleteTorneo(torneoId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteTorneoApi(torneoId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   convocazioni = convocazioni.filter(cv => cv.eventId !== torneoId);
   tornei = tornei.filter(x => x.id !== torneoId);
   window.__fieldosSaveState();
@@ -21411,12 +21937,15 @@ function deleteTorneo(torneoId) {
   toast('🗑 Torneo eliminato');
 }
 
-function deleteTorneoMatch(torneoId, faseId, matchId) {
+async function deleteTorneoMatch(torneoId, faseId, matchId) {
   const t = tornei.find(x => x.id === torneoId);
   if (!t || !canEditPt(t.leva)) return;
   const f = t.fasi && t.fasi.find(x => x.id === faseId);
   if (!f) return;
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('torneo_' + torneoId + '_' + faseId + '_' + matchId);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   f.partite = (f.partite || []).filter(m => m.id !== matchId);
   window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
@@ -21672,6 +22201,24 @@ function saveGcTorneo() {
   closeM('mGcTorneoEdit');
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Torneo salvato!');
+
+  // STEP2 — doppia scrittura: torneo + fasi, e poi le partite torneo eventualmente
+  // già presenti (generate da round-robin) via POST /matches con fase_id.
+  try {
+    const savedT = id ? tornei.find(x => x.id === id) : tornei[tornei.length - 1];
+    if (savedT) {
+      _postTorneoUpsert(savedT);
+      (savedT.fasi || []).forEach(f => {
+        (f.partite || []).forEach(m => {
+          _postMatchUpsert(_buildMatchBody({
+            tipo: 'torneo',
+            event_key: 'torneo_' + savedT.id + '_' + f.id + '_' + m.id,
+            leva: savedT.leva, fase_id: f.id, match: m
+          }));
+        });
+      });
+    }
+  } catch(_) {}
 }
 
 // ─── Virtual events calendario (partite Polis da amichevoli/campionato/tornei) ───
@@ -21873,6 +22420,32 @@ async function saveQuickResult(tipo, ref, idC, idO) {
   } else {
     toast('⚠️ Risultato non salvato — riprova');
   }
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva). Upsert solo del match.
+  try {
+    const match = _findMatchByRef(tipo, ref);
+    if (match) {
+      let ek = null, leva = null, fase_id = null;
+      if (tipo === 'campionato') {
+        leva = currentLeva;
+        ek = 'camp_' + leva + '_' + match.id;
+      } else if (tipo === 'amichevole') {
+        leva = match.leva;
+        ek = 'amich_' + match.id;
+      } else if (tipo === 'torneo') {
+        const parts = String(ref).split('__');
+        const tParent = tornei.find(x => x.id === parts[0]);
+        leva = tParent && tParent.leva;
+        fase_id = parts[1];
+        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+      }
+      if (ek) {
+        _postMatchUpsert(_buildMatchBody({
+          tipo, event_key: ek, leva, fase_id, match
+        }));
+      }
+    }
+  } catch(_) {}
 }
 
 // Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
@@ -21987,19 +22560,34 @@ function savePtAmich() {
   const annullata = document.getElementById('ptAmichAnnullata').checked;
   const visibilitaSubito = document.querySelector('input[name="ptAmichVisib"]:checked')?.value === 'subito';
   const idRaw = document.getElementById('ptAmichId').value;
+  let _amichId = null;
   if (idRaw) {
     const m = amichevoli.find(x => x.id === parseInt(idRaw));
     if (m) { m.data = data; m.leva = leva; m.avversario = avv; m.luogo = luogo; m.campoId = luogoCampoId||undefined; m.orario = orario; m.tipo = tipo; m.annullata = annullata; m.visibilitaSubito = visibilitaSubito; }
+    _amichId = parseInt(idRaw);
   } else {
     const newId = nextAmichevoleId++;
     amichevoli.push({id:newId, leva, data, orario, tipo, avversario:avv, luogo, campoId: luogoCampoId||undefined, played:false, annullata:false, golCasa:0, golOspiti:0, stats:[], visibilitaSubito});
     autoCreateConvocazione('amich_' + newId, leva);
+    _amichId = newId;
   }
   closeM('mPtAmich');
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Amichevole salvata!');
+
+  // STEP2 — doppia scrittura MySQL (difensiva, additiva)
+  try {
+    const match = amichevoli.find(x => x.id === _amichId);
+    if (match) {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'amichevole',
+        event_key: 'amich_' + _amichId,
+        leva, lato: tipo, avversario: avv, match
+      }));
+    }
+  } catch(_) {}
 }
 
 function updatePtAmichLuogoSelect() {
@@ -22031,10 +22619,13 @@ function onPtAmichTipoChange() {
   onPtAmichLuogoChange();
 }
 
-function deletePtAmich(id) {
+async function deletePtAmich(id) {
   const m = amichevoli.find(x => x.id === id);
   if (!m || !canEditPt(m.leva)) { toast('⛔ Non autorizzato'); return; }
   if (!confirm('Sei sicuro? Questa azione eliminerà anche tutti i risultati e le statistiche collegate.')) return;
+  // STEP2 — DELETE MySQL prima; se fallisce, NON mutare blob.
+  const dRes = await _deleteMatchByEventKey('amich_' + id);
+  if (!dRes.ok) { toast('⚠️ Errore eliminazione (server). Riprova.'); return; }
   amichevoli = amichevoli.filter(x => x.id !== id);
   purgeEventRefs('amich_' + id);
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
@@ -22562,6 +23153,35 @@ async function savePtRisultato() {
   } else {
     toast('⚠️ Risultato non salvato — riprova');
   }
+
+  // STEP2 — doppia scrittura MySQL: upsert match POI upsert stats[].
+  try {
+    const freshMatch = _findMatchByRef(tipo, ref);
+    if (freshMatch) {
+      let ek = null, _leva = null, fase_id = null;
+      if (tipo === 'campionato') {
+        _leva = currentLeva;
+        ek = 'camp_' + _leva + '_' + freshMatch.id;
+      } else if (tipo === 'amichevole') {
+        _leva = freshMatch.leva;
+        ek = 'amich_' + freshMatch.id;
+      } else if (tipo === 'torneo') {
+        const parts = String(ref).split('__');
+        const tParent = tornei.find(x => x.id === parts[0]);
+        _leva = tParent && tParent.leva;
+        fase_id = parts[1];
+        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+      }
+      if (ek) {
+        const upRes = await _postMatchUpsert(_buildMatchBody({
+          tipo, event_key: ek, leva: _leva, fase_id, match: freshMatch
+        }));
+        if (upRes && upRes.id) {
+          await _postStatsUpsert(upRes.id, freshMatch.stats || []);
+        }
+      }
+    }
+  } catch(_) {}
 }
 
 // ─── STATISTICHE GIOCATORE (scheda) ───
