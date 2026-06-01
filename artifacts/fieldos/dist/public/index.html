@@ -14853,20 +14853,48 @@ function buildMobDashboard(role, c) {
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   const lv = currentLeva;
 
-  // Prossimo evento — usa la STESSA fonte dati del calendario completo
-  // (events[] + canSeeEvent + eventOccursOn) per coerenza coi pallini sul calendario.
-  // Forward-scan giornaliero, bounded a 366 giorni (l'orizzonte caricato da _loadCalEvents è ~12 mesi).
+  // Prossimo evento — usa LE STESSE fonti del calendario completo:
+  //  - events[] (allenamenti, eventi generici) via canSeeEvent + eventOccursOn
+  //  - getPtVirtualEvents(ds): tornei (banner + partite), campionato, amichevoli — tornei[]/campionato[lv]/amichevoli sono fonti SEPARATE da events[]
+  // Forward-scan giornaliero, bounded a 366 giorni (orizzonte _loadCalEvents ~12 mesi).
   const DOW_IT = ['dom','lun','mar','mer','gio','ven','sab'];
+  // Normalizza un virtual event in {type,title,start,luogo}
+  function _homeNormVirt(v){
+    const tipo = v && v._tipo;
+    if (tipo === 'torneo_banner' || tipo === 'torneo') {
+      const tid = tipo === 'torneo_banner' ? v._ref : String(v._ref||'').split('__')[0];
+      const t = (typeof tornei !== 'undefined' && Array.isArray(tornei)) ? tornei.find(x => x.id === tid) : null;
+      return {
+        type: 'torneo',
+        title: t ? t.nome : String(v.title||'Torneo').replace(/^🏆\s*/, ''),
+        start: '',
+        luogo: t ? (t.luogo || '') : ''
+      };
+    }
+    if (tipo === 'campionato') return { type:'partita', title:String(v.title||'').replace(/^🏅\s*/,''), start:'', luogo:'' };
+    if (tipo === 'amichevole') return { type:'partita', title:String(v.title||'').replace(/^🤝\s*/,''), start:'', luogo:v.luogo||'' };
+    return { type:'evento', title:v && v.title || 'Evento', start:'', luogo:'' };
+  }
   const nextEv = (function(){
     const t0 = new Date(); t0.setHours(0,0,0,0);
     for (let i = 0; i < 366; i++) {
       const d = new Date(t0); d.setDate(d.getDate() + i);
       const ds = ymd(d);
-      const hits = events
+      // 1) events[] (allenamenti & eventi generici)
+      const regular = events
         .filter(ev => (typeof canSeeEvent === 'function' ? canSeeEvent(ev) : true)
                    && (typeof eventOccursOn === 'function' ? eventOccursOn(ev, ds) : ev.date === ds))
-        .sort((a,b) => (a.start||'').localeCompare(b.start||''));
-      if (hits.length) return Object.assign({}, hits[0], { date: ds }); // forza la data dell'occorrenza (ricorrenze)
+        .map(ev => ({ type:ev.type||'evento', title:ev.title||'', start:ev.start||'', luogo:ev.luogo||'' }));
+      // 2) virtual events: tornei + campionato + amichevoli (fonti separate)
+      const virt = (typeof getPtVirtualEvents === 'function')
+        ? (getPtVirtualEvents(ds) || []).map(_homeNormVirt)
+        : [];
+      const dayHits = regular.concat(virt);
+      if (dayHits.length) {
+        // Tie-break stesso giorno: ora di inizio crescente (eventi all-day senza start → in coda)
+        dayHits.sort((a,b) => ((a.start||'99:99').localeCompare(b.start||'99:99')));
+        return Object.assign({}, dayHits[0], { date: ds });
+      }
     }
     return null;
   })();
