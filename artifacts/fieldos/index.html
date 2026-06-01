@@ -24071,6 +24071,68 @@ function isSeniorLeva(lv) {
   return m ? parseInt(m[1], 10) >= 14 : false;
 }
 
+// Risolve la leva di una chat (leva-famiglie/squadra l'hanno diretta;
+// torneo passa per tornei[].leva). Null se sconosciuta (staff/adhoc).
+function _chatLevaForChat(chat) {
+  try {
+    if (!chat) return null;
+    if (chat.leva) return chat.leva;
+    if (chat.torneoId && Array.isArray(tornei)) {
+      var t = tornei.find(function(x){return x.id === chat.torneoId;});
+      return t ? t.leva : null;
+    }
+    return null;
+  } catch(_) { return null; }
+}
+
+// Identità autore messaggio: ruolo italianizzato + (se familiare/anche-familiare)
+// "genitore di Nome" / "nonno di Nome [e Nome2 …]" scopato alla leva della chat.
+// Ritorna {roleLabel, familyTag} oppure null se l'utente non è risolvibile.
+// GUARD: non inventa ruoli né figli; cade in null/'' parzialmente se i dati mancano.
+function _chatAuthorMeta(user, chat) {
+  try {
+    if (!user) return null;
+    var ROLE_IT = {
+      admin: 'Admin',
+      mister_admin: 'Mister-Admin',
+      allenatore: 'Mister',
+      preparatore_portieri: 'Preparatore portieri',
+      dirigente: 'Dirigente',
+      genitore: 'Genitore',
+      nonno: 'Nonno',
+      giocatore: 'Giocatore',
+    };
+    var roleLabel = (user.role && ROLE_IT[user.role]) || '';
+    var familyTag = '';
+    // legame familiare se l'utente ha figli linkati (genitore/nonno O staff-anche-genitore)
+    var figliRaw = Array.isArray(user.figli) ? user.figli
+                 : (user.figlio ? [user.figlio] : []);
+    if (figliRaw.length && Array.isArray(players)) {
+      var resolved = [];
+      figliRaw.forEach(function(fName){
+        if (!fName) return;
+        var p = players.find(function(pl){
+          return ((pl.nome||'') + ' ' + (pl.cogn||'')).toLowerCase() === String(fName).toLowerCase();
+        });
+        if (p) resolved.push(p);
+      });
+      var chatLeva = _chatLevaForChat(chat);
+      var scoped = chatLeva ? resolved.filter(function(p){return p.leva === chatLeva;}) : resolved;
+      if (!scoped.length && resolved.length) scoped = resolved; // fallback: nessuno nella leva → mostra tutti
+      var firstNames = scoped.map(function(p){return p.nome;}).filter(Boolean);
+      if (firstNames.length) {
+        var relWord = (user.role === 'nonno') ? 'nonno' : 'genitore';
+        var listStr;
+        if (firstNames.length === 1) listStr = firstNames[0];
+        else if (firstNames.length === 2) listStr = firstNames[0] + ' e ' + firstNames[1];
+        else listStr = firstNames.slice(0,-1).join(', ') + ' e ' + firstNames[firstNames.length-1];
+        familyTag = relWord + ' di ' + listStr;
+      }
+    }
+    return { roleLabel: roleLabel, familyTag: familyTag };
+  } catch(_) { return null; }
+}
+
 // Etichetta "audience" derivata dai membri reali della chat (chi può leggerla).
 // Esamina chat.members → USERS_DB → raccoglie ruoli attivi → li mappa a label umane
 // e li compone in linguaggio naturale (es. "Genitori e dirigenti").
@@ -24474,6 +24536,35 @@ function renderChatMessages() {
     cont.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.78rem;padding:30px;">Nessun messaggio in questa chat. Scrivi tu il primo!</div>';
     return;
   }
+  // Riferimento alla chat corrente (per scoping figli alla leva della chat)
+  const _curChat = (typeof getChatsForUser === 'function')
+    ? getChatsForUser(me).find(function(x){return x.id === currentChatId;})
+    : null;
+  // Helper di render: header autore (nome semibold + ruolo / family tag muted).
+  // GUARD: se user non risolto → fallback al solo senderName (fornito dal caller).
+  function _renderAuthorHeader(u, senderName) {
+    var meta = _chatAuthorMeta(u, _curChat);
+    var parts = [];
+    if (meta) {
+      // Per genitore/nonno il ruolo è incapsulato nel familyTag → mostra solo familyTag.
+      // Per staff-anche-genitore → ruolo + familyTag. Per staff puro → ruolo.
+      if (u && (u.role === 'genitore' || u.role === 'nonno')) {
+        if (meta.familyTag) parts.push(meta.familyTag);
+        else if (meta.roleLabel) parts.push(meta.roleLabel);
+      } else {
+        if (meta.roleLabel)  parts.push(meta.roleLabel);
+        if (meta.familyTag)  parts.push(meta.familyTag);
+      }
+    }
+    var metaHtml = parts.length
+      ? '<span style="color:var(--text3);font-weight:500;"> · ' + escapeHtml(parts.join(' · ')) + '</span>'
+      : '';
+    return '<div style="font-size:.65rem;margin-bottom:2px;color:var(--text2);">'
+      + '<span style="font-weight:700;">' + escapeHtml(senderName) + '</span>'
+      + metaHtml
+      + '</div>';
+  }
+
   cont.innerHTML = stream.map(item => {
     if (item._kind === 'poll') {
       // Card sondaggio nel flusso: avatar del creatore + bubble custom (no max-width fumetto).
@@ -24482,12 +24573,13 @@ function renderChatMessages() {
       const isMe = p.createdBy === me.id;
       const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '📊';
       const color = u ? (ROLE_CFG[u.role] && ROLE_CFG[u.role].color || '#888') : '#1A7A4A';
+      const senderName = u ? (u.nome + ' ' + u.cogn) : (p.createdByName || 'Utente');
       const time = new Date(item.ts);
       const timeStr = String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');
       return `<div class="msg ${isMe?'me':''}">
         <div class="msg-av" style="background:${color};color:white;">${av}</div>
         <div>
-          ${!isMe ? `<div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;font-weight:700;">${escapeHtml(p.createdByName || '')}</div>` : ''}
+          ${!isMe ? _renderAuthorHeader(u, senderName) : ''}
           ${_renderPollCard(p)}
           <div class="msg-t">${timeStr}</div>
         </div>
@@ -24510,7 +24602,7 @@ function renderChatMessages() {
     return `<div class="msg ${isMe?'me':''}">
       <div class="msg-av" style="background:${color};color:white;">${av}</div>
       <div>
-        ${!isMe ? `<div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;font-weight:700;">${escapeHtml(senderName)}</div>` : ''}
+        ${!isMe ? _renderAuthorHeader(u, senderName) : ''}
         ${body}
         <div class="msg-t">${timeStr}</div>
       </div>
