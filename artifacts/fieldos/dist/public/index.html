@@ -15015,27 +15015,55 @@ function _genitoreNextImpegno(lv, playerId, _dbg) {
       } catch(e_){ if (_dbg) _dbg.errors.push('amichevoli: '+(e_&&e_.message||e_)); }
     });
     var camp = (typeof campionato === 'object' && campionato) ? campionato[lv] : null;
+    var campNome = (camp && camp.nome) ? camp.nome : '';
     if (camp) (camp.partite||[]).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
       try {
         var avv=(m.casa===polis?m.ospite:m.casa)||'—';
-        cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'partita',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false,_src:'campionato'});
+        cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'campionato',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false,_src:'campionato',_campNome:campNome});
       } catch(e_){ if (_dbg) _dbg.errors.push('campionato: '+(e_&&e_.message||e_)); }
     });
+    // TORNEI: emetti UN candidato per torneo (mai una singola partita).
+    // - perPartita=false (unified): id=t.id, data = prima partita futura o t.dataInizio.
+    // - perPartita=true (raro): id=torneo_<t>_<f>_<m> della prossima partita utile,
+    //   così _convForCand legge la conv di quella partita per derivare lo stato.
     (Array.isArray(tornei) ? tornei : []).filter(function(t){return t && t.leva===lv;}).forEach(function(t){
       try {
-        var mieSq = (typeof _getMieSquadre === 'function') ? _getMieSquadre(t) : [polisName(lv)];
-        if (_dbg) _dbg.errors.push('tornei: '+t.id+' nome='+(t.nome||'?')+' mieSq='+JSON.stringify(mieSq)+' perPartita='+!!t.convocazioniPerPartita);
+        if (_dbg) _dbg.errors.push('tornei: '+t.id+' nome='+(t.nome||'?')+' perPartita='+!!t.convocazioniPerPartita+' dataInizio='+(t.dataInizio||'∅'));
+        // raccolgo tutte le partite future del torneo (NO filtro per squadre: bracket
+        // possono avere nomi generici incompatibili con polisName, ma il torneo va emesso)
+        var futureMatches = [];
         (t.fasi||[]).forEach(function(f){
-          (f && f.partite || []).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
-            try {
-              var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
-              var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
-              // Legacy: id segue convocazioniPerPartita; _torneoId conservato per fallback in _convForCand.
-              var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
-              cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,_torneoId:t.id,_torneoFaseId:f.id,_torneoMatchId:m.id,_casa:m.casa,_ospite:m.ospite,isTraining:false,_src:'tornei'});
-            } catch(e_){ if (_dbg) _dbg.errors.push('tornei.partite: '+(e_&&e_.message||e_)); }
+          (f && f.partite || []).forEach(function(m){
+            if (m && !m.played && m.data && m.data >= todayStr) {
+              futureMatches.push({date:m.data,start:m.orario||'',_faseId:f.id,_matchId:m.id,_casa:m.casa,_ospite:m.ospite,_luogo:m.luogo||''});
+            }
           });
         });
+        futureMatches.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
+        var first = futureMatches[0];
+        var candDate = first ? first.date : (t.dataInizio || null);
+        if (!candDate || candDate < todayStr) {
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' SCARTATO: torneo passato o senza data futura (candDate='+candDate+', futureMatches='+futureMatches.length+')');
+          return;
+        }
+        var candStart = first ? (first.start || '') : '';
+        var candLuogo = (first && first._luogo) || t.luogo || '';
+        var candTitle = t.nome || 'Torneo';
+        if (!t.convocazioniPerPartita) {
+          cands.push({date:candDate,start:candStart,title:candTitle,type:'torneo',luogo:candLuogo,id:t.id,_torneoId:t.id,isTraining:false,_src:'tornei',_torneoMode:'unified'});
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' EMESSO unified data='+candDate);
+        } else {
+          if (!first) {
+            if (_dbg) _dbg.errors.push('tornei: '+t.id+' SCARTATO perPartita: nessuna partita futura');
+            return;
+          }
+          cands.push({date:candDate,start:candStart,title:candTitle,type:'torneo',luogo:candLuogo,
+            id:'torneo_'+t.id+'_'+first._faseId+'_'+first._matchId,
+            _torneoId:t.id,_torneoFaseId:first._faseId,_torneoMatchId:first._matchId,
+            _casa:first._casa,_ospite:first._ospite,
+            isTraining:false,_src:'tornei',_torneoMode:'per_partita'});
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' EMESSO perPartita data='+candDate+' matchId='+first._matchId);
+        }
       } catch(e_){ if (_dbg) _dbg.errors.push('tornei: '+(e_&&e_.message||e_)); }
     });
     cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
@@ -15365,7 +15393,11 @@ function buildMobDashboardGenitore(c) {
     var _cdDOW3=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
     var cdStr3=_hDG.getDate()+'/'+(_hDG.getMonth()+1);
     var cdSub3=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW3[_hDG.getDay()];
-    var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
+    var evType3=isTrG?'🏃 Allenamento'
+      :nxtEv.type==='torneo'?'🏆 Torneo'
+      :nxtEv.type==='amichevole'?'🤝 Amichevole'
+      :nxtEv.type==='campionato'?('⚽ Campionato'+(nxtEv._campNome?' · '+escapeHtml(nxtEv._campNome):''))
+      :'⚽ Partita';
     var convBadge3='';
     if(nxtEv.convStatus==='convocato'){
       convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>';
