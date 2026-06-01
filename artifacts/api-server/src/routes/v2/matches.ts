@@ -19,12 +19,14 @@ function rejectDemo(req: any, res: any): boolean {
   return false;
 }
 
-// GET /api/v2/matches?tipo=campionato|torneo|amichevole&leva=<nome>
+// GET /api/v2/matches?tipo=campionato|torneo|amichevole&leva=<nome>&includeStats=1
 // Lista dei match della società. JOIN opzionale con tornei_fasi/tornei per arricchire i match torneo.
+// includeStats=1: per ogni match aggiunge stats[] grezzo (match_stats), skippando i player orfani.
 router.get("/matches", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
   const tipo = (req.query.tipo as string | undefined) || undefined;
   const leva = (req.query.leva as string | undefined) || undefined;
+  const includeStats = req.query.includeStats === "1" || req.query.includeStats === "true";
 
   if (tipo && !["campionato", "torneo", "amichevole"].includes(tipo)) {
     return res.status(400).json({ error: "invalid_tipo" });
@@ -54,6 +56,37 @@ router.get("/matches", requireAuth, async (req, res) => {
        ORDER BY m.data DESC, m.orario DESC, m.id DESC`,
       params
     )) as [any[], any];
+
+    if (includeStats && rows.length) {
+      const matchIds = (rows as any[]).map((r: any) => Number(r.id));
+      const placeholders = matchIds.map(() => "?").join(",");
+      const [statRows] = (await pool.execute(
+        `SELECT ms.match_id, ms.player_id, ms.gol, ms.assist, ms.titolare,
+                ms.minuti, ms.gialli, ms.rossi, ms.gol_sub, ms.cs
+         FROM match_stats ms
+         INNER JOIN players p ON p.id = ms.player_id AND p.society_id = ?
+         WHERE ms.match_id IN (${placeholders})`,
+        [societyId, ...matchIds]
+      )) as [any[], any];
+      const byMatch: Record<string, any[]> = {};
+      for (const s of statRows as any[]) {
+        const k = String(s.match_id);
+        if (!byMatch[k]) byMatch[k] = [];
+        byMatch[k].push({
+          player_id: Number(s.player_id),
+          gol: Number(s.gol) || 0,
+          assist: Number(s.assist) || 0,
+          titolare: s.titolare ? 1 : 0,
+          minuti: Number(s.minuti) || 0,
+          gialli: Number(s.gialli) || 0,
+          rossi: Number(s.rossi) || 0,
+          gol_sub: Number(s.gol_sub) || 0,
+          cs: s.cs ? 1 : 0,
+        });
+      }
+      for (const r of rows as any[]) r.stats = byMatch[String(r.id)] || [];
+    }
+
     return res.json(rows);
   } catch (e: any) {
     logger.error({ err: e }, "GET matches error");

@@ -6298,6 +6298,162 @@ async function _syncRosaFromMySQL() {
   } catch(_) {}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP1 — Match sync da MySQL in MODALITÀ CONFRONTO (non distruttivo).
+// Stile identico a _syncRosaFromMySQL: fire-and-forget, debounce 5s (force=true salta),
+// early-return se demo. NON tocca amichevoli/campionato/tornei reali.
+// Popola variabili globali parallele __mysqlAmichevoli/__mysqlCampionato/__mysqlTornei
+// in forma-blob (legacy_match_id → m.id, player_id → playerId, gol_sub → golSub).
+// Logga in console le differenze playerMatchStats blob vs MySQL per la leva corrente.
+// ─────────────────────────────────────────────────────────────────────────────
+window.__mysqlAmichevoli = [];
+window.__mysqlCampionato = {};
+window.__mysqlTornei     = [];
+let _lastMatchSyncMs = 0;
+
+async function _syncMatchFromMySQL(force) {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+  if (_isDemoSoc) return;
+  const now = Date.now();
+  if (!force && (now - _lastMatchSyncMs) < 5000) return;
+  _lastMatchSyncMs = now;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches?includeStats=1', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) { console.log('[matchSync] HTTP', r.status); return; }
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return;
+
+    const mAm = [];
+    const mCa = {};
+    const mTo = {}; // by torneo_id
+
+    rows.forEach(row => {
+      const blobStats = (row.stats || []).map(s => ({
+        playerId: Number(s.player_id),
+        gol: s.gol|0, assist: s.assist|0,
+        titolare: !!s.titolare, minuti: s.minuti|0,
+        gialli: s.gialli|0, rossi: s.rossi|0,
+        golSub: s.gol_sub|0, cs: !!s.cs
+      }));
+      const m = {
+        id: row.legacy_match_id != null ? row.legacy_match_id : ('mysql_' + row.id),
+        leva: row.leva,
+        data: row.data,
+        orario: row.orario,
+        casa: row.casa, ospite: row.ospite,
+        avversario: row.avversario, lato: row.lato, luogo: row.luogo,
+        played: !!row.played,
+        golCasa: row.gol_casa|0, golOspiti: row.gol_ospiti|0,
+        visibilitaSubito: !!row.visibilita_subito,
+        annullata: !!row.annullata,
+        stats: blobStats,
+        _mysql_id: row.id, _event_key: row.event_key
+      };
+      if (row.tipo === 'amichevole') {
+        mAm.push(m);
+      } else if (row.tipo === 'campionato') {
+        const lv = row.leva || '';
+        if (!mCa[lv]) mCa[lv] = { partite: [] };
+        mCa[lv].partite.push(m);
+      } else if (row.tipo === 'torneo') {
+        const tid = row.torneo_id;
+        if (!tid) return;
+        if (!mTo[tid]) {
+          mTo[tid] = { id: tid, nome: row.torneo_nome, leva: row.torneo_leva, fasi: {} };
+        }
+        const fid = row.fase_id;
+        if (!fid) return;
+        if (!mTo[tid].fasi[fid]) {
+          mTo[tid].fasi[fid] = { id: fid, nome: row.fase_nome, tipo: row.fase_tipo, fase_gruppo: row.fase_gruppo, partite: [] };
+        }
+        mTo[tid].fasi[fid].partite.push(m);
+      }
+    });
+
+    const mTorneiArr = Object.values(mTo).map(t => ({
+      ...t,
+      fasi: Object.values(t.fasi)
+    }));
+
+    window.__mysqlAmichevoli = mAm;
+    window.__mysqlCampionato = mCa;
+    window.__mysqlTornei     = mTorneiArr;
+
+    // ─── CONFRONTO ──────────────────────────────────────────────────────────
+    const lvCur = currentLeva;
+    const blobCounts = {
+      amichevoli: amichevoli.length,
+      amichevoli_played: amichevoli.filter(x => x.played).length,
+      campionato_leve: Object.keys(campionato || {}).length,
+      campionato_partite_played: Object.values(campionato || {}).reduce((acc, c) => acc + (c.partite||[]).filter(m => m.played).length, 0),
+      tornei: (tornei||[]).length,
+      tornei_partite_played: (tornei||[]).reduce((acc, t) => acc + (t.fasi||[]).reduce((a2, f) => a2 + (f.partite||[]).filter(m => m.played).length, 0), 0)
+    };
+    const mysqlCounts = {
+      amichevoli: mAm.length,
+      amichevoli_played: mAm.filter(x => x.played).length,
+      campionato_leve: Object.keys(mCa).length,
+      campionato_partite_played: Object.values(mCa).reduce((acc, c) => acc + (c.partite||[]).filter(m => m.played).length, 0),
+      tornei: mTorneiArr.length,
+      tornei_partite_played: mTorneiArr.reduce((acc, t) => acc + (t.fasi||[]).reduce((a2, f) => a2 + (f.partite||[]).filter(m => m.played).length, 0), 0)
+    };
+    console.log('[matchSync] counts blob:', blobCounts);
+    console.log('[matchSync] counts mysql:', mysqlCounts);
+
+    // PMS confronto per la leva corrente
+    function _pmsFrom(amArr, caObj, toArr, pid, lv) {
+      const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
+      const a = zero(), c = zero(), t = zero();
+      function add(target, s) {
+        if (!s) return;
+        target.pres++;
+        target.gol+=s.gol|0; target.assist+=s.assist|0; target.minuti+=s.minuti|0;
+        target.gialli+=s.gialli|0; target.rossi+=s.rossi|0; target.golSub+=s.golSub|0;
+        if (s.cs) target.cs++;
+      }
+      (amArr||[]).filter(m => m.leva === lv && m.played).forEach(m =>
+        add(a, (m.stats||[]).find(s => s.playerId === pid)));
+      const camp = caObj ? caObj[lv] : null;
+      if (camp) (camp.partite||[]).filter(m => m.played).forEach(m =>
+        add(c, (m.stats||[]).find(s => s.playerId === pid)));
+      (toArr||[]).filter(tr => tr.leva === lv).forEach(tr =>
+        (tr.fasi||[]).forEach(f =>
+          (f.partite||[]).filter(m => m.played).forEach(m =>
+            add(t, (m.stats||[]).find(s => s.playerId === pid)))));
+      return {a,c,t};
+    }
+    const diffs = [];
+    (players||[]).filter(p => p.leva === lvCur).forEach(p => {
+      const blob  = _pmsFrom(amichevoli, campionato, tornei, p.id, lvCur);
+      const mysql = _pmsFrom(mAm, mCa, mTorneiArr, p.id, lvCur);
+      const keys = ['pres','gol','assist','minuti','gialli','rossi','golSub','cs'];
+      const cats = ['a','c','t'];
+      const out = {};
+      let any = false;
+      cats.forEach(cat => {
+        keys.forEach(k => {
+          if ((blob[cat][k]|0) !== (mysql[cat][k]|0)) {
+            out[cat+'.'+k] = (blob[cat][k]|0) + ' → ' + (mysql[cat][k]|0);
+            any = true;
+          }
+        });
+      });
+      if (any) diffs.push({ playerId: p.id, name: (p.nome||'')+' '+(p.cogn||''), diff: out });
+    });
+    if (diffs.length) {
+      console.log('[matchSync] DIFF playerMatchStats leva=' + lvCur + ' (' + diffs.length + ' giocatori con delta):', diffs);
+    } else {
+      console.log('[matchSync] playerMatchStats leva=' + lvCur + ' OK (0 differenze blob vs MySQL)');
+    }
+  } catch(e) {
+    console.log('[matchSync] error', e && e.message);
+  }
+}
+
 function _renderRosaInner() {
   // Inner re-render senza re-trigger del sync MySQL — usato da _syncRosaFromMySQL
   _rosaSkipSync = true;
@@ -20000,6 +20156,11 @@ function renderPartite() {
   const pg = document.getElementById('pg-partite');
   if (!pg || !pg.classList.contains('on')) return;
 
+  // STEP1 match-sync (confronto, non-distruttivo, log only)
+  if (me && (typeof isAdminLike === 'function') && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente')) {
+    try { _syncMatchFromMySQL(true); } catch(_) {}
+  }
+
   // Leva tabs
   const ltEl = document.getElementById('ptLevaTabs');
   if (ltEl) {
@@ -28320,6 +28481,15 @@ async function doRejoinSocieta() {
       _ensureUserInDb();
       _origBoot(user);
       startSyncPoll();
+      // STEP1 — boot sync: rosa poi match (confronto, non-distruttivo)
+      setTimeout(() => {
+        const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+        if (_isDemoSoc) return;
+        (async () => {
+          try { await _syncRosaFromMySQL(); } catch(_) {}
+          try { await _syncMatchFromMySQL(true); } catch(_) {}
+        })();
+      }, 1500);
       // Controlla in background se ci sono aggiornamenti da altri dispositivi
       apiPull(KEY, 5000).then(serverJson => {
         // Dopo il primo pull (qualunque esito), _serverVersion è allineata (success) o resta
@@ -28375,6 +28545,15 @@ async function doRejoinSocieta() {
         me = user; // aggiorna il riferimento globale con l'utente fresco dal server
         _origBoot(user);
         startSyncPoll();
+        // STEP1 — boot sync (slow path): rosa poi match (confronto, non-distruttivo)
+        setTimeout(() => {
+          const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+          if (_isDemoSoc) return;
+          (async () => {
+            try { await _syncRosaFromMySQL(); } catch(_) {}
+            try { await _syncMatchFromMySQL(true); } catch(_) {}
+          })();
+        }, 1500);
         // Migrazione foto base64 → server (solo se ci sono foto legacy)
         setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
       });

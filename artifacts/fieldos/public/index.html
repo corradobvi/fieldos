@@ -33,7 +33,7 @@
 <!-- Microsoft tile -->
 <meta name="msapplication-TileColor" content="#1A7A4A">
 <meta name="msapplication-TileImage" content="/icons/icon-144.png">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Nunito:wght@700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --cp: #047857;
@@ -1499,7 +1499,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 /* Figlio tab — selettore figlio (chip) per genitori con 2+ figli */
 .mob-figli-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .mob-figli-chip{
-  padding:8px 16px;border-radius:999px;border:1px solid var(--border);
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 14px 6px 6px;border-radius:999px;border:1px solid var(--border);
   background:var(--white);color:var(--text);
   font-family:'Plus Jakarta Sans',sans-serif;font-size:.86rem;font-weight:700;
   cursor:pointer;-webkit-tap-highlight-color:transparent;
@@ -1507,6 +1508,113 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   min-height:36px;
 }
 .mob-figli-chip.active{background:#1A7A4A;color:#fff;border-color:#1A7A4A;}
+.mob-figli-chip-av{
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(26,122,74,.12);color:#1A7A4A;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.72rem;
+  flex-shrink:0;overflow:hidden;
+}
+.mob-figli-chip.active .mob-figli-chip-av{background:rgba(255,217,61,.4);color:#fff;}
+.mob-figli-chip-av img{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* Tessera giocatore — design originale (no FIFA), brand verde #1A7A4A + accenti gialli #FFD93D */
+.tess-pl-card{
+  position:relative;overflow:hidden;
+  margin-bottom:14px;padding:22px 18px 18px;border-radius:22px;
+  background:linear-gradient(155deg,#1F8A55 0%,#1A7A4A 45%,#0E4D2C 100%);
+  color:#fff;
+  box-shadow:0 12px 28px rgba(14,77,44,.28), inset 0 0 0 1px rgba(255,217,61,.18);
+}
+.tess-pl-card::before{
+  content:'';position:absolute;left:-50px;top:-50px;width:170px;height:170px;
+  border-radius:50%;background:rgba(255,217,61,.09);pointer-events:none;
+}
+.tess-pl-card::after{
+  content:'';position:absolute;right:-60px;bottom:-60px;width:200px;height:200px;
+  border-radius:50%;background:rgba(255,217,61,.05);pointer-events:none;
+}
+.tess-pl-num{
+  position:absolute;top:14px;right:14px;z-index:1;
+  min-width:46px;height:36px;padding:0 10px;
+  background:#FFD93D;color:#0E4D2C;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.05rem;letter-spacing:-.5px;
+  box-shadow:0 4px 10px rgba(0,0,0,.16);
+}
+.tess-pl-photo-wrap{
+  display:flex;justify-content:center;margin:4px 0 12px;position:relative;z-index:1;
+}
+.tess-pl-photo{
+  width:108px;height:108px;border-radius:50%;
+  background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:2.4rem;color:#fff;
+  border:3px solid #FFD93D;
+  box-shadow:0 8px 22px rgba(0,0,0,.22);
+}
+.tess-pl-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.tess-pl-name{
+  position:relative;z-index:1;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.45rem;
+  text-align:center;line-height:1.12;letter-spacing:-.2px;
+}
+.tess-pl-sub{
+  position:relative;z-index:1;
+  text-align:center;font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  opacity:.88;margin-top:4px;
+}
+.tess-pl-stats{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px;
+}
+.tess-pl-stat{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,217,61,.30);
+  border-radius:12px;padding:10px 4px 9px;text-align:center;
+}
+.tess-pl-stat-n{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.5rem;line-height:1;color:#fff;
+}
+.tess-pl-stat-l{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.58rem;
+  letter-spacing:1px;text-transform:uppercase;color:#FFD93D;
+  margin-top:5px;
+}
+
+/* Statistiche partite per categoria (Amich / Camp / Tornei) */
+.stat-cat-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.stat-cat-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;
+  color:#1A7A4A;letter-spacing:-.1px;
+  margin-bottom:10px;display:flex;align-items:center;gap:6px;
+}
+.stat-cat-grid-hdr,.stat-cat-grid-row{
+  display:grid;align-items:center;column-gap:4px;
+}
+.stat-cat-grid-hdr > div,.stat-cat-grid-row > div{padding:8px 4px;}
+.stat-cat-grid-hdr > div{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.6rem;
+  letter-spacing:1px;text-transform:uppercase;color:#1A7A4A;
+  text-align:center;border-bottom:2px solid #FFD93D;
+}
+.stat-cat-grid-hdr > div:first-child{text-align:left;}
+.stat-cat-grid-row > div{
+  text-align:center;border-bottom:1px solid var(--sep);
+  font-family:'Nunito',sans-serif;font-size:1.02rem;font-weight:900;color:var(--text);
+}
+.stat-cat-grid-row:last-child > div{border-bottom:none;}
+.stat-cat-grid-row .stat-cat-name{
+  text-align:left;font-size:.86rem;font-weight:800;color:var(--text);
+}
+.stat-cat-empty{
+  font-size:.78rem;color:var(--text2);font-style:italic;
+  padding:8px 4px;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5736,11 +5844,16 @@ function renderProfiloFiglio(el) {
     return;
   }
 
-  // Chip selettore (solo se ≥2 figli)
+  // Chip selettore (solo se ≥2 figli) — con mini-avatar foto/iniziali
   const chipsHtml = figliPlayers.length >= 2
-    ? `<div class="mob-figli-chips">${figliPlayers.map(fp =>
-        `<button class="mob-figli-chip${fp.id === p.id ? ' active' : ''}" onclick="_profSelectFiglio(${fp.id})">${escapeHtml(fp.nome||'')}</button>`
-      ).join('')}</div>`
+    ? `<div class="mob-figli-chips">${figliPlayers.map(fp => {
+        const _fpFoto = playerPhotos[fp.id];
+        const _fpIni = ((fp.nome||'?')[0] + (fp.cogn||'?')[0]).toUpperCase();
+        const _av = _fpFoto
+          ? `<span class="mob-figli-chip-av"><img src="${escapeHtml(_fpFoto)}" alt=""></span>`
+          : `<span class="mob-figli-chip-av">${escapeHtml(_fpIni)}</span>`;
+        return `<button class="mob-figli-chip${fp.id === p.id ? ' active' : ''}" onclick="_profSelectFiglio(${fp.id})">${_av}${escapeHtml(fp.nome||'')}</button>`;
+      }).join('')}</div>`
     : '';
 
   const ini = ((p.nome[0]||'') + (p.cogn[0]||'')).toUpperCase();
@@ -5798,18 +5911,55 @@ function renderProfiloFiglio(el) {
     </div>`;
   }
 
+  // Tessera giocatore — foto se presente, altrimenti iniziali
+  const _pFoto = playerPhotos[p.id];
+  const _photoInner = _pFoto
+    ? `<img src="${escapeHtml(_pFoto)}" alt="${escapeHtml(p.nome||'')}">`
+    : ini;
+  const _numBadge = p.num ? `<div class="tess-pl-num">#${escapeHtml(String(p.num))}</div>` : '';
+  const _subRuoloLeva = `${escapeHtml(p.ruolo||'Ruolo')}${p.leva ? ' · ' + escapeHtml(p.leva) : ''}`;
+
+  // Statistiche partite per categoria (Amichevoli / Campionato / Tornei).
+  // Gate consistente con la tabella stagione esistente: showStatsToFamily.
+  // Granularità nel data model: gol+assist tracciati su tutte le leve;
+  // l'unica binary è advStats(leva)>=U14 (sblocca Minuti/Gialli/Rossi, NON gol/assist).
+  // Le colonne mostrate corrispondono ai campi tracciati: Partite (pres), Gol, Assist.
+  const _statsAllowed = !!(levaStatsSettings[p.leva] && levaStatsSettings[p.leva].showStatsToFamily);
+  const _statColsTpl = 'grid-template-columns:1.5fr repeat(3,1fr);';
+  const _statCatRows = [
+    ['🤝', 'Amichevoli', ms.a.pres, ms.a.gol, ms.a.assist],
+    ['🏅', 'Campionato', ms.c.pres, ms.c.gol, ms.c.assist],
+    ['🏆', 'Tornei',     ms.t.pres, ms.t.gol, ms.t.assist],
+  ];
+  const statPartiteHtml = _statsAllowed ? `
+    <div class="stat-cat-card">
+      <div class="stat-cat-hd">⚽ Statistiche partite</div>
+      <div class="stat-cat-grid-hdr" style="${_statColsTpl}">
+        <div>Categoria</div><div>Partite</div><div>Gol</div><div>Assist</div>
+      </div>
+      ${_statCatRows.map(([ic,lbl,partite,gol,assist]) => `
+        <div class="stat-cat-grid-row" style="${_statColsTpl}">
+          <div class="stat-cat-name">${ic} ${escapeHtml(lbl)}</div>
+          <div>${partite}</div>
+          <div>${gol}</div>
+          <div>${assist}</div>
+        </div>`).join('')}
+    </div>` : '';
+
   el.innerHTML = `
     ${chipsHtml}
-    <div class="mob-figlio-hero">
-      <div class="mob-figlio-av">${ini}</div>
-      <div class="mob-figlio-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-      <div class="mob-figlio-sub">${escapeHtml(p.ruolo||'')}${p.num ? ' · #' + p.num : ''} · ${escapeHtml(p.leva||'')}</div>
-      <div class="mob-figlio-stats">
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalPresPartite}</div><div class="mob-figlio-stat-l">Pres. partite</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n">${totalGol}</div><div class="mob-figlio-stat-l">Gol</div></div>
-        <div class="mob-figlio-stat"><div class="mob-figlio-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="mob-figlio-stat-l">% allen.</div></div>
+    <div class="tess-pl-card">
+      ${_numBadge}
+      <div class="tess-pl-photo-wrap"><div class="tess-pl-photo">${_photoInner}</div></div>
+      <div class="tess-pl-name">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
+      <div class="tess-pl-sub">${_subRuoloLeva}</div>
+      <div class="tess-pl-stats">
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n">${totalGol}</div><div class="tess-pl-stat-l">Gol</div></div>
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n">${totalPresPartite}</div><div class="tess-pl-stat-l">Pres. partite</div></div>
+        <div class="tess-pl-stat"><div class="tess-pl-stat-n" style="color:${pcColor};">${s.percAll}%</div><div class="tess-pl-stat-l">% allen.</div></div>
       </div>
     </div>
+    ${statPartiteHtml}
     ${presBarHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
@@ -6146,6 +6296,162 @@ async function _syncRosaFromMySQL() {
       _renderRosaInner();
     }
   } catch(_) {}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP1 — Match sync da MySQL in MODALITÀ CONFRONTO (non distruttivo).
+// Stile identico a _syncRosaFromMySQL: fire-and-forget, debounce 5s (force=true salta),
+// early-return se demo. NON tocca amichevoli/campionato/tornei reali.
+// Popola variabili globali parallele __mysqlAmichevoli/__mysqlCampionato/__mysqlTornei
+// in forma-blob (legacy_match_id → m.id, player_id → playerId, gol_sub → golSub).
+// Logga in console le differenze playerMatchStats blob vs MySQL per la leva corrente.
+// ─────────────────────────────────────────────────────────────────────────────
+window.__mysqlAmichevoli = [];
+window.__mysqlCampionato = {};
+window.__mysqlTornei     = [];
+let _lastMatchSyncMs = 0;
+
+async function _syncMatchFromMySQL(force) {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  if (!_v2Token) return;
+  const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+  if (_isDemoSoc) return;
+  const now = Date.now();
+  if (!force && (now - _lastMatchSyncMs) < 5000) return;
+  _lastMatchSyncMs = now;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches?includeStats=1', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) { console.log('[matchSync] HTTP', r.status); return; }
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return;
+
+    const mAm = [];
+    const mCa = {};
+    const mTo = {}; // by torneo_id
+
+    rows.forEach(row => {
+      const blobStats = (row.stats || []).map(s => ({
+        playerId: Number(s.player_id),
+        gol: s.gol|0, assist: s.assist|0,
+        titolare: !!s.titolare, minuti: s.minuti|0,
+        gialli: s.gialli|0, rossi: s.rossi|0,
+        golSub: s.gol_sub|0, cs: !!s.cs
+      }));
+      const m = {
+        id: row.legacy_match_id != null ? row.legacy_match_id : ('mysql_' + row.id),
+        leva: row.leva,
+        data: row.data,
+        orario: row.orario,
+        casa: row.casa, ospite: row.ospite,
+        avversario: row.avversario, lato: row.lato, luogo: row.luogo,
+        played: !!row.played,
+        golCasa: row.gol_casa|0, golOspiti: row.gol_ospiti|0,
+        visibilitaSubito: !!row.visibilita_subito,
+        annullata: !!row.annullata,
+        stats: blobStats,
+        _mysql_id: row.id, _event_key: row.event_key
+      };
+      if (row.tipo === 'amichevole') {
+        mAm.push(m);
+      } else if (row.tipo === 'campionato') {
+        const lv = row.leva || '';
+        if (!mCa[lv]) mCa[lv] = { partite: [] };
+        mCa[lv].partite.push(m);
+      } else if (row.tipo === 'torneo') {
+        const tid = row.torneo_id;
+        if (!tid) return;
+        if (!mTo[tid]) {
+          mTo[tid] = { id: tid, nome: row.torneo_nome, leva: row.torneo_leva, fasi: {} };
+        }
+        const fid = row.fase_id;
+        if (!fid) return;
+        if (!mTo[tid].fasi[fid]) {
+          mTo[tid].fasi[fid] = { id: fid, nome: row.fase_nome, tipo: row.fase_tipo, fase_gruppo: row.fase_gruppo, partite: [] };
+        }
+        mTo[tid].fasi[fid].partite.push(m);
+      }
+    });
+
+    const mTorneiArr = Object.values(mTo).map(t => ({
+      ...t,
+      fasi: Object.values(t.fasi)
+    }));
+
+    window.__mysqlAmichevoli = mAm;
+    window.__mysqlCampionato = mCa;
+    window.__mysqlTornei     = mTorneiArr;
+
+    // ─── CONFRONTO ──────────────────────────────────────────────────────────
+    const lvCur = currentLeva;
+    const blobCounts = {
+      amichevoli: amichevoli.length,
+      amichevoli_played: amichevoli.filter(x => x.played).length,
+      campionato_leve: Object.keys(campionato || {}).length,
+      campionato_partite_played: Object.values(campionato || {}).reduce((acc, c) => acc + (c.partite||[]).filter(m => m.played).length, 0),
+      tornei: (tornei||[]).length,
+      tornei_partite_played: (tornei||[]).reduce((acc, t) => acc + (t.fasi||[]).reduce((a2, f) => a2 + (f.partite||[]).filter(m => m.played).length, 0), 0)
+    };
+    const mysqlCounts = {
+      amichevoli: mAm.length,
+      amichevoli_played: mAm.filter(x => x.played).length,
+      campionato_leve: Object.keys(mCa).length,
+      campionato_partite_played: Object.values(mCa).reduce((acc, c) => acc + (c.partite||[]).filter(m => m.played).length, 0),
+      tornei: mTorneiArr.length,
+      tornei_partite_played: mTorneiArr.reduce((acc, t) => acc + (t.fasi||[]).reduce((a2, f) => a2 + (f.partite||[]).filter(m => m.played).length, 0), 0)
+    };
+    console.log('[matchSync] counts blob:', blobCounts);
+    console.log('[matchSync] counts mysql:', mysqlCounts);
+
+    // PMS confronto per la leva corrente
+    function _pmsFrom(amArr, caObj, toArr, pid, lv) {
+      const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
+      const a = zero(), c = zero(), t = zero();
+      function add(target, s) {
+        if (!s) return;
+        target.pres++;
+        target.gol+=s.gol|0; target.assist+=s.assist|0; target.minuti+=s.minuti|0;
+        target.gialli+=s.gialli|0; target.rossi+=s.rossi|0; target.golSub+=s.golSub|0;
+        if (s.cs) target.cs++;
+      }
+      (amArr||[]).filter(m => m.leva === lv && m.played).forEach(m =>
+        add(a, (m.stats||[]).find(s => s.playerId === pid)));
+      const camp = caObj ? caObj[lv] : null;
+      if (camp) (camp.partite||[]).filter(m => m.played).forEach(m =>
+        add(c, (m.stats||[]).find(s => s.playerId === pid)));
+      (toArr||[]).filter(tr => tr.leva === lv).forEach(tr =>
+        (tr.fasi||[]).forEach(f =>
+          (f.partite||[]).filter(m => m.played).forEach(m =>
+            add(t, (m.stats||[]).find(s => s.playerId === pid)))));
+      return {a,c,t};
+    }
+    const diffs = [];
+    (players||[]).filter(p => p.leva === lvCur).forEach(p => {
+      const blob  = _pmsFrom(amichevoli, campionato, tornei, p.id, lvCur);
+      const mysql = _pmsFrom(mAm, mCa, mTorneiArr, p.id, lvCur);
+      const keys = ['pres','gol','assist','minuti','gialli','rossi','golSub','cs'];
+      const cats = ['a','c','t'];
+      const out = {};
+      let any = false;
+      cats.forEach(cat => {
+        keys.forEach(k => {
+          if ((blob[cat][k]|0) !== (mysql[cat][k]|0)) {
+            out[cat+'.'+k] = (blob[cat][k]|0) + ' → ' + (mysql[cat][k]|0);
+            any = true;
+          }
+        });
+      });
+      if (any) diffs.push({ playerId: p.id, name: (p.nome||'')+' '+(p.cogn||''), diff: out });
+    });
+    if (diffs.length) {
+      console.log('[matchSync] DIFF playerMatchStats leva=' + lvCur + ' (' + diffs.length + ' giocatori con delta):', diffs);
+    } else {
+      console.log('[matchSync] playerMatchStats leva=' + lvCur + ' OK (0 differenze blob vs MySQL)');
+    }
+  } catch(e) {
+    console.log('[matchSync] error', e && e.message);
+  }
 }
 
 function _renderRosaInner() {
@@ -19850,6 +20156,11 @@ function renderPartite() {
   const pg = document.getElementById('pg-partite');
   if (!pg || !pg.classList.contains('on')) return;
 
+  // STEP1 match-sync (confronto, non-distruttivo, log only)
+  if (me && (typeof isAdminLike === 'function') && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente')) {
+    try { _syncMatchFromMySQL(true); } catch(_) {}
+  }
+
   // Leva tabs
   const ltEl = document.getElementById('ptLevaTabs');
   if (ltEl) {
@@ -28170,6 +28481,15 @@ async function doRejoinSocieta() {
       _ensureUserInDb();
       _origBoot(user);
       startSyncPoll();
+      // STEP1 — boot sync: rosa poi match (confronto, non-distruttivo)
+      setTimeout(() => {
+        const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+        if (_isDemoSoc) return;
+        (async () => {
+          try { await _syncRosaFromMySQL(); } catch(_) {}
+          try { await _syncMatchFromMySQL(true); } catch(_) {}
+        })();
+      }, 1500);
       // Controlla in background se ci sono aggiornamenti da altri dispositivi
       apiPull(KEY, 5000).then(serverJson => {
         // Dopo il primo pull (qualunque esito), _serverVersion è allineata (success) o resta
@@ -28225,6 +28545,15 @@ async function doRejoinSocieta() {
         me = user; // aggiorna il riferimento globale con l'utente fresco dal server
         _origBoot(user);
         startSyncPoll();
+        // STEP1 — boot sync (slow path): rosa poi match (confronto, non-distruttivo)
+        setTimeout(() => {
+          const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+          if (_isDemoSoc) return;
+          (async () => {
+            try { await _syncRosaFromMySQL(); } catch(_) {}
+            try { await _syncMatchFromMySQL(true); } catch(_) {}
+          })();
+        }, 1500);
         // Migrazione foto base64 → server (solo se ci sono foto legacy)
         setTimeout(function(){ if (typeof migratePhotosToServer === 'function') migratePhotosToServer(); }, 3000);
       });

@@ -92545,6 +92545,7 @@ router40.get("/matches", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const tipo = req.query.tipo || void 0;
   const leva = req.query.leva || void 0;
+  const includeStats = req.query.includeStats === "1" || req.query.includeStats === "true";
   if (tipo && !["campionato", "torneo", "amichevole"].includes(tipo)) {
     return res.status(400).json({ error: "invalid_tipo" });
   }
@@ -92577,6 +92578,35 @@ router40.get("/matches", requireAuth, async (req, res) => {
        ORDER BY m.data DESC, m.orario DESC, m.id DESC`,
       params
     );
+    if (includeStats && rows.length) {
+      const matchIds = rows.map((r) => Number(r.id));
+      const placeholders = matchIds.map(() => "?").join(",");
+      const [statRows] = await pool.execute(
+        `SELECT ms.match_id, ms.player_id, ms.gol, ms.assist, ms.titolare,
+                ms.minuti, ms.gialli, ms.rossi, ms.gol_sub, ms.cs
+         FROM match_stats ms
+         INNER JOIN players p ON p.id = ms.player_id AND p.society_id = ?
+         WHERE ms.match_id IN (${placeholders})`,
+        [societyId, ...matchIds]
+      );
+      const byMatch = {};
+      for (const s of statRows) {
+        const k = String(s.match_id);
+        if (!byMatch[k]) byMatch[k] = [];
+        byMatch[k].push({
+          player_id: Number(s.player_id),
+          gol: Number(s.gol) || 0,
+          assist: Number(s.assist) || 0,
+          titolare: s.titolare ? 1 : 0,
+          minuti: Number(s.minuti) || 0,
+          gialli: Number(s.gialli) || 0,
+          rossi: Number(s.rossi) || 0,
+          gol_sub: Number(s.gol_sub) || 0,
+          cs: s.cs ? 1 : 0
+        });
+      }
+      for (const r of rows) r.stats = byMatch[String(r.id)] || [];
+    }
     return res.json(rows);
   } catch (e) {
     logger.error({ err: e }, "GET matches error");
