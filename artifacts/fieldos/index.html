@@ -1615,6 +1615,57 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-size:.78rem;color:var(--text2);font-style:italic;
   padding:8px 4px;text-align:center;
 }
+
+/* Presenze allenamenti — conteggio + barre mensili (sostituisce "Ultime presenze") */
+.pa-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px 10px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.pa-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;
+}
+.pa-count-wrap{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;}
+.pa-count-n{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1.8rem;line-height:1;color:#1A7A4A;letter-spacing:-.5px;
+}
+.pa-count-tot{font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;color:var(--text2);}
+.pa-count-sub{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.74rem;
+  color:var(--text2);text-transform:lowercase;letter-spacing:.4px;
+}
+.pa-bars{
+  display:flex;align-items:flex-end;gap:8px;
+  padding:6px 2px 0;height:140px;overflow-x:auto;
+}
+.pa-bar-col{
+  display:flex;flex-direction:column;align-items:center;
+  flex:1 0 32px;min-width:32px;
+}
+.pa-bar-pct{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.62rem;
+  color:#1A7A4A;background:#FFD93D;border-radius:5px;padding:2px 6px;
+  margin-bottom:4px;min-width:30px;text-align:center;letter-spacing:-.2px;
+}
+.pa-bar-track{
+  width:26px;height:88px;
+  background:#f1f5f4;border-radius:8px;
+  display:flex;align-items:flex-end;overflow:hidden;
+  border:1px solid #e5ece8;
+}
+.pa-bar-fill{
+  width:100%;
+  background:linear-gradient(180deg,#2A9A65 0%,#1A7A4A 100%);
+  border-radius:8px 8px 0 0;min-height:3px;
+}
+.pa-bar-lbl{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.66rem;
+  color:var(--text2);margin-top:6px;text-transform:lowercase;letter-spacing:.3px;
+}
+.pa-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px 10px;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5865,23 +5916,45 @@ function renderProfiloFiglio(el) {
   const pcColor = s.percAll >= 80 ? 'var(--green)' : s.percAll >= 60 ? 'var(--gold)' : 'var(--red)';
   const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
-  // Ultime 6 presenze agli allenamenti
-  const trainDates = getTrainingDatesForLeva(p.leva).slice(0, 6).reverse();
-  const presBarHtml = trainDates.length ? `<div class="mob-pres-bars">
-    <div class="mob-pres-bars-hd">Ultime presenze</div>
-    ${trainDates.map(dateStr => {
-      const stato = getPresenzaForDate(p, dateStr);
-      const barColor = stato === 'p' ? 'var(--green)' : stato === 'a' ? 'var(--red)' : stato === 'j' ? 'var(--gold)' : 'var(--border2)';
-      const barW = stato ? '100%' : '15%';
-      const valLabel = stato === 'p' ? 'P' : stato === 'a' ? 'A' : stato === 'j' ? 'G' : '—';
-      const d = parseYmd(dateStr);
-      return `<div class="mob-pres-bar-row">
-        <div class="mob-pres-bar-lbl">${d.getDate()} ${MESI_S[d.getMonth()].toLowerCase()}</div>
-        <div class="mob-pres-bar-track"><div class="mob-pres-bar-fill" style="width:${barW};background:${barColor};"></div></div>
-        <div class="mob-pres-bar-val">${valLabel}</div>
-      </div>`;
-    }).join('')}
-  </div>` : '';
+  // Presenze allenamenti — conteggio + barre mensili.
+  // Fonte dati: stessa di calcStats.percAll (p.presAll). Solo record con data <= oggi
+  // (niente date future con barre vuote). Mesi senza allenamenti svolti → niente barra.
+  const _paToday = ymd(new Date());
+  const _paPresAll = (Array.isArray(p.presAll) ? p.presAll : [])
+    .filter(r => r && typeof r === 'object' && r.date && r.date <= _paToday);
+  const _paTot = _paPresAll.length;
+  const _paPres = _paPresAll.filter(r => r.status === 'p').length;
+  // Raggruppa per YYYY-MM
+  const _paByMonth = {};
+  _paPresAll.forEach(r => {
+    const ym = r.date.slice(0, 7);
+    if (!_paByMonth[ym]) _paByMonth[ym] = { total: 0, present: 0 };
+    _paByMonth[ym].total++;
+    if (r.status === 'p') _paByMonth[ym].present++;
+  });
+  const _paMonths = Object.keys(_paByMonth).sort(); // cronologico
+  const _MESI_AB = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const _paBarsHtml = _paMonths.map(ym => {
+    const mm = parseInt(ym.split('-')[1], 10);
+    const st = _paByMonth[ym];
+    const pct = st.total ? Math.round(st.present / st.total * 100) : 0;
+    return `<div class="pa-bar-col">
+      <div class="pa-bar-pct">${pct}%</div>
+      <div class="pa-bar-track"><div class="pa-bar-fill" style="height:${pct}%;"></div></div>
+      <div class="pa-bar-lbl">${_MESI_AB[mm-1]||''}</div>
+    </div>`;
+  }).join('');
+  const presBarHtml = `<div class="pa-card">
+    <div class="pa-hd">📊 Presenze allenamenti</div>
+    ${_paTot > 0
+      ? `<div class="pa-count-wrap">
+          <span class="pa-count-n">${_paPres}</span><span class="pa-count-tot">/ ${_paTot}</span>
+          <span class="pa-count-sub">allenamenti svolti</span>
+        </div>
+        ${_paBarsHtml ? `<div class="pa-bars">${_paBarsHtml}</div>` : ''}`
+      : `<div class="pa-empty">Nessun allenamento svolto ancora.</div>`
+    }
+  </div>`;
 
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
