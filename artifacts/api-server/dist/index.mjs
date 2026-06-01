@@ -85644,6 +85644,21 @@ async function getCollabLimit(societyId) {
   const norm = PIANO_NORM_U[raw] || raw;
   return COLLAB_LIMITS[norm] ?? 0;
 }
+router15.get("/users/roles", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, ruolo FROM users WHERE society_id = ?",
+      [societyId]
+    );
+    return res.json({
+      roles: rows.map((r) => ({ id: r.id, ruolo: r.ruolo }))
+    });
+  } catch (e) {
+    logger.error({ err: e }, "GET users/roles error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {

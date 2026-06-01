@@ -5715,6 +5715,9 @@ function bootApp(user) {
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { _loadCalEvents(); }, 400);
+    // Riallinea blob USERS_DB.role ← MySQL.ruolo (idempotente).
+    // Ripara account "corrotti" da setViewMode pre-fix. Skip demo + sa view-mode.
+    setTimeout(function() { try { _reconcileUserRoles(); } catch(_) {} }, 600);
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
@@ -5946,6 +5949,66 @@ function setViewMode(mode){
   try { if (typeof refreshChatBadges === 'function') refreshChatBadges(); } catch(_) {}
   try { if (typeof refreshMobBadges === 'function') refreshMobBadges(); } catch(_) {}
   // TODO badge cross-modalità: qui andrà il refresh del contatore "notifiche nell'altra vista".
+}
+
+// Riconciliazione idempotente USERS_DB.role ← MySQL.ruolo (autorevole).
+// Recupera dal backend (/api/v2/users/roles) il ruolo MySQL di ogni utente della
+// società e riallinea la entry corrispondente nel blob locale. Gestisce in modo
+// safe il caso "io sono attualmente in view-swap" (aggiorna _viewModeOrigRole
+// invece di me.role per non interrompere la vista). GUARD: salta utenti senza
+// record MySQL o con ruolo ambiguo (mai inventato), skippa demo/saViewMode.
+async function _reconcileUserRoles(){
+  try {
+    if (!me) return;
+    if (typeof saViewMode !== 'undefined' && saViewMode) return;
+    var _isDemo = (typeof DEMO_STELLA_ID !== 'undefined' && currentSocietaId === DEMO_STELLA_ID)
+               || (typeof DEMO_SOC_ID    !== 'undefined' && currentSocietaId === DEMO_SOC_ID);
+    if (_isDemo) return;
+    if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+    if (!_v2Token) return;
+    var r;
+    try {
+      r = await fetch(API_BASE + '/api/v2/users/roles', { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    } catch(netErr) { return; } // rete down: skip silenzioso
+    if (!r || !r.ok) return;
+    var data = await r.json().catch(function(){return null;});
+    if (!data || !Array.isArray(data.roles)) return;
+    var changed = 0;
+    var meRoleChanged = false;
+    data.roles.forEach(function(rec){
+      try {
+        if (!rec || rec.id == null) return;             // GUARD: id assente → skip
+        if (!rec.ruolo || typeof rec.ruolo !== 'string') return; // GUARD: ruolo ambiguo → skip
+        var u = USERS_DB.find(function(x){return x.id === rec.id;});
+        if (!u) return;                                  // GUARD: in MySQL ma non nel blob → skip
+        // ruolo "vero" lato blob = _viewModeOrigRole se sono io e sono in view-swap
+        var effective = u.role;
+        if (u === me && _viewModeOrigRole) effective = _viewModeOrigRole;
+        if (effective === rec.ruolo) return;             // già allineato
+        console.warn('[role-reconcile] uid=' + u.id + ' blob=' + effective + ' mysql=' + rec.ruolo + ' → realign');
+        if (u === me && _viewModeOrigRole) {
+          // sono io ed in view-swap: aggiorno l'orig role; me.role rimane swappato
+          _viewModeOrigRole = rec.ruolo;
+        } else {
+          u.role = rec.ruolo;
+          if (u === me) meRoleChanged = true;
+        }
+        changed++;
+      } catch(_) {}
+    });
+    if (changed > 0) {
+      try { if (window.__fieldosSaveState) window.__fieldosSaveState(); } catch(_) {}
+      try { if (typeof renderModeSwitch === 'function') renderModeSwitch(); } catch(_) {}
+      // se il MIO ruolo è cambiato, rebuild della UI corrente (sidebar/contenuto/mob-nav)
+      if (meRoleChanged) {
+        try { if (typeof buildSidebar === 'function') buildSidebar(me.role); } catch(_) {}
+        try { if (typeof buildRoleContent === 'function') buildRoleContent(me.role); } catch(_) {}
+        try { if (typeof buildMobNav === 'function') buildMobNav(me.role); } catch(_) {}
+      }
+    }
+  } catch(e) {
+    try { console.warn('[role-reconcile] error', e); } catch(_) {}
+  }
 }
 
 function renderModeSwitch(){
@@ -29448,8 +29511,21 @@ async function doRejoinSocieta() {
     // Le societa' DEMO continuano a serializzare events nel blob perche' _loadCalEvents le salta.
     // eventTypes / nextEventTypeId: SEMPRE nello snapshot (tassonomia, nessun equivalente MySQL).
     const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+    // SAFETY view-mode (Dirigente⇄Genitore): setViewMode('genitore') muta me.role,
+    // ma me è reference a un elemento di USERS_DB → la mutazione finirebbe persistita.
+    // Se siamo in view-swap, serializza una USERS_DB con la entry di me clonata col
+    // ruolo ORIGINALE (_viewModeOrigRole). Nessun altra entry tocata; me.role in
+    // memoria resta swappato (serve alla UI). Idempotente, no side-effect.
+    var _USERS_DB_ser = USERS_DB;
+    try {
+      if (me && _viewModeOrigRole && me.role !== _viewModeOrigRole && Array.isArray(USERS_DB)) {
+        _USERS_DB_ser = USERS_DB.map(function(u){
+          return (u === me) ? Object.assign({}, u, {role: _viewModeOrigRole}) : u;
+        });
+      }
+    } catch(_) { _USERS_DB_ser = USERS_DB; }
     return {
-      USERS_DB: USERS_DB,
+      USERS_DB: _USERS_DB_ser,
       players: players,
       nextUserId: nextUserId,
       nextPlayerId: nextPlayerId,

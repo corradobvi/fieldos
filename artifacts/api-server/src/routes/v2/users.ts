@@ -16,6 +16,28 @@ async function getCollabLimit(societyId: number): Promise<number> {
   return COLLAB_LIMITS[norm] ?? 0;
 }
 
+// GET /api/v2/users/roles
+// Restituisce id+ruolo di tutti gli utenti attivi della società corrente.
+// Accessibile a QUALSIASI utente autenticato (i ruoli sono già nel blob
+// USERS_DB condiviso, niente nuova esposizione). Usato dal client per
+// riallineare blob.role ← MySQL.ruolo (autorevole) e ripristinare account
+// "corrotti" da setViewMode pre-fix. Idempotente.
+router.get("/users/roles", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser!;
+  try {
+    const [rows] = (await pool.execute(
+      "SELECT id, ruolo FROM users WHERE society_id = ?",
+      [societyId]
+    )) as [any[], any];
+    return res.json({
+      roles: rows.map((r: any) => ({ id: r.id, ruolo: r.ruolo })),
+    });
+  } catch (e: any) {
+    logger.error({ err: e }, "GET users/roles error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // GET /api/v2/users
 router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
