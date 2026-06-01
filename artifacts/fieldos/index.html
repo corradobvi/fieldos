@@ -1299,9 +1299,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .cm-msgs{padding:14px max(14px,env(safe-area-inset-right,0px)) 14px max(14px,env(safe-area-inset-left,0px));}
   /* In conversazione: la bottom nav resta VISIBILE; verrà nascosta solo a tastiera aperta */
   .msg{font-size:.93rem;line-height:1.45;}
-  /* Ancoraggio messaggi in basso (no overflow) */
-  .cm-msgs{justify-content:flex-end;}
-  .cm-msgs > :first-child{margin-top:auto;}
+  /* Rimosso: justify-content:flex-end + > :first-child{margin-top:auto} su .cm-msgs.
+     Causa accavallamento dei fumetti ad apertura tastiera: con altezza ridotta dal
+     visualViewport handler e contenuto > container, l'auto-margin + flex-end
+     produce posizionamenti che si sovrappongono in iOS Safari. Lo scroll-to-end
+     è già garantito da renderChatMessages (scrollTop=scrollHeight) e dal
+     _chatPanelVvHandler (scrollTop=scrollHeight ad ogni resize tastiera). */
   /* Bubble+avatar mai oltre il viewport */
   .msg{max-width:min(82%,calc(100vw - 72px));}
   .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
@@ -3632,7 +3635,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.17</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.18</span></div>
       </div>
 
     </main>

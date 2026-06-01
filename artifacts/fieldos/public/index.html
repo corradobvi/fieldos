@@ -301,6 +301,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ci-time{font-size:.7rem;color:var(--text3);flex-shrink:0;font-weight:500;}
 .ci-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .ci-msg{font-size:.8rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;}
+.ci-audience{font-size:.7rem;color:var(--text3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ci.has-unread .ci-msg{color:var(--text);font-weight:600;}
 .ci.has-unread .ci-time{color:var(--cp);font-weight:700;}
 .ci-un{background:var(--cp);color:#fff;font-size:.65rem;font-weight:800;min-width:20px;height:20px;padding:0 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -1298,9 +1299,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   .cm-msgs{padding:14px max(14px,env(safe-area-inset-right,0px)) 14px max(14px,env(safe-area-inset-left,0px));}
   /* In conversazione: la bottom nav resta VISIBILE; verrà nascosta solo a tastiera aperta */
   .msg{font-size:.93rem;line-height:1.45;}
-  /* Ancoraggio messaggi in basso (no overflow) */
-  .cm-msgs{justify-content:flex-end;}
-  .cm-msgs > :first-child{margin-top:auto;}
+  /* Rimosso: justify-content:flex-end + > :first-child{margin-top:auto} su .cm-msgs.
+     Causa accavallamento dei fumetti ad apertura tastiera: con altezza ridotta dal
+     visualViewport handler e contenuto > container, l'auto-margin + flex-end
+     produce posizionamenti che si sovrappongono in iOS Safari. Lo scroll-to-end
+     è già garantito da renderChatMessages (scrollTop=scrollHeight) e dal
+     _chatPanelVvHandler (scrollTop=scrollHeight ad ogni resize tastiera). */
   /* Bubble+avatar mai oltre il viewport */
   .msg{max-width:min(82%,calc(100vw - 72px));}
   .msg > :not(.msg-av){min-width:0;max-width:100%;flex:1 1 auto;}
@@ -1396,9 +1400,33 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   width:120px;height:120px;border-radius:50%;
   background:rgba(255,255,255,.07);
 }
-.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:10px;line-height:1.2;}
-.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.15;margin-bottom:10px;}
-.mob-evt-meta{font-size:.78rem;opacity:.8;line-height:1.45;}
+/* Riserva uno spazio FERMO per il badge .mob-evt-cd (right:18px + min-width:56px + padding 8/12
+   ≈ 80-95px in base al contenuto "N giorni"). Usiamo max-width via calc() + display:block +
+   box-sizing:border-box: garantisce un limite di larghezza vincolante anche se l'elemento è
+   in un layout flex o ha quirks di sub-pixel — l'ellissi tronca al confine del content box. */
+.mob-evt-tag{
+  display:block;box-sizing:border-box;
+  max-width:calc(100% - 100px);
+  font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;
+  margin-bottom:10px;line-height:1.2;
+  min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.mob-evt-title{
+  display:block;box-sizing:border-box;
+  max-width:calc(100% - 100px);
+  font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;
+  line-height:1.15;margin-bottom:10px;
+  min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.mob-evt-meta{
+  display:block;box-sizing:border-box;
+  max-width:calc(100% - 100px);
+  font-size:.78rem;opacity:.8;line-height:1.45;
+  min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 .mob-evt-cd{
   position:absolute;right:18px;top:50%;transform:translateY(-50%);
   text-align:center;background:rgba(255,255,255,.15);
@@ -1408,7 +1436,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .mob-evt-cd-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;color:#fff;}
 /* "Vedi tutti" in-flow sotto la riga data/ora con margin-top dedicato per ritmo verticale */
 .mob-evt-all{
-  display:inline-block;
+  display:inline-block;box-sizing:border-box;
+  max-width:calc(100% - 100px);
   margin-top:14px;
   font-size:.72rem;font-weight:700;color:#fff;opacity:.85;
   text-decoration:underline;cursor:pointer;line-height:1.2;
@@ -1836,37 +1865,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   margin-top:8px;text-align:right;
 }
 
-/* DEBUG box — visibile solo se localStorage.mv_home_dbg === '1' (toggle facile). */
-.dbg-next-card{
-  background:#fff8e6;border:1px dashed #b58a00;border-radius:12px;
-  padding:12px;margin-bottom:10px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:.72rem;color:#3a3000;line-height:1.4;
-}
-.dbg-next-card .dbg-hd{
-  display:flex;align-items:center;justify-content:space-between;gap:6px;
-  font-family:'Nunito',sans-serif;font-weight:900;font-size:.8rem;color:#7a5500;margin-bottom:8px;
-}
-.dbg-next-card .dbg-hide{
-  font-family:'Nunito',sans-serif;font-size:.7rem;font-weight:800;
-  background:transparent;border:1px solid #b58a00;color:#7a5500;
-  border-radius:6px;padding:3px 8px;cursor:pointer;
-}
-.dbg-next-card pre{
-  background:#fffdf2;border:1px solid #ead7a8;border-radius:8px;
-  padding:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;
-  margin:0;font-size:.7rem;color:#2a2400;max-height:60vh;overflow-y:auto;
-}
-.dbg-next-card .dbg-row{padding:4px 0;border-bottom:1px solid rgba(181,138,0,.18);}
-.dbg-next-card .dbg-row:last-child{border-bottom:none;}
-.dbg-next-card .dbg-tag{
-  display:inline-block;padding:1px 6px;border-radius:6px;font-weight:900;
-  font-size:.62rem;letter-spacing:.4px;margin-right:4px;
-}
-.dbg-next-card .dbg-tag.conv{background:#1A7A4A;color:#fff;}
-.dbg-next-card .dbg-tag.att{background:#FFD93D;color:#6b4d04;}
-.dbg-next-card .dbg-tag.noc{background:#e5e7eb;color:#52555a;}
-.dbg-next-card .dbg-tag.tr{background:#0ea860;color:#fff;}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -3637,7 +3635,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.17</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.18</span></div>
       </div>
 
     </main>
@@ -5744,6 +5742,9 @@ function bootApp(user) {
     if (!_waToken) { try { _waToken = sessionStorage.getItem('mv_wa_token'); } catch(_) {} }
     if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
     setTimeout(function() { _loadCalEvents(); }, 400);
+    // Riallinea blob USERS_DB.role ← MySQL.ruolo (idempotente).
+    // Ripara account "corrotti" da setViewMode pre-fix. Skip demo + sa view-mode.
+    setTimeout(function() { try { _reconcileUserRoles(); } catch(_) {} }, 600);
     setTimeout(function() { waCheckStatus(); }, 2000);
     // Carica FAQ apprese dal SA state
     const _saRaw = localStorage.getItem(SA_KEY);
@@ -5975,6 +5976,66 @@ function setViewMode(mode){
   try { if (typeof refreshChatBadges === 'function') refreshChatBadges(); } catch(_) {}
   try { if (typeof refreshMobBadges === 'function') refreshMobBadges(); } catch(_) {}
   // TODO badge cross-modalità: qui andrà il refresh del contatore "notifiche nell'altra vista".
+}
+
+// Riconciliazione idempotente USERS_DB.role ← MySQL.ruolo (autorevole).
+// Recupera dal backend (/api/v2/users/roles) il ruolo MySQL di ogni utente della
+// società e riallinea la entry corrispondente nel blob locale. Gestisce in modo
+// safe il caso "io sono attualmente in view-swap" (aggiorna _viewModeOrigRole
+// invece di me.role per non interrompere la vista). GUARD: salta utenti senza
+// record MySQL o con ruolo ambiguo (mai inventato), skippa demo/saViewMode.
+async function _reconcileUserRoles(){
+  try {
+    if (!me) return;
+    if (typeof saViewMode !== 'undefined' && saViewMode) return;
+    var _isDemo = (typeof DEMO_STELLA_ID !== 'undefined' && currentSocietaId === DEMO_STELLA_ID)
+               || (typeof DEMO_SOC_ID    !== 'undefined' && currentSocietaId === DEMO_SOC_ID);
+    if (_isDemo) return;
+    if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+    if (!_v2Token) return;
+    var r;
+    try {
+      r = await fetch(API_BASE + '/api/v2/users/roles', { headers: { 'Authorization': 'Bearer ' + _v2Token } });
+    } catch(netErr) { return; } // rete down: skip silenzioso
+    if (!r || !r.ok) return;
+    var data = await r.json().catch(function(){return null;});
+    if (!data || !Array.isArray(data.roles)) return;
+    var changed = 0;
+    var meRoleChanged = false;
+    data.roles.forEach(function(rec){
+      try {
+        if (!rec || rec.id == null) return;             // GUARD: id assente → skip
+        if (!rec.ruolo || typeof rec.ruolo !== 'string') return; // GUARD: ruolo ambiguo → skip
+        var u = USERS_DB.find(function(x){return x.id === rec.id;});
+        if (!u) return;                                  // GUARD: in MySQL ma non nel blob → skip
+        // ruolo "vero" lato blob = _viewModeOrigRole se sono io e sono in view-swap
+        var effective = u.role;
+        if (u === me && _viewModeOrigRole) effective = _viewModeOrigRole;
+        if (effective === rec.ruolo) return;             // già allineato
+        console.warn('[role-reconcile] uid=' + u.id + ' blob=' + effective + ' mysql=' + rec.ruolo + ' → realign');
+        if (u === me && _viewModeOrigRole) {
+          // sono io ed in view-swap: aggiorno l'orig role; me.role rimane swappato
+          _viewModeOrigRole = rec.ruolo;
+        } else {
+          u.role = rec.ruolo;
+          if (u === me) meRoleChanged = true;
+        }
+        changed++;
+      } catch(_) {}
+    });
+    if (changed > 0) {
+      try { if (window.__fieldosSaveState) window.__fieldosSaveState(); } catch(_) {}
+      try { if (typeof renderModeSwitch === 'function') renderModeSwitch(); } catch(_) {}
+      // se il MIO ruolo è cambiato, rebuild della UI corrente (sidebar/contenuto/mob-nav)
+      if (meRoleChanged) {
+        try { if (typeof buildSidebar === 'function') buildSidebar(me.role); } catch(_) {}
+        try { if (typeof buildRoleContent === 'function') buildRoleContent(me.role); } catch(_) {}
+        try { if (typeof buildMobNav === 'function') buildMobNav(me.role); } catch(_) {}
+      }
+    }
+  } catch(e) {
+    try { console.warn('[role-reconcile] error', e); } catch(_) {}
+  }
 }
 
 function renderModeSwitch(){
@@ -14589,10 +14650,59 @@ var _MISTER_SC_ALL = {
 };
 var _MISTER_SC_DEF = ['presenze','rosa','convocazioni','calendario'];
 
-function _misterGetShortcuts() {
-  var key = 'mister_sc_'+(me?me.id:0);
-  try{ var v=JSON.parse(localStorage.getItem(key)||'null'); if(Array.isArray(v)&&v.length===4) return v; }catch(e){}
+// Dirigente: shortcut pool. permKey = filtro permessi concessi al dirigente
+// (vedi defaults in renderRosaPermissions / hasPerm). Le voci senza permKey
+// sono sempre selezionabili.
+var _DIRIG_SC_ALL = {
+  panoramica:    {ic:'🏟️',lb:'Panoramica',   action:"goTo('panoramica')"},
+  rosa:          {ic:'👥',lb:'Rosa',          action:"goTo('rosa')"},
+  calendario:    {ic:'📅',lb:'Calendario',    action:"goTo('calendario')"},
+  chat:          {ic:'💬',lb:'Chat',          action:"goTo('chat')"},
+  documenti:     {ic:'📄',lb:'Documenti',     action:"goTo('documenti')"},
+  comunicazioni: {ic:'📣',lb:'Avvisi',        action:"goTo('comunicazioni')", permKey:'gestione_comunicazioni_bacheca'},
+  convocazioni:  {ic:'📋',lb:'Convocazioni',  action:"goTo('convocazioni')",  permKey:'gestione_convocazioni'},
+  presenze:      {ic:'✅',lb:'Presenze',      action:"goTo('presenze')",      permKey:'gestione_presenze'},
+  partite:       {ic:'⚽',lb:'Partite',       action:"goTo('partite')",       permKey:'gestione_risultati'},
+};
+// Default sicuro (tutte voci senza permKey, sempre disponibili)
+var _DIRIG_SC_DEF = ['rosa','calendario','chat','panoramica'];
+
+// Config per scope: mappa, default, prefisso storage key
+var _SC_SCOPES = {
+  mister:    { all:_MISTER_SC_ALL, def:_MISTER_SC_DEF, key:'mister_sc_' },
+  dirigente: { all:_DIRIG_SC_ALL,  def:_DIRIG_SC_DEF,  key:'dirig_sc_'  },
+};
+
+function _scScopeFor(role) { return role === 'dirigente' ? 'dirigente' : 'mister'; }
+
+// Per il dirigente: filtra il pool con i permessi concessi (hasPerm).
+// Se non ci sono restrizioni (permissions==null → legacy compat) hasPerm restituisce true.
+function _scAvailableIds(scope) {
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  return Object.keys(cfg.all).filter(function(id){
+    var pk = cfg.all[id].permKey;
+    if (!pk) return true;
+    return (typeof hasPerm === 'function') ? hasPerm(pk) : true;
+  });
+}
+
+function _scGetShortcuts(scope) {
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var key = cfg.key + (me ? me.id : 0);
+  try { var v = JSON.parse(localStorage.getItem(key) || 'null'); if (Array.isArray(v) && v.length === 4) return v; } catch(e) {}
+  // Default solo per dirigente (mister conserva il legacy: 4 slot vuoti).
+  if (scope === 'dirigente') {
+    var avail = new Set(_scAvailableIds('dirigente'));
+    var picked = cfg.def.filter(function(id){ return avail.has(id); }).slice(0, 4);
+    while (picked.length < 4) picked.push(null);
+    return picked;
+  }
   return [null,null,null,null];
+}
+
+function _misterGetShortcuts() {
+  // Backcompat wrapper
+  return _scGetShortcuts('mister');
 }
 
 // Returns the next event (any type: training, match, etc.) for the leva
@@ -14736,76 +14846,92 @@ function _scPickPlanLocked(cfg) {
   return (typeof isSectionLocked === 'function') && isSectionLocked('allenamenti', _soc) && cfg.pianoMin === 'mister_pro';
 }
 
-function openMisterShortcutPicker() {
+function openMisterShortcutPicker(scope) {
+  scope = scope || 'mister';
   if (document.getElementById('scPickerOv')) return;
-  var current=_misterGetShortcuts().filter(Boolean);
-  window._scPickCurrent=current.slice();
-  var allIds=Object.keys(_MISTER_SC_ALL);
-  var itemsHtml=allIds.map(function(id){
-    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
-    var locked=_scPickPlanLocked(cfg);
-    var proTag=cfg.pianoMin?'<span style="font-size:.64rem;font-weight:800;background:var(--ca);color:var(--ca-text);border-radius:4px;padding:1px 5px;flex-shrink:0;">PRO</span>':'';
+  window._scPickScope = scope;
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = _scGetShortcuts(scope).filter(Boolean);
+  window._scPickCurrent = current.slice();
+  // Per il dirigente: mostra solo le voci consentite dai permessi.
+  var allIds = (scope === 'dirigente') ? _scAvailableIds('dirigente') : Object.keys(cfg.all);
+  var itemsHtml = allIds.map(function(id){
+    var cfgEntry = cfg.all[id]; var sel = current.indexOf(id) >= 0; var idx = current.indexOf(id);
+    var locked = (scope === 'mister') ? _scPickPlanLocked(cfgEntry) : false;
+    var proTag = cfgEntry.pianoMin ? '<span style="font-size:.64rem;font-weight:800;background:var(--ca);color:var(--ca-text);border-radius:4px;padding:1px 5px;flex-shrink:0;">PRO</span>' : '';
     return '<div class="sc-pi'+(sel?' sel':'')+(locked?' sc-pi-locked':'')+'" id="scpi_'+id+'" onclick="'+(locked?'':('toggleScPick(\''+id+'\')'))+(locked?'toast(\'🔒 Disponibile con Mister Pro\')':'')+'">'
-      +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
-      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
+      +'<span style="font-size:1.15rem;flex-shrink:0;">'+cfgEntry.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfgEntry.lb+'</span>'
       +proTag
       +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:4px;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;margin-left:4px;"></span>')
       +'</div>';
   }).join('');
-  var el=document.createElement('div');
-  el.id='scPickerOv'; el.className='sc-picker-ov';
-  el.innerHTML='<div class="sc-picker-sheet">'
+  var subtitle = (scope === 'dirigente')
+    ? 'Scegli fino a 4 scorciatoie. Solo le sezioni a cui hai accesso sono selezionabili.'
+    : 'Scegli esattamente 4 scorciatoie (ordine di tocco = posizione).';
+  var el = document.createElement('div');
+  el.id = 'scPickerOv'; el.className = 'sc-picker-ov';
+  el.innerHTML = '<div class="sc-picker-sheet">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
     +'<div style="font-weight:800;font-size:1rem;">⚡ Scorciatoie home</div>'
     +'<button style="background:none;border:none;cursor:pointer;font-size:1.2rem;padding:4px 8px;color:var(--text2);line-height:1;" onclick="closeMisterShortcutPicker()">✕</button>'
     +'</div>'
-    +'<p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;">Scegli esattamente 4 scorciatoie (ordine di tocco = posizione).</p>'
+    +'<p style="font-size:.82rem;color:var(--text2);margin:0 0 14px;">'+subtitle+'</p>'
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'+itemsHtml+'</div>'
     +'<div id="scPickErr" style="font-size:.82rem;color:var(--red);margin-bottom:8px;min-height:18px;"></div>'
     +'<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;" onclick="saveMisterShortcuts()">✅ Salva</button>'
     +'</div>';
-  el.addEventListener('click',function(e){if(e.target===el) closeMisterShortcutPicker();});
+  el.addEventListener('click', function(e){ if (e.target === el) closeMisterShortcutPicker(); });
   document.body.appendChild(el);
 }
 
+// Wrapper esplicito per il dirigente — stesso meccanismo, scope diverso
+function openDirigShortcutPicker() { openMisterShortcutPicker('dirigente'); }
+
 function closeMisterShortcutPicker() {
-  var el=document.getElementById('scPickerOv'); if(el) el.remove();
+  var el = document.getElementById('scPickerOv'); if (el) el.remove();
+  window._scPickScope = null;
 }
 
 function toggleScPick(id) {
-  if (!window._scPickCurrent) window._scPickCurrent=[];
-  var idx=window._scPickCurrent.indexOf(id);
-  var errEl=document.getElementById('scPickErr');
-  if (idx>=0) {
-    window._scPickCurrent.splice(idx,1);
+  if (!window._scPickCurrent) window._scPickCurrent = [];
+  var idx = window._scPickCurrent.indexOf(id);
+  var errEl = document.getElementById('scPickErr');
+  if (idx >= 0) {
+    window._scPickCurrent.splice(idx, 1);
   } else {
-    if (window._scPickCurrent.length>=4){if(errEl)errEl.textContent='Puoi selezionare massimo 4 scorciatoie.';return;}
+    if (window._scPickCurrent.length >= 4) { if (errEl) errEl.textContent = 'Puoi selezionare massimo 4 scorciatoie.'; return; }
     window._scPickCurrent.push(id);
   }
-  if(errEl) errEl.textContent='';
+  if (errEl) errEl.textContent = '';
   _refreshScPickerUI();
 }
 
 function _refreshScPickerUI() {
-  var current=window._scPickCurrent||[];
-  Object.keys(_MISTER_SC_ALL).forEach(function(id){
-    var el=document.getElementById('scpi_'+id); if(!el) return;
-    var cfg=_MISTER_SC_ALL[id]; var sel=current.indexOf(id)>=0; var idx=current.indexOf(id);
-    el.className='sc-pi'+(sel?' sel':'');
-    el.innerHTML='<span style="font-size:1.15rem;flex-shrink:0;">'+cfg.ic+'</span>'
-      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfg.lb+'</span>'
-      +(sel?'<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>':'<span style="width:22px;flex-shrink:0;"></span>');
+  var scope = window._scPickScope || 'mister';
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = window._scPickCurrent || [];
+  var ids = (scope === 'dirigente') ? _scAvailableIds('dirigente') : Object.keys(cfg.all);
+  ids.forEach(function(id){
+    var el = document.getElementById('scpi_'+id); if (!el) return;
+    var cfgEntry = cfg.all[id]; var sel = current.indexOf(id) >= 0; var idx = current.indexOf(id);
+    el.className = 'sc-pi' + (sel ? ' sel' : '');
+    el.innerHTML = '<span style="font-size:1.15rem;flex-shrink:0;">'+cfgEntry.ic+'</span>'
+      +'<span style="flex:1;font-size:.86rem;font-weight:'+(sel?'700':'400')+';">'+cfgEntry.lb+'</span>'
+      +(sel ? '<span style="font-size:.76rem;font-weight:900;color:var(--cp);background:var(--cl);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'+(idx+1)+'</span>' : '<span style="width:22px;flex-shrink:0;"></span>');
   });
 }
 
 function saveMisterShortcuts() {
-  var current=window._scPickCurrent||[];
-  var errEl=document.getElementById('scPickErr');
-  if(current.length!==4){if(errEl)errEl.textContent='Seleziona esattamente 4 scorciatoie.';return;}
-  var key='mister_sc_'+(me?me.id:0);
-  localStorage.setItem(key,JSON.stringify(current));
+  var scope = window._scPickScope || 'mister';
+  var cfg = _SC_SCOPES[scope] || _SC_SCOPES.mister;
+  var current = window._scPickCurrent || [];
+  var errEl = document.getElementById('scPickErr');
+  if (current.length !== 4) { if (errEl) errEl.textContent = 'Seleziona esattamente 4 scorciatoie.'; return; }
+  var key = cfg.key + (me ? me.id : 0);
+  localStorage.setItem(key, JSON.stringify(current));
   closeMisterShortcutPicker();
-  if(me) buildDashboard(me.role);
+  if (me) buildDashboard(me.role);
   toast('⚡ Scorciatoie aggiornate');
 }
 
@@ -14819,20 +14945,48 @@ function buildMobDashboard(role, c) {
   const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   const lv = currentLeva;
 
-  // Prossimo evento — usa la STESSA fonte dati del calendario completo
-  // (events[] + canSeeEvent + eventOccursOn) per coerenza coi pallini sul calendario.
-  // Forward-scan giornaliero, bounded a 366 giorni (l'orizzonte caricato da _loadCalEvents è ~12 mesi).
+  // Prossimo evento — usa LE STESSE fonti del calendario completo:
+  //  - events[] (allenamenti, eventi generici) via canSeeEvent + eventOccursOn
+  //  - getPtVirtualEvents(ds): tornei (banner + partite), campionato, amichevoli — tornei[]/campionato[lv]/amichevoli sono fonti SEPARATE da events[]
+  // Forward-scan giornaliero, bounded a 366 giorni (orizzonte _loadCalEvents ~12 mesi).
   const DOW_IT = ['dom','lun','mar','mer','gio','ven','sab'];
+  // Normalizza un virtual event in {type,title,start,luogo}
+  function _homeNormVirt(v){
+    const tipo = v && v._tipo;
+    if (tipo === 'torneo_banner' || tipo === 'torneo') {
+      const tid = tipo === 'torneo_banner' ? v._ref : String(v._ref||'').split('__')[0];
+      const t = (typeof tornei !== 'undefined' && Array.isArray(tornei)) ? tornei.find(x => x.id === tid) : null;
+      return {
+        type: 'torneo',
+        title: t ? t.nome : String(v.title||'Torneo').replace(/^🏆\s*/, ''),
+        start: '',
+        luogo: t ? (t.luogo || '') : ''
+      };
+    }
+    if (tipo === 'campionato') return { type:'partita', title:String(v.title||'').replace(/^🏅\s*/,''), start:'', luogo:'' };
+    if (tipo === 'amichevole') return { type:'partita', title:String(v.title||'').replace(/^🤝\s*/,''), start:'', luogo:v.luogo||'' };
+    return { type:'evento', title:v && v.title || 'Evento', start:'', luogo:'' };
+  }
   const nextEv = (function(){
     const t0 = new Date(); t0.setHours(0,0,0,0);
     for (let i = 0; i < 366; i++) {
       const d = new Date(t0); d.setDate(d.getDate() + i);
       const ds = ymd(d);
-      const hits = events
+      // 1) events[] (allenamenti & eventi generici)
+      const regular = events
         .filter(ev => (typeof canSeeEvent === 'function' ? canSeeEvent(ev) : true)
                    && (typeof eventOccursOn === 'function' ? eventOccursOn(ev, ds) : ev.date === ds))
-        .sort((a,b) => (a.start||'').localeCompare(b.start||''));
-      if (hits.length) return Object.assign({}, hits[0], { date: ds }); // forza la data dell'occorrenza (ricorrenze)
+        .map(ev => ({ type:ev.type||'evento', title:ev.title||'', start:ev.start||'', luogo:ev.luogo||'' }));
+      // 2) virtual events: tornei + campionato + amichevoli (fonti separate)
+      const virt = (typeof getPtVirtualEvents === 'function')
+        ? (getPtVirtualEvents(ds) || []).map(_homeNormVirt)
+        : [];
+      const dayHits = regular.concat(virt);
+      if (dayHits.length) {
+        // Tie-break stesso giorno: ora di inizio crescente (eventi all-day senza start → in coda)
+        dayHits.sort((a,b) => ((a.start||'99:99').localeCompare(b.start||'99:99')));
+        return Object.assign({}, dayHits[0], { date: ds });
+      }
     }
     return null;
   })();
@@ -14894,21 +15048,41 @@ function buildMobDashboard(role, c) {
     : `<div style="font-size:.85rem;color:var(--text3);padding:8px 0;">Nessun avviso non letto</div>`;
 
   // Quick access tiles
-  const quickItems = role==='admin'
-    ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
-    : role==='allenatore'
-    ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'}]
-    : role==='dirigente'
-    ? [{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'}]
-    : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
+  // Dirigente: scorciatoie personalizzabili (stesso meccanismo del Mister) +
+  //            filtrate dai permessi concessi (hasPerm/permKey).
+  let quickHtml;
+  let quickHeaderExtra = '';
+  if (role === 'dirigente') {
+    const dSc = _scGetShortcuts('dirigente');
+    quickHeaderExtra = ` <a style="cursor:pointer;font-size:.78rem;font-weight:700;color:var(--cp);" onclick="openDirigShortcutPicker()">Modifica</a>`;
+    quickHtml = `<div class="mob-quick-grid">${dSc.map(sid => {
+      const cfg = sid ? _DIRIG_SC_ALL[sid] : null;
+      if (!cfg) {
+        return `<div class="mob-qi" style="border:2px dashed var(--border2);background:transparent;" onclick="openDirigShortcutPicker()">
+          <div class="mob-qi-ic" style="font-size:1.3rem;">＋</div>
+          <div class="mob-qi-lb" style="color:var(--text3);">Aggiungi</div>
+        </div>`;
+      }
+      return `<div class="mob-qi" onclick="${cfg.action}">
+        <div class="mob-qi-ic">${cfg.ic}</div>
+        <div class="mob-qi-lb">${cfg.lb}</div>
+      </div>`;
+    }).join('')}</div>`;
+  } else {
+    const quickItems = role==='admin'
+      ? [{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'}]
+      : role==='allenatore'
+      ? [{id:'presenze',ic:'✅',lb:'Presenze',sub:'Registra oggi'},{id:'rosa',ic:'👥',lb:'Rosa',sub:players.filter(p=>p.leva===lv).length+' giocatori'},{id:'convocazioni',ic:'📋',lb:'Convocazioni',sub:'Gestisci'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'}]
+      : [{id:'comunicazioni',ic:'📣',lb:'Comunicazioni',sub:unread.length+' non letti'},{id:'presenze',ic:'✅',lb:'Presenze',sub:'Il mio storico'},{id:'partite',ic:'⚽',lb:'Partite',sub:'Risultati'},{id:'fotovideo',ic:'📸',lb:'Foto & Video',sub:'Galleria',wip:true}];
 
-  const _WIP_IDS = new Set(['fotovideo','pagamenti']);
-  const quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
-    <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
-      <div class="mob-qi-ic">${qi.ic}</div>
-      <div class="mob-qi-lb">${qi.lb}${_WIP_IDS.has(qi.id)?'<span style="display:block;font-size:9px;font-weight:700;background:#FFD93D;color:#2D3748;border-radius:3px;padding:1px 4px;margin-top:2px;">In sviluppo</span>':''}</div>
-      <div class="mob-qi-sub">${qi.sub||''}</div>
-    </div>`).join('')}</div>`;
+    const _WIP_IDS = new Set(['fotovideo','pagamenti']);
+    quickHtml = `<div class="mob-quick-grid">${quickItems.map(qi=>`
+      <div class="mob-qi" onclick="${_WIP_IDS.has(qi.id)?'':("goTo('"+qi.id+"')")}" style="${_WIP_IDS.has(qi.id)?'opacity:.6;cursor:not-allowed;':''}">
+        <div class="mob-qi-ic">${qi.ic}</div>
+        <div class="mob-qi-lb">${qi.lb}${_WIP_IDS.has(qi.id)?'<span style="display:block;font-size:9px;font-weight:700;background:#FFD93D;color:#2D3748;border-radius:3px;padding:1px 4px;margin-top:2px;">In sviluppo</span>':''}</div>
+        <div class="mob-qi-sub">${qi.sub||''}</div>
+      </div>`).join('')}</div>`;
+  }
 
   const avvisaBtnMob = (role === 'giocatore' && canAvvisaAssenza())
     ? `<button class="btn btn-p" style="width:100%;padding:12px;font-size:.95rem;border-radius:12px;" onclick="openAvvisaModal()">📵 Avvisa assenza</button>`
@@ -14917,7 +15091,7 @@ function buildMobDashboard(role, c) {
     ${nextEvHtml}
     ${avvisaBtnMob}
     <div class="mob-dash-card">
-      <div class="mob-dash-card-hd">Accesso rapido</div>
+      <div class="mob-dash-card-hd">Accesso rapido${quickHeaderExtra}</div>
       ${quickHtml}
     </div>
     ${lastR?`<div class="mob-dash-card"><div class="mob-dash-card-hd">Ultimo risultato · ${escapeHtml(lv)} <a onclick="goTo('partite')">Vedi tutti →</a></div>${lastRHtml}</div>`:''}
@@ -14981,7 +15155,7 @@ function selectGenFiglio(playerId){
 //
 // _dbg (opzionale): se passato { candidates:[], errors:[], result:null }, viene popolato
 // con i dettagli (id usato, _torneoId, conv trovata, playerIds, stato derivato, errori
-// per-candidato). Usato dal box "DEBUG prossimo impegno" in Home (flag mv_home_dbg).
+// per-candidato). Usato da window._mvDbgNextImpegno() da DevTools console.
 function _genitoreNextImpegno(lv, playerId, _dbg) {
   try {
     if (_dbg) { _dbg.candidates = _dbg.candidates || []; _dbg.errors = _dbg.errors || []; _dbg.result = null; }
@@ -15015,27 +15189,55 @@ function _genitoreNextImpegno(lv, playerId, _dbg) {
       } catch(e_){ if (_dbg) _dbg.errors.push('amichevoli: '+(e_&&e_.message||e_)); }
     });
     var camp = (typeof campionato === 'object' && campionato) ? campionato[lv] : null;
+    var campNome = (camp && camp.nome) ? camp.nome : '';
     if (camp) (camp.partite||[]).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
       try {
         var avv=(m.casa===polis?m.ospite:m.casa)||'—';
-        cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'partita',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false,_src:'campionato'});
+        cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'campionato',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false,_src:'campionato',_campNome:campNome});
       } catch(e_){ if (_dbg) _dbg.errors.push('campionato: '+(e_&&e_.message||e_)); }
     });
+    // TORNEI: emetti UN candidato per torneo (mai una singola partita).
+    // - perPartita=false (unified): id=t.id, data = prima partita futura o t.dataInizio.
+    // - perPartita=true (raro): id=torneo_<t>_<f>_<m> della prossima partita utile,
+    //   così _convForCand legge la conv di quella partita per derivare lo stato.
     (Array.isArray(tornei) ? tornei : []).filter(function(t){return t && t.leva===lv;}).forEach(function(t){
       try {
-        var mieSq = (typeof _getMieSquadre === 'function') ? _getMieSquadre(t) : [polisName(lv)];
-        if (_dbg) _dbg.errors.push('tornei: '+t.id+' nome='+(t.nome||'?')+' mieSq='+JSON.stringify(mieSq)+' perPartita='+!!t.convocazioniPerPartita);
+        if (_dbg) _dbg.errors.push('tornei: '+t.id+' nome='+(t.nome||'?')+' perPartita='+!!t.convocazioniPerPartita+' dataInizio='+(t.dataInizio||'∅'));
+        // raccolgo tutte le partite future del torneo (NO filtro per squadre: bracket
+        // possono avere nomi generici incompatibili con polisName, ma il torneo va emesso)
+        var futureMatches = [];
         (t.fasi||[]).forEach(function(f){
-          (f && f.partite || []).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
-            try {
-              var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
-              var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
-              // Legacy: id segue convocazioniPerPartita; _torneoId conservato per fallback in _convForCand.
-              var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
-              cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,_torneoId:t.id,_torneoFaseId:f.id,_torneoMatchId:m.id,_casa:m.casa,_ospite:m.ospite,isTraining:false,_src:'tornei'});
-            } catch(e_){ if (_dbg) _dbg.errors.push('tornei.partite: '+(e_&&e_.message||e_)); }
+          (f && f.partite || []).forEach(function(m){
+            if (m && !m.played && m.data && m.data >= todayStr) {
+              futureMatches.push({date:m.data,start:m.orario||'',_faseId:f.id,_matchId:m.id,_casa:m.casa,_ospite:m.ospite,_luogo:m.luogo||''});
+            }
           });
         });
+        futureMatches.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
+        var first = futureMatches[0];
+        var candDate = first ? first.date : (t.dataInizio || null);
+        if (!candDate || candDate < todayStr) {
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' SCARTATO: torneo passato o senza data futura (candDate='+candDate+', futureMatches='+futureMatches.length+')');
+          return;
+        }
+        var candStart = first ? (first.start || '') : '';
+        var candLuogo = (first && first._luogo) || t.luogo || '';
+        var candTitle = t.nome || 'Torneo';
+        if (!t.convocazioniPerPartita) {
+          cands.push({date:candDate,start:candStart,title:candTitle,type:'torneo',luogo:candLuogo,id:t.id,_torneoId:t.id,isTraining:false,_src:'tornei',_torneoMode:'unified'});
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' EMESSO unified data='+candDate);
+        } else {
+          if (!first) {
+            if (_dbg) _dbg.errors.push('tornei: '+t.id+' SCARTATO perPartita: nessuna partita futura');
+            return;
+          }
+          cands.push({date:candDate,start:candStart,title:candTitle,type:'torneo',luogo:candLuogo,
+            id:'torneo_'+t.id+'_'+first._faseId+'_'+first._matchId,
+            _torneoId:t.id,_torneoFaseId:first._faseId,_torneoMatchId:first._matchId,
+            _casa:first._casa,_ospite:first._ospite,
+            isTraining:false,_src:'tornei',_torneoMode:'per_partita'});
+          if (_dbg) _dbg.errors.push('tornei: '+t.id+' EMESSO perPartita data='+candDate+' matchId='+first._matchId);
+        }
       } catch(e_){ if (_dbg) _dbg.errors.push('tornei: '+(e_&&e_.message||e_)); }
     });
     cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
@@ -15365,7 +15567,11 @@ function buildMobDashboardGenitore(c) {
     var _cdDOW3=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
     var cdStr3=_hDG.getDate()+'/'+(_hDG.getMonth()+1);
     var cdSub3=hDFN===0?'OGGI':hDFN===1?'DOMANI':_cdDOW3[_hDG.getDay()];
-    var evType3=isTrG?'🏃 Allenamento':nxtEv.type==='torneo'?'🏆 Torneo':nxtEv.type==='amichevole'?'🤝 Amichevole':'⚽ Partita';
+    var evType3=isTrG?'🏃 Allenamento'
+      :nxtEv.type==='torneo'?'🏆 Torneo'
+      :nxtEv.type==='amichevole'?'🤝 Amichevole'
+      :nxtEv.type==='campionato'?('⚽ Campionato'+(nxtEv._campNome?' · '+escapeHtml(nxtEv._campNome):''))
+      :'⚽ Partita';
     var convBadge3='';
     if(nxtEv.convStatus==='convocato'){
       convBadge3='<span style="display:inline-flex;align-items:center;gap:4px;background:#dcfce7;color:#166534;border-radius:20px;padding:3px 10px;font-size:.73rem;font-weight:700;margin-top:8px;">🟢 CONVOCATO</span>';
@@ -15494,67 +15700,7 @@ function buildMobDashboardGenitore(c) {
     avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;margin:0 0 10px 0;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  // ── DEBUG box (in fondo): mostra candidati + result di _genitoreNextImpegno.
-  //   TEMPORANEO: visibile per DEFAULT (per screenshot da mobile, niente console).
-  //   Il link "× Nascondi" imposta '0' e lo nasconde fino al prossimo set manuale.
-  //   Da rimuovere del tutto dopo aver risolto il bug "prossimo impegno torneo".
-  var dbgHtml = '';
-  try {
-    var _dbgOn = true;
-    try { _dbgOn = (localStorage.getItem('mv_home_dbg') !== '0'); } catch(_) {}
-    if (_dbgOn && p) {
-      var _dbg = { candidates: [], errors: [], result: null };
-      try { _genitoreNextImpegno(lv, p.id, _dbg); } catch(_e){ _dbg.errors.push('call: '+(_e&&_e.message||_e)); }
-      var _badge = function(st){
-        if (st === 'convocato')      return '<span class="dbg-tag conv">CONVOCATO</span>';
-        if (st === 'attesa')         return '<span class="dbg-tag att">IN ATTESA</span>';
-        if (st === 'non_convocato')  return '<span class="dbg-tag noc">NON CONV.</span>';
-        if (st === 'training')       return '<span class="dbg-tag tr">ALLENAM.</span>';
-        return '<span class="dbg-tag noc">'+escapeHtml(String(st||'-'))+'</span>';
-      };
-      var rowsHtml = (_dbg.candidates||[]).map(function(c){
-        var idStr = (c.id == null) ? '∅' : escapeHtml(String(c.id));
-        var torneoStr = c._torneoId != null ? ('_torneoId='+escapeHtml(String(c._torneoId))+' f='+escapeHtml(String(c._torneoFaseId||''))+' m='+escapeHtml(String(c._torneoMatchId||''))) : '';
-        var teamsStr = (c._casa || c._ospite) ? (' casa='+escapeHtml(String(c._casa||'-'))+' ospite='+escapeHtml(String(c._ospite||'-'))) : '';
-        var convStr = c.convFound
-          ? ('conv✓ eventId='+escapeHtml(String(c.convEventId))+' pIds='+escapeHtml(JSON.stringify(c.playerIds||[]).slice(0,160)))
-          : 'conv✗';
-        return '<div class="dbg-row">'
-          + _badge(c.status)
-          + escapeHtml(c.date)+(c.start?(' '+escapeHtml(c.start)):'')
-          + ' · <b>'+escapeHtml(c.type||'?')+'</b>'
-          + ' · src='+escapeHtml(c.src||'?')
-          + ' · id='+idStr
-          + (torneoStr?(' · '+torneoStr):'')
-          + (teamsStr||'')
-          + ' · '+convStr
-          + ' · match='+(c.playerInConv?'YES':'NO')
-          + ' · daysFromNow='+escapeHtml(String(c.daysFromNow))
-          + '<br>📌 '+escapeHtml(c.title||'')
-          + '</div>';
-      }).join('');
-      var errsHtml = (_dbg.errors||[]).length
-        ? '<pre>'+escapeHtml(_dbg.errors.join('\n'))+'</pre>'
-        : '<div style="opacity:.6;">(nessun errore)</div>';
-      var resHtml = _dbg.result
-        ? '<pre>'+escapeHtml(JSON.stringify(_dbg.result, null, 2))+'</pre>'
-        : '<div style="opacity:.6;">(result: null)</div>';
-      dbgHtml = '<div class="dbg-next-card">'
-        + '<div class="dbg-hd"><span>🔧 DEBUG · prossimo impegno</span>'
-        +   '<button class="dbg-hide" onclick="try{localStorage.setItem(\'mv_home_dbg\',\'0\');}catch(_){};buildDashboard(me&&me.role);">× Nascondi</button>'
-        + '</div>'
-        + '<div style="margin-bottom:6px;"><b>lv</b>='+escapeHtml(String(lv||''))+' · <b>playerId</b>='+escapeHtml(String(p.id))+' · <b>nome</b>='+escapeHtml(p.nome+' '+p.cogn)+' · <b>todayStr</b>='+escapeHtml(todayStr)+'</div>'
-        + '<div style="margin:6px 0 4px;font-weight:900;">CANDIDATI ('+((_dbg.candidates||[]).length)+'):</div>'
-        + (rowsHtml || '<div style="opacity:.6;">(nessun candidato)</div>')
-        + '<div style="margin:8px 0 4px;font-weight:900;">DIAGNOSTICA / ERRORI:</div>'
-        + errsHtml
-        + '<div style="margin:8px 0 4px;font-weight:900;">RESULT:</div>'
-        + resHtml
-        + '</div>';
-    }
-  } catch(_) { dbgHtml = ''; }
-
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+dbgHtml;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3;
 }
 
 function buildDashboard(role) {
@@ -23928,6 +24074,104 @@ function isSeniorLeva(lv) {
   return m ? parseInt(m[1], 10) >= 14 : false;
 }
 
+// Risolve la leva di una chat (leva-famiglie/squadra l'hanno diretta;
+// torneo passa per tornei[].leva). Null se sconosciuta (staff/adhoc).
+function _chatLevaForChat(chat) {
+  try {
+    if (!chat) return null;
+    if (chat.leva) return chat.leva;
+    if (chat.torneoId && Array.isArray(tornei)) {
+      var t = tornei.find(function(x){return x.id === chat.torneoId;});
+      return t ? t.leva : null;
+    }
+    return null;
+  } catch(_) { return null; }
+}
+
+// Identità autore messaggio: ruolo italianizzato + (se familiare/anche-familiare)
+// "genitore di Nome" / "nonno di Nome [e Nome2 …]" scopato alla leva della chat.
+// Ritorna {roleLabel, familyTag} oppure null se l'utente non è risolvibile.
+// GUARD: non inventa ruoli né figli; cade in null/'' parzialmente se i dati mancano.
+function _chatAuthorMeta(user, chat) {
+  try {
+    if (!user) return null;
+    var ROLE_IT = {
+      admin: 'Admin',
+      mister_admin: 'Mister-Admin',
+      allenatore: 'Mister',
+      preparatore_portieri: 'Preparatore portieri',
+      dirigente: 'Dirigente',
+      genitore: 'Genitore',
+      nonno: 'Nonno',
+      giocatore: 'Giocatore',
+    };
+    var roleLabel = (user.role && ROLE_IT[user.role]) || '';
+    var familyTag = '';
+    // legame familiare se l'utente ha figli linkati (genitore/nonno O staff-anche-genitore)
+    var figliRaw = Array.isArray(user.figli) ? user.figli
+                 : (user.figlio ? [user.figlio] : []);
+    if (figliRaw.length && Array.isArray(players)) {
+      var resolved = [];
+      figliRaw.forEach(function(fName){
+        if (!fName) return;
+        var p = players.find(function(pl){
+          return ((pl.nome||'') + ' ' + (pl.cogn||'')).toLowerCase() === String(fName).toLowerCase();
+        });
+        if (p) resolved.push(p);
+      });
+      var chatLeva = _chatLevaForChat(chat);
+      var scoped = chatLeva ? resolved.filter(function(p){return p.leva === chatLeva;}) : resolved;
+      if (!scoped.length && resolved.length) scoped = resolved; // fallback: nessuno nella leva → mostra tutti
+      var firstNames = scoped.map(function(p){return p.nome;}).filter(Boolean);
+      if (firstNames.length) {
+        var relWord = (user.role === 'nonno') ? 'nonno' : 'genitore';
+        var listStr;
+        if (firstNames.length === 1) listStr = firstNames[0];
+        else if (firstNames.length === 2) listStr = firstNames[0] + ' e ' + firstNames[1];
+        else listStr = firstNames.slice(0,-1).join(', ') + ' e ' + firstNames[firstNames.length-1];
+        familyTag = relWord + ' di ' + listStr;
+      }
+    }
+    return { roleLabel: roleLabel, familyTag: familyTag };
+  } catch(_) { return null; }
+}
+
+// Etichetta "audience" derivata dai membri reali della chat (chi può leggerla).
+// Esamina chat.members → USERS_DB → raccoglie ruoli attivi → li mappa a label umane
+// e li compone in linguaggio naturale (es. "Genitori e dirigenti").
+// GUARD: se members vuoto/non determinabile o se nessun utente attivo trovato,
+// ritorna stringa vuota → la UI nasconde il descrittore (no audience inventata).
+function _chatAudienceLabel(chat) {
+  try {
+    if (!chat || !Array.isArray(chat.members) || !chat.members.length) return '';
+    var rolesSet = new Set();
+    for (var i = 0; i < chat.members.length; i++) {
+      var uid = chat.members[i];
+      var u = USERS_DB.find(function(x){return x.id === uid;});
+      if (!u) continue;
+      if (u.stato === 'sospeso') continue;
+      if (u.role) rolesSet.add(u.role);
+    }
+    if (!rolesSet.size) return '';
+    // Mapping ruolo → label aggregata. Ordine "famiglia → staff → giocatori"
+    // mette al primo posto chi tipicamente legge dal lato genitore.
+    var slots = [
+      { has: rolesSet.has('genitore') || rolesSet.has('nonno'),                       lbl: 'genitori' },
+      { has: rolesSet.has('dirigente'),                                               lbl: 'dirigenti' },
+      { has: rolesSet.has('admin') || rolesSet.has('mister_admin') || rolesSet.has('allenatore'), lbl: 'mister' },
+      { has: rolesSet.has('preparatore_portieri'),                                    lbl: 'preparatori' },
+      { has: rolesSet.has('giocatore'),                                               lbl: 'giocatori' },
+    ];
+    var labels = slots.filter(function(s){return s.has;}).map(function(s){return s.lbl;});
+    if (!labels.length) return '';
+    // Capitalizza la prima parola; join con virgole + "e" finale
+    labels[0] = labels[0].charAt(0).toUpperCase() + labels[0].slice(1);
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return labels[0] + ' e ' + labels[1];
+    return labels.slice(0, -1).join(', ') + ' e ' + labels[labels.length - 1];
+  } catch(_) { return ''; }
+}
+
 function getChatsForUser(user) {
   if (!user) return [];
   const out = [];
@@ -24158,10 +24402,13 @@ function renderChatList() {
     const cls = ['ci'];
     if (c.id === currentChatId) cls.push('on');
     if (unread > 0) cls.push('has-unread');
+    const audLbl = _chatAudienceLabel(c);
+    const audRow = audLbl ? `<div class="ci-audience">${escapeHtml(audLbl)}</div>` : '';
     return `<div class="${cls.join(' ')}" data-chatid="${escapeHtml(c.id)}">
       <div class="ci-av" style="background:${safeColor};color:white;">${escapeHtml(c.avatar)}</div>
       <div class="ci-body">
         <div class="ci-top"><span class="ci-name">${escapeHtml(c.name)}</span><span class="ci-time">${timeStr}</span></div>
+        ${audRow}
         <div class="ci-bottom"><span class="ci-msg">${previewText}</span>${unread>0 ? `<span class="ci-un">${unread}</span>` : ''}</div>
       </div>
     </div>`;
@@ -24193,7 +24440,9 @@ function selectChat(chatId, skipListRefresh) {
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
   document.getElementById('chatName').textContent = c.name;
-  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + ' · ' + (c.kind==='staff'?'Staff':c.kind==='leva-famiglie'?'Leva':c.kind==='squadra'?'Squadra':c.kind==='torneo'?'Torneo':c.kind==='adhoc'?'Chat':'');
+  // Subtitle = "<N partecipanti> · <audience>" (audience derivata dai membri reali).
+  var _chSubAud = _chatAudienceLabel(c);
+  document.getElementById('chatSubtitle').textContent = c.members.length + ' partecipant' + (c.members.length===1?'e':'i') + (_chSubAud ? (' · ' + _chSubAud) : '');
   // show/hide read-only notice and input
   const noticeEl = document.getElementById('chatNotice');
   const inpArea = document.querySelector('.cm-inp');
@@ -24290,6 +24539,35 @@ function renderChatMessages() {
     cont.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:.78rem;padding:30px;">Nessun messaggio in questa chat. Scrivi tu il primo!</div>';
     return;
   }
+  // Riferimento alla chat corrente (per scoping figli alla leva della chat)
+  const _curChat = (typeof getChatsForUser === 'function')
+    ? getChatsForUser(me).find(function(x){return x.id === currentChatId;})
+    : null;
+  // Helper di render: header autore (nome semibold + ruolo / family tag muted).
+  // GUARD: se user non risolto → fallback al solo senderName (fornito dal caller).
+  function _renderAuthorHeader(u, senderName) {
+    var meta = _chatAuthorMeta(u, _curChat);
+    var parts = [];
+    if (meta) {
+      // Per genitore/nonno il ruolo è incapsulato nel familyTag → mostra solo familyTag.
+      // Per staff-anche-genitore → ruolo + familyTag. Per staff puro → ruolo.
+      if (u && (u.role === 'genitore' || u.role === 'nonno')) {
+        if (meta.familyTag) parts.push(meta.familyTag);
+        else if (meta.roleLabel) parts.push(meta.roleLabel);
+      } else {
+        if (meta.roleLabel)  parts.push(meta.roleLabel);
+        if (meta.familyTag)  parts.push(meta.familyTag);
+      }
+    }
+    var metaHtml = parts.length
+      ? '<span style="color:var(--text3);font-weight:500;"> · ' + escapeHtml(parts.join(' · ')) + '</span>'
+      : '';
+    return '<div style="font-size:.65rem;margin-bottom:2px;color:var(--text2);">'
+      + '<span style="font-weight:700;">' + escapeHtml(senderName) + '</span>'
+      + metaHtml
+      + '</div>';
+  }
+
   cont.innerHTML = stream.map(item => {
     if (item._kind === 'poll') {
       // Card sondaggio nel flusso: avatar del creatore + bubble custom (no max-width fumetto).
@@ -24298,12 +24576,13 @@ function renderChatMessages() {
       const isMe = p.createdBy === me.id;
       const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '📊';
       const color = u ? (ROLE_CFG[u.role] && ROLE_CFG[u.role].color || '#888') : '#1A7A4A';
+      const senderName = u ? (u.nome + ' ' + u.cogn) : (p.createdByName || 'Utente');
       const time = new Date(item.ts);
       const timeStr = String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');
       return `<div class="msg ${isMe?'me':''}">
         <div class="msg-av" style="background:${color};color:white;">${av}</div>
         <div>
-          ${!isMe ? `<div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;font-weight:700;">${escapeHtml(p.createdByName || '')}</div>` : ''}
+          ${!isMe ? _renderAuthorHeader(u, senderName) : ''}
           ${_renderPollCard(p)}
           <div class="msg-t">${timeStr}</div>
         </div>
@@ -24326,7 +24605,7 @@ function renderChatMessages() {
     return `<div class="msg ${isMe?'me':''}">
       <div class="msg-av" style="background:${color};color:white;">${av}</div>
       <div>
-        ${!isMe ? `<div style="font-size:.65rem;color:var(--text3);margin-bottom:2px;font-weight:700;">${escapeHtml(senderName)}</div>` : ''}
+        ${!isMe ? _renderAuthorHeader(u, senderName) : ''}
         ${body}
         <div class="msg-t">${timeStr}</div>
       </div>
@@ -29392,8 +29671,21 @@ async function doRejoinSocieta() {
     // Le societa' DEMO continuano a serializzare events nel blob perche' _loadCalEvents le salta.
     // eventTypes / nextEventTypeId: SEMPRE nello snapshot (tassonomia, nessun equivalente MySQL).
     const _isDemo = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+    // SAFETY view-mode (Dirigente⇄Genitore): setViewMode('genitore') muta me.role,
+    // ma me è reference a un elemento di USERS_DB → la mutazione finirebbe persistita.
+    // Se siamo in view-swap, serializza una USERS_DB con la entry di me clonata col
+    // ruolo ORIGINALE (_viewModeOrigRole). Nessun altra entry tocata; me.role in
+    // memoria resta swappato (serve alla UI). Idempotente, no side-effect.
+    var _USERS_DB_ser = USERS_DB;
+    try {
+      if (me && _viewModeOrigRole && me.role !== _viewModeOrigRole && Array.isArray(USERS_DB)) {
+        _USERS_DB_ser = USERS_DB.map(function(u){
+          return (u === me) ? Object.assign({}, u, {role: _viewModeOrigRole}) : u;
+        });
+      }
+    } catch(_) { _USERS_DB_ser = USERS_DB; }
     return {
-      USERS_DB: USERS_DB,
+      USERS_DB: _USERS_DB_ser,
       players: players,
       nextUserId: nextUserId,
       nextPlayerId: nextPlayerId,
