@@ -1826,6 +1826,38 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-family:'Nunito',sans-serif;font-weight:700;font-size:.7rem;color:var(--text3);
   margin-top:8px;text-align:right;
 }
+
+/* DEBUG box — visibile solo se localStorage.mv_home_dbg === '1' (toggle facile). */
+.dbg-next-card{
+  background:#fff8e6;border:1px dashed #b58a00;border-radius:12px;
+  padding:12px;margin-bottom:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.72rem;color:#3a3000;line-height:1.4;
+}
+.dbg-next-card .dbg-hd{
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.8rem;color:#7a5500;margin-bottom:8px;
+}
+.dbg-next-card .dbg-hide{
+  font-family:'Nunito',sans-serif;font-size:.7rem;font-weight:800;
+  background:transparent;border:1px solid #b58a00;color:#7a5500;
+  border-radius:6px;padding:3px 8px;cursor:pointer;
+}
+.dbg-next-card pre{
+  background:#fffdf2;border:1px solid #ead7a8;border-radius:8px;
+  padding:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;
+  margin:0;font-size:.7rem;color:#2a2400;max-height:60vh;overflow-y:auto;
+}
+.dbg-next-card .dbg-row{padding:4px 0;border-bottom:1px solid rgba(181,138,0,.18);}
+.dbg-next-card .dbg-row:last-child{border-bottom:none;}
+.dbg-next-card .dbg-tag{
+  display:inline-block;padding:1px 6px;border-radius:6px;font-weight:900;
+  font-size:.62rem;letter-spacing:.4px;margin-right:4px;
+}
+.dbg-next-card .dbg-tag.conv{background:#1A7A4A;color:#fff;}
+.dbg-next-card .dbg-tag.att{background:#FFD93D;color:#6b4d04;}
+.dbg-next-card .dbg-tag.noc{background:#e5e7eb;color:#52555a;}
+.dbg-next-card .dbg-tag.tr{background:#0ea860;color:#fff;}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -5719,10 +5751,12 @@ function bootApp(user) {
 // ═══════════════════════════════════
 
 // ── Mobile bottom nav ──────────────────────
+// Voce 📣 Avvisi rimossa dal ramo default (admin/dirigente/preparatore_portieri):
+// duplicata con la campanella in header (#tbBell → goTo('comunicazioni')).
+// Le restanti voci hanno flex:1 e si ridistribuiscono automaticamente.
 const MOB_NAV_ITEMS = [
   {id:'dashboard',    ic:'🏠', lb:'Home'},
   {id:'chat',         ic:'💬', lb:'Chat',    badge:'mn-chat'},
-  {id:'comunicazioni',ic:'📣', lb:'Avvisi',  badge:'mn-comm'},
   {id:'calendario',   ic:'📅', lb:'Cal'},
   {id:'profilo',      ic:'👤', lb:'Profilo'},
 ];
@@ -14883,63 +14917,177 @@ function selectGenFiglio(playerId){
 // Prossimo impegno per la PWA genitore: salta partite/tornei in cui il figlio è NON convocato,
 // mostra il primo impegno utile (allenamento / convocato / in attesa di convocazione).
 // convStatus: 'convocato' | 'attesa' | null (null = allenamento, nessun badge)
-function _genitoreNextImpegno(lv, playerId) {
-  if (!lv) return null;
-  var todayStr = ymd(new Date());
-  var todayMs = new Date().setHours(0,0,0,0);
-  var isTraining = function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
-  var cands = [];
-  // 1) eventi calendario (events[]) nei prossimi 45 gg
-  for (var i=0;i<45;i++) {
-    var d=new Date(todayMs); d.setDate(new Date(todayMs).getDate()+i);
-    var ds=ymd(d);
-    events.forEach(function(ev){
-      if ((!ev.leve||!ev.leve.length||ev.leve.includes(lv)) && eventOccursOn(ev,ds)) {
-        cands.push({date:ds,start:ev.start||'',title:ev.title||(isTraining(ev)?'Allenamento':'Evento'),type:ev.type||'',luogo:ev.luogo||'',id:ev.id,isTraining:isTraining(ev)});
-      }
-    });
-  }
-  // 2) partite strutturate (amichevoli / campionato / tornei) — stesso pattern di panoNextMatchForLeva
-  var polis = _campPolis(lv);
-  (amichevoli||[]).filter(function(m){return m.leva===lv && !m.annullata && m.data>=todayStr;}).forEach(function(m){
-    var isH=(m.tipo||'casa')==='casa';
-    cands.push({date:m.data,start:m.orario||'',title:(isH?polisName(lv):m.avversario)+' vs '+(isH?m.avversario:polisName(lv)),type:'amichevole',luogo:m.luogo||'',id:'amich_'+m.id,isTraining:false});
-  });
-  var camp = campionato[lv];
-  if (camp) (camp.partite||[]).filter(function(m){return !m.played && m.data>=todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
-    var avv=(m.casa===polis?m.ospite:m.casa)||'—';
-    cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'partita',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false});
-  });
-  (tornei||[]).filter(function(t){return t.leva===lv;}).forEach(function(t){
-    var mieSq = _getMieSquadre(t);
-    (t.fasi||[]).forEach(function(f){
-      (f.partite||[]).filter(function(m){return !m.played && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
-        var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
-        var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
-        var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
-        cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,isTraining:false});
+// Prossimo impegno per la PWA genitore: salta partite/tornei in cui il figlio è NON convocato,
+// mostra il primo impegno utile (allenamento / convocato / in attesa di convocazione).
+// convStatus: 'convocato' | 'attesa' | null (null = allenamento, nessun badge)
+//
+// SAFETY: l'intero corpo è in try-catch; qualunque dato malformato fa cadere SOLO
+// questa funzione (ritorna null), non rompe la Home → toggle e altri blocchi restano.
+//
+// _dbg (opzionale): se passato { candidates:[], errors:[], result:null }, viene popolato
+// con i dettagli (id usato, _torneoId, conv trovata, playerIds, stato derivato, errori
+// per-candidato). Usato dal box "DEBUG prossimo impegno" in Home (flag mv_home_dbg).
+function _genitoreNextImpegno(lv, playerId, _dbg) {
+  try {
+    if (_dbg) { _dbg.candidates = _dbg.candidates || []; _dbg.errors = _dbg.errors || []; _dbg.result = null; }
+    if (!lv) return null;
+    var todayStr = ymd(new Date());
+    var todayMs = new Date().setHours(0,0,0,0);
+    var isTraining = function(ev){return ev && (ev.type==='allenamento'||ev.type==='allenamento_portieri');};
+    var cands = [];
+    // 1) eventi calendario (events[]) nei prossimi 45 gg — TUTTI i tipi
+    //    (allenamenti + eventi manuali). Le partite "doppie" eventualmente
+    //    in events[] sono tollerate: il loop di scelta sceglierà il primo
+    //    candidato utile in ordine cronologico.
+    for (var i=0;i<45;i++) {
+      var d=new Date(todayMs); d.setDate(new Date(todayMs).getDate()+i);
+      var ds=ymd(d);
+      (Array.isArray(events) ? events : []).forEach(function(ev){
+        try {
+          if (!ev) return;
+          if (ev.leve && ev.leve.length && !ev.leve.includes(lv)) return;
+          if (!eventOccursOn(ev,ds)) return;
+          cands.push({date:ds,start:ev.start||'',title:ev.title||(isTraining(ev)?'Allenamento':'Evento'),type:ev.type||'',luogo:ev.luogo||'',id:ev.id,isTraining:isTraining(ev),_src:'events'});
+        } catch(e_){ if (_dbg) _dbg.errors.push('events: '+(e_&&e_.message||e_)); }
       });
+    }
+    // 2) partite strutturate (amichevoli / campionato / tornei)
+    var polis = _campPolis(lv);
+    (Array.isArray(amichevoli) ? amichevoli : []).filter(function(m){return m && m.leva===lv && !m.annullata && m.data && m.data>=todayStr;}).forEach(function(m){
+      try {
+        var isH=(m.tipo||'casa')==='casa';
+        cands.push({date:m.data,start:m.orario||'',title:(isH?polisName(lv):m.avversario)+' vs '+(isH?m.avversario:polisName(lv)),type:'amichevole',luogo:m.luogo||'',id:'amich_'+m.id,isTraining:false,_src:'amichevoli'});
+      } catch(e_){ if (_dbg) _dbg.errors.push('amichevoli: '+(e_&&e_.message||e_)); }
     });
-  });
-  cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
-  for (var j=0;j<cands.length;j++) {
-    var ce=cands[j];
-    var dm=parseYmd(ce.date);
-    var dfn=Math.max(0,Math.round((dm.getTime()-todayMs)/86400000));
-    if (ce.isTraining) {
-      return Object.assign({}, ce, {daysFromNow:dfn, convStatus:null});
+    var camp = (typeof campionato === 'object' && campionato) ? campionato[lv] : null;
+    if (camp) (camp.partite||[]).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (m.casa===polis||m.ospite===polis);}).forEach(function(m){
+      try {
+        var avv=(m.casa===polis?m.ospite:m.casa)||'—';
+        cands.push({date:m.data,start:m.orario||'',title:polis+' vs '+avv,type:'partita',luogo:m.luogo||'',id:'camp_'+lv+'_'+m.id,isTraining:false,_src:'campionato'});
+      } catch(e_){ if (_dbg) _dbg.errors.push('campionato: '+(e_&&e_.message||e_)); }
+    });
+    (Array.isArray(tornei) ? tornei : []).filter(function(t){return t && t.leva===lv;}).forEach(function(t){
+      try {
+        var mieSq = (typeof _getMieSquadre === 'function') ? _getMieSquadre(t) : [polisName(lv)];
+        if (_dbg) _dbg.errors.push('tornei: '+t.id+' nome='+(t.nome||'?')+' mieSq='+JSON.stringify(mieSq)+' perPartita='+!!t.convocazioniPerPartita);
+        (t.fasi||[]).forEach(function(f){
+          (f && f.partite || []).filter(function(m){return m && !m.played && m.data && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
+            try {
+              var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
+              var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
+              // Legacy: id segue convocazioniPerPartita; _torneoId conservato per fallback in _convForCand.
+              var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
+              cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,_torneoId:t.id,_torneoFaseId:f.id,_torneoMatchId:m.id,_casa:m.casa,_ospite:m.ospite,isTraining:false,_src:'tornei'});
+            } catch(e_){ if (_dbg) _dbg.errors.push('tornei.partite: '+(e_&&e_.message||e_)); }
+          });
+        });
+      } catch(e_){ if (_dbg) _dbg.errors.push('tornei: '+(e_&&e_.message||e_)); }
+    });
+    cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
+
+    // Helper robusti: matching playerId con String() + fallback conv id per tornei
+    function _convForCand(ce){
+      try {
+        if (!ce) return null;
+        if (ce.id != null) {
+          var c = getConvocazione(ce.id);
+          if (c) return c;
+        }
+        // Fallback A: per tornei prova l'id "altro" (per-partita ↔ unified)
+        if (ce._torneoId != null && ce._torneoFaseId != null && ce._torneoMatchId != null) {
+          var altId = (ce.id === ce._torneoId)
+            ? ('torneo_'+ce._torneoId+'_'+ce._torneoFaseId+'_'+ce._torneoMatchId)
+            : ce._torneoId;
+          var c2 = getConvocazione(altId);
+          if (c2) return c2;
+        }
+        return null;
+      } catch(_) { return null; }
     }
-    var conv = ce.id ? getConvocazione(ce.id) : null;
-    if (conv && conv.playerIds) {
-      if (conv.playerIds.includes(playerId)) {
-        return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'convocato'});
+    function _playerInConv(conv, pid){
+      try {
+        if (!conv || !Array.isArray(conv.playerIds)) return false;
+        var sp = String(pid);
+        return conv.playerIds.some(function(x){return String(x) === sp;});
+      } catch(_) { return false; }
+    }
+    if (window._mvDbgNext) {
+      try { console.log('[mvDbgNext] candidates', JSON.parse(JSON.stringify(cands))); } catch(_) { console.log('[mvDbgNext] candidates', cands); }
+    }
+    var picked = null;
+    for (var j=0;j<cands.length;j++) {
+      var ce=cands[j];
+      var dm=parseYmd(ce.date);
+      var dfn=Math.max(0,Math.round((dm.getTime()-todayMs)/86400000));
+      var conv = ce.isTraining ? null : _convForCand(ce);
+      var convFoundOn = null, status, isMatch = false;
+      if (ce.isTraining) {
+        status = 'training';
+      } else if (conv && Array.isArray(conv.playerIds)) {
+        convFoundOn = conv.eventId;
+        isMatch = _playerInConv(conv, playerId);
+        status = isMatch ? 'convocato' : 'non_convocato';
+      } else {
+        status = 'attesa';
       }
-      continue; // non convocato → skip
+      if (_dbg) {
+        _dbg.candidates.push({
+          date: ce.date, start: ce.start || '', type: ce.type, src: ce._src || '',
+          id: ce.id, _torneoId: ce._torneoId, _torneoFaseId: ce._torneoFaseId, _torneoMatchId: ce._torneoMatchId,
+          title: ce.title, daysFromNow: dfn,
+          convFound: !!conv, convEventId: convFoundOn, playerIds: conv ? conv.playerIds : null,
+          playerInConv: isMatch, status: status, _casa: ce._casa, _ospite: ce._ospite
+        });
+      }
+      if (window._mvDbgNext) console.log('[mvDbgNext] →', ce.date, ce.type, ce.title, 'id=', ce.id, '_torneoId=', ce._torneoId, 'conv=', conv && conv.eventId, 'playerIds=', conv && conv.playerIds, 'match?', isMatch, '→', status);
+      if (!picked) {
+        if (status === 'training' || status === 'convocato' || status === 'attesa') {
+          picked = Object.assign({}, ce, {daysFromNow:dfn, convStatus: status==='training' ? null : status});
+          if (!_dbg) { // se non stiamo loggando, esci subito (comportamento originale)
+            return picked;
+          }
+        }
+        // se non_convocato → continua a cercare
+      }
     }
-    return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'attesa'});
+    if (_dbg) _dbg.result = picked;
+    return picked;
+  } catch(e) {
+    try { console.warn('[_genitoreNextImpegno] error', e); } catch(_) {}
+    if (_dbg) _dbg.errors.push('outer: '+(e&&e.message||e));
+    return null;
   }
-  return null;
 }
+
+// Helper diagnostico chiamabile da console DevTools:
+//   _mvDbgNextImpegno()              → usa figlio attivo dalla Home genitore
+//   _mvDbgNextImpegno('U10', 123)    → con leva e playerId espliciti
+window._mvDbgNextImpegno = function(lv, pid){
+  try {
+    if (!lv || pid == null) {
+      var figli = [];
+      if (me && Array.isArray(me.figliIds) && me.figliIds.length) {
+        figli = players.filter(function(pl){return me.figliIds.includes(pl.id);});
+      }
+      if (!figli.length && me) {
+        var names = (typeof getFigliOf === 'function') ? getFigliOf(me) : [];
+        figli = players.filter(function(pp){return names.includes(pp.nome+' '+pp.cogn);});
+      }
+      var sel = figli[0];
+      try {
+        var saved = me && localStorage.getItem('gen_sel_'+me.id);
+        if (saved) { var f = figli.find(function(x){return String(x.id)===saved;}); if (f) sel = f; }
+      } catch(_) {}
+      if (sel) { lv = lv || sel.leva; pid = (pid==null) ? sel.id : pid; }
+    }
+    console.log('[mvDbgNext] lv=', lv, 'pid=', pid, 'todayStr=', ymd(new Date()));
+    window._mvDbgNext = true;
+    var res = _genitoreNextImpegno(lv, pid);
+    window._mvDbgNext = false;
+    console.log('[mvDbgNext] RESULT:', res);
+    return res;
+  } catch (e) { console.error('[mvDbgNext] error', e); }
+};
 
 // Storico convocazioni del figlio (PWA genitore, schermata Profilo).
 // Restituisce partite/tornei PASSATI con convocazione pubblicata, ordinati dal più recente.
@@ -15117,25 +15265,28 @@ function buildMobDashboardGenitore(c) {
     var s=calcStats(p);
     var pcColorH=s.percAll>=80?'var(--green)':s.percAll>=60?'var(--gold)':'var(--red)';
     var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    // Stat % allen.: tutte e 3 le stat bianche per leggibilità su sfondo verde.
+    // Soglia di "buon andamento" segnalata con piccolo pallino accanto al valore (no testo verde-su-verde).
+    var pcDot=s.percAll>=80?'#9DECB6':s.percAll>=60?'#FFE17A':'#FFB1A8';
     heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
-      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+      +'<div style="position:relative;z-index:1;display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
       +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;flex-shrink:0;">'+ini+'</div>'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(p.nome+' '+p.cogn)+'</div>'
       +'<div style="font-size:.76rem;opacity:.85;margin-top:3px;">'+escapeHtml(p.ruolo||'Giocatore')+(p.num?' · #'+p.num:'')+' · '+escapeHtml(p.leva||'')+'</div>'
       +'</div></div>'
-      +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
-      +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
+      +'<div aria-hidden="true" style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.08;line-height:1;z-index:0;pointer-events:none;">#'+(p.num||'—')+'</div>'
+      +'<div style="position:relative;z-index:1;display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalPresPartite+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;">'+totalPresPartite+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Pres. partite</div>'
       +'</div>'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;">'+totalGol+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
       +'</div>'
       +'<div style="flex:1;text-align:center;padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:'+pcColorH+';">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;display:inline-flex;align-items:center;gap:6px;justify-content:center;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+pcDot+';flex-shrink:0;"></span>'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">% allen.</div>'
       +'</div>'
       +'</div></div>';
@@ -15149,7 +15300,8 @@ function buildMobDashboardGenitore(c) {
 
   // ── CARD 3: Prossimo impegno ─────────────────────────────────────────────
   var lv=p?p.leva:null;
-  var nxtEv=(lv&&p)?_genitoreNextImpegno(lv,p.id):null;
+  var nxtEv=null;
+  try { nxtEv=(lv&&p)?_genitoreNextImpegno(lv,p.id):null; } catch(_e){ try{console.warn('[home-genitore] next impegno error', _e);}catch(_){} nxtEv=null; }
   var impegnoHtml='';
   if(nxtEv){
     var hDFN=nxtEv.daysFromNow;
@@ -15284,10 +15436,69 @@ function buildMobDashboardGenitore(c) {
       var _evIdJs = typeof nxtEv.id === 'string' ? "'"+String(nxtEv.id).replace(/'/g,"\\'")+"'" : nxtEv.id;
       _segAct="openConvIndispModal("+_evIdJs+","+p.id+")";
     }
-    avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
+    avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;margin:0 0 10px 0;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+avvisaBtn3;
+  // ── DEBUG box (in fondo): mostra candidati + result di _genitoreNextImpegno.
+  //   Toggle: localStorage.setItem('mv_home_dbg','1') per attivarlo (link "Nascondi"
+  //   imposta '0'). Default: off in produzione, ma attivabile in 1 riga da console.
+  var dbgHtml = '';
+  try {
+    var _dbgOn = false;
+    try { _dbgOn = (localStorage.getItem('mv_home_dbg') === '1'); } catch(_) {}
+    if (_dbgOn && p) {
+      var _dbg = { candidates: [], errors: [], result: null };
+      try { _genitoreNextImpegno(lv, p.id, _dbg); } catch(_e){ _dbg.errors.push('call: '+(_e&&_e.message||_e)); }
+      var _badge = function(st){
+        if (st === 'convocato')      return '<span class="dbg-tag conv">CONVOCATO</span>';
+        if (st === 'attesa')         return '<span class="dbg-tag att">IN ATTESA</span>';
+        if (st === 'non_convocato')  return '<span class="dbg-tag noc">NON CONV.</span>';
+        if (st === 'training')       return '<span class="dbg-tag tr">ALLENAM.</span>';
+        return '<span class="dbg-tag noc">'+escapeHtml(String(st||'-'))+'</span>';
+      };
+      var rowsHtml = (_dbg.candidates||[]).map(function(c){
+        var idStr = (c.id == null) ? '∅' : escapeHtml(String(c.id));
+        var torneoStr = c._torneoId != null ? ('_torneoId='+escapeHtml(String(c._torneoId))+' f='+escapeHtml(String(c._torneoFaseId||''))+' m='+escapeHtml(String(c._torneoMatchId||''))) : '';
+        var teamsStr = (c._casa || c._ospite) ? (' casa='+escapeHtml(String(c.\_casa||'-'))+' ospite='+escapeHtml(String(c._ospite||'-'))) : '';
+        var convStr = c.convFound
+          ? ('conv✓ eventId='+escapeHtml(String(c.convEventId))+' pIds='+escapeHtml(JSON.stringify(c.playerIds||[]).slice(0,160)))
+          : 'conv✗';
+        return '<div class="dbg-row">'
+          + _badge(c.status)
+          + escapeHtml(c.date)+(c.start?(' '+escapeHtml(c.start)):'')
+          + ' · <b>'+escapeHtml(c.type||'?')+'</b>'
+          + ' · src='+escapeHtml(c.src||'?')
+          + ' · id='+idStr
+          + (torneoStr?(' · '+torneoStr):'')
+          + (teamsStr||'')
+          + ' · '+convStr
+          + ' · match='+(c.playerInConv?'YES':'NO')
+          + ' · daysFromNow='+escapeHtml(String(c.daysFromNow))
+          + '<br>📌 '+escapeHtml(c.title||'')
+          + '</div>';
+      }).join('');
+      var errsHtml = (_dbg.errors||[]).length
+        ? '<pre>'+escapeHtml(_dbg.errors.join('\n'))+'</pre>'
+        : '<div style="opacity:.6;">(nessun errore)</div>';
+      var resHtml = _dbg.result
+        ? '<pre>'+escapeHtml(JSON.stringify(_dbg.result, null, 2))+'</pre>'
+        : '<div style="opacity:.6;">(result: null)</div>';
+      dbgHtml = '<div class="dbg-next-card">'
+        + '<div class="dbg-hd"><span>🔧 DEBUG · prossimo impegno</span>'
+        +   '<button class="dbg-hide" onclick="try{localStorage.setItem(\'mv_home_dbg\',\'0\');}catch(_){};buildDashboard(me&&me.role);">× Nascondi</button>'
+        + '</div>'
+        + '<div style="margin-bottom:6px;"><b>lv</b>='+escapeHtml(String(lv||''))+' · <b>playerId</b>='+escapeHtml(String(p.id))+' · <b>nome</b>='+escapeHtml(p.nome+' '+p.cogn)+' · <b>todayStr</b>='+escapeHtml(todayStr)+'</div>'
+        + '<div style="margin:6px 0 4px;font-weight:900;">CANDIDATI ('+((_dbg.candidates||[]).length)+'):</div>'
+        + (rowsHtml || '<div style="opacity:.6;">(nessun candidato)</div>')
+        + '<div style="margin:8px 0 4px;font-weight:900;">DIAGNOSTICA / ERRORI:</div>'
+        + errsHtml
+        + '<div style="margin:8px 0 4px;font-weight:900;">RESULT:</div>'
+        + resHtml
+        + '</div>';
+    }
+  } catch(_) { dbgHtml = ''; }
+
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+dbgHtml;
 }
 
 function buildDashboard(role) {
@@ -22622,6 +22833,11 @@ function saveGcTorneo() {
     tornei.push(newT);
   }
   closeM('mGcTorneoEdit');
+  // Auto-expand della card salvata: senza questo, se l'utente apre la matita su una card collassata,
+  // il re-render post-save lascia il body con display:none e il genBtn appena scritto resta invisibile
+  // (allineato all'auto-expand di renderGcTornei su attivi.length===1, applicato sincronicamente qui).
+  const _savedTIdEx = id || (tornei.length ? tornei[tornei.length-1].id : null);
+  if (_savedTIdEx) _gcTorneiEspansi.add(_savedTIdEx);
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Torneo salvato!');
 
