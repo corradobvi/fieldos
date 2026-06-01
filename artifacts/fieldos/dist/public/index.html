@@ -1396,9 +1396,9 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   width:120px;height:120px;border-radius:50%;
   background:rgba(255,255,255,.07);
 }
-.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:5px;}
-.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.1;margin-bottom:5px;}
-.mob-evt-meta{font-size:.78rem;opacity:.8;}
+.mob-evt-tag{font-size:.65rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;opacity:.75;margin-bottom:10px;line-height:1.2;}
+.mob-evt-title{font-family:'Barlow Condensed',sans-serif;font-size:1.65rem;font-weight:900;line-height:1.15;margin-bottom:10px;}
+.mob-evt-meta{font-size:.78rem;opacity:.8;line-height:1.45;}
 .mob-evt-cd{
   position:absolute;right:18px;top:50%;transform:translateY(-50%);
   text-align:center;background:rgba(255,255,255,.15);
@@ -1406,10 +1406,12 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 .mob-evt-cd-n{font-family:'Barlow Condensed',sans-serif;font-size:2.4rem;font-weight:900;line-height:1;color:#fff;}
 .mob-evt-cd-l{font-size:.6rem;text-transform:uppercase;letter-spacing:.8px;opacity:.8;color:#fff;}
+/* "Vedi tutti" in-flow sotto la riga data/ora con margin-top dedicato per ritmo verticale */
 .mob-evt-all{
-  position:absolute;left:18px;bottom:10px;
+  display:inline-block;
+  margin-top:14px;
   font-size:.72rem;font-weight:700;color:#fff;opacity:.85;
-  text-decoration:underline;cursor:pointer;
+  text-decoration:underline;cursor:pointer;line-height:1.2;
   -webkit-tap-highlight-color:transparent;
 }
 .mob-evt-all:active{opacity:1;}
