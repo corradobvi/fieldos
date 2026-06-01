@@ -14885,23 +14885,33 @@ function selectGenFiglio(playerId){
 // Prossimo impegno per la PWA genitore: salta partite/tornei in cui il figlio è NON convocato,
 // mostra il primo impegno utile (allenamento / convocato / in attesa di convocazione).
 // convStatus: 'convocato' | 'attesa' | null (null = allenamento, nessun badge)
+// Prossimo impegno per la PWA genitore: candidati = allenamenti (events[]) +
+// partite strutturate (amichevoli/campionato/tornei). Per ogni candidato cerco
+// la convocazione (con fallback tra id "torneo_X_Y_Z" e t.id unificato),
+// confronto i playerIds con coercion a stringa, e ritorno il PRIMO impegno
+// utile in ordine cronologico (allenamento OR convocato OR in attesa).
 function _genitoreNextImpegno(lv, playerId) {
   if (!lv) return null;
   var todayStr = ymd(new Date());
   var todayMs = new Date().setHours(0,0,0,0);
   var isTraining = function(ev){return ev.type==='allenamento'||ev.type==='allenamento_portieri';};
+  var isMatchType = function(t){return t==='partita'||t==='torneo'||t==='amichevole'||t==='campionato';};
   var cands = [];
-  // 1) eventi calendario (events[]) nei prossimi 45 gg
+  // 1) eventi calendario (events[]) nei prossimi 45 gg — SOLO allenamenti.
+  //    Le partite/tornei/amichevoli arrivano dalle strutturate (parti 2-4) per evitare:
+  //    a) duplicati che confondono il sort/lookup conv, b) candidati con id=ev.id
+  //       (numerico) la cui conv è invece registrata su id strutturato.
   for (var i=0;i<45;i++) {
     var d=new Date(todayMs); d.setDate(new Date(todayMs).getDate()+i);
     var ds=ymd(d);
     events.forEach(function(ev){
+      if (isMatchType(ev.type)) return;
       if ((!ev.leve||!ev.leve.length||ev.leve.includes(lv)) && eventOccursOn(ev,ds)) {
         cands.push({date:ds,start:ev.start||'',title:ev.title||(isTraining(ev)?'Allenamento':'Evento'),type:ev.type||'',luogo:ev.luogo||'',id:ev.id,isTraining:isTraining(ev)});
       }
     });
   }
-  // 2) partite strutturate (amichevoli / campionato / tornei) — stesso pattern di panoNextMatchForLeva
+  // 2) partite strutturate (amichevoli / campionato / tornei)
   var polis = _campPolis(lv);
   (amichevoli||[]).filter(function(m){return m.leva===lv && !m.annullata && m.data>=todayStr;}).forEach(function(m){
     var isH=(m.tipo||'casa')==='casa';
@@ -14918,12 +14928,37 @@ function _genitoreNextImpegno(lv, playerId) {
       (f.partite||[]).filter(function(m){return !m.played && m.data>=todayStr && (mieSq.includes(m.casa)||mieSq.includes(m.ospite));}).forEach(function(m){
         var mia=mieSq.includes(m.casa)?m.casa:m.ospite;
         var avv=(mieSq.includes(m.casa)?m.ospite:m.casa)||'—';
-        var evId = t.convocazioniPerPartita ? ('torneo_'+t.id+'_'+f.id+'_'+m.id) : t.id;
-        cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evId,isTraining:false});
+        // Genera l'id per-partita; in _convForCand sotto si fa anche fallback a t.id (unified).
+        var evIdPP = 'torneo_'+t.id+'_'+f.id+'_'+m.id;
+        cands.push({date:m.data,start:m.orario||'',title:mia+' vs '+avv+' ('+t.nome+')',type:'torneo',luogo:m.luogo||t.luogo||'',id:evIdPP,_torneoId:t.id,isTraining:false});
       });
     });
   });
   cands.sort(function(a,b){return a.date.localeCompare(b.date) || (a.start||'').localeCompare(b.start||'');});
+
+  // Helper robusti: matching playerId con coercion a string + fallback conv id per tornei
+  function _convForCand(ce){
+    if (!ce.id && !ce._torneoId) return null;
+    var c = ce.id ? getConvocazione(ce.id) : null;
+    if (c) return c;
+    if (ce._torneoId) {
+      c = getConvocazione(ce._torneoId);
+      if (c) return c;
+    }
+    if (typeof ce.id === 'string') {
+      var mp = /^torneo_([^_]+)_/.exec(String(ce.id));
+      if (mp) { c = getConvocazione(mp[1]); if (c) return c; }
+    }
+    return null;
+  }
+  function _playerInConv(conv, pid){
+    if (!conv || !Array.isArray(conv.playerIds)) return false;
+    var sp = String(pid);
+    return conv.playerIds.some(function(x){return String(x) === sp;});
+  }
+  if (window._mvDbgNext) {
+    try { console.log('[mvDbgNext] candidates', JSON.parse(JSON.stringify(cands))); } catch(_) { console.log('[mvDbgNext] candidates', cands); }
+  }
   for (var j=0;j<cands.length;j++) {
     var ce=cands[j];
     var dm=parseYmd(ce.date);
@@ -14931,9 +14966,10 @@ function _genitoreNextImpegno(lv, playerId) {
     if (ce.isTraining) {
       return Object.assign({}, ce, {daysFromNow:dfn, convStatus:null});
     }
-    var conv = ce.id ? getConvocazione(ce.id) : null;
-    if (conv && conv.playerIds) {
-      if (conv.playerIds.includes(playerId)) {
+    var conv = _convForCand(ce);
+    if (window._mvDbgNext) console.log('[mvDbgNext] →', ce.date, ce.type, ce.title, 'id=', ce.id, '_torneoId=', ce._torneoId, 'conv=', conv && conv.eventId, 'playerIds=', conv && conv.playerIds, 'match?', _playerInConv(conv, playerId));
+    if (conv && Array.isArray(conv.playerIds)) {
+      if (_playerInConv(conv, playerId)) {
         return Object.assign({}, ce, {daysFromNow:dfn, convStatus:'convocato'});
       }
       continue; // non convocato → skip
@@ -14942,6 +14978,36 @@ function _genitoreNextImpegno(lv, playerId) {
   }
   return null;
 }
+
+// Helper diagnostico chiamabile da console DevTools:
+//   _mvDbgNextImpegno()              → usa figlio attivo dalla Home genitore
+//   _mvDbgNextImpegno('U10', 123)    → con leva e playerId espliciti
+window._mvDbgNextImpegno = function(lv, pid){
+  try {
+    if (!lv || pid == null) {
+      var figli = [];
+      if (me && Array.isArray(me.figliIds) && me.figliIds.length) {
+        figli = players.filter(function(pl){return me.figliIds.includes(pl.id);});
+      }
+      if (!figli.length && me) {
+        var names = (typeof getFigliOf === 'function') ? getFigliOf(me) : [];
+        figli = players.filter(function(pp){return names.includes(pp.nome+' '+pp.cogn);});
+      }
+      var sel = figli[0];
+      try {
+        var saved = me && localStorage.getItem('gen_sel_'+me.id);
+        if (saved) { var f = figli.find(function(x){return String(x.id)===saved;}); if (f) sel = f; }
+      } catch(_) {}
+      if (sel) { lv = lv || sel.leva; pid = (pid==null) ? sel.id : pid; }
+    }
+    console.log('[mvDbgNext] lv=', lv, 'pid=', pid, 'todayStr=', ymd(new Date()));
+    window._mvDbgNext = true;
+    var res = _genitoreNextImpegno(lv, pid);
+    window._mvDbgNext = false;
+    console.log('[mvDbgNext] RESULT:', res);
+    return res;
+  } catch (e) { console.error('[mvDbgNext] error', e); }
+};
 
 // Storico convocazioni del figlio (PWA genitore, schermata Profilo).
 // Restituisce partite/tornei PASSATI con convocazione pubblicata, ordinati dal più recente.
@@ -15119,25 +15185,28 @@ function buildMobDashboardGenitore(c) {
     var s=calcStats(p);
     var pcColorH=s.percAll>=80?'var(--green)':s.percAll>=60?'var(--gold)':'var(--red)';
     var ini=((p.nome[0]||'')+(p.cogn[0]||'')).toUpperCase();
+    // Stat % allen.: tutte e 3 le stat bianche per leggibilità su sfondo verde.
+    // Soglia di "buon andamento" segnalata con piccolo pallino accanto al valore (no testo verde-su-verde).
+    var pcDot=s.percAll>=80?'#9DECB6':s.percAll>=60?'#FFE17A':'#FFB1A8';
     heroHtml2='<div class="mi-hero" style="background:linear-gradient(135deg,var(--cp),var(--cs));color:#fff;position:relative;overflow:hidden;">'
-      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+      +'<div style="position:relative;z-index:1;display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
       +'<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;flex-shrink:0;">'+ini+'</div>'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.35rem;font-weight:900;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escapeHtml(p.nome+' '+p.cogn)+'</div>'
       +'<div style="font-size:.76rem;opacity:.85;margin-top:3px;">'+escapeHtml(p.ruolo||'Giocatore')+(p.num?' · #'+p.num:'')+' · '+escapeHtml(p.leva||'')+'</div>'
       +'</div></div>'
-      +'<div style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.1;line-height:1;">#'+(p.num||'—')+'</div>'
-      +'<div style="display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
+      +'<div aria-hidden="true" style="position:absolute;right:16px;bottom:10px;font-family:\'Barlow Condensed\',sans-serif;font-size:4rem;font-weight:900;opacity:.08;line-height:1;z-index:0;pointer-events:none;">#'+(p.num||'—')+'</div>'
+      +'<div style="position:relative;z-index:1;display:flex;border-top:1px solid rgba(255,255,255,.2);padding-top:12px;">'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalPresPartite+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;">'+totalPresPartite+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Pres. partite</div>'
       +'</div>'
       +'<div style="flex:1;text-align:center;border-right:1px solid rgba(255,255,255,.15);padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;">'+totalGol+'</div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;">'+totalGol+'</div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">Gol</div>'
       +'</div>'
       +'<div style="flex:1;text-align:center;padding:0 6px;">'
-      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:'+pcColorH+';">'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
+      +'<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:1.8rem;font-weight:900;line-height:1;color:#fff;display:inline-flex;align-items:center;gap:6px;justify-content:center;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+pcDot+';flex-shrink:0;"></span>'+s.percAll+'<span style="font-size:.9rem;">%</span></div>'
       +'<div style="font-size:.58rem;text-transform:uppercase;letter-spacing:1px;opacity:.75;margin-top:2px;">% allen.</div>'
       +'</div>'
       +'</div></div>';
@@ -15289,7 +15358,7 @@ function buildMobDashboardGenitore(c) {
     avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+avvisaBtn3;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3;
 }
 
 function buildDashboard(role) {
