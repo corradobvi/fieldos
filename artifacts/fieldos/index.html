@@ -1767,6 +1767,65 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
   color:var(--text2);font-style:italic;padding:6px 4px 0;text-align:center;
 }
+
+/* Certificato medico — sola lettura (piano Società) o editabile (Mister / Mister Pro) */
+.cm-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.cm-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:10px;
+}
+.cm-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 12px;border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  margin-bottom:10px;line-height:1.2;
+}
+.cm-badge.ok       { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+.cm-badge.soon     { background:#fefce8; color:#854d0e; border:1px solid #fde68a; }
+.cm-badge.very-soon{ background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; }
+.cm-badge.expired  { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.cm-badge.none     { background:#f3f4f6; color:#52555a; border:1px solid #e5e7eb; }
+.cm-row{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 10px;background:#f6faf8;border:1px solid #d8e6e0;border-radius:10px;
+  margin-bottom:8px;
+}
+.cm-row-label{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  color:var(--text2);letter-spacing:.2px;
+}
+.cm-row-date{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.92rem;color:var(--text);
+}
+.cm-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;color:var(--text2);
+  font-style:italic;padding:10px 6px;text-align:center;
+  background:rgba(255,217,61,.10);border:1px dashed #FFD93D;border-radius:8px;
+}
+.cm-form{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.cm-label{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.74rem;color:var(--text2);
+  letter-spacing:.3px;
+}
+.cm-input{
+  width:100%;padding:10px 12px;min-height:44px;border:1px solid var(--border);
+  border-radius:10px;background:#fff;color:var(--text);
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.92rem;
+  -webkit-appearance:none;appearance:none;
+}
+.cm-input:focus{outline:none;border-color:#1A7A4A;box-shadow:0 0 0 3px rgba(26,122,74,.12);}
+.cm-save-btn{
+  width:100%;padding:10px;min-height:42px;background:#1A7A4A;color:#fff;
+  border:none;border-radius:10px;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.88rem;letter-spacing:.2px;
+}
+.cm-meta{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.7rem;color:var(--text3);
+  margin-top:8px;text-align:right;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -6119,6 +6178,69 @@ function renderProfiloFiglio(el) {
     }
   </div>`;
 
+  // Certificato medico — comportamento per piano del club.
+  // - Piano Società (o omaggio): SOLA lettura (data gestita dalla società).
+  // - Piano Mister / Mister Pro: genitore può inserire/modificare la data.
+  // Storage: stesso documenti[] esistente (cert_medico, dateOnly), no migration MySQL.
+  const _cmPiano = (typeof pianoNorm === 'function')
+    ? pianoNorm((currentSocietyMeta && currentSocietyMeta.piano) || 'mister')
+    : ((currentSocietyMeta && currentSocietyMeta.piano) || 'mister');
+  const _cmIsOmaggio = !!(currentSocietyMeta && currentSocietyMeta.billingMode === 'omaggio');
+  const _cmSocietaPlan = (_cmPiano === 'societa') || _cmIsOmaggio;
+  const _cmCert = (Array.isArray(documenti) ? documenti : [])
+    .filter(d => d.playerId === p.id && d.tipo === 'cert_medico' && d.dataScadenza)
+    .sort((a,b) => (b.dataScadenza || '').localeCompare(a.dataScadenza || ''))[0] || null;
+  // Calcolo stato/badge con soglie del prompt: >30 ok, ≤30 giallo, ≤15 arancio, scaduto rosso
+  let _cmBadge = '';
+  if (_cmCert && _cmCert.dataScadenza) {
+    const _tMid = new Date(); _tMid.setHours(0,0,0,0);
+    const _dScad = parseYmd(_cmCert.dataScadenza);
+    const _daysLeft = Math.ceil((_dScad.getTime() - _tMid.getTime()) / 86400000);
+    let _lvl, _lbl;
+    if (_daysLeft < 0) {
+      _lvl = 'expired';
+      _lbl = `❌ Scaduto il ${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}`;
+    } else if (_daysLeft <= 15) {
+      _lvl = 'very-soon';
+      _lbl = `🔴 In scadenza tra ${_daysLeft} giorn${_daysLeft===1?'o':'i'}`;
+    } else if (_daysLeft <= 30) {
+      _lvl = 'soon';
+      _lbl = `🟡 In scadenza tra ${_daysLeft} giorni`;
+    } else {
+      _lvl = 'ok';
+      _lbl = `✅ Valido fino al ${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}`;
+    }
+    _cmBadge = `<div class="cm-badge ${_lvl}">${_lbl}</div>`;
+  } else if (!_cmSocietaPlan) {
+    _cmBadge = `<div class="cm-badge none">📝 Nessuna scadenza inserita</div>`;
+  }
+  let _cmBody = '';
+  if (_cmSocietaPlan) {
+    // READ-ONLY
+    if (_cmCert) {
+      _cmBody = `<div class="cm-row">
+          <div class="cm-row-label">Scadenza</div>
+          <div class="cm-row-date">${escapeHtml(fmtDateFull(_cmCert.dataScadenza))}</div>
+        </div>
+        <div class="cm-meta">Gestito dalla società</div>`;
+    } else {
+      _cmBody = `<div class="cm-empty">Gestito dalla società</div>`;
+    }
+  } else {
+    // EDITABLE (Mister / Mister Pro)
+    _cmBody = `<div class="cm-form">
+        <label class="cm-label" for="cmExpiryInput-${p.id}">Data di scadenza</label>
+        <input type="date" id="cmExpiryInput-${p.id}" class="cm-input" value="${escapeHtml(_cmCert?_cmCert.dataScadenza:'')}">
+        <button class="cm-save-btn" onclick="_cmSaveExpiry(${p.id})">💾 Salva scadenza</button>
+      </div>
+      ${_cmCert && _cmCert.uploadedAt ? `<div class="cm-meta">Aggiornato il ${escapeHtml(fmtDateFull(ymd(new Date(_cmCert.uploadedAt))))}</div>` : ''}`;
+  }
+  const certMedicoHtml = `<div class="cm-card">
+    <div class="cm-hd">🏥 Certificato medico</div>
+    ${_cmBadge}
+    ${_cmBody}
+  </div>`;
+
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
   let docsHtml = '';
@@ -6199,6 +6321,7 @@ function renderProfiloFiglio(el) {
     ${presBarHtml}
     ${storicoConvHtml}
     ${indispPeriodoHtml}
+    ${certMedicoHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
@@ -14670,6 +14793,39 @@ function _scToggle(btn){
   var open = extra.classList.toggle('open');
   var n = btn.getAttribute('data-n') || '';
   btn.innerHTML = open ? '▴ Nascondi' : ('▾ Mostra tutte (' + n + ')');
+}
+
+// Salva/aggiorna la data di scadenza del certificato medico del figlio (PWA genitore,
+// piani Mister / Mister Pro). Riusa documenti[] + cert_medico DOC_TYPE esistente:
+// nessuna migration. Documento "date-only" senza file (i flussi che leggono cert
+// guardano solo dataScadenza). Soc piano = read-only, non chiama questa funzione.
+function _cmSaveExpiry(playerId){
+  var inp = document.getElementById('cmExpiryInput-' + playerId);
+  if (!inp) return;
+  var dataScad = inp.value;
+  if (!dataScad) { toast('⚠️ Inserisci la data di scadenza'); return; }
+  var existing = documenti
+    .filter(function(d){return d.playerId === playerId && d.tipo === 'cert_medico';})
+    .sort(function(a,b){return (b.uploadedAt||0) - (a.uploadedAt||0);})[0];
+  if (existing) {
+    existing.dataScadenza = dataScad;
+    existing.uploadedAt = Date.now();
+    if (me) existing.uploadedBy = me.id;
+  } else {
+    documenti.push({
+      id: nextDocId++,
+      playerId: playerId,
+      tipo: 'cert_medico',
+      tipoLabel: 'Certificato medico sportivo',
+      dataScadenza: dataScad,
+      uploadedAt: Date.now(),
+      uploadedBy: me ? me.id : null,
+      dateOnly: true,
+    });
+  }
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  toast('💾 Scadenza certificato salvata');
 }
 
 // Rimozione inline di un periodo di indisponibilità dal blocco "Indisponibilità periodo"
