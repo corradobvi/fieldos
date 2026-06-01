@@ -1836,37 +1836,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   margin-top:8px;text-align:right;
 }
 
-/* DEBUG box — visibile solo se localStorage.mv_home_dbg === '1' (toggle facile). */
-.dbg-next-card{
-  background:#fff8e6;border:1px dashed #b58a00;border-radius:12px;
-  padding:12px;margin-bottom:10px;
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:.72rem;color:#3a3000;line-height:1.4;
-}
-.dbg-next-card .dbg-hd{
-  display:flex;align-items:center;justify-content:space-between;gap:6px;
-  font-family:'Nunito',sans-serif;font-weight:900;font-size:.8rem;color:#7a5500;margin-bottom:8px;
-}
-.dbg-next-card .dbg-hide{
-  font-family:'Nunito',sans-serif;font-size:.7rem;font-weight:800;
-  background:transparent;border:1px solid #b58a00;color:#7a5500;
-  border-radius:6px;padding:3px 8px;cursor:pointer;
-}
-.dbg-next-card pre{
-  background:#fffdf2;border:1px solid #ead7a8;border-radius:8px;
-  padding:8px;overflow-x:auto;white-space:pre-wrap;word-break:break-word;
-  margin:0;font-size:.7rem;color:#2a2400;max-height:60vh;overflow-y:auto;
-}
-.dbg-next-card .dbg-row{padding:4px 0;border-bottom:1px solid rgba(181,138,0,.18);}
-.dbg-next-card .dbg-row:last-child{border-bottom:none;}
-.dbg-next-card .dbg-tag{
-  display:inline-block;padding:1px 6px;border-radius:6px;font-weight:900;
-  font-size:.62rem;letter-spacing:.4px;margin-right:4px;
-}
-.dbg-next-card .dbg-tag.conv{background:#1A7A4A;color:#fff;}
-.dbg-next-card .dbg-tag.att{background:#FFD93D;color:#6b4d04;}
-.dbg-next-card .dbg-tag.noc{background:#e5e7eb;color:#52555a;}
-.dbg-next-card .dbg-tag.tr{background:#0ea860;color:#fff;}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -15066,7 +15035,7 @@ function selectGenFiglio(playerId){
 //
 // _dbg (opzionale): se passato { candidates:[], errors:[], result:null }, viene popolato
 // con i dettagli (id usato, _torneoId, conv trovata, playerIds, stato derivato, errori
-// per-candidato). Usato dal box "DEBUG prossimo impegno" in Home (flag mv_home_dbg).
+// per-candidato). Usato da window._mvDbgNextImpegno() da DevTools console.
 function _genitoreNextImpegno(lv, playerId, _dbg) {
   try {
     if (_dbg) { _dbg.candidates = _dbg.candidates || []; _dbg.errors = _dbg.errors || []; _dbg.result = null; }
@@ -15611,67 +15580,7 @@ function buildMobDashboardGenitore(c) {
     avvisaBtn3='<button class="btn" style="width:100%;padding:14px;font-size:.95rem;font-weight:700;border-radius:14px;background:var(--cp);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;-webkit-tap-highlight-color:transparent;margin:0 0 10px 0;" onclick="'+_segAct+'">📵 '+_segLabel+'</button>';
   }
 
-  // ── DEBUG box (in fondo): mostra candidati + result di _genitoreNextImpegno.
-  //   TEMPORANEO: visibile per DEFAULT (per screenshot da mobile, niente console).
-  //   Il link "× Nascondi" imposta '0' e lo nasconde fino al prossimo set manuale.
-  //   Da rimuovere del tutto dopo aver risolto il bug "prossimo impegno torneo".
-  var dbgHtml = '';
-  try {
-    var _dbgOn = true;
-    try { _dbgOn = (localStorage.getItem('mv_home_dbg') !== '0'); } catch(_) {}
-    if (_dbgOn && p) {
-      var _dbg = { candidates: [], errors: [], result: null };
-      try { _genitoreNextImpegno(lv, p.id, _dbg); } catch(_e){ _dbg.errors.push('call: '+(_e&&_e.message||_e)); }
-      var _badge = function(st){
-        if (st === 'convocato')      return '<span class="dbg-tag conv">CONVOCATO</span>';
-        if (st === 'attesa')         return '<span class="dbg-tag att">IN ATTESA</span>';
-        if (st === 'non_convocato')  return '<span class="dbg-tag noc">NON CONV.</span>';
-        if (st === 'training')       return '<span class="dbg-tag tr">ALLENAM.</span>';
-        return '<span class="dbg-tag noc">'+escapeHtml(String(st||'-'))+'</span>';
-      };
-      var rowsHtml = (_dbg.candidates||[]).map(function(c){
-        var idStr = (c.id == null) ? '∅' : escapeHtml(String(c.id));
-        var torneoStr = c._torneoId != null ? ('_torneoId='+escapeHtml(String(c._torneoId))+' f='+escapeHtml(String(c._torneoFaseId||''))+' m='+escapeHtml(String(c._torneoMatchId||''))) : '';
-        var teamsStr = (c._casa || c._ospite) ? (' casa='+escapeHtml(String(c._casa||'-'))+' ospite='+escapeHtml(String(c._ospite||'-'))) : '';
-        var convStr = c.convFound
-          ? ('conv✓ eventId='+escapeHtml(String(c.convEventId))+' pIds='+escapeHtml(JSON.stringify(c.playerIds||[]).slice(0,160)))
-          : 'conv✗';
-        return '<div class="dbg-row">'
-          + _badge(c.status)
-          + escapeHtml(c.date)+(c.start?(' '+escapeHtml(c.start)):'')
-          + ' · <b>'+escapeHtml(c.type||'?')+'</b>'
-          + ' · src='+escapeHtml(c.src||'?')
-          + ' · id='+idStr
-          + (torneoStr?(' · '+torneoStr):'')
-          + (teamsStr||'')
-          + ' · '+convStr
-          + ' · match='+(c.playerInConv?'YES':'NO')
-          + ' · daysFromNow='+escapeHtml(String(c.daysFromNow))
-          + '<br>📌 '+escapeHtml(c.title||'')
-          + '</div>';
-      }).join('');
-      var errsHtml = (_dbg.errors||[]).length
-        ? '<pre>'+escapeHtml(_dbg.errors.join('\n'))+'</pre>'
-        : '<div style="opacity:.6;">(nessun errore)</div>';
-      var resHtml = _dbg.result
-        ? '<pre>'+escapeHtml(JSON.stringify(_dbg.result, null, 2))+'</pre>'
-        : '<div style="opacity:.6;">(result: null)</div>';
-      dbgHtml = '<div class="dbg-next-card">'
-        + '<div class="dbg-hd"><span>🔧 DEBUG · prossimo impegno</span>'
-        +   '<button class="dbg-hide" onclick="try{localStorage.setItem(\'mv_home_dbg\',\'0\');}catch(_){};buildDashboard(me&&me.role);">× Nascondi</button>'
-        + '</div>'
-        + '<div style="margin-bottom:6px;"><b>lv</b>='+escapeHtml(String(lv||''))+' · <b>playerId</b>='+escapeHtml(String(p.id))+' · <b>nome</b>='+escapeHtml(p.nome+' '+p.cogn)+' · <b>todayStr</b>='+escapeHtml(todayStr)+'</div>'
-        + '<div style="margin:6px 0 4px;font-weight:900;">CANDIDATI ('+((_dbg.candidates||[]).length)+'):</div>'
-        + (rowsHtml || '<div style="opacity:.6;">(nessun candidato)</div>')
-        + '<div style="margin:8px 0 4px;font-weight:900;">DIAGNOSTICA / ERRORI:</div>'
-        + errsHtml
-        + '<div style="margin:8px 0 4px;font-weight:900;">RESULT:</div>'
-        + resHtml
-        + '</div>';
-    }
-  } catch(_) { dbgHtml = ''; }
-
-  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3+dbgHtml;
+  c.innerHTML=pwaBannerHtml()+selectorHtml+heroHtml2+dafareHtml3+impegnoHtml+avvisaBtn3+settimanaHtml3+ipPeriodHomeHtml+assenzaListHtml3;
 }
 
 function buildDashboard(role) {
