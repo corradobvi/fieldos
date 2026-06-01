@@ -21866,7 +21866,7 @@ function _gcFaseMatches(t, f) {
   }).join('');
   const altriHtml = renderAltriScontri('torneo', sorted.filter(m=>!mieSquadre.includes(m.casa)&&!mieSquadre.includes(m.ospite)), t.leva, t.id, f.id);
   const addBtn = canEdit?`<button class="btn btn-g btn-sm" style="margin-top:6px;" onclick="openPtFaseMatch('${t.id}','${f.id}')">+ Partita</button>`:'';
-  const genBtn = canEdit && (!f.tipo || f.tipo === 'girone') && (f.squadre||[]).length >= 2
+  const genBtn = canEdit && (!f.tipo || f.tipo === 'girone' || f.tipo === 'finale') && (f.squadre||[]).length >= 2
     ? `<button class="btn btn-s btn-sm" style="margin-top:6px;margin-left:6px;" onclick="openGenCalendar('${t.id}','${f.id}')">📅 Genera calendario girone</button>`
     : '';
   return polisHtml + altriHtml + addBtn + genBtn;
