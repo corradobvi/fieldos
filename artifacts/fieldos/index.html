@@ -15469,12 +15469,13 @@ function buildMobDashboardGenitore(c) {
   }
 
   // ── DEBUG box (in fondo): mostra candidati + result di _genitoreNextImpegno.
-  //   Toggle: localStorage.setItem('mv_home_dbg','1') per attivarlo (link "Nascondi"
-  //   imposta '0'). Default: off in produzione, ma attivabile in 1 riga da console.
+  //   TEMPORANEO: visibile per DEFAULT (per screenshot da mobile, niente console).
+  //   Il link "× Nascondi" imposta '0' e lo nasconde fino al prossimo set manuale.
+  //   Da rimuovere del tutto dopo aver risolto il bug "prossimo impegno torneo".
   var dbgHtml = '';
   try {
-    var _dbgOn = false;
-    try { _dbgOn = (localStorage.getItem('mv_home_dbg') === '1'); } catch(_) {}
+    var _dbgOn = true;
+    try { _dbgOn = (localStorage.getItem('mv_home_dbg') !== '0'); } catch(_) {}
     if (_dbgOn && p) {
       var _dbg = { candidates: [], errors: [], result: null };
       try { _genitoreNextImpegno(lv, p.id, _dbg); } catch(_e){ _dbg.errors.push('call: '+(_e&&_e.message||_e)); }
