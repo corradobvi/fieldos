@@ -1719,6 +1719,54 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
   color:var(--text2);font-style:italic;padding:6px 4px;text-align:center;
 }
+
+/* Indisponibilità periodo — gestione da/a per il figlio (riusa indisponibilita[]) */
+.ip-card{
+  background:#fff;border:1px solid var(--border);border-radius:14px;
+  padding:14px 12px;margin-bottom:14px;box-shadow:var(--sh);
+}
+.ip-hd{
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:#1A7A4A;
+  margin-bottom:8px;
+}
+.ip-info{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.76rem;
+  color:var(--text2);line-height:1.45;
+  background:rgba(255,217,61,.14);border-left:3px solid #FFD93D;
+  padding:8px 10px;border-radius:6px;margin-bottom:12px;
+}
+.ip-add-btn{
+  width:100%;padding:10px;min-height:40px;
+  background:#1A7A4A;color:#fff;border:none;border-radius:10px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.88rem;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-bottom:10px;letter-spacing:.2px;
+}
+.ip-list{display:flex;flex-direction:column;gap:6px;}
+.ip-row{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  background:#f6faf8;border:1px solid #d8e6e0;border-radius:10px;
+}
+.ip-row-body{flex:1;min-width:0;}
+.ip-row-range{
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.86rem;color:var(--text);
+  line-height:1.2;
+}
+.ip-row-motivo{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.72rem;
+  color:var(--text2);margin-top:2px;
+}
+.ip-row-del{
+  background:transparent;border:1px solid #fecaca;color:#dc2626;
+  border-radius:8px;padding:5px 8px;cursor:pointer;flex-shrink:0;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.78rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.ip-empty{
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  color:var(--text2);font-style:italic;padding:6px 4px 0;text-align:center;
+}
 .mob-figlio-hero{
   background:linear-gradient(135deg,var(--cp) 0%,var(--cs) 100%);
   border-radius:20px;padding:24px 18px 20px;color:#fff;
@@ -6042,6 +6090,35 @@ function renderProfiloFiglio(el) {
     }
   </div>`;
 
+  // Indisponibilità periodo (da/a) — STESSA fonte dati di "Le mie indisponibilità"
+  // in Convocazioni (indisponibilita[] con tipoScadenza periodo/indefinita, eventId=null).
+  // Riusa openIndispModal (add/edit) e _ipRemove (delete che riusa lo stesso array).
+  const _ipTodayStr = ymd(new Date());
+  const _ipPeriods = (Array.isArray(indisponibilita) ? indisponibilita : [])
+    .filter(i => i.playerId === p.id && !i.eventId && i.dataFine >= _ipTodayStr)
+    .sort((a,b) => a.dataInizio.localeCompare(b.dataInizio));
+  const _ipFmtRange = (i) => {
+    if (i.dataFine === '2099-12-31') return `Dal ${escapeHtml(panoFmtDateShort(i.dataInizio))} · a tempo indefinito`;
+    if (i.dataInizio === i.dataFine) return `📅 ${escapeHtml(panoFmtDateShort(i.dataInizio))}`;
+    return `📅 dal ${escapeHtml(panoFmtDateShort(i.dataInizio))} al ${escapeHtml(panoFmtDateShort(i.dataFine))}`;
+  };
+  const _ipRowHtml = (i) => `<div class="ip-row">
+    <div class="ip-row-body">
+      <div class="ip-row-range">${_ipFmtRange(i)}</div>
+      ${i.motivo ? `<div class="ip-row-motivo">${escapeHtml(i.motivo)}</div>` : ''}
+    </div>
+    <button class="ip-row-del" onclick="_ipRemove(${i.id})" aria-label="Rimuovi indisponibilità">✕ Rimuovi</button>
+  </div>`;
+  const indispPeriodoHtml = `<div class="ip-card">
+    <div class="ip-hd">🗓️ Indisponibilità periodo</div>
+    <div class="ip-info">Nei giorni indicati ${escapeHtml(p.nome||'tuo figlio')} risulterà <strong>assente</strong> agli allenamenti e <strong>indisponibile</strong> per le partite.</div>
+    <button class="ip-add-btn" onclick="openIndispModal(${p.id}, null)">➕ Aggiungi indisponibilità</button>
+    ${_ipPeriods.length
+      ? `<div class="ip-list">${_ipPeriods.map(_ipRowHtml).join('')}</div>`
+      : `<div class="ip-empty">Nessuna indisponibilità attiva.</div>`
+    }
+  </div>`;
+
   // Documenti del giocatore
   const pDocs = documenti.filter(d => d.playerId === p.id).sort((a, b) => b.uploadedAt - a.uploadedAt);
   let docsHtml = '';
@@ -6121,6 +6198,7 @@ function renderProfiloFiglio(el) {
     ${statPartiteHtml}
     ${presBarHtml}
     ${storicoConvHtml}
+    ${indispPeriodoHtml}
     <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
@@ -9716,6 +9794,7 @@ function saveIndisp() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId2 = document.getElementById('convEventId')?.value;
     if (rawEvId2) openConvocazioneModal(/^\d+$/.test(rawEvId2) ? parseInt(rawEvId2) : rawEvId2);
@@ -9741,6 +9820,7 @@ function deleteIndisp() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
   if (document.getElementById('mConv')?.classList.contains('on')) {
     const rawEvId = document.getElementById('convEventId')?.value;
     if (rawEvId) openConvocazioneModal(/^\d+$/.test(rawEvId) ? parseInt(rawEvId) : rawEvId);
@@ -14422,6 +14502,20 @@ function _scToggle(btn){
   var open = extra.classList.toggle('open');
   var n = btn.getAttribute('data-n') || '';
   btn.innerHTML = open ? '▴ Nascondi' : ('▾ Mostra tutte (' + n + ')');
+}
+
+// Rimozione inline di un periodo di indisponibilità dal blocco "Indisponibilità periodo"
+// (PWA genitore). Stessa fonte dati di Le mie indisponibilità (indisponibilita[]).
+function _ipRemove(indispId){
+  var rec = indisponibilita.find(function(i){return i.id === indispId;});
+  if (!rec) return;
+  if (!confirm('Rimuovere questa indisponibilità?')) return;
+  indisponibilita = indisponibilita.filter(function(i){return i.id !== indispId;});
+  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
+  if (document.getElementById('pg-rosa')?.classList.contains('on')) renderRosa();
+  if (document.getElementById('pg-profilo')?.classList.contains('on')) renderProfilo();
+  toast('🗑 Indisponibilità rimossa');
 }
 
 function buildMobDashboardGenitore(c) {
