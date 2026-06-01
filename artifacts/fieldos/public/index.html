@@ -6667,7 +6667,6 @@ function renderProfiloFiglio(el) {
     ${storicoConvHtml}
     ${indispPeriodoHtml}
     ${certMedicoHtml}
-    <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
       <div style="font-size:.78rem;color:var(--text2);padding:0 0 10px;line-height:1.4;">Modifica cognome o data di nascita se sono cambiati. Vengono salvati nella scheda del giocatore.</div>
@@ -6694,43 +6693,7 @@ function renderProfiloFiglio(el) {
         </div>`;
       })()}
     </div>
-    ${docsHtml}
-    ${(()=>{
-      const _ss = levaStatsSettings[p.leva] || {};
-      if (!_ss.showStatsToFamily) return '';
-      const _tot = {
-        pres: ms.a.pres+ms.c.pres+ms.t.pres, gol: ms.a.gol+ms.c.gol+ms.t.gol,
-        assist: ms.a.assist+ms.c.assist+ms.t.assist, minuti: ms.a.minuti+ms.c.minuti+ms.t.minuti,
-        gialli: ms.a.gialli+ms.c.gialli+ms.t.gialli, rossi: ms.a.rossi+ms.c.rossi+ms.t.rossi,
-        golSub: ms.a.golSub+ms.c.golSub+ms.t.golSub, cs: ms.a.cs+ms.c.cs+ms.t.cs
-      };
-      if (_tot.pres === 0) return '';
-      const _adv = (typeof advStats === 'function') ? advStats(p.leva) : false;
-      const _gk  = isGK(p);
-      const _rows = [
-        ['Presenze', ms.a.pres, ms.c.pres, ms.t.pres, _tot.pres],
-        ['Gol ⚽',   ms.a.gol,  ms.c.gol,  ms.t.gol,  _tot.gol],
-        ['Assist 🅰️',ms.a.assist,ms.c.assist,ms.t.assist,_tot.assist],
-        ...(_adv ? [
-          ['Minuti',   ms.a.minuti, ms.c.minuti, ms.t.minuti, _tot.minuti],
-          ['Gialli 🟨',ms.a.gialli, ms.c.gialli, ms.t.gialli, _tot.gialli],
-          ['Rossi 🟥', ms.a.rossi,  ms.c.rossi,  ms.t.rossi,  _tot.rossi],
-        ] : []),
-        ...(_gk ? [
-          ['Gol subiti',  ms.a.golSub, ms.c.golSub, ms.t.golSub, _tot.golSub],
-          ['Clean sheet', ms.a.cs,     ms.c.cs,     ms.t.cs,     _tot.cs],
-        ] : []),
-      ];
-      return `<div style="background:var(--cl);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;margin-bottom:10px;color:var(--text1);">⚽ STATISTICHE STAGIONE</div>
-        <table class="pst">
-          <thead><tr><th>Statistica</th><th>Amich.</th><th>Camp.</th><th>Tornei</th><th class="tot">TOT</th></tr></thead>
-          <tbody>${_rows.map(([lbl,...vals]) =>
-            `<tr><td>${String(lbl)}</td>${vals.map((v,i) => `<td${i===3?' class="tot"':''}>${v}</td>`).join('')}</tr>`
-          ).join('')}</tbody>
-        </table>
-      </div>`;
-    })()}`;
+    ${docsHtml}`;
 }
 
 // Genitore aggiorna cognome / data di nascita del figlio (richiede _v2Token + essere guardian)
@@ -7203,18 +7166,78 @@ async function _syncMatchFromMySQL(force) {
       console.log('[matchSync] playerMatchStats leva=' + lvCur + ' OK (0 differenze blob vs MySQL)');
     }
 
-    // ─── DIAG (STEP3 rollback) — esposizione su window per ispezione manuale ──
-    // Riferimenti diretti: __msBlob punta alle strutture REALI usate dal render
-    // (blob/rehydrate), __msMysql alle strutture ricostruite da MySQL in questo
-    // sync. Servono per diagnosticare le perdite di metadati torneo/fase.
+    // ─── DIAG — esposizione su window per ispezione manuale (mantenuta) ───────
+    // __msBlob punta alle strutture REALI prima del merge; __msMysql alle strutture
+    // MySQL DOPO il merge fill-missing. Utili per un'ultima verifica.
     window.__msBlob  = { amichevoli: amichevoli, campionato: campionato, tornei: tornei };
-    window.__msMysql = { amichevoli: mAm,        campionato: mCa,        tornei: mTorneiArr };
 
-    // ─── STEP3 — OVERWRITE (DISATTIVATO per regressione metadati torneo) ──────
-    // La ricostruzione MySQL→blob risulta lossy sui metadati di torneo/fase
-    // (date malformate, classifiche/sottotitoli persi). Letture tornano al blob.
-    // Riattivare flippando MATCH_READ_FROM_MYSQL = true dopo la fix.
-    const MATCH_READ_FROM_MYSQL = false;
+    // ─── STEP3 — MERGE fill-missing: copia dal blob i campi presenti SOLO nel
+    // blob (non presenti o undefined nella ricostruzione MySQL). Tipico: i campi
+    // top-level torneo `_migrated_gironi_v1`, `archiviato`, `squadreMieFlag`
+    // che non hanno colonna dedicata in MySQL e venivano persi nello switch
+    // letture, causando date malformate + classifiche sparite.
+    // Politica: NON sovrascrivere mai un valore già presente nella ricostruzione
+    // MySQL (autoritativa); riempire solo le chiavi mancanti/undefined.
+    function _fillMissing(target, source) {
+      if (!target || !source || typeof target !== 'object' || typeof source !== 'object') return;
+      Object.keys(source).forEach(k => {
+        if (target[k] === undefined) target[k] = source[k];
+      });
+    }
+    // Tornei: index blob by id per O(1) lookup
+    const _blobToById = {};
+    (Array.isArray(tornei) ? tornei : []).forEach(bt => { if (bt && bt.id != null) _blobToById[String(bt.id)] = bt; });
+    mTorneiArr.forEach(mt => {
+      const bt = _blobToById[String(mt.id)];
+      if (bt) {
+        _fillMissing(mt, bt);
+        // Fasi annidate: fill-missing per id
+        const _faseById = {};
+        (bt.fasi || []).forEach(bf => { if (bf && bf.id != null) _faseById[String(bf.id)] = bf; });
+        (mt.fasi || []).forEach(mf => {
+          const bf = _faseById[String(mf.id)];
+          if (bf) {
+            _fillMissing(mf, bf);
+            // Match annidati: fill-missing per id
+            const _matchById = {};
+            (bf.partite || []).forEach(bm => { if (bm && bm.id != null) _matchById[String(bm.id)] = bm; });
+            (mf.partite || []).forEach(mm => {
+              const bm = _matchById[String(mm.id)];
+              if (bm) _fillMissing(mm, bm);
+            });
+          }
+        });
+      } else {
+        // Torneo creato post-migrazione (solo MySQL): default minimi.
+        if (mt._migrated_gironi_v1 === undefined) mt._migrated_gironi_v1 = true;
+      }
+    });
+    // Campionato: fill-missing per match (flat per id, dentro ogni leva)
+    Object.keys(mCa).forEach(lv => {
+      const mPartite = (mCa[lv] && mCa[lv].partite) || [];
+      const bCamp = (campionato && campionato[lv]) || null;
+      if (!bCamp) return;
+      // Anche i metadati di leva (es. nome, squadre): fill-missing top-level del nodo leva
+      _fillMissing(mCa[lv], bCamp);
+      const _bMById = {};
+      (bCamp.partite || []).forEach(bm => { if (bm && bm.id != null) _bMById[String(bm.id)] = bm; });
+      mPartite.forEach(mm => {
+        const bm = _bMById[String(mm.id)];
+        if (bm) _fillMissing(mm, bm);
+      });
+    });
+    // Amichevoli: fill-missing per match flat per id
+    const _bAmById = {};
+    (Array.isArray(amichevoli) ? amichevoli : []).forEach(ba => { if (ba && ba.id != null) _bAmById[String(ba.id)] = ba; });
+    mAm.forEach(ma => {
+      const ba = _bAmById[String(ma.id)];
+      if (ba) _fillMissing(ma, ba);
+    });
+
+    window.__msMysql = { amichevoli: mAm, campionato: mCa, tornei: mTorneiArr };
+
+    // ─── STEP3 — OVERWRITE: letture da MySQL (riattivato dopo fix merge) ──────
+    const MATCH_READ_FROM_MYSQL = true;
     if (MATCH_READ_FROM_MYSQL) {
       amichevoli = mAm;
       campionato = mCa;
