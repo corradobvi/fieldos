@@ -6667,7 +6667,6 @@ function renderProfiloFiglio(el) {
     ${storicoConvHtml}
     ${indispPeriodoHtml}
     ${certMedicoHtml}
-    <button class="mob-assenza-btn" onclick="openAvvisaModal()">📩 Segnala assenza</button>
     <div class="mob-doc-card" id="figlioPersDataCard">
       <div class="mob-doc-card-hd">📝 Dati personali del figlio</div>
       <div style="font-size:.78rem;color:var(--text2);padding:0 0 10px;line-height:1.4;">Modifica cognome o data di nascita se sono cambiati. Vengono salvati nella scheda del giocatore.</div>
@@ -6694,43 +6693,7 @@ function renderProfiloFiglio(el) {
         </div>`;
       })()}
     </div>
-    ${docsHtml}
-    ${(()=>{
-      const _ss = levaStatsSettings[p.leva] || {};
-      if (!_ss.showStatsToFamily) return '';
-      const _tot = {
-        pres: ms.a.pres+ms.c.pres+ms.t.pres, gol: ms.a.gol+ms.c.gol+ms.t.gol,
-        assist: ms.a.assist+ms.c.assist+ms.t.assist, minuti: ms.a.minuti+ms.c.minuti+ms.t.minuti,
-        gialli: ms.a.gialli+ms.c.gialli+ms.t.gialli, rossi: ms.a.rossi+ms.c.rossi+ms.t.rossi,
-        golSub: ms.a.golSub+ms.c.golSub+ms.t.golSub, cs: ms.a.cs+ms.c.cs+ms.t.cs
-      };
-      if (_tot.pres === 0) return '';
-      const _adv = (typeof advStats === 'function') ? advStats(p.leva) : false;
-      const _gk  = isGK(p);
-      const _rows = [
-        ['Presenze', ms.a.pres, ms.c.pres, ms.t.pres, _tot.pres],
-        ['Gol ⚽',   ms.a.gol,  ms.c.gol,  ms.t.gol,  _tot.gol],
-        ['Assist 🅰️',ms.a.assist,ms.c.assist,ms.t.assist,_tot.assist],
-        ...(_adv ? [
-          ['Minuti',   ms.a.minuti, ms.c.minuti, ms.t.minuti, _tot.minuti],
-          ['Gialli 🟨',ms.a.gialli, ms.c.gialli, ms.t.gialli, _tot.gialli],
-          ['Rossi 🟥', ms.a.rossi,  ms.c.rossi,  ms.t.rossi,  _tot.rossi],
-        ] : []),
-        ...(_gk ? [
-          ['Gol subiti',  ms.a.golSub, ms.c.golSub, ms.t.golSub, _tot.golSub],
-          ['Clean sheet', ms.a.cs,     ms.c.cs,     ms.t.cs,     _tot.cs],
-        ] : []),
-      ];
-      return `<div style="background:var(--cl);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;margin-bottom:10px;color:var(--text1);">⚽ STATISTICHE STAGIONE</div>
-        <table class="pst">
-          <thead><tr><th>Statistica</th><th>Amich.</th><th>Camp.</th><th>Tornei</th><th class="tot">TOT</th></tr></thead>
-          <tbody>${_rows.map(([lbl,...vals]) =>
-            `<tr><td>${String(lbl)}</td>${vals.map((v,i) => `<td${i===3?' class="tot"':''}>${v}</td>`).join('')}</tr>`
-          ).join('')}</tbody>
-        </table>
-      </div>`;
-    })()}`;
+    ${docsHtml}`;
 }
 
 // Genitore aggiorna cognome / data di nascita del figlio (richiede _v2Token + essere guardian)
