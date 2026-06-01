@@ -7203,48 +7203,55 @@ async function _syncMatchFromMySQL(force) {
       console.log('[matchSync] playerMatchStats leva=' + lvCur + ' OK (0 differenze blob vs MySQL)');
     }
 
-    // ─── STEP3 — OVERWRITE: popola le strutture REALI con i dati MySQL ────────
-    // Sovrascrive la rehydrate dal blob. Avviene SOLO se la fetch è andata a buon
-    // fine (se /matches falliva siamo già usciti sopra con `return`). In caso di
-    // errore generale (catch sotto), il blob resta intatto come rete di sicurezza.
-    amichevoli = mAm;
-    campionato = mCa;
-    tornei     = mTorneiArr;
+    // ─── DIAG (STEP3 rollback) — esposizione su window per ispezione manuale ──
+    // Riferimenti diretti: __msBlob punta alle strutture REALI usate dal render
+    // (blob/rehydrate), __msMysql alle strutture ricostruite da MySQL in questo
+    // sync. Servono per diagnosticare le perdite di metadati torneo/fase.
+    window.__msBlob  = { amichevoli: amichevoli, campionato: campionato, tornei: tornei };
+    window.__msMysql = { amichevoli: mAm,        campionato: mCa,        tornei: mTorneiArr };
 
-    // next*Id: mantieni il max(corrente, max(id presenti)+1) per evitare collisioni
-    // su create successivi. Tornei usano id 't<N>'/'f<N>'/'tm<N>', amichevoli e
-    // campionato usano id numerico.
-    const _maxNumId = (arr, getter) => arr.reduce((mx, x) => {
-      const n = parseInt(String(getter(x) ?? '').replace(/[^0-9]/g, ''), 10) || 0;
-      return n > mx ? n : mx;
-    }, 0);
-    nextAmichevoleId = Math.max(nextAmichevoleId || 1, _maxNumId(mAm, m => m.id) + 1);
-    let _maxCamp = 0;
-    Object.values(mCa).forEach(c => (c.partite||[]).forEach(m => {
-      const n = parseInt(String(m.id ?? '').replace(/[^0-9]/g, ''), 10) || 0;
-      if (n > _maxCamp) _maxCamp = n;
-    }));
-    nextCampId      = Math.max(nextCampId || 1, _maxCamp + 1);
-    let _maxT = 0, _maxF = 0, _maxTm = 0;
-    mTorneiArr.forEach(t => {
-      const tn = parseInt(String(t.id ?? '').replace(/^t/, ''), 10) || 0; if (tn > _maxT) _maxT = tn;
-      (t.fasi || []).forEach(f => {
-        const fn = parseInt(String(f.id ?? '').replace(/^f/, ''), 10) || 0; if (fn > _maxF) _maxF = fn;
-        (f.partite || []).forEach(m => {
-          const mn = parseInt(String(m.id ?? '').replace(/^tm/, ''), 10) || 0; if (mn > _maxTm) _maxTm = mn;
+    // ─── STEP3 — OVERWRITE (DISATTIVATO per regressione metadati torneo) ──────
+    // La ricostruzione MySQL→blob risulta lossy sui metadati di torneo/fase
+    // (date malformate, classifiche/sottotitoli persi). Letture tornano al blob.
+    // Riattivare flippando MATCH_READ_FROM_MYSQL = true dopo la fix.
+    const MATCH_READ_FROM_MYSQL = false;
+    if (MATCH_READ_FROM_MYSQL) {
+      amichevoli = mAm;
+      campionato = mCa;
+      tornei     = mTorneiArr;
+
+      // next*Id: mantieni il max(corrente, max(id presenti)+1) per evitare collisioni.
+      const _maxNumId = (arr, getter) => arr.reduce((mx, x) => {
+        const n = parseInt(String(getter(x) ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+        return n > mx ? n : mx;
+      }, 0);
+      nextAmichevoleId = Math.max(nextAmichevoleId || 1, _maxNumId(mAm, m => m.id) + 1);
+      let _maxCamp = 0;
+      Object.values(mCa).forEach(c => (c.partite||[]).forEach(m => {
+        const n = parseInt(String(m.id ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+        if (n > _maxCamp) _maxCamp = n;
+      }));
+      nextCampId      = Math.max(nextCampId || 1, _maxCamp + 1);
+      let _maxT = 0, _maxF = 0, _maxTm = 0;
+      mTorneiArr.forEach(t => {
+        const tn = parseInt(String(t.id ?? '').replace(/^t/, ''), 10) || 0; if (tn > _maxT) _maxT = tn;
+        (t.fasi || []).forEach(f => {
+          const fn = parseInt(String(f.id ?? '').replace(/^f/, ''), 10) || 0; if (fn > _maxF) _maxF = fn;
+          (f.partite || []).forEach(m => {
+            const mn = parseInt(String(m.id ?? '').replace(/^tm/, ''), 10) || 0; if (mn > _maxTm) _maxTm = mn;
+          });
         });
       });
-    });
-    nextTorneoId    = Math.max(nextTorneoId    || 1, _maxT  + 1);
-    nextFaseId      = Math.max(nextFaseId      || 1, _maxF  + 1);
-    nextTornMatchId = Math.max(nextTornMatchId || 1, _maxTm + 1);
+      nextTorneoId    = Math.max(nextTorneoId    || 1, _maxT  + 1);
+      nextFaseId      = Math.max(nextFaseId      || 1, _maxF  + 1);
+      nextTornMatchId = Math.max(nextTornMatchId || 1, _maxTm + 1);
 
-    // Re-render della sezione attualmente visibile (i render hanno guard interno).
-    // Skip-once per evitare il loop renderPartite → sync → renderPartite.
-    _matchSyncSkipNext = true;
-    try { if (typeof renderPartite === 'function') renderPartite(); } catch(_) {}
-    try { if (typeof renderGestComp === 'function') renderGestComp(); } catch(_) {}
-    try { if (typeof renderCal === 'function') renderCal(); } catch(_) {}
+      // Re-render con skip-once per evitare loop renderPartite → sync → renderPartite.
+      _matchSyncSkipNext = true;
+      try { if (typeof renderPartite === 'function') renderPartite(); } catch(_) {}
+      try { if (typeof renderGestComp === 'function') renderGestComp(); } catch(_) {}
+      try { if (typeof renderCal === 'function') renderCal(); } catch(_) {}
+    }
   } catch(e) {
     console.log('[matchSync] error', e && e.message);
     // Su errore: NIENTE overwrite, il blob resta autoritativo (rete di sicurezza).
