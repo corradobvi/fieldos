@@ -2215,21 +2215,43 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 }
 
 /* ── View-mode switch (dirigente ⇄ genitore) — solo PWA mobile ── */
+/* Altezza reale dello switch (settata da JS via renderModeSwitch) — fallback 64px */
+:root{ --mv-switch-h:64px; }
 .mv-modeswitch-host{
   display:none;
   padding:8px 12px;
-  background:#fff;
+  background:var(--white,#fff);
   border-bottom:1px solid var(--border,#e2e8f0);
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
 }
+/* Mostra SOLO su mobile e SOLO per utenti realmente duali (body class settata da JS).
+   Default (browser non-standalone): sticky immediatamente sotto la topbar (58px),
+   z-index sotto la topbar (200) ma sopra il contenuto scrollabile. */
 @media (max-width:640px){
-  .mv-modeswitch-host{display:block;}
-}
-@media all and (display-mode: standalone) and (max-width:640px){
-  /* In PWA standalone la topbar è fixed: lo switch va spostato sotto la safe area */
-  .mv-modeswitch-host{
+  body.mv-has-modeswitch .mv-modeswitch-host{
+    display:block;
     position:sticky;
-    top:0;
-    z-index:280;
+    top:58px;             /* allineata sotto la .topbar (height:58px) */
+    z-index:199;
+  }
+}
+/* PWA standalone mobile: la topbar è position:fixed (height 52px + safe-area),
+   quindi anche lo switch deve essere fixed e il contenuto va shiftato. */
+@media all and (display-mode: standalone) and (max-width:640px){
+  body.mv-has-modeswitch .mv-modeswitch-host{
+    position:fixed;
+    top:calc(52px + env(safe-area-inset-top,0px));
+    left:0;right:0;
+    z-index:290;          /* sotto la topbar (300), sopra contenuto/sidebar */
+  }
+  /* Spinge il contenuto sotto topbar + switch (overrida il margin-top esistente) */
+  body.mv-has-modeswitch .app-body{
+    margin-top:calc(52px + env(safe-area-inset-top,0px) + var(--mv-switch-h,64px));
+  }
+  /* Anche la sidebar è top: calc(52px + safe-area) — la riallineiamo */
+  body.mv-has-modeswitch .sidebar{
+    top:calc(52px + env(safe-area-inset-top,0px) + var(--mv-switch-h,64px))!important;
+    height:calc(100vh - 52px - env(safe-area-inset-top,0px) - var(--mv-switch-h,64px))!important;
   }
 }
 .mv-modeswitch{
@@ -5505,6 +5527,7 @@ function logout() {
   _viewMode = null; _viewModeOrigRole = null; _viewModeOrigLeva = null;
   const _ms = document.getElementById('modeSwitch');
   if (_ms) { _ms.style.display = 'none'; _ms.innerHTML = ''; }
+  document.body.classList.remove('mv-has-modeswitch');
   me = null;
   const _wb = document.getElementById('demo-wa-banner');
   if (_wb) _wb.remove();
@@ -5916,14 +5939,17 @@ function renderModeSwitch(){
   // Visibile SOLO per utenti realmente duali e SOLO su mobile (PWA).
   const _isMobile = window.innerWidth <= 640;
   const _dual = me && userIsDualDirigenteGenitore(me);
-  if (!_dual || !_isMobile) {
+  const _show = !!(_dual && _isMobile);
+  // La body class abilita gli offset di layout (sticky/fixed + margin-top di .app-body)
+  document.body.classList.toggle('mv-has-modeswitch', _show);
+  if (!_show) {
     host.style.display = 'none';
     host.innerHTML = '';
     return;
   }
   // Default = 'dirigente' (rispetta lo spec: all'apertura riparte da Dirigente).
   const _active = _viewMode || 'dirigente';
-  host.style.display = '';
+  host.removeAttribute('style'); // lascia decidere al CSS
   host.innerHTML =
     '<div class="mv-modeswitch" role="tablist" aria-label="Cambia vista">' +
       '<button type="button" class="mv-modeswitch-seg' + (_active === 'dirigente' ? ' on' : '') + '" ' +
@@ -5935,6 +5961,14 @@ function renderModeSwitch(){
       // TODO badge cross-modalità: aggiungere qui un .mv-modeswitch-badge sul segmento NON attivo
       // quando ci sono notifiche non lette nell'altra vista.
     '</div>';
+  // Misura l'altezza reale dello switch e pubblicala come CSS var,
+  // così .app-body / .sidebar in PWA standalone si shiftano dell'esatto offset.
+  requestAnimationFrame(() => {
+    try {
+      const h = host.getBoundingClientRect().height;
+      if (h > 0) document.documentElement.style.setProperty('--mv-switch-h', Math.round(h) + 'px');
+    } catch(_) {}
+  });
 }
 
 // ═══════════════════════════════════
