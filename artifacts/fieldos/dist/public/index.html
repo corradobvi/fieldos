@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.25</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.26</span></div>
       </div>
 
     </main>
@@ -7000,7 +7000,18 @@ let _lastMatchSyncMs = 0;
 // prima di chiamare renderPartite (evita loop renderPartite → sync → renderPartite).
 let _matchSyncSkipNext = false;
 
+// FIX: soppressione COMPLETA del sync durante un salvataggio risultato.
+// renderPartite() (chiamato sincronicamente dai caller di save*Risultato) lancia
+// _syncMatchFromMySQL(true) che leggerebbe MySQL ancora col punteggio vecchio (la
+// doppia scrittura avviene DOPO saveResultWithRetry), sovrascrivendo amichevoli/
+// campionato/tornei in memoria col vecchio score e quindi facendo "sparire" il
+// risultato (regresso su MySQL via _postMatchUpsert + sul blob via __fieldosSaveState).
+// _savingResult viene settato a true dall'inizio del save fino al termine della
+// doppia scrittura MySQL nel finally del caller.
+let _savingResult = false;
+
 async function _syncMatchFromMySQL(force) {
+  if (_savingResult) return;
   if (_matchSyncSkipNext) { _matchSyncSkipNext = false; return; }
   if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
   if (!_v2Token) return;
@@ -23633,51 +23644,63 @@ async function saveQuickResult(tipo, ref, idC, idO) {
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
-  // FIX A — cattura il delta reale PRIMA della mutazione esterna.
-  // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
-  // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
-  // anche su modifiche reali → push saltata.
-  const _mPrev = _findMatchByRef(tipo, ref);
-  const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
-  // Mutazione idempotente catturata come target assoluto: applicabile a stato locale o fresco da server.
-  const applyResult = _buildApplyResult(tipo, ref, { golCasa: gc, golOspiti: go });
-  // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
-  applyResult();
-  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
-  const res = await saveResultWithRetry(applyResult);
-  console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-  if (res.ok) {
-    _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
-    toast('✅ Risultato salvato!');
-  } else {
-    toast('⚠️ Risultato non salvato — riprova');
-  }
-
-  // STEP2 — doppia scrittura MySQL (difensiva, additiva). Upsert solo del match.
+  // FIX — sopprimi matchSync per tutta la durata del save (compresa la doppia
+  // scrittura MySQL). renderPartite() chiama _syncMatchFromMySQL(true): senza
+  // questo flag rileggerebbe MySQL col punteggio vecchio e sovrascriverebbe la
+  // memoria in mezzo al save → risultato perso.
+  _savingResult = true;
   try {
-    const match = _findMatchByRef(tipo, ref);
-    if (match) {
-      let ek = null, leva = null, fase_id = null;
-      if (tipo === 'campionato') {
-        leva = currentLeva;
-        ek = 'camp_' + leva + '_' + match.id;
-      } else if (tipo === 'amichevole') {
-        leva = match.leva;
-        ek = 'amich_' + match.id;
-      } else if (tipo === 'torneo') {
-        const parts = String(ref).split('__');
-        const tParent = tornei.find(x => x.id === parts[0]);
-        leva = tParent && tParent.leva;
-        fase_id = parts[1];
-        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
-      }
-      if (ek) {
-        _postMatchUpsert(_buildMatchBody({
-          tipo, event_key: ek, leva, fase_id, match
-        }));
-      }
+    // FIX A — cattura il delta reale PRIMA della mutazione esterna.
+    // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
+    // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
+    // anche su modifiche reali → push saltata.
+    const _mPrev = _findMatchByRef(tipo, ref);
+    const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
+    // Mutazione idempotente catturata come target assoluto: applicabile a stato locale o fresco da server.
+    const applyResult = _buildApplyResult(tipo, ref, { golCasa: gc, golOspiti: go });
+    // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
+    applyResult();
+    window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
+    const res = await saveResultWithRetry(applyResult);
+    console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
+    if (res.ok) {
+      _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
+      toast('✅ Risultato salvato!');
+    } else {
+      toast('⚠️ Risultato non salvato — riprova');
     }
-  } catch(_) {}
+
+    // STEP2 — doppia scrittura MySQL (difensiva, additiva). Upsert solo del match.
+    // AWAITed cosi il flag _savingResult resta attivo finche MySQL ha ricevuto il
+    // nuovo punteggio: un eventuale matchSync schedulato subito dopo leggera il
+    // nuovo valore, non il vecchio.
+    try {
+      const match = _findMatchByRef(tipo, ref);
+      if (match) {
+        let ek = null, leva = null, fase_id = null;
+        if (tipo === 'campionato') {
+          leva = currentLeva;
+          ek = 'camp_' + leva + '_' + match.id;
+        } else if (tipo === 'amichevole') {
+          leva = match.leva;
+          ek = 'amich_' + match.id;
+        } else if (tipo === 'torneo') {
+          const parts = String(ref).split('__');
+          const tParent = tornei.find(x => x.id === parts[0]);
+          leva = tParent && tParent.leva;
+          fase_id = parts[1];
+          ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+        }
+        if (ek) {
+          await _postMatchUpsert(_buildMatchBody({
+            tipo, event_key: ek, leva, fase_id, match
+          }));
+        }
+      }
+    } catch(_) {}
+  } finally {
+    _savingResult = false;
+  }
 }
 
 // Notifica risultato partita a tutti i genitori della leva. Idempotente per partita+golCasa+golOspiti.
@@ -24494,57 +24517,69 @@ async function savePtRisultato() {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
-  // FIX A — cattura il delta reale PRIMA della mutazione esterna.
-  // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
-  // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
-  // anche su modifiche reali → push saltata.
-  const _mPrev = _findMatchByRef(tipo, ref);
-  const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
-  // Mutazione idempotente catturata come target assoluto.
-  const target = { golCasa: gc, golOspiti: go, stats };
-  if (typeof visibilitaSubito === 'boolean') target.visibilitaSubito = visibilitaSubito;
-  if (Array.isArray(cambi)) target.cambi = cambi;
-  const applyResult = _buildApplyResult(tipo, ref, target);
-  // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
-  applyResult();
-  window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
-  const res = await saveResultWithRetry(applyResult);
-  console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-  if (res.ok) {
-    _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
-    toast('✅ Risultato salvato!');
-  } else {
-    toast('⚠️ Risultato non salvato — riprova');
-  }
-
-  // STEP2 — doppia scrittura MySQL: upsert match POI upsert stats[].
+  // FIX — sopprimi matchSync per tutta la durata del save (compresa la doppia
+  // scrittura MySQL). renderPartite() chiama _syncMatchFromMySQL(true): senza
+  // questo flag rileggerebbe MySQL col punteggio vecchio e sovrascriverebbe la
+  // memoria in mezzo al save → risultato perso.
+  _savingResult = true;
   try {
-    const freshMatch = _findMatchByRef(tipo, ref);
-    if (freshMatch) {
-      let ek = null, _leva = null, fase_id = null;
-      if (tipo === 'campionato') {
-        _leva = currentLeva;
-        ek = 'camp_' + _leva + '_' + freshMatch.id;
-      } else if (tipo === 'amichevole') {
-        _leva = freshMatch.leva;
-        ek = 'amich_' + freshMatch.id;
-      } else if (tipo === 'torneo') {
-        const parts = String(ref).split('__');
-        const tParent = tornei.find(x => x.id === parts[0]);
-        _leva = tParent && tParent.leva;
-        fase_id = parts[1];
-        ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
-      }
-      if (ek) {
-        const upRes = await _postMatchUpsert(_buildMatchBody({
-          tipo, event_key: ek, leva: _leva, fase_id, match: freshMatch
-        }));
-        if (upRes && upRes.id) {
-          await _postStatsUpsert(upRes.id, freshMatch.stats || []);
+    // FIX A — cattura il delta reale PRIMA della mutazione esterna.
+    // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
+    // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
+    // anche su modifiche reali → push saltata.
+    const _mPrev = _findMatchByRef(tipo, ref);
+    const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
+    // Mutazione idempotente catturata come target assoluto.
+    const target = { golCasa: gc, golOspiti: go, stats };
+    if (typeof visibilitaSubito === 'boolean') target.visibilitaSubito = visibilitaSubito;
+    if (Array.isArray(cambi)) target.cambi = cambi;
+    const applyResult = _buildApplyResult(tipo, ref, target);
+    // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
+    applyResult();
+    window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
+    const res = await saveResultWithRetry(applyResult);
+    console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
+    if (res.ok) {
+      _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
+      toast('✅ Risultato salvato!');
+    } else {
+      toast('⚠️ Risultato non salvato — riprova');
+    }
+
+    // STEP2 — doppia scrittura MySQL: upsert match POI upsert stats[].
+    // gia await: il finally piu sotto resetta _savingResult solo dopo che MySQL
+    // ha ricevuto il nuovo punteggio, cosi un eventuale matchSync schedulato
+    // immediatamente dopo legge il valore aggiornato, non il vecchio.
+    try {
+      const freshMatch = _findMatchByRef(tipo, ref);
+      if (freshMatch) {
+        let ek = null, _leva = null, fase_id = null;
+        if (tipo === 'campionato') {
+          _leva = currentLeva;
+          ek = 'camp_' + _leva + '_' + freshMatch.id;
+        } else if (tipo === 'amichevole') {
+          _leva = freshMatch.leva;
+          ek = 'amich_' + freshMatch.id;
+        } else if (tipo === 'torneo') {
+          const parts = String(ref).split('__');
+          const tParent = tornei.find(x => x.id === parts[0]);
+          _leva = tParent && tParent.leva;
+          fase_id = parts[1];
+          ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
+        }
+        if (ek) {
+          const upRes = await _postMatchUpsert(_buildMatchBody({
+            tipo, event_key: ek, leva: _leva, fase_id, match: freshMatch
+          }));
+          if (upRes && upRes.id) {
+            await _postStatsUpsert(upRes.id, freshMatch.stats || []);
+          }
         }
       }
-    }
-  } catch(_) {}
+    } catch(_) {}
+  } finally {
+    _savingResult = false;
+  }
 }
 
 // ─── STATISTICHE GIOCATORE (scheda) ───
