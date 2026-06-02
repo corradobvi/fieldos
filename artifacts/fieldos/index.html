@@ -25291,7 +25291,9 @@ async function sendMsg() {
   inp.value = '';
   markChatRead(me, chatId);
   renderChatMessages(); renderChatList(); refreshChatBadges();
-  const res = await _postChatMessage(chatId, { testo: txt }, null);
+  // POST: invio testo + chatName (per il titolo della push server-side).
+  // Push notification: UN SOLO path, server-side da chat.ts. Niente loop FE per evitare doppi.
+  const res = await _postChatMessage(chatId, { testo: txt, chatName: c.name || c.nome || '' }, null);
   // Rimuovi ottimistico
   _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
   if (res.ok && res.row && res.row.id != null) {
@@ -25299,17 +25301,6 @@ async function sendMsg() {
     const newMsg = _chatRowToMsg(res.row, chatId);
     _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== newMsg.id).concat([newMsg]);
     renderChatMessages(); renderChatList(); refreshChatBadges();
-    if (typeof sendPushNotification === 'function' && window._mvSocietaKey) {
-      const _senderName = me.nome + ' ' + me.cogn;
-      const _chatName = c.name || c.nome || 'Chat';
-      (c.members || []).filter(uid => uid !== me.id).forEach(uid => {
-        sendPushNotification(uid, window._mvSocietaKey, {
-          title: '💬 ' + _chatName,
-          body: _senderName + ': ' + txt.slice(0, 80),
-          type: 'chat', tag: 'chat_' + chatId, url: '/#chat'
-        });
-      });
-    }
   } else {
     renderChatMessages(); renderChatList(); refreshChatBadges();
     const code = res.status ? (' (HTTP ' + res.status + (res.detail ? ' ' + res.detail : '') + ')') : '';
@@ -25337,7 +25328,7 @@ function sendPhoto(input) {
     _chatMessagesByChatId[chatId].push({ id: optimisticId, chatId, userId: me.id, text: '', photo: dataUrl, ts: Date.now(), _pending: true });
     markChatRead(me, chatId);
     renderChatMessages(); renderChatList(); refreshChatBadges();
-    const res = await _postChatMessage(chatId, { fotoUrl: dataUrl }, null);
+    const res = await _postChatMessage(chatId, { fotoUrl: dataUrl, chatName: c.name || c.nome || '' }, null);
     _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
     if (res.ok && res.row && res.row.id != null) {
       const newMsg = _chatRowToMsg(res.row, chatId);

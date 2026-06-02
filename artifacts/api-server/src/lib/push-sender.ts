@@ -71,7 +71,16 @@ export async function sendPushToUsers(
     return { sent: 0, errors: 0 };
   }
 
-  if (!rows.length) return { sent: 0, errors: 0 };
+  // Diagnostica: chi non ha subscription registrata (es. permesso non concesso, browser non subscribato).
+  if (filteredIds.length) {
+    const subscribed = new Set(rows.map((r: any) => Number(r.user_id)));
+    const noSub = filteredIds.filter(id => !subscribed.has(id));
+    if (noSub.length) logger.info({ noSub, societyKey }, "push-sender: no subscription for users");
+  }
+  if (!rows.length) {
+    logger.info({ requested: filteredIds.length, societyKey }, "push-sender: zero subscriptions for any requested user");
+    return { sent: 0, errors: 0 };
+  }
 
   const message = JSON.stringify(payload);
   let sent = 0;

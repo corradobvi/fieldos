@@ -221,11 +221,204 @@ router.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
   }
 });
 
+// ─── RECIPIENT RESOLVER ALLINEATO AL FE (getChatsForUser) ─────────────────────
+// chatId → array userIds da notificare via web push. Esclude sempre il mittente.
+// Allineato alle regole in artifacts/fieldos/index.html getChatsForUser(...).
+async function _resolveChatRecipients(
+  societyId: number, chatId: string, senderUserId: number
+): Promise<number[]> {
+  try {
+    // 1) Staff chat: 'allenatori' → allenatore/dirigente/preparatore_portieri (NO admin, NO genitori)
+    if (chatId === "allenatori") {
+      const [rows] = (await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('allenatore','dirigente','preparatore_portieri')
+            AND id != ?`,
+        [societyId, senderUserId]
+      )) as [any[], any];
+      return rows.map((r: any) => Number(r.id));
+    }
+
+    // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti della leva (o senza leva/Tutte)
+    //    + genitori/nonni di giocatori della leva (via player_guardians).
+    //    NO mister/admin (matches FE: solo dirigente+genitore/nonno).
+    const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
+    if (levaMatch) {
+      const leva = levaMatch[1];
+      const [dirRows] = (await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND id != ?`,
+        [societyId, leva, senderUserId]
+      )) as [any[], any];
+      let famRows: any[] = [];
+      try {
+        const [r] = (await pool.execute(
+          `SELECT DISTINCT u.id
+             FROM player_guardians pg
+             JOIN players p ON p.id = pg.player_id AND p.society_id = ? AND p.leva = ?
+             JOIN users u   ON u.id = pg.user_id   AND u.society_id = ? AND u.stato = 'attivo'
+                          AND u.ruolo IN ('genitore','nonno')
+            WHERE pg.user_id != ?`,
+          [societyId, leva, societyId, senderUserId]
+        )) as [any[], any];
+        famRows = r;
+      } catch (e: any) {
+        logger.warn({ err: e?.message }, "chat-push leva: player_guardians lookup failed");
+      }
+      const ids = new Set<number>();
+      dirRows.forEach((r: any) => ids.add(Number(r.id)));
+      famRows.forEach((r: any) => ids.add(Number(r.id)));
+      return Array.from(ids);
+    }
+
+    // 3) Squadra chat (U14+): 'squadra_<X>' → allenatori/preparatori della leva + giocatori della leva
+    //    (giocatori = users.ruolo='giocatore' matchati per nome+cognome al player in leva X).
+    const squadraMatch = chatId.match(/^squadra_(.+)$/);
+    if (squadraMatch) {
+      const leva = squadraMatch[1];
+      const [staffRows] = (await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND id != ?`,
+        [societyId, leva, senderUserId]
+      )) as [any[], any];
+      const [giocRows] = (await pool.execute(
+        `SELECT DISTINCT u.id
+           FROM users u
+           JOIN players p ON p.society_id = u.society_id AND p.nome = u.nome AND p.cognome = u.cognome
+          WHERE u.society_id = ? AND u.stato = 'attivo' AND u.ruolo = 'giocatore'
+            AND p.leva = ? AND u.id != ?`,
+        [societyId, leva, senderUserId]
+      )) as [any[], any];
+      const ids = new Set<number>();
+      staffRows.forEach((r: any) => ids.add(Number(r.id)));
+      giocRows.forEach((r: any) => ids.add(Number(r.id)));
+      return Array.from(ids);
+    }
+
+    // 4) Torneo chat: 'torneo_<id>' → dirigenti della leva + genitori/giocatori dei convocati.
+    const torneoMatch = chatId.match(/^torneo_(.+)$/);
+    if (torneoMatch) {
+      const torneoId = torneoMatch[1];
+      try {
+        const [tRows] = (await pool.execute(
+          "SELECT leva, convocati FROM tornei WHERE id = ? AND societa_id = ? LIMIT 1",
+          [torneoId, societyId]
+        )) as [any[], any];
+        if (!tRows.length) {
+          logger.warn({ chatId, torneoId, societyId }, "chat-push torneo: torneo non trovato — skip");
+          return [];
+        }
+        const leva = tRows[0].leva as string | null;
+        let convocatiIds: number[] = [];
+        try {
+          const raw = tRows[0].convocati;
+          const parsed = typeof raw === "string" ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+          convocatiIds = (Array.isArray(parsed) ? parsed : [])
+            .map((x: any) => Number(x))
+            .filter((n: number) => Number.isFinite(n));
+        } catch { convocatiIds = []; }
+
+        const ids = new Set<number>();
+
+        // Dirigenti della leva (o Tutte)
+        if (leva) {
+          const [dRows] = (await pool.execute(
+            `SELECT id FROM users
+              WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+                AND id != ?`,
+            [societyId, leva, senderUserId]
+          )) as [any[], any];
+          dRows.forEach((r: any) => ids.add(Number(r.id)));
+        }
+
+        if (convocatiIds.length) {
+          const placeholders = convocatiIds.map(() => "?").join(",");
+          // Genitori/nonni dei convocati via player_guardians
+          try {
+            const [gRows] = (await pool.execute(
+              `SELECT DISTINCT u.id
+                 FROM player_guardians pg
+                 JOIN users u ON u.id = pg.user_id AND u.society_id = ? AND u.stato = 'attivo'
+                            AND u.ruolo IN ('genitore','nonno')
+                WHERE pg.player_id IN (${placeholders}) AND pg.user_id != ?`,
+              [societyId, ...convocatiIds, senderUserId]
+            )) as [any[], any];
+            gRows.forEach((r: any) => ids.add(Number(r.id)));
+          } catch (e: any) {
+            logger.warn({ err: e?.message }, "chat-push torneo: player_guardians lookup failed");
+          }
+          // Giocatori convocati (user matchato per nome+cognome al player.id ∈ convocati)
+          try {
+            const [pRows] = (await pool.execute(
+              `SELECT DISTINCT u.id
+                 FROM users u
+                 JOIN players p ON p.society_id = u.society_id AND p.nome = u.nome AND p.cognome = u.cognome
+                WHERE u.society_id = ? AND u.stato = 'attivo' AND u.ruolo = 'giocatore'
+                  AND p.id IN (${placeholders}) AND u.id != ?`,
+              [societyId, ...convocatiIds, senderUserId]
+            )) as [any[], any];
+            pRows.forEach((r: any) => ids.add(Number(r.id)));
+          } catch (e: any) {
+            logger.warn({ err: e?.message }, "chat-push torneo: giocatori convocati lookup failed");
+          }
+        }
+        return Array.from(ids);
+      } catch (e: any) {
+        logger.warn({ err: e?.message, chatId }, "chat-push torneo: resolver failed");
+        return [];
+      }
+    }
+
+    // 5) Adhoc chat: i membri vivono nel blob FE (adHocChats[].members). Senza migrazione DB,
+    //    fallback conservativo: tutti gli utenti attivi della società escluso il mittente.
+    //    Over-notification accettabile per ora (vs nessuna notifica). Marcato come limite noto.
+    if (chatId.startsWith("adhoc_")) {
+      const [rows] = (await pool.execute(
+        `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?`,
+        [societyId, senderUserId]
+      )) as [any[], any];
+      logger.info({ chatId, recipientCount: rows.length }, "chat-push adhoc: fallback all-society (members non in DB)");
+      return rows.map((r: any) => Number(r.id));
+    }
+
+    // 6) Sconosciuto → skip per non spammare
+    logger.warn({ chatId }, "chat-push: chatId pattern sconosciuto — skip");
+    return [];
+  } catch (e: any) {
+    logger.error({ err: e?.message, chatId, societyId }, "chat-push: resolver fatal error");
+    return [];
+  }
+}
+
+// Titolo leggibile della chat per la push (riusa il chatName inviato dal FE se presente,
+// altrimenti deriva dal chatId).
+function _chatPushTitle(chatId: string, chatNameHint?: string | null): string {
+  if (chatNameHint && typeof chatNameHint === "string" && chatNameHint.trim()) {
+    return `💬 ${chatNameHint.trim()}`;
+  }
+  if (chatId === "allenatori") return "💬 Staff";
+  const lm = chatId.match(/^(?:leva|group)_(.+)$/);
+  if (lm) return `💬 Leva ${lm[1]}`;
+  const sm = chatId.match(/^squadra_(.+)$/);
+  if (sm) return `💬 Squadra ${sm[1]}`;
+  const tm = chatId.match(/^torneo_(.+)$/);
+  if (tm) return `🏆 Torneo`;
+  if (chatId.startsWith("adhoc_")) return "💬 Chat";
+  return "💬 Chat";
+}
+
 // POST /api/v2/chat/:chatId/messages
 router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
-  const { testo, fotoUrl } = req.body as { testo?: string; fotoUrl?: string };
+  const { testo, fotoUrl, chatName } = req.body as { testo?: string; fotoUrl?: string; chatName?: string };
 
   if (!testo?.trim() && !fotoUrl) return res.status(400).json({ error: "testo_or_foto_required" });
 
@@ -237,7 +430,6 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
     )) as [any, any];
     insertedId = result.insertId;
-    // Recupera created_at server-side per coerenza tra device (no drift di orologio client).
     try {
       const [rows] = (await pool.query(
         "SELECT created_at FROM chat_messages WHERE id = ? LIMIT 1",
@@ -249,35 +441,46 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       createdAtIso = new Date().toISOString();
     }
 
-    // Push notification ai partecipanti — fire-and-forget
-    // Parsa chatId: "leva_U14" → leva, "allenatori" → staff, altrimenti tutta la società
-    const _getChatRecipients = async (): Promise<number[]> => {
-      const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
-      if (levaMatch) {
-        return getUsersForPush(societyId, { leva: levaMatch[1], excludeUserId: userId });
+    // Push: UN SOLO path, server-side. Recipient resolver allineato al FE (vedi sopra).
+    // Fire-and-forget per non rallentare la response.
+    (async () => {
+      try {
+        const recipients = await _resolveChatRecipients(societyId, chatId, userId);
+        // Sender display name per body più chiaro ("Mario Rossi: testo")
+        let senderName = "";
+        try {
+          const [sRows] = (await pool.query(
+            "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+            [userId]
+          )) as [any[], any];
+          if (sRows[0]) {
+            senderName = `${(sRows[0].nome || "").trim()} ${(sRows[0].cognome || "").trim()}`.trim();
+          }
+        } catch { /* best-effort */ }
+        const msgPreview = (testo?.trim() || "📷 Foto").slice(0, 80);
+        const body = senderName ? `${senderName}: ${msgPreview}` : msgPreview;
+        const payload = {
+          title: _chatPushTitle(chatId, chatName),
+          body,
+          url:   "/#chat",
+          tag:   `chat_${chatId}`,
+        };
+        logger.info({ chatId, recipientCount: recipients.length, sender: userId }, "chat-push: recipients resolved");
+        if (!recipients.length) return;
+        const result = await sendPushToUsers(recipients, societyKeyFor(societyId), payload, "notify_chat");
+        logger.info({
+          chatId,
+          requested: recipients.length,
+          sent: result.sent,
+          errors: result.errors,
+          sender: userId
+        }, "chat-push: dispatched");
+      } catch (e: any) {
+        logger.warn({ err: e?.message, chatId }, "chat-push: dispatch failed");
       }
-      if (chatId === "allenatori") {
-        const [rows] = (await pool.execute(
-          "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND ruolo IN ('admin','allenatore','dirigente') AND id != ?",
-          [societyId, userId]
-        )) as [any[], any];
-        return rows.map((r: any) => r.id as number);
-      }
-      return getUsersForPush(societyId, { excludeUserId: userId });
-    };
+    })();
 
-    const _msgPreview = (testo?.trim() || "📷 Foto").slice(0, 80);
-    _getChatRecipients()
-      .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
-        title: `💬 ${chatId}`,
-        body:  _msgPreview,
-        url:   "/chat",
-        tag:   `chat_${chatId}`,
-      }, "notify_chat"))
-      .catch(e => logger.warn({ err: e }, "chat push error"));
-
-    // Ritorna l'oggetto messaggio completo così il FE riconcilia direttamente la cache
-    // senza un secondo GET (elimina race con il polling 4s).
+    // Risposta sincrona col messaggio per riconciliazione FE.
     return res.status(201).json({
       id: insertedId,
       chat_id: chatId,
