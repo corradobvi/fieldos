@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.21</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.22</span></div>
       </div>
 
     </main>
@@ -23697,16 +23697,26 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       // Se conosciamo il torneo, filtra: il match deve coinvolgere almeno una "mia squadra".
       if (t && typeof _getMieSquadre === 'function') {
         const mie = _getMieSquadre(t);
-        if (!mie.includes(match.casa) && !mie.includes(match.ospite)) return;
+        if (!mie.includes(match.casa) && !mie.includes(match.ospite)) {
+          // ── DEBUG TEMPORANEO ─────────────────────────────────────────────
+          try { toast && toast('NOTIFY exit=torneo-altrui'); } catch(_) {}
+          return;
+        }
       }
       avversario = `${match.casa || ''} vs ${match.ospite || ''}`;
       if (!leva && t) leva = t.leva;
     }
-    if (!leva) return;
+    if (!leva) {
+      // ── DEBUG TEMPORANEO ────────────────────────────────────────────────
+      try { toast && toast('NOTIFY exit=no-leva'); } catch(_) {}
+      return;
+    }
     const score = `${gc}–${go}`;
     const title = `⚽ Risultato ${tipoLabel} (${leva}): ${score}`;
     const body = avversario ? `vs ${avversario}` : '';
     const ids = recipientsForGenitoriOfLeva(leva);
+    // ── DEBUG TEMPORANEO: leva risolta + numero destinatari ────────────────
+    try { toast && toast("NOTIFY leva='" + String(leva) + "' dest=" + ids.length); } catch(_) {}
     if (ids.length) {
       ids.forEach(uid => pushNotifica(uid, { type: 'risultato_partita', title, body }));
       if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
