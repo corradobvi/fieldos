@@ -22375,6 +22375,20 @@ function importPdfSave() {
   renderGestComp(); renderPartite(); renderCal();
   if (document.getElementById('pg-convocazioni')?.classList.contains('on')) renderConvocazioni();
   toast(`✅ Torneo "${_importPdfData.nome||'importato'}" salvato!`);
+
+  // STEP2 — doppia scrittura: upsert torneo + tutte le partite generate da PDF.
+  try {
+    _postTorneoUpsert(_newTorneo);
+    (_newTorneo.fasi || []).forEach(f => {
+      (f.partite || []).forEach(m => {
+        _postMatchUpsert(_buildMatchBody({
+          tipo: 'torneo',
+          event_key: 'torneo_' + _newTorneo.id + '_' + f.id + '_' + m.id,
+          leva: _newTorneo.leva, fase_id: f.id, match: m
+        }));
+      });
+    });
+  } catch(_) {}
 }
 
 function renderGcTornei() {
@@ -23743,6 +23757,12 @@ function savePtTorneo() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   renderPartite(); renderCal();
   toast('✅ Torneo salvato!');
+
+  // STEP2 — doppia scrittura: upsert torneo su MySQL.
+  try {
+    const savedT = id ? tornei.find(x => x.id === id) : tornei[tornei.length - 1];
+    if (savedT) _postTorneoUpsert(savedT);
+  } catch(_) {}
 }
 function openPtFase(torneoId) {
   document.getElementById('ptFaseTorneoId').value = torneoId;
@@ -23766,6 +23786,10 @@ function savePtFase() {
   closeM('mPtFase');
   renderGestComp(); renderPartite(); renderCal();
   toast(`✅ Fase "${nome}" aggiunta!`);
+
+  // STEP2 — doppia scrittura: re-upsert torneo (POST /tornei è additivo
+  // sulle fasi, l'upsert su id naturale aggiorna o crea la nuova fase).
+  try { _postTorneoUpsert(t); } catch(_) {}
 }
 function openPtFaseMatch(torneoId, faseId, matchId) {
   const t = tornei.find(x => x.id === torneoId);
@@ -23827,14 +23851,33 @@ function savePtFaseMatch() {
     closeM('mPtFaseMatch');
     renderGestComp(); renderPartite(); renderCal();
     toast('✅ Partita aggiornata!');
+
+    // STEP2 — doppia scrittura: upsert match torneo su MySQL.
+    try {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'torneo',
+        event_key: 'torneo_' + t.id + '_' + f.id + '_' + match.id,
+        leva: t.leva, fase_id: f.id, match
+      }));
+    } catch(_) {}
     return;
   }
   // CREATE: flusso originale invariato
-  f.partite.push({id:'tm'+nextTornMatchId++, data, orario, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+  const _newM = {id:'tm'+nextTornMatchId++, data, orario, casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]};
+  f.partite.push(_newM);
   window.__fieldosSaveState();
   closeM('mPtFaseMatch');
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Partita aggiunta!');
+
+  // STEP2 — doppia scrittura: POST nuovo match torneo su MySQL.
+  try {
+    _postMatchUpsert(_buildMatchBody({
+      tipo: 'torneo',
+      event_key: 'torneo_' + t.id + '_' + f.id + '_' + _newM.id,
+      leva: t.leva, fase_id: f.id, match: _newM
+    }));
+  } catch(_) {}
 }
 
 // ─── GENERA CALENDARIO (round-robin) — condiviso girone-torneo e campionato ───
@@ -23902,8 +23945,11 @@ function generateGironeCalendar() {
   if (sq.length < 2) { toast('⚠️ Servono almeno 2 squadre'); return; }
   if (!Array.isArray(f.partite)) f.partite = [];
   const pairs = _roundRobinPairs(f.partite, sq, mode);
+  const _createdMatches = [];
   pairs.forEach(({casa, ospite}) => {
-    f.partite.push({id:'tm'+nextTornMatchId++, data:'', orario:'', casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]});
+    const _m = {id:'tm'+nextTornMatchId++, data:'', orario:'', casa, ospite, played:false, golCasa:0, golOspiti:0, stats:[]};
+    f.partite.push(_m);
+    _createdMatches.push(_m);
   });
   closeM('mGenCalendar');
   const created = pairs.length;
@@ -23911,6 +23957,17 @@ function generateGironeCalendar() {
   else toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
   window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
+
+  // STEP2 — doppia scrittura: POST ogni nuovo match torneo su MySQL.
+  try {
+    _createdMatches.forEach(m => {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'torneo',
+        event_key: 'torneo_' + t.id + '_' + f.id + '_' + m.id,
+        leva: t.leva, fase_id: f.id, match: m
+      }));
+    });
+  } catch(_) {}
 }
 
 // ── Campionato: stesso modal, branch su #gcGenLeva (no torneo/fase) ──
@@ -23939,12 +23996,15 @@ function generateCampCalendar() {
   const pairs = _roundRobinPairs(campionato[leva].partite, sq, mode);
   // Schema partita campionato: id (nextCampId), giornata (null), data (''), orario (''),
   // casa, ospite, luogo (''), played:false, golCasa:0, golOspiti:0, stats:[]
+  const _createdCampMatches = [];
   pairs.forEach(({casa, ospite}) => {
-    campionato[leva].partite.push({
+    const _m = {
       id: nextCampId++, giornata: null, data: '', orario: '',
       casa, ospite, luogo: '',
       played: false, golCasa: 0, golOspiti: 0, stats: []
-    });
+    };
+    campionato[leva].partite.push(_m);
+    _createdCampMatches.push(_m);
   });
   // NON chiamo autoCreateConvocazione qui: la convocazione nasce quando il mister setta la data
   // (vedi saveGcAddMatch UPDATE branch).
@@ -23954,6 +24014,17 @@ function generateCampCalendar() {
   else toast('✅ ' + created + ' partit' + (created === 1 ? 'a' : 'e') + ' creat' + (created === 1 ? 'a' : 'e'));
   window.__fieldosSaveState();
   renderGestComp(); renderPartite(); renderCal();
+
+  // STEP2 — doppia scrittura: POST ogni nuovo match campionato su MySQL.
+  try {
+    _createdCampMatches.forEach(m => {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'campionato',
+        event_key: 'camp_' + leva + '_' + m.id,
+        leva, match: m
+      }));
+    });
+  } catch(_) {}
 }
 
 // Dispatcher comune chiamato dal bottone "Genera" del modal mGenCalendar
