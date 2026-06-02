@@ -453,6 +453,80 @@ router.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES), async (re
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CAMPIONATO SETTINGS — metadati e giornate per (societa_id, leva).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/v2/campionato/settings — settings di TUTTE le leve della società.
+router.get("/campionato/settings", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser!;
+  try {
+    const [rows] = (await pool.execute(
+      `SELECT societa_id, leva, nome, stagione, categoria,
+              punti_v, punti_n, punti_p,
+              DATE_FORMAT(data_inizio, '%Y-%m-%d') AS data_inizio,
+              DATE_FORMAT(data_fine,   '%Y-%m-%d') AS data_fine,
+              squadre, squadre_info, giornate, created_at
+         FROM campionato_settings
+        WHERE societa_id = ?`,
+      [societyId]
+    )) as [any[], any];
+    return res.json(rows);
+  } catch (e: any) {
+    logger.error({ err: e?.message }, "GET campionato/settings error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
+// POST /api/v2/campionato/settings — UPSERT per (societa_id, leva). FULL-REPLACE col payload.
+// Body: { leva, nome?, stagione?, categoria?, punti_v?, punti_n?, punti_p?,
+//         data_inizio?, data_fine?, squadre?, squadre_info?, giornate? }
+function _normYmdSrv(v: any): string | null {
+  if (v == null || v === "") return null;
+  const s = String(v);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+router.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser!;
+  const b = (req.body || {}) as Record<string, any>;
+  const leva = typeof b.leva === "string" ? b.leva.trim() : "";
+  if (!leva) return res.status(400).json({ error: "leva_required" });
+  try {
+    await pool.execute(
+      `INSERT INTO campionato_settings
+         (societa_id, leva, nome, stagione, categoria,
+          punti_v, punti_n, punti_p, data_inizio, data_fine,
+          squadre, squadre_info, giornate)
+       VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON))
+       ON DUPLICATE KEY UPDATE
+         nome=VALUES(nome), stagione=VALUES(stagione), categoria=VALUES(categoria),
+         punti_v=VALUES(punti_v), punti_n=VALUES(punti_n), punti_p=VALUES(punti_p),
+         data_inizio=VALUES(data_inizio), data_fine=VALUES(data_fine),
+         squadre=VALUES(squadre), squadre_info=VALUES(squadre_info),
+         giornate=VALUES(giornate)`,
+      [
+        societyId, leva,
+        b.nome ?? null,
+        b.stagione ?? null,
+        b.categoria ?? null,
+        b.punti_v != null ? Number(b.punti_v) : 3,
+        b.punti_n != null ? Number(b.punti_n) : 1,
+        b.punti_p != null ? Number(b.punti_p) : 0,
+        _normYmdSrv(b.data_inizio),
+        _normYmdSrv(b.data_fine),
+        JSON.stringify(b.squadre ?? null),
+        JSON.stringify(b.squadre_info ?? null),
+        JSON.stringify(b.giornate ?? null),
+      ]
+    );
+    return res.json({ ok: true, societa_id: societyId, leva });
+  } catch (e: any) {
+    logger.error({ err: e?.message }, "POST campionato/settings error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+
 // DELETE /api/v2/campionato?leva=<nome> — cancella tutti i match tipo='campionato'
 // di quella leva. FK CASCADE rimuove le stats. Convocazioni blob: il FE le purga.
 router.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {

@@ -7023,14 +7023,16 @@ async function _syncMatchFromMySQL(force) {
     // /api/v2/tornei è autoritativo per la lista tornei: garantisce che anche i tornei
     // senza partite compaiano in __mysqlTornei (altrimenti la ricostruzione dai soli
     // match perde i tornei vuoti).
-    const [rMatches, rTornei] = await Promise.all([
-      fetch(API_BASE + '/api/v2/matches?includeStats=1', { headers: { 'Authorization': 'Bearer ' + _v2Token } }),
-      fetch(API_BASE + '/api/v2/tornei',                  { headers: { 'Authorization': 'Bearer ' + _v2Token } })
+    const [rMatches, rTornei, rCampSet] = await Promise.all([
+      fetch(API_BASE + '/api/v2/matches?includeStats=1',  { headers: { 'Authorization': 'Bearer ' + _v2Token } }),
+      fetch(API_BASE + '/api/v2/tornei',                  { headers: { 'Authorization': 'Bearer ' + _v2Token } }),
+      fetch(API_BASE + '/api/v2/campionato/settings',     { headers: { 'Authorization': 'Bearer ' + _v2Token } })
     ]);
     if (!rMatches.ok) { console.log('[matchSync] HTTP /matches', rMatches.status); return; }
     const rows = await rMatches.json();
     if (!Array.isArray(rows)) return;
     const torneiRows = rTornei.ok ? await rTornei.json() : [];
+    const campSettingsRows = rCampSet.ok ? await rCampSet.json() : [];
 
     const mAm = [];
     const mCa = {};
@@ -7070,6 +7072,28 @@ async function _syncMatchFromMySQL(force) {
           partite: []
         };
       });
+    });
+
+    // Pre-popolo mCa[leva] dai metadati MySQL (nome, stagione, categoria, punti,
+    // dataInizio/Fine normalizzate, squadre, squadreInfo, giornate). I match
+    // arrivano sotto dal loop su /matches.
+    (Array.isArray(campSettingsRows) ? campSettingsRows : []).forEach(s => {
+      const lv = s.leva;
+      if (!lv) return;
+      mCa[lv] = {
+        nome:        s.nome ?? undefined,
+        stagione:    s.stagione ?? undefined,
+        categoria:   s.categoria ?? undefined,
+        puntiV:      s.punti_v != null ? Number(s.punti_v) : undefined,
+        puntiN:      s.punti_n != null ? Number(s.punti_n) : undefined,
+        puntiP:      s.punti_p != null ? Number(s.punti_p) : undefined,
+        dataInizio:  _normYmd(s.data_inizio),
+        dataFine:    _normYmd(s.data_fine),
+        squadre:     s.squadre,
+        squadreInfo: s.squadre_info,
+        giornate:    s.giornate,
+        partite:     []
+      };
     });
 
     rows.forEach(row => {
@@ -7434,6 +7458,41 @@ async function _postTorneoUpsert(t) {
     return await r.json();
   } catch (e) {
     console.log('[match2] POST /tornei err', e && e.message);
+    return null;
+  }
+}
+
+// POST /api/v2/campionato/settings — upsert FULL-REPLACE per (societa_id, leva).
+// Costruisce il payload COMPLETO dai metadati + giornate di campionato[leva].
+async function _postCampSettings(leva) {
+  if (!_matchSyncGate()) return null;
+  if (!leva) return null;
+  _matchSyncSkipNext = true; // STEP3 skip-after-save
+  const camp = (campionato && campionato[leva]) || {};
+  const body = {
+    leva,
+    nome: camp.nome ?? null,
+    stagione: camp.stagione ?? null,
+    categoria: camp.categoria ?? null,
+    punti_v: camp.puntiV != null ? Number(camp.puntiV) : 3,
+    punti_n: camp.puntiN != null ? Number(camp.puntiN) : 1,
+    punti_p: camp.puntiP != null ? Number(camp.puntiP) : 0,
+    data_inizio: camp.dataInizio || null,
+    data_fine:   camp.dataFine   || null,
+    squadre:      camp.squadre      ?? null,
+    squadre_info: camp.squadreInfo  ?? null,
+    giornate:     camp.giornate     ?? null,
+  };
+  try {
+    const r = await fetch(API_BASE + '/api/v2/campionato/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { console.log('[campSettings] POST HTTP', r.status, leva); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[campSettings] POST err', e && e.message);
     return null;
   }
 }
@@ -22632,6 +22691,9 @@ function saveGcGiornate() {
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Giornate salvate!');
+
+  // STEP2 — doppia scrittura settings campionato (metadati + giornate) su MySQL.
+  try { _postCampSettings(leva); } catch(_) {}
 }
 
 // ─── Assegna squadre alle fasi finali (tipo 2) ───
@@ -22893,6 +22955,9 @@ function saveGcCamp() {
   closeM('mGcCampEdit');
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Campionato salvato!');
+
+  // STEP2 — doppia scrittura settings campionato (metadati + giornate) su MySQL.
+  try { _postCampSettings(leva); } catch(_) {}
 }
 
 // ─── Campionato: aggiungi/elimina partita manuale ───
@@ -23872,6 +23937,8 @@ function saveCampSetup() {
         match: m
       }));
     });
+    // STEP2 — settings campionato (squadre/squadreInfo modificate qui).
+    _postCampSettings(_lv);
   } catch(_) {}
 }
 

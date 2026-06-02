@@ -79040,6 +79040,24 @@ CREATE TABLE IF NOT EXISTS match_stats (
   INDEX idx_match_stats_match (match_id),
   FOREIGN KEY (match_id)  REFERENCES matches(id) ON DELETE CASCADE,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS campionato_settings (
+  societa_id   INT          NOT NULL,
+  leva         VARCHAR(100) NOT NULL,
+  nome         VARCHAR(255) NULL,
+  stagione     VARCHAR(40)  NULL,
+  categoria    VARCHAR(100) NULL,
+  punti_v      INT          DEFAULT 3,
+  punti_n      INT          DEFAULT 1,
+  punti_p      INT          DEFAULT 0,
+  data_inizio  DATE         NULL,
+  data_fine    DATE         NULL,
+  squadre      JSON         DEFAULT NULL,
+  squadre_info JSON         DEFAULT NULL,
+  giornate     JSON         DEFAULT NULL,
+  created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (societa_id, leva),
+  FOREIGN KEY (societa_id) REFERENCES societies(id) ON DELETE CASCADE
 )
 `;
 var SEED_SQL = `
@@ -92958,6 +92976,71 @@ router40.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async 
     return res.status(500).json({ error: "server_error" });
   }
 });
+router40.get("/campionato/settings", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT societa_id, leva, nome, stagione, categoria,
+              punti_v, punti_n, punti_p,
+              DATE_FORMAT(data_inizio, '%Y-%m-%d') AS data_inizio,
+              DATE_FORMAT(data_fine,   '%Y-%m-%d') AS data_fine,
+              squadre, squadre_info, giornate, created_at
+         FROM campionato_settings
+        WHERE societa_id = ?`,
+      [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e?.message }, "GET campionato/settings error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+function _normYmdSrv(v) {
+  if (v == null || v === "") return null;
+  const s = String(v);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+router40.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const b = req.body || {};
+  const leva = typeof b.leva === "string" ? b.leva.trim() : "";
+  if (!leva) return res.status(400).json({ error: "leva_required" });
+  try {
+    await pool.execute(
+      `INSERT INTO campionato_settings
+         (societa_id, leva, nome, stagione, categoria,
+          punti_v, punti_n, punti_p, data_inizio, data_fine,
+          squadre, squadre_info, giornate)
+       VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON))
+       ON DUPLICATE KEY UPDATE
+         nome=VALUES(nome), stagione=VALUES(stagione), categoria=VALUES(categoria),
+         punti_v=VALUES(punti_v), punti_n=VALUES(punti_n), punti_p=VALUES(punti_p),
+         data_inizio=VALUES(data_inizio), data_fine=VALUES(data_fine),
+         squadre=VALUES(squadre), squadre_info=VALUES(squadre_info),
+         giornate=VALUES(giornate)`,
+      [
+        societyId,
+        leva,
+        b.nome ?? null,
+        b.stagione ?? null,
+        b.categoria ?? null,
+        b.punti_v != null ? Number(b.punti_v) : 3,
+        b.punti_n != null ? Number(b.punti_n) : 1,
+        b.punti_p != null ? Number(b.punti_p) : 0,
+        _normYmdSrv(b.data_inizio),
+        _normYmdSrv(b.data_fine),
+        JSON.stringify(b.squadre ?? null),
+        JSON.stringify(b.squadre_info ?? null),
+        JSON.stringify(b.giornate ?? null)
+      ]
+    );
+    return res.json({ ok: true, societa_id: societyId, leva });
+  } catch (e) {
+    logger.error({ err: e?.message }, "POST campionato/settings error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
 router40.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
@@ -93123,7 +93206,8 @@ function newCounters() {
     matches_inseriti: { campionato: 0, torneo: 0, amichevole: 0 },
     stats_inserite: 0,
     stats_saltate_player_mancante: 0,
-    matches_saltati_gia_presenti: 0
+    matches_saltati_gia_presenti: 0,
+    camp_settings_upsert: 0
   };
 }
 function newRefreshCounters() {
@@ -93132,8 +93216,44 @@ function newRefreshCounters() {
     fasi_upsert: 0,
     matches_upsert: { campionato: 0, torneo: 0, amichevole: 0 },
     stats_riallineate: 0,
-    stats_saltate_player_mancante: 0
+    stats_saltate_player_mancante: 0,
+    camp_settings_upsert: 0
   };
+}
+function _normYmdBf(v) {
+  if (v == null || v === "") return null;
+  const s = String(v);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+async function upsertCampSettings(conn, societaId, lv, camp) {
+  await conn.execute(
+    `INSERT INTO campionato_settings
+       (societa_id, leva, nome, stagione, categoria,
+        punti_v, punti_n, punti_p, data_inizio, data_fine,
+        squadre, squadre_info, giornate)
+     VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON))
+     ON DUPLICATE KEY UPDATE
+       nome=VALUES(nome), stagione=VALUES(stagione), categoria=VALUES(categoria),
+       punti_v=VALUES(punti_v), punti_n=VALUES(punti_n), punti_p=VALUES(punti_p),
+       data_inizio=VALUES(data_inizio), data_fine=VALUES(data_fine),
+       squadre=VALUES(squadre), squadre_info=VALUES(squadre_info),
+       giornate=VALUES(giornate)`,
+    [
+      societaId,
+      lv,
+      camp?.nome ?? null,
+      camp?.stagione ?? null,
+      camp?.categoria ?? null,
+      camp?.puntiV != null ? Number(camp.puntiV) : 3,
+      camp?.puntiN != null ? Number(camp.puntiN) : 1,
+      camp?.puntiP != null ? Number(camp.puntiP) : 0,
+      _normYmdBf(camp?.dataInizio),
+      _normYmdBf(camp?.dataFine),
+      JSON.stringify(camp?.squadre ?? null),
+      JSON.stringify(camp?.squadreInfo ?? null),
+      JSON.stringify(camp?.giornate ?? null)
+    ]
+  );
 }
 function ekCamp(leva, mId) {
   return `camp_${leva}_${mId}`;
@@ -93456,6 +93576,10 @@ router42.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
             a.stats || []
           );
         }
+        for (const lv of Object.keys(campionato)) {
+          await upsertCampSettings(connR, requested, lv, campionato[lv]);
+          rc.camp_settings_upsert += 1;
+        }
         await connR.commit();
       } catch (e) {
         await connR.rollback().catch(() => {
@@ -93772,6 +93896,10 @@ router42.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
           );
           counters.stats_inserite += 1;
         }
+      }
+      for (const lv of Object.keys(campionato)) {
+        await upsertCampSettings(conn, requested, lv, campionato[lv]);
+        counters.camp_settings_upsert += 1;
       }
       await conn.commit();
     } catch (e) {

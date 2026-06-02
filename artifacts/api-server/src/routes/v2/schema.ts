@@ -537,6 +537,24 @@ CREATE TABLE IF NOT EXISTS match_stats (
   INDEX idx_match_stats_match (match_id),
   FOREIGN KEY (match_id)  REFERENCES matches(id) ON DELETE CASCADE,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS campionato_settings (
+  societa_id   INT          NOT NULL,
+  leva         VARCHAR(100) NOT NULL,
+  nome         VARCHAR(255) NULL,
+  stagione     VARCHAR(40)  NULL,
+  categoria    VARCHAR(100) NULL,
+  punti_v      INT          DEFAULT 3,
+  punti_n      INT          DEFAULT 1,
+  punti_p      INT          DEFAULT 0,
+  data_inizio  DATE         NULL,
+  data_fine    DATE         NULL,
+  squadre      JSON         DEFAULT NULL,
+  squadre_info JSON         DEFAULT NULL,
+  giornate     JSON         DEFAULT NULL,
+  created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (societa_id, leva),
+  FOREIGN KEY (societa_id) REFERENCES societies(id) ON DELETE CASCADE
 )
 `;
 

@@ -28,6 +28,7 @@ type Counters = {
   stats_inserite: number;
   stats_saltate_player_mancante: number;
   matches_saltati_gia_presenti: number;
+  camp_settings_upsert: number;
 };
 
 type RefreshCounters = {
@@ -36,6 +37,7 @@ type RefreshCounters = {
   matches_upsert: { campionato: number; torneo: number; amichevole: number };
   stats_riallineate: number;
   stats_saltate_player_mancante: number;
+  camp_settings_upsert: number;
 };
 
 function newCounters(): Counters {
@@ -46,6 +48,7 @@ function newCounters(): Counters {
     stats_inserite: 0,
     stats_saltate_player_mancante: 0,
     matches_saltati_gia_presenti: 0,
+    camp_settings_upsert: 0,
   };
 }
 
@@ -56,7 +59,46 @@ function newRefreshCounters(): RefreshCounters {
     matches_upsert: { campionato: 0, torneo: 0, amichevole: 0 },
     stats_riallineate: 0,
     stats_saltate_player_mancante: 0,
+    camp_settings_upsert: 0,
   };
+}
+
+function _normYmdBf(v: any): string | null {
+  if (v == null || v === "") return null;
+  const s = String(v);
+  return s.length >= 10 ? s.slice(0, 10) : s;
+}
+
+async function upsertCampSettings(
+  conn: PoolConnection, societaId: number, lv: string, camp: any
+): Promise<void> {
+  await conn.execute(
+    `INSERT INTO campionato_settings
+       (societa_id, leva, nome, stagione, categoria,
+        punti_v, punti_n, punti_p, data_inizio, data_fine,
+        squadre, squadre_info, giornate)
+     VALUES (?,?,?,?,?,?,?,?,?,?,CAST(? AS JSON),CAST(? AS JSON),CAST(? AS JSON))
+     ON DUPLICATE KEY UPDATE
+       nome=VALUES(nome), stagione=VALUES(stagione), categoria=VALUES(categoria),
+       punti_v=VALUES(punti_v), punti_n=VALUES(punti_n), punti_p=VALUES(punti_p),
+       data_inizio=VALUES(data_inizio), data_fine=VALUES(data_fine),
+       squadre=VALUES(squadre), squadre_info=VALUES(squadre_info),
+       giornate=VALUES(giornate)`,
+    [
+      societaId, lv,
+      camp?.nome ?? null,
+      camp?.stagione ?? null,
+      camp?.categoria ?? null,
+      camp?.puntiV != null ? Number(camp.puntiV) : 3,
+      camp?.puntiN != null ? Number(camp.puntiN) : 1,
+      camp?.puntiP != null ? Number(camp.puntiP) : 0,
+      _normYmdBf(camp?.dataInizio),
+      _normYmdBf(camp?.dataFine),
+      JSON.stringify(camp?.squadre ?? null),
+      JSON.stringify(camp?.squadreInfo ?? null),
+      JSON.stringify(camp?.giornate ?? null),
+    ]
+  );
 }
 
 function ekCamp(leva: string, mId: any): string {
@@ -370,6 +412,12 @@ router.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) 
           );
         }
 
+        // Campionato settings (metadati + giornate) UPSERT per ogni leva
+        for (const lv of Object.keys(campionato)) {
+          await upsertCampSettings(connR, requested, lv, campionato[lv]);
+          rc.camp_settings_upsert += 1;
+        }
+
         await connR.commit();
       } catch (e: any) {
         await connR.rollback().catch(() => {});
@@ -623,6 +671,12 @@ router.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) 
           );
           counters.stats_inserite += 1;
         }
+      }
+
+      // Campionato settings (metadati + giornate) UPSERT per ogni leva
+      for (const lv of Object.keys(campionato)) {
+        await upsertCampSettings(conn, requested, lv, campionato[lv]);
+        counters.camp_settings_upsert += 1;
       }
 
       await conn.commit();
