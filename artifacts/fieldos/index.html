@@ -23837,12 +23837,35 @@ function updateCampMatch(i, field, val) {
 function removeCampMatch(i) { _campSetupMatches.splice(i,1); renderCampMatchList(); }
 function saveCampSetup() {
   if (!campionato[currentLeva]) campionato[currentLeva] = {squadre:[], partite:[]};
-  campionato[currentLeva].squadre = [..._campSetupSquadre];
-  campionato[currentLeva].partite = _campSetupMatches.map(m => ({...m}));
+  // STEP2 — cattura OLD event_keys PRIMA del replace per riconciliazione MySQL.
+  const _lv = currentLeva;
+  const _oldEks = new Set((campionato[_lv].partite || []).map(m => 'camp_' + _lv + '_' + m.id));
+  campionato[_lv].squadre = [..._campSetupSquadre];
+  campionato[_lv].partite = _campSetupMatches.map(m => ({...m}));
   closeM('mCampSetup');
   // fix: rerender completo dopo save (audit 21/05)
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   toast('✅ Campionato configurato!');
+
+  // STEP2 — doppia scrittura: riconciliazione via event_key camp_<leva>_<id>.
+  // OLD - NEW → DELETE (match rimossi); NEW → UPSERT (incluso played, id invariato
+  // → UPSERT idempotente → match_stats su MySQL preservate). NIENTE _postStatsUpsert:
+  // i played hanno gia le stats su MySQL (savePtRisultato); i non-played hanno stats=[].
+  try {
+    const _newEks = new Set(campionato[_lv].partite.map(m => 'camp_' + _lv + '_' + m.id));
+    _oldEks.forEach(ek => {
+      if (!_newEks.has(ek)) _deleteMatchByEventKey(ek);
+    });
+    campionato[_lv].partite.forEach(m => {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'campionato',
+        event_key: 'camp_' + _lv + '_' + m.id,
+        leva: _lv,
+        giornata: m.giornata != null ? m.giornata : null,
+        match: m
+      }));
+    });
+  } catch(_) {}
 }
 
 // ─── MODALI TORNEO ───
