@@ -21955,7 +21955,14 @@ function renderPtTornei() {
         const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre):''}<div class="mc-actions">${risBtn}</div></div>`;
       }).join('');
-      const altriHtml = isFamily() ? '' : renderAltriScontri('torneo', altriMatches, t.leva, t.id, f.id, true);
+      // Per i tornei mostra TUTTE le partite anche al genitore (parità con vista PC):
+      // gironi/bracket completi. Per family: filtra solo le partite in fase 'none'
+      // (non ancora pubblicate) E non giocate, coerente col filtro applicato sopra ai
+      // polisMatches. readOnly=true forza la sola lettura (niente edit/save).
+      const altriForRender = isFamily()
+        ? altriMatches.filter(m => m.played || getFasePartitaTorneo(m, t, t.leva) !== 'none')
+        : altriMatches;
+      const altriHtml = renderAltriScontri('torneo', altriForRender, t.leva, t.id, f.id, true);
       return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
     }).join('');
     const scorers = computeTopScorers((t.fasi||[]).flatMap(f => f.partite||[]), t.leva);
@@ -22646,17 +22653,18 @@ function saveGcAssegnaFinali() {
     const ta = document.getElementById(`gcAssegnaTa${fi}`);
     if (!ta) return;
     const sq = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
-    if (sq.length) {
-      f.squadre = [...new Set([polisName(t.leva), ...sq].filter(s=>sq.includes(s)))];
-      if (sq.includes(polisName(t.leva))) f.squadre = [...new Set(sq)];
-      else f.squadre = sq;
-    }
+    // Applica sempre (incluso vuoto): svuotare deve propagarsi al blob.
+    if (sq.includes(polisName(t.leva))) f.squadre = [...new Set(sq)];
+    else f.squadre = sq;
   });
   closeM('mGcAssegnaFinali');
   window.__fieldosSaveState();
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Squadre assegnate!');
+
+  // STEP2 — doppia scrittura: upsert torneo (e cleanup fasi orfane lato BE).
+  try { _postTorneoUpsert(t); } catch(_) {}
 }
 
 // ─── Scontro diretto (fase finale, tipo 2): auto-accoppia per posizione dai gironi Q ───
@@ -23240,7 +23248,9 @@ function saveGcTorneo() {
   const buildFase = (def, existingFasi) => {
     if (def.id) {
       const ex = existingFasi?.find(f=>f.id===def.id);
-      if (ex) { ex.nome=def.nome; ex.tipo=def.tipo; ex.faseGruppo=def.faseGruppo; if(def.squadre.length) ex.squadre=def.squadre; return ex; }
+      // Applica squadre ESATTAMENTE come nel def (incluso array vuoto), così
+      // svuotare un girone si propaga al blob e poi a MySQL via _postTorneoUpsert.
+      if (ex) { ex.nome=def.nome; ex.tipo=def.tipo; ex.faseGruppo=def.faseGruppo; if (Array.isArray(def.squadre)) ex.squadre=def.squadre; return ex; }
     }
     return {id:'f'+nextFaseId++, nome:def.nome, tipo:def.tipo, faseGruppo:def.faseGruppo||null, squadre:def.squadre, partite:def.partite||[]};
   };

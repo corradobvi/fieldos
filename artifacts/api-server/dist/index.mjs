@@ -92863,8 +92863,39 @@ router40.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, 
       );
       fasi_upserted++;
     }
+    let fasi_deleted_orphan = 0;
+    let fasi_skipped_has_matches = 0;
+    const payloadIds = new Set(
+      fasi.filter((f) => f?.id != null).map((f) => String(f.id))
+    );
+    const [existingFasi] = await conn.execute(
+      "SELECT id FROM tornei_fasi WHERE torneo_id = ?",
+      [String(t.id)]
+    );
+    for (const ef of existingFasi) {
+      const fid = String(ef.id);
+      if (payloadIds.has(fid)) continue;
+      const [matchCount] = await conn.execute(
+        "SELECT COUNT(*) AS n FROM matches WHERE fase_id = ?",
+        [fid]
+      );
+      const n = Number(matchCount[0]?.n || 0);
+      if (n > 0) {
+        fasi_skipped_has_matches++;
+        logger.warn(
+          { torneoId: String(t.id), faseId: fid, matchCount: n },
+          "POST tornei: fase orfana con match associati, skip delete (safety)"
+        );
+        continue;
+      }
+      await conn.execute(
+        "DELETE FROM tornei_fasi WHERE id = ? AND torneo_id = ?",
+        [fid, String(t.id)]
+      );
+      fasi_deleted_orphan++;
+    }
     await conn.commit();
-    return res.json({ ok: true, id: String(t.id), fasi_upserted });
+    return res.json({ ok: true, id: String(t.id), fasi_upserted, fasi_deleted_orphan, fasi_skipped_has_matches });
   } catch (e) {
     await conn.rollback().catch(() => {
     });

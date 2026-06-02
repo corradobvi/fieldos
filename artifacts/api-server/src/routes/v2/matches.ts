@@ -346,8 +346,44 @@ router.post("/tornei", requireAuth, requireRole(...WRITE_ROLES), async (req, res
       );
       fasi_upserted++;
     }
+
+    // Cleanup fasi orfane: rimuovi tornei_fasi del torneo NON presenti nel payload,
+    // ma SOLO se non hanno match associati (no orfanamento di stat/match reali).
+    // Le fasi con match restano e vengono segnalate in `fasi_skipped_has_matches`.
+    let fasi_deleted_orphan = 0;
+    let fasi_skipped_has_matches = 0;
+    const payloadIds = new Set<string>(
+      fasi.filter((f: any) => f?.id != null).map((f: any) => String(f.id))
+    );
+    const [existingFasi] = (await conn.execute(
+      "SELECT id FROM tornei_fasi WHERE torneo_id = ?",
+      [String(t.id)]
+    )) as [any[], any];
+    for (const ef of existingFasi as any[]) {
+      const fid = String(ef.id);
+      if (payloadIds.has(fid)) continue;
+      const [matchCount] = (await conn.execute(
+        "SELECT COUNT(*) AS n FROM matches WHERE fase_id = ?",
+        [fid]
+      )) as [any[], any];
+      const n = Number((matchCount as any[])[0]?.n || 0);
+      if (n > 0) {
+        fasi_skipped_has_matches++;
+        logger.warn(
+          { torneoId: String(t.id), faseId: fid, matchCount: n },
+          "POST tornei: fase orfana con match associati, skip delete (safety)"
+        );
+        continue;
+      }
+      await conn.execute(
+        "DELETE FROM tornei_fasi WHERE id = ? AND torneo_id = ?",
+        [fid, String(t.id)]
+      );
+      fasi_deleted_orphan++;
+    }
+
     await conn.commit();
-    return res.json({ ok: true, id: String(t.id), fasi_upserted });
+    return res.json({ ok: true, id: String(t.id), fasi_upserted, fasi_deleted_orphan, fasi_skipped_has_matches });
   } catch (e: any) {
     await conn.rollback().catch(() => {});
     logger.error({ err: e?.message }, "POST tornei upsert error");

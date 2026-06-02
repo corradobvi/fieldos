@@ -22653,17 +22653,18 @@ function saveGcAssegnaFinali() {
     const ta = document.getElementById(`gcAssegnaTa${fi}`);
     if (!ta) return;
     const sq = ta.value.split('\n').map(s=>s.trim()).filter(Boolean);
-    if (sq.length) {
-      f.squadre = [...new Set([polisName(t.leva), ...sq].filter(s=>sq.includes(s)))];
-      if (sq.includes(polisName(t.leva))) f.squadre = [...new Set(sq)];
-      else f.squadre = sq;
-    }
+    // Applica sempre (incluso vuoto): svuotare deve propagarsi al blob.
+    if (sq.includes(polisName(t.leva))) f.squadre = [...new Set(sq)];
+    else f.squadre = sq;
   });
   closeM('mGcAssegnaFinali');
   window.__fieldosSaveState();
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Squadre assegnate!');
+
+  // STEP2 — doppia scrittura: upsert torneo (e cleanup fasi orfane lato BE).
+  try { _postTorneoUpsert(t); } catch(_) {}
 }
 
 // ─── Scontro diretto (fase finale, tipo 2): auto-accoppia per posizione dai gironi Q ───
@@ -23247,7 +23248,9 @@ function saveGcTorneo() {
   const buildFase = (def, existingFasi) => {
     if (def.id) {
       const ex = existingFasi?.find(f=>f.id===def.id);
-      if (ex) { ex.nome=def.nome; ex.tipo=def.tipo; ex.faseGruppo=def.faseGruppo; if(def.squadre.length) ex.squadre=def.squadre; return ex; }
+      // Applica squadre ESATTAMENTE come nel def (incluso array vuoto), così
+      // svuotare un girone si propaga al blob e poi a MySQL via _postTorneoUpsert.
+      if (ex) { ex.nome=def.nome; ex.tipo=def.tipo; ex.faseGruppo=def.faseGruppo; if (Array.isArray(def.squadre)) ex.squadre=def.squadre; return ex; }
     }
     return {id:'f'+nextFaseId++, nome:def.nome, tipo:def.tipo, faseGruppo:def.faseGruppo||null, squadre:def.squadre, partite:def.partite||[]};
   };
