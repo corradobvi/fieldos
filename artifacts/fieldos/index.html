@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.20</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.21</span></div>
       </div>
 
     </main>
@@ -30258,6 +30258,10 @@ async function doRejoinSocieta() {
           _pendingPushes = Math.max(0, _pendingPushes - 1);
           _updateSyncBar(_pendingPushes);
           console.warn('[apiPush] 412 stale_base_version: blob server è avanti rispetto al client', key);
+          // ── DEBUG TEMPORANEO: toast diagnostico (no change di logica) ─────────
+          r.clone().json().then(function(j){
+            try { toast && toast('SAVE 412 — ' + ((j && j.error) || 'stale_base_version') + ' [apiPush]'); } catch(_) {}
+          }).catch(function(){ try { toast && toast('SAVE 412 — stale_base_version [apiPush]'); } catch(_) {} });
           _handleStaleConflict(key);
         } else if (r.status === 409) {
           // 409 = guard esistenti (would_overwrite_real_data / demo_cannot_overwrite_real / would_downgrade_data).
@@ -30265,6 +30269,10 @@ async function doRejoinSocieta() {
           _pendingPushes = Math.max(0, _pendingPushes - 1);
           _updateSyncBar(_pendingPushes);
           console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
+          // ── DEBUG TEMPORANEO: toast diagnostico (no change di logica) ─────────
+          r.clone().json().then(function(j){
+            try { toast && toast('SAVE 409 — ' + ((j && j.error) || 'rejected') + ' [apiPush]'); } catch(_) {}
+          }).catch(function(){ try { toast && toast('SAVE 409 — rejected [apiPush]'); } catch(_) {} });
         } else if (_retries < _maxRetries) {
           _retries++;
           _updateSyncBar(_pendingPushes, 'retry');
@@ -30690,6 +30698,11 @@ async function doRejoinSocieta() {
     if (resp.status === 412) {
       // STALE: non distruggere il lavoro altrui. Backup locale + pull + ricarica (toast UX onesto).
       console.warn('[__fieldosSyncToCloud] 412 stale_base_version');
+      // ── DEBUG TEMPORANEO: toast diagnostico ──────────────────────────────
+      try {
+        const _j412 = await resp.clone().json().catch(function(){ return null; });
+        try { toast && toast('SAVE 412 — ' + ((_j412 && _j412.error) || 'stale_base_version') + ' [syncToCloud]'); } catch(_) {}
+      } catch(_) {}
       _handleStaleConflict(KEY);
       return resp; // resp.ok=false → caller skippa notifica e mostra "non salvato"
     }
@@ -30699,6 +30712,13 @@ async function doRejoinSocieta() {
         const j = await resp.clone().json();
         if (j && typeof j.version === 'number') _serverVersion = j.version;
       } catch (_) {}
+    } else if (resp.status === 409) {
+      // ── DEBUG TEMPORANEO: 409 in syncToCloud — invariato (resp ritornata raw),
+      // ma aggiungiamo il toast diagnostico per visibilità ──────────────────
+      try {
+        const _j409 = await resp.clone().json().catch(function(){ return null; });
+        try { toast && toast('SAVE 409 — ' + ((_j409 && _j409.error) || 'rejected') + ' [syncToCloud]'); } catch(_) {}
+      } catch(_) {}
     }
     // 409 e altri: invariati → resp ritornata raw, caller decide (oggi gateano su r.ok).
     return resp;
