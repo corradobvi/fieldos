@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.23</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.24</span></div>
       </div>
 
     </main>
@@ -23639,6 +23639,7 @@ async function saveQuickResult(tipo, ref, idC, idO) {
   applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   const res = await saveResultWithRetry(applyResult);
+  console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged);
   if (res.ok) {
     _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
     toast('✅ Risultato salvato!');
@@ -23677,6 +23678,7 @@ async function saveQuickResult(tipo, ref, idC, idO) {
 // triggerWebpush=true → invia anche webpush nativo (destinatari risolti server-side).
 // Il caller deve passare true SOLO quando il risultato è nuovo o è cambiato.
 function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
+  console.log('[NOTIFY] enter leva=', match && match.leva, 'triggerWebpush=', !!triggerWebpush, 'matchId=', match && match.id, 'tipo=', tipo);
   try {
     let leva = match && match.leva;
     let avversario = '';
@@ -23698,6 +23700,7 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       if (t && typeof _getMieSquadre === 'function') {
         const mie = _getMieSquadre(t);
         if (!mie.includes(match.casa) && !mie.includes(match.ospite)) {
+          console.log('[NOTIFY] exit=torneo-altrui mie=', mie, 'casa=', match.casa, 'ospite=', match.ospite);
           // ── DEBUG TEMPORANEO ─────────────────────────────────────────────
           try { toast && toast('NOTIFY exit=torneo-altrui'); } catch(_) {}
           return;
@@ -23707,6 +23710,7 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       if (!leva && t) leva = t.leva;
     }
     if (!leva) {
+      console.log('[NOTIFY] exit=no-leva');
       // ── DEBUG TEMPORANEO ────────────────────────────────────────────────
       try { toast && toast('NOTIFY exit=no-leva'); } catch(_) {}
       return;
@@ -23715,23 +23719,43 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
     const title = `⚽ Risultato ${tipoLabel} (${leva}): ${score}`;
     const body = avversario ? `vs ${avversario}` : '';
     const ids = recipientsForGenitoriOfLeva(leva);
+    console.log('[NOTIFY] dest=', ids.length, ids);
     // ── DEBUG TEMPORANEO: leva risolta + numero destinatari ────────────────
     try { toast && toast("NOTIFY leva='" + String(leva) + "' dest=" + ids.length); } catch(_) {}
     if (ids.length) {
-      ids.forEach(uid => pushNotifica(uid, { type: 'risultato_partita', title, body }));
+      ids.forEach(uid => {
+        console.log('[NOTIFY] inapp+ uid=', uid);
+        pushNotifica(uid, { type: 'risultato_partita', title, body });
+      });
       if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
+    } else {
+      console.log('[NOTIFY] exit=dest-zero (nessuna pushNotifica in-app)');
     }
     // Webpush nativo — solo quando risultato è nuovo/cambiato. Lista destinatari risolta server-side.
     if (triggerWebpush && typeof _v2Token !== 'undefined' && _v2Token) {
       try {
+        console.log('[NOTIFY] webpush POST start leva=', leva);
         fetch(API_BASE + '/api/v2/notifiche/risultato-partita', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
           body: JSON.stringify({ leva, title, body })
-        }).catch(() => { /* non bloccante */ });
-      } catch(_) { /* non bloccante */ }
+        }).then(function(resp){
+          console.log('[NOTIFY] webpush status=', resp.status);
+        }).catch(function(err){
+          console.log('[NOTIFY] webpush ERROR', err);
+          /* non bloccante */
+        });
+      } catch(e) {
+        console.log('[NOTIFY] webpush throw', e);
+        /* non bloccante */
+      }
+    } else {
+      console.log('[NOTIFY] exit=webpush-skipped triggerWebpush=', !!triggerWebpush, 'hasToken=', (typeof _v2Token !== 'undefined' && !!_v2Token));
     }
-  } catch(_) { /* non bloccante */ }
+  } catch(e) {
+    console.log('[NOTIFY] exit=outer-catch', e);
+    /* non bloccante */
+  }
 }
 
 // ─── MODALI AMICHEVOLE ───
@@ -24464,6 +24488,7 @@ async function savePtRisultato() {
   applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   const res = await saveResultWithRetry(applyResult);
+  console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged);
   if (res.ok) {
     _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
     toast('✅ Risultato salvato!');
