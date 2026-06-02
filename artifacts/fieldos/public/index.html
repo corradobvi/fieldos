@@ -22488,7 +22488,14 @@ function _gcRenderTorneoTipo2(t) {
   const qList = fQ.length ? fQ : fAlt;
   const qHtml = qList.length ? qList.map(f=>`<div class="fase-sep" style="background:var(--cl);color:var(--cp);">📋 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone di qualifica configurato.</div>';
   const assegnaBtn = canEdit&&fF.length===0&&qList.some(f=>(f.partite||[]).some(m=>m.played)) ? `<button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="openGcAssegnaFinali('${t.id}')">🏆 Assegna squadre ai gironi finali</button>` : '';
-  const fHtml = fF.length ? fF.map(f=>`<div class="fase-sep" style="background:#fef3c7;color:#92400e;">🏅 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Fasi finali non ancora iniziate.${canEdit?' Aggiungi tramite "Gestisci torneo" o assegna automaticamente.':''}</div>${assegnaBtn}`;
+  const fHtml = fF.length ? fF.map(f=>{
+    if (f.tipo === 'scontro_diretto') {
+      const label = `<div class="fase-sep" style="background:#fef3c7;color:#92400e;">⚔️ ${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(scontro diretto)</span></div>`;
+      const accoppiaBtn = canEdit && fQ.length >= 2 ? `<button class="btn btn-s btn-sm" style="margin-top:6px;margin-left:6px;" onclick="gcAccoppiaFinali('${t.id}','${f.id}')">🎯 Accoppia per le finali</button>` : '';
+      return label + _gcFaseMatches(t,f) + accoppiaBtn;
+    }
+    return `<div class="fase-sep" style="background:#fef3c7;color:#92400e;">🏅 ${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`;
+  }).join('') : `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Fasi finali non ancora iniziate.${canEdit?' Aggiungi tramite "Gestisci torneo" o assegna automaticamente.':''}</div>${assegnaBtn}`;
   const espanso2 = _gcTorneiEspansi.has(t.id);
   return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso2?'':'display:none;'}"><div class="fase-sep" style="color:var(--cp);">🔵 Fase a Gironi (Qualificazione)</div>${qHtml}<div class="fase-sep" style="color:#92400e;margin-top:4px;">🏆 Fasi Finali</div>${fHtml}${_gcTorneoScorers(t)}</div></div>`;
 }
@@ -22650,6 +22657,53 @@ function saveGcAssegnaFinali() {
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Squadre assegnate!');
+}
+
+// ─── Scontro diretto (fase finale, tipo 2): auto-accoppia per posizione dai gironi Q ───
+function gcAccoppiaFinali(torneoId, faseId) {
+  const t = tornei.find(x=>x.id===torneoId); if (!t) return;
+  const f = (t.fasi||[]).find(x=>x.id===faseId); if (!f || f.tipo !== 'scontro_diretto') return;
+  const fQ = (t.fasi||[]).filter(x=>x.faseGruppo==='Q');
+  if (fQ.length < 2) { toast('⚠️ Servono almeno 2 gironi di qualifica'); return; }
+  const qPair = fQ.slice(0, 2);
+  const incomplete = qPair.some(g => (g.partite||[]).some(m => !m.played) || !(g.partite||[]).length);
+  if (incomplete) {
+    if (!confirm('Le posizioni dei gironi non sono ancora definitive. Accoppiare comunque con le posizioni attuali?')) return;
+  }
+  const opts = {spareggio: t.spareggio || ['scontro_diretto','dr_generale','gf_generale']};
+  const stA = computeStandings(qPair[0].squadre||[], qPair[0].partite||[], opts);
+  const stB = computeStandings(qPair[1].squadre||[], qPair[1].partite||[], opts);
+  const N = Math.min(stA.length, stB.length);
+  if (N === 0) { toast('⚠️ Classifiche vuote nei gironi Q'); return; }
+  const kept = (f.partite||[]).filter(m => m.played);
+  const droppedCount = (f.partite||[]).length - kept.length;
+  if (droppedCount > 0) {
+    if (!confirm(`Sovrascrivere ${droppedCount} partita/e non giocata/e con i nuovi accoppiamenti? (Le partite già giocate restano invariate.)`)) return;
+  }
+  const newMatches = [];
+  for (let i = 1; i <= N; i++) {
+    const casa = stA[i-1].nome, ospite = stB[i-1].nome;
+    newMatches.push({
+      id: 'bm' + nextTornMatchId++,
+      casa, ospite,
+      data: '', orario: '',
+      played: false, golCasa: 0, golOspiti: 0, stats: [],
+      pairing: `${i}°${qPair[0].nome} vs ${i}°${qPair[1].nome}`
+    });
+  }
+  f.partite = [...kept, ...newMatches];
+  window.__fieldosSaveState();
+  renderGestComp(); renderPartite(); renderCal();
+  toast(`✅ Generate ${newMatches.length} partita/e`);
+  try {
+    newMatches.forEach(m => {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'torneo',
+        event_key: 'torneo_' + t.id + '_' + f.id + '_' + m.id,
+        leva: t.leva, fase_id: f.id, match: m
+      }));
+    });
+  } catch(_) {}
 }
 
 // ─── Bracket editor (tipo 3) ───
@@ -23011,7 +23065,7 @@ function openGcTorneoEdit(id) {
     const fQ = t ? (t.fasi||[]).filter(f=>f.faseGruppo==='Q'||(!f.faseGruppo&&(t.fasi||[]).filter(x=>x.faseGruppo==='F').length===0)) : [];
     const fF = t ? (t.fasi||[]).filter(f=>f.faseGruppo==='F') : [];
     _gcTorneoGironiQUI = fQ.length ? fQ.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Gruppo A',squadre:[],partite:[]}];
-    _gcTorneoGironiFUI = fF.length ? fF.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Platino',squadre:[],partite:[]},{id:null,nome:'Oro',squadre:[],partite:[]}];
+    _gcTorneoGironiFUI = fF.length ? fF.map(f=>({id:f.id,nome:f.nome,tipoFinale:f.tipo==='scontro_diretto'?'scontro_diretto':'finale',squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Platino',tipoFinale:'finale',squadre:[],partite:[]},{id:null,nome:'Oro',tipoFinale:'finale',squadre:[],partite:[]}];
     document.getElementById('gcT2QualPerGirone').value = t?.qualPerGirone||2;
     gcTorneoRenderGironi2Q(); gcTorneoRenderGironi2F();
   } else if (_gcTorneoTipo === 3) {
@@ -23123,14 +23177,18 @@ function gcTorneoAddGirone2Q() {
 function gcTorneoRenderGironi2F() {
   const el = document.getElementById('gcT2GironiFList'); if(!el) return;
   el.innerHTML = _gcTorneoGironiFUI.map((g,i)=>{
-    const picker = _gcGironeTeamPickerHtml(g.squadre||[], i, '_gcTorneoGironiFUI');
-    return `<div style="display:flex;flex-direction:column;background:var(--bg);border-radius:7px;padding:5px 9px;"><div style="display:flex;gap:6px;align-items:center;"><input value="${escapeHtml(g.nome)}" style="flex:1;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoGironiFUI[${i}].nome=this.value"><button onclick="_gcTorneoGironiFUI.splice(${i},1);gcTorneoRenderGironi2F()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button></div>${picker}</div>`;
+    const tf = g.tipoFinale || 'finale';
+    const tipoSel = `<select style="padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-size:.74rem;" onchange="_gcTorneoGironiFUI[${i}].tipoFinale=this.value;gcTorneoRenderGironi2F()"><option value="finale"${tf==='finale'?' selected':''}>🏅 Girone all'italiana</option><option value="scontro_diretto"${tf==='scontro_diretto'?' selected':''}>⚔️ Scontro diretto</option></select>`;
+    const body = tf === 'scontro_diretto'
+      ? `<div style="font-size:.7rem;color:var(--text3);padding:4px 2px 0;border-top:1px solid var(--border);margin-top:4px;">Le partite si configurano dalla card del torneo: auto-accoppiamento per posizione dai gironi Q, oppure manualmente con "+ Partita".</div>`
+      : _gcGironeTeamPickerHtml(g.squadre||[], i, '_gcTorneoGironiFUI');
+    return `<div style="display:flex;flex-direction:column;background:var(--bg);border-radius:7px;padding:5px 9px;"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><input value="${escapeHtml(g.nome)}" style="flex:1;min-width:90px;padding:3px 7px;border:1px solid var(--border);border-radius:5px;font-size:.82rem;" oninput="_gcTorneoGironiFUI[${i}].nome=this.value">${tipoSel}<button onclick="_gcTorneoGironiFUI.splice(${i},1);gcTorneoRenderGironi2F()" style="background:var(--rbg);color:var(--red);border:none;border-radius:5px;padding:2px 6px;cursor:pointer;font-size:.72rem;">✕</button></div>${body}</div>`;
   }).join('');
 }
 function gcTorneoAddGirone2F() {
   const names=['Platino','Oro','Argento','Bronzo','Diamante','Smeraldo'];
   const used=_gcTorneoGironiFUI.map(g=>g.nome);
-  _gcTorneoGironiFUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Fase ${_gcTorneoGironiFUI.length+1}`,squadre:[],partite:[]});
+  _gcTorneoGironiFUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Fase ${_gcTorneoGironiFUI.length+1}`,tipoFinale:'finale',squadre:[],partite:[]});
   gcTorneoRenderGironi2F();
 }
 // Tipo 3 gironi
@@ -23169,7 +23227,11 @@ function saveGcTorneo() {
   } else if (tipo === 2) {
     const qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     _gcTorneoGironiQUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:'Q',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
-    _gcTorneoGironiFUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'finale',faseGruppo:'F',squadre:[...(g.squadre||[])],partite:g.partite||[]}));
+    _gcTorneoGironiFUI.forEach(g=>{
+      const tf = g.tipoFinale || 'finale';
+      const sq = tf === 'scontro_diretto' ? [..._gcTorneoSquadre] : [...(g.squadre||[])];
+      newFasiDefs.push({id:g.id,nome:g.nome,tipo:tf,faseGruppo:'F',squadre:sq,partite:g.partite||[]});
+    });
     // persist qualPerGirone on torneo object later
   } else if (tipo === 3) {
     _gcTorneoGironiUI.forEach(g=>newFasiDefs.push({id:g.id,nome:g.nome,tipo:'girone',faseGruppo:null,squadre:[...(g.squadre||[])],partite:g.partite||[]}));
