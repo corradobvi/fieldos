@@ -21903,17 +21903,20 @@ function renderPtTornei() {
   const c = document.getElementById('ptContent');
   if (!c) return;
   const today = new Date().toISOString().slice(0,10);
+  // isConcluso: stessa logica del badge "Concluso" più sotto (riga ~21927).
+  // Senza dataFine NON è concluso → resta sempre visibile.
+  const isConcluso = t => !!(t.dataFine && t.dataFine < today);
   const allSorted = _sortTorneiByData(tornei.filter(t => t.leva === currentLeva));
   // For family users, filter out tornei in 'none' phase
   const visible = isFamily() ? allSorted.filter(t => getFasePt(t.dataInizio || t.dataFine || '', t.leva, t) !== 'none') : allSorted;
-  let attivi = visible.filter(t => !t.archiviato);
-  let archiviati = visible.filter(t => t.archiviato);
+  let attivi = visible.filter(t => !t.archiviato && !isConcluso(t));
+  let nascosti = visible.filter(t => t.archiviato || isConcluso(t));
   // When coming from partite-gen: show only the tapped torneo
   if (_pgfFromGenitore && _pgfFocusSourceType === 'torneo' && _pgfFocusEvId != null) {
     attivi = attivi.filter(t => String(t.id) === String(_pgfFocusEvId));
-    archiviati = archiviati.filter(t => String(t.id) === String(_pgfFocusEvId));
+    nascosti = nascosti.filter(t => String(t.id) === String(_pgfFocusEvId));
   }
-  if (!attivi.length && !archiviati.length) {
+  if (!attivi.length && !nascosti.length) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">Nessun torneo disponibile. Crea un torneo dalla sezione Gestione Competizioni.</div></div>`;
     return;
   }
@@ -21976,13 +21979,13 @@ function renderPtTornei() {
     return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;">Nessuna fase disponibile.</div>'}${scorersHtml}</div></div>`;
   };
 
-  const toggleHtml = archiviati.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_ptMostraArchiviati?' checked':''} onchange="ptToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra archiviati (${archiviati.length})</label></div>` : '';
+  const toggleHtml = nascosti.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_ptMostraArchiviati?' checked':''} onchange="ptToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra passati (${nascosti.length})</label></div>` : '';
   const attiviHtml = attivi.length ? attivi.map(renderCard).join('') : `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo attivo per ${escapeHtml(currentLeva)}</div></div>`;
-  let archiviatiHtml = '';
-  if (_ptMostraArchiviati && archiviati.length) {
-    archiviatiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Archiviati</div>` + archiviati.map(t=>`<div style="opacity:.5;">${renderCard(t)}</div>`).join('');
+  let nascostiHtml = '';
+  if (_ptMostraArchiviati && nascosti.length) {
+    nascostiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Passati</div>` + nascosti.map(t=>`<div style="opacity:.5;">${renderCard(t)}</div>`).join('');
   }
-  c.innerHTML = toggleHtml + attiviHtml + archiviatiHtml;
+  c.innerHTML = toggleHtml + attiviHtml + nascostiHtml;
 }
 
 // ═══════════════════════════════════
@@ -22403,22 +22406,26 @@ function importPdfSave() {
 
 function renderGcTornei() {
   const c = document.getElementById('gcContent'); if (!c) return;
+  const today = new Date().toISOString().slice(0,10);
+  // isConcluso: riusa la stessa logica del badge "Concluso" (_gcTorneoHd / renderPtTornei).
+  // Un torneo SENZA dataFine NON è concluso → resta sempre visibile.
+  const isConcluso = t => !!(t.dataFine && t.dataFine < today);
   const all = _sortTorneiByData(tornei.filter(t=>t.leva===currentLeva));
-  const attivi = all.filter(t=>!t.archiviato);
-  const archiviati = all.filter(t=>t.archiviato);
+  const attivi = all.filter(t=>!t.archiviato && !isConcluso(t));
+  const nascosti = all.filter(t=>t.archiviato || isConcluso(t));
   if (attivi.length === 1) _gcTorneiEspansi.add(attivi[0].id);
   const renderT = t => { const tipo=t.tipo||1; if(tipo===2)return _gcRenderTorneoTipo2(t); if(tipo===3)return _gcRenderTorneoTipo3(t); return _gcRenderTorneoTipo1(t); };
-  if (!attivi.length && !archiviati.length) {
+  if (!attivi.length && !nascosti.length) {
     c.innerHTML = `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo per la leva ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "+ Nuovo torneo" per iniziare.':'Nessun torneo disponibile.'}</div></div>`;
     return;
   }
-  const toggleHtml = archiviati.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_gcShowArchiviati?' checked':''} onchange="gcToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra archiviati (${archiviati.length})</label></div>` : '';
+  const toggleHtml = nascosti.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_gcShowArchiviati?' checked':''} onchange="gcToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra passati (${nascosti.length})</label></div>` : '';
   const attiviHtml = attivi.length ? attivi.map(renderT).join('') : `<div class="empty"><div class="empty-ic">🏆</div><div class="empty-txt">Nessun torneo attivo per ${escapeHtml(currentLeva)}</div><div class="empty-sub">${canEditPt(currentLeva)?'Clicca "+ Nuovo torneo" per iniziare.':''}</div></div>`;
-  let archiviatiHtml = '';
-  if (_gcShowArchiviati && archiviati.length) {
-    archiviatiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Archiviati</div>` + archiviati.map(t=>`<div style="opacity:.5;">${renderT(t)}</div>`).join('');
+  let nascostiHtml = '';
+  if (_gcShowArchiviati && nascosti.length) {
+    nascostiHtml = `<div style="font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:12px 0 6px;border-top:1px solid var(--border);margin-top:8px;">Passati</div>` + nascosti.map(t=>`<div style="opacity:.5;">${renderT(t)}</div>`).join('');
   }
-  c.innerHTML = toggleHtml + attiviHtml + archiviatiHtml;
+  c.innerHTML = toggleHtml + attiviHtml + nascostiHtml;
 }
 
 function _gcTorneoHd(t) {
