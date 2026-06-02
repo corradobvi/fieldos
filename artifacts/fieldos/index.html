@@ -4583,8 +4583,13 @@ let _campSetupMatches = [];
 // Modal risultato
 let _risCtx = null;
 // Chat interna
+// chatMessaggi/nextChatMsgId: legacy in-memory, NON più persistito nel blob.
+// Source of truth dei messaggi = MySQL via POST/GET /api/v2/chat/:chatId/messages.
+// Cache server-confermata in _chatMessagesByChatId; chatMessaggi resta solo per backward-compat di helper interni.
 let chatMessaggi = [];
 let nextChatMsgId = 1;
+let _chatMessagesByChatId = {};   // { chatId: [{id, chatId, userId, text, photo, ts, _pending?}] }
+let _chatMsgsInFlight = {};       // guard concorrenza per _loadChatMessages
 let chatLastSeen = {};
 let currentChatId = null;
 let torneoChats = {};
@@ -24890,13 +24895,64 @@ function toggleTorneoScrivono(torneoId) {
 }
 
 function chatMsgsFor(chatId) {
-  return chatMessaggi.filter(m => m.chatId === chatId).sort((a,b) => a.ts - b.ts);
+  // Source of truth: cache server-confermata (popolata da _loadChatMessages via GET MySQL).
+  // _pending = messaggi ottimistici in attesa di conferma POST.
+  return (_chatMessagesByChatId[chatId] || []).slice().sort((a,b) => (a.ts||0) - (b.ts||0));
+}
+
+// Trasforma riga server (GET /chat/:chatId/messages) in shape FE coerente con il vecchio chatMessaggi[].
+function _chatRowToMsg(row, chatId) {
+  const ts = row.created_at ? Date.parse(row.created_at) : Date.now();
+  return {
+    id: row.id,
+    chatId: chatId,
+    userId: row.autore_id,
+    text: row.testo || '',
+    photo: row.foto_url || undefined,
+    ts: Number.isFinite(ts) ? ts : Date.now(),
+    _serverConfirmed: true
+  };
+}
+
+// Carica messaggi della chat dal DB. Preserva eventuali ottimistici locali (_pending).
+async function _loadChatMessages(chatId) {
+  if (!chatId || !_v2Token) return;
+  if (_chatMsgsInFlight[chatId]) return;
+  _chatMsgsInFlight[chatId] = true;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages?limit=200', {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
+    if (!r.ok) return;
+    const rows = await r.json();
+    if (!Array.isArray(rows)) return;
+    const pending = (_chatMessagesByChatId[chatId] || []).filter(m => m._pending);
+    _chatMessagesByChatId[chatId] = rows.map(rw => _chatRowToMsg(rw, chatId)).concat(pending);
+    if (currentChatId === chatId) renderChatMessages();
+    if (typeof renderChatList === 'function') renderChatList();
+    if (typeof refreshChatBadges === 'function') refreshChatBadges();
+  } catch (_) {
+    // Errore di rete/parse: lascia la cache invariata (no overwrite con dati mancanti).
+  } finally {
+    _chatMsgsInFlight[chatId] = false;
+  }
+}
+
+// Polling globale singolo: ogni 4s ricarica i messaggi della chat aperta.
+// Salta se tab nascosta o nessuna chat aperta o token assente.
+function _ensureChatMsgsPoll() {
+  if (window._chatMsgsPollInterval) return;
+  window._chatMsgsPollInterval = setInterval(() => {
+    if (typeof document !== 'undefined' && document.hidden) return;
+    if (!currentChatId || !_v2Token) return;
+    _loadChatMessages(currentChatId);
+  }, 4000);
 }
 
 function chatUnreadCount(user, chatId) {
   if (!user) return 0;
   const seen = (chatLastSeen[user.id] && chatLastSeen[user.id][chatId]) || 0;
-  return chatMessaggi.filter(m => m.chatId === chatId && m.userId !== user.id && m.ts > seen).length;
+  return (_chatMessagesByChatId[chatId] || []).filter(m => m.userId !== user.id && (m.ts||0) > seen && !m._pending).length;
 }
 
 function chatTotalUnread(user) {
@@ -24986,6 +25042,9 @@ function selectChat(chatId, skipListRefresh) {
   // Bottone sondaggio + fetch sondaggi (solo chat torneo)
   if (typeof refreshPollButton === 'function') refreshPollButton();
   if (_isTorneoChat(chatId)) _loadPollsForChat(chatId, true);
+  // Carica messaggi dal DB (source of truth) e avvia polling 4s sulla chat aperta.
+  _loadChatMessages(chatId);
+  _ensureChatMsgsPoll();
   markChatRead(me, chatId);
   document.getElementById('chatAv').textContent = c.avatar;
   document.getElementById('chatAv').style.background = c.color;
@@ -25172,7 +25231,7 @@ function chatOpenPhoto(src) {
   lb.classList.add('on');
 }
 
-function sendMsg() {
+async function sendMsg() {
   const inp = document.getElementById('chatInp');
   if (!inp || !me || !currentChatId) return;
   const txt = inp.value.trim();
@@ -25181,23 +25240,42 @@ function sendMsg() {
   const c = chats.find(x => x.id === currentChatId);
   if (!c) { toast('⚠️ Non sei più membro di questa chat'); return; }
   if (c.readOnly) { toast('⚠️ Solo lettura — i genitori non possono scrivere in questa chat'); return; }
-  chatMessaggi.push({ id: nextChatMsgId++, chatId: currentChatId, userId: me.id, text: txt, ts: Date.now() });
+  const chatId = currentChatId;
+  const optimisticId = '_pending_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  // Ottimistico: appare subito; riconciliato dal GET post-POST oppure rimosso su errore.
+  if (!_chatMessagesByChatId[chatId]) _chatMessagesByChatId[chatId] = [];
+  _chatMessagesByChatId[chatId].push({ id: optimisticId, chatId, userId: me.id, text: txt, ts: Date.now(), _pending: true });
   inp.value = '';
-  markChatRead(me, currentChatId);
-  renderChatMessages();
-  renderChatList();
-  refreshChatBadges();
-  // Push notification ai membri della chat (eccetto il mittente)
-  if (typeof sendPushNotification === 'function' && window._mvSocietaKey) {
-    const _senderName = me.nome + ' ' + me.cogn;
-    const _chatName = c.nome || 'Chat';
-    (c.members || []).filter(uid => uid !== me.id).forEach(uid => {
-      sendPushNotification(uid, window._mvSocietaKey, {
-        title: '💬 ' + _chatName,
-        body: _senderName + ': ' + txt.slice(0, 80),
-        type: 'chat', tag: 'chat_' + currentChatId, url: '/#chat'
-      });
+  markChatRead(me, chatId);
+  renderChatMessages(); renderChatList(); refreshChatBadges();
+  let ok = false;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ testo: txt })
     });
+    ok = r.ok;
+  } catch (_) { ok = false; }
+  // Rimuovi sempre l'ottimistico: success → sostituito dal record server al reload; fail → non lasciare fantasma.
+  _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
+  if (ok) {
+    await _loadChatMessages(chatId);
+    // Push notification ai membri della chat (in-app), invariata.
+    if (typeof sendPushNotification === 'function' && window._mvSocietaKey) {
+      const _senderName = me.nome + ' ' + me.cogn;
+      const _chatName = c.name || c.nome || 'Chat';
+      (c.members || []).filter(uid => uid !== me.id).forEach(uid => {
+        sendPushNotification(uid, window._mvSocietaKey, {
+          title: '💬 ' + _chatName,
+          body: _senderName + ': ' + txt.slice(0, 80),
+          type: 'chat', tag: 'chat_' + chatId, url: '/#chat'
+        });
+      });
+    }
+  } else {
+    renderChatMessages(); renderChatList(); refreshChatBadges();
+    toast('❌ Invio messaggio fallito. Riprova.');
   }
 }
 
@@ -25210,13 +25288,31 @@ function sendPhoto(input) {
   const c = chats.find(x => x.id === currentChatId);
   if (!c) { toast('⚠️ Non sei più membro di questa chat'); return; }
   if (c.readOnly) { toast('⚠️ Solo lettura'); return; }
+  const chatId = currentChatId;
   const reader = new FileReader();
-  reader.onload = e => {
-    chatMessaggi.push({ id: nextChatMsgId++, chatId: currentChatId, userId: me.id, text: '', photo: e.target.result, ts: Date.now() });
-    markChatRead(me, currentChatId);
-    renderChatMessages();
-    renderChatList();
-    refreshChatBadges();
+  reader.onload = async (ev) => {
+    const dataUrl = ev.target.result;
+    const optimisticId = '_pending_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+    if (!_chatMessagesByChatId[chatId]) _chatMessagesByChatId[chatId] = [];
+    _chatMessagesByChatId[chatId].push({ id: optimisticId, chatId, userId: me.id, text: '', photo: dataUrl, ts: Date.now(), _pending: true });
+    markChatRead(me, chatId);
+    renderChatMessages(); renderChatList(); refreshChatBadges();
+    let ok = false;
+    try {
+      const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ fotoUrl: dataUrl })
+      });
+      ok = r.ok;
+    } catch (_) { ok = false; }
+    _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
+    if (ok) {
+      await _loadChatMessages(chatId);
+    } else {
+      renderChatMessages(); renderChatList(); refreshChatBadges();
+      toast('❌ Invio foto fallito. Riprova.');
+    }
   };
   reader.readAsDataURL(file);
   input.value = '';
@@ -30256,8 +30352,9 @@ async function doRejoinSocieta() {
       nextPendingUserId: nextPendingUserId,
       ricercaPubblica: ricercaPubblica,
       accettaRichieste: accettaRichieste,
-      chatMessaggi: chatMessaggi,
-      nextChatMsgId: nextChatMsgId,
+      // chatMessaggi/nextChatMsgId: NON più nel blob — source of truth = MySQL via /api/v2/chat/:chatId/messages.
+      // Lasciandoli fuori dallo snapshot, il fallback 412 (_handleStaleConflict / applyServerState) non può
+      // più sovrascrivere/perdere messaggi appena scritti dall'utente.
       chatLastSeen: chatLastSeen,
       torneoChats: torneoChats,
       adHocChats: adHocChats,
@@ -30569,8 +30666,9 @@ async function doRejoinSocieta() {
       if (typeof s.nextPendingUserId === 'number') nextPendingUserId = s.nextPendingUserId;
       if (typeof s.ricercaPubblica === 'boolean') ricercaPubblica = s.ricercaPubblica;
       if (typeof s.accettaRichieste === 'boolean') accettaRichieste = s.accettaRichieste;
-      if (Array.isArray(s.chatMessaggi)) chatMessaggi = s.chatMessaggi;
-      if (typeof s.nextChatMsgId === 'number') nextChatMsgId = s.nextChatMsgId;
+      // chatMessaggi/nextChatMsgId NON ripristinati dal blob: source of truth = MySQL.
+      // Anche se vecchi blob li contengono, vengono ignorati (la cache _chatMessagesByChatId
+      // è popolata da _loadChatMessages quando l'utente apre una chat).
       if (s.chatLastSeen && typeof s.chatLastSeen === 'object') chatLastSeen = s.chatLastSeen;
       if (s.torneoChats && typeof s.torneoChats === 'object') torneoChats = s.torneoChats;
       if (Array.isArray(s.adHocChats)) adHocChats = s.adHocChats;

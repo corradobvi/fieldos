@@ -78790,6 +78790,7 @@ ALTER TABLE players ADD COLUMN approval_status ENUM('pending','approved') NOT NU
 ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
+ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
