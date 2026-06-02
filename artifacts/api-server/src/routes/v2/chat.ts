@@ -7,31 +7,30 @@ import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-
 const router = Router();
 
 // GET /api/v2/chat/:chatId/messages?limit=50&before=<id>
+// Uso pool.query (interpolazione client-side delle ?) invece di pool.execute (server-prepared):
+// LIMIT ? con prepared statements ha avuto regressioni in alcune combinazioni mysql2/MySQL → pool.query è più robusto.
 router.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query as Record<string, string>;
+  const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
+  const beforeId = before ? parseInt(before) : null;
 
   try {
-    const [rows] = (await pool.execute(
-      `SELECT m.id, m.autore_id, m.testo, m.foto_url, m.tipo, m.meta, m.created_at,
-              u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
-       FROM chat_messages m
-       LEFT JOIN users u ON u.id = m.autore_id
-       WHERE m.society_id = ? AND m.chat_id = ?
-         ${before ? "AND m.id < ?" : ""}
-       ORDER BY m.created_at DESC
-       LIMIT ?`,
-      before
-        ? [societyId, chatId, parseInt(before), parseInt(limit)]
-        : [societyId, chatId, parseInt(limit)]
-    )) as [any[], any];
-
-    // Return in chronological order
+    const sqlBase = `SELECT m.id, m.chat_id, m.autore_id, m.testo, m.foto_url, m.tipo, m.meta, m.created_at,
+                            u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
+                       FROM chat_messages m
+                       LEFT JOIN users u ON u.id = m.autore_id
+                      WHERE m.society_id = ? AND m.chat_id = ?`;
+    const sql = beforeId != null
+      ? `${sqlBase} AND m.id < ? ORDER BY m.created_at DESC, m.id DESC LIMIT ${lim}`
+      : `${sqlBase} ORDER BY m.created_at DESC, m.id DESC LIMIT ${lim}`;
+    const params = beforeId != null ? [societyId, chatId, beforeId] : [societyId, chatId];
+    const [rows] = (await pool.query(sql, params)) as [any[], any];
     return res.json(rows.reverse());
   } catch (e: any) {
-    logger.error({ err: e }, "GET chat messages error");
-    return res.status(500).json({ error: "server_error" });
+    logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId }, "GET chat messages error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
 
@@ -230,11 +229,25 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
 
   if (!testo?.trim() && !fotoUrl) return res.status(400).json({ error: "testo_or_foto_required" });
 
+  let insertedId: number | null = null;
+  let createdAtIso: string | null = null;
   try {
     const [result] = (await pool.execute(
       "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
     )) as [any, any];
+    insertedId = result.insertId;
+    // Recupera created_at server-side per coerenza tra device (no drift di orologio client).
+    try {
+      const [rows] = (await pool.query(
+        "SELECT created_at FROM chat_messages WHERE id = ? LIMIT 1",
+        [insertedId]
+      )) as [any[], any];
+      const ca = rows[0]?.created_at;
+      createdAtIso = ca instanceof Date ? ca.toISOString() : (typeof ca === "string" ? ca : new Date().toISOString());
+    } catch {
+      createdAtIso = new Date().toISOString();
+    }
 
     // Push notification ai partecipanti — fire-and-forget
     // Parsa chatId: "leva_U14" → leva, "allenatori" → staff, altrimenti tutta la società
@@ -263,10 +276,21 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       }, "notify_chat"))
       .catch(e => logger.warn({ err: e }, "chat push error"));
 
-    return res.status(201).json({ id: result.insertId });
+    // Ritorna l'oggetto messaggio completo così il FE riconcilia direttamente la cache
+    // senza un secondo GET (elimina race con il polling 4s).
+    return res.status(201).json({
+      id: insertedId,
+      chat_id: chatId,
+      autore_id: userId,
+      testo: testo?.trim() ?? null,
+      foto_url: fotoUrl ?? null,
+      tipo: null,
+      meta: null,
+      created_at: createdAtIso
+    });
   } catch (e: any) {
-    logger.error({ err: e }, "POST chat message error");
-    return res.status(500).json({ error: "server_error" });
+    logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId, userId }, "POST chat message error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
 

@@ -24915,24 +24915,41 @@ function _chatRowToMsg(row, chatId) {
 }
 
 // Carica messaggi della chat dal DB. Preserva eventuali ottimistici locali (_pending).
+// Recupera _v2Token da localStorage se in memoria è null (caso refresh prima che bootApp finisca il bridge).
+// Stesso pattern usato dappertutto nel codice (es. _matchSyncGate riga ~7054).
+function _ensureV2Token() {
+  if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+  return _v2Token;
+}
+
 async function _loadChatMessages(chatId) {
-  if (!chatId || !_v2Token) return;
+  if (!chatId) return;
+  if (!_ensureV2Token()) {
+    console.warn('[chat] _loadChatMessages: _v2Token missing, skipping load for', chatId);
+    return;
+  }
   if (_chatMsgsInFlight[chatId]) return;
   _chatMsgsInFlight[chatId] = true;
   try {
     const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages?limit=200', {
       headers: { 'Authorization': 'Bearer ' + _v2Token }
     });
-    if (!r.ok) return;
+    if (!r.ok) {
+      console.warn('[chat] GET messages HTTP', r.status, 'for', chatId);
+      return;
+    }
     const rows = await r.json();
-    if (!Array.isArray(rows)) return;
+    if (!Array.isArray(rows)) {
+      console.warn('[chat] GET messages: response is not array', rows);
+      return;
+    }
     const pending = (_chatMessagesByChatId[chatId] || []).filter(m => m._pending);
     _chatMessagesByChatId[chatId] = rows.map(rw => _chatRowToMsg(rw, chatId)).concat(pending);
     if (currentChatId === chatId) renderChatMessages();
     if (typeof renderChatList === 'function') renderChatList();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
-  } catch (_) {
-    // Errore di rete/parse: lascia la cache invariata (no overwrite con dati mancanti).
+  } catch (e) {
+    console.warn('[chat] GET messages fetch error for', chatId, e && e.message);
   } finally {
     _chatMsgsInFlight[chatId] = false;
   }
@@ -24944,7 +24961,8 @@ function _ensureChatMsgsPoll() {
   if (window._chatMsgsPollInterval) return;
   window._chatMsgsPollInterval = setInterval(() => {
     if (typeof document !== 'undefined' && document.hidden) return;
-    if (!currentChatId || !_v2Token) return;
+    if (!currentChatId) return;
+    if (!_ensureV2Token()) return;
     _loadChatMessages(currentChatId);
   }, 4000);
 }
@@ -25231,6 +25249,32 @@ function chatOpenPhoto(src) {
   lb.classList.add('on');
 }
 
+// Send helper unificato: gestisce POST + riconciliazione cache via response server.
+// Niente secondo GET → niente race con il polling.
+async function _postChatMessage(chatId, payload, optimisticMsg) {
+  if (!_ensureV2Token()) {
+    return { ok: false, status: 0, detail: 'no_token' };
+  }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      console.warn('[chat] POST messages HTTP', r.status, 'for', chatId);
+      let detail = '';
+      try { const j = await r.json(); detail = (j && (j.error || j.detail)) || ''; } catch(_) {}
+      return { ok: false, status: r.status, detail };
+    }
+    const row = await r.json();
+    return { ok: true, status: r.status, row };
+  } catch (e) {
+    console.warn('[chat] POST messages fetch error', e && e.message);
+    return { ok: false, status: 0, detail: 'network' };
+  }
+}
+
 async function sendMsg() {
   const inp = document.getElementById('chatInp');
   if (!inp || !me || !currentChatId) return;
@@ -25242,26 +25286,19 @@ async function sendMsg() {
   if (c.readOnly) { toast('⚠️ Solo lettura — i genitori non possono scrivere in questa chat'); return; }
   const chatId = currentChatId;
   const optimisticId = '_pending_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-  // Ottimistico: appare subito; riconciliato dal GET post-POST oppure rimosso su errore.
   if (!_chatMessagesByChatId[chatId]) _chatMessagesByChatId[chatId] = [];
   _chatMessagesByChatId[chatId].push({ id: optimisticId, chatId, userId: me.id, text: txt, ts: Date.now(), _pending: true });
   inp.value = '';
   markChatRead(me, chatId);
   renderChatMessages(); renderChatList(); refreshChatBadges();
-  let ok = false;
-  try {
-    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-      body: JSON.stringify({ testo: txt })
-    });
-    ok = r.ok;
-  } catch (_) { ok = false; }
-  // Rimuovi sempre l'ottimistico: success → sostituito dal record server al reload; fail → non lasciare fantasma.
+  const res = await _postChatMessage(chatId, { testo: txt }, null);
+  // Rimuovi ottimistico
   _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
-  if (ok) {
-    await _loadChatMessages(chatId);
-    // Push notification ai membri della chat (in-app), invariata.
+  if (res.ok && res.row && res.row.id != null) {
+    // Riconcilia direttamente con la riga ritornata dal server (no secondo GET).
+    const newMsg = _chatRowToMsg(res.row, chatId);
+    _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== newMsg.id).concat([newMsg]);
+    renderChatMessages(); renderChatList(); refreshChatBadges();
     if (typeof sendPushNotification === 'function' && window._mvSocietaKey) {
       const _senderName = me.nome + ' ' + me.cogn;
       const _chatName = c.name || c.nome || 'Chat';
@@ -25275,7 +25312,10 @@ async function sendMsg() {
     }
   } else {
     renderChatMessages(); renderChatList(); refreshChatBadges();
-    toast('❌ Invio messaggio fallito. Riprova.');
+    const code = res.status ? (' (HTTP ' + res.status + (res.detail ? ' ' + res.detail : '') + ')') : '';
+    toast('❌ Invio messaggio fallito' + code + '. Riprova.');
+    // Ripristina il testo nell'input per permettere all'utente di ritentare senza riscrivere.
+    if (inp.value === '') inp.value = txt;
   }
 }
 
@@ -25297,21 +25337,16 @@ function sendPhoto(input) {
     _chatMessagesByChatId[chatId].push({ id: optimisticId, chatId, userId: me.id, text: '', photo: dataUrl, ts: Date.now(), _pending: true });
     markChatRead(me, chatId);
     renderChatMessages(); renderChatList(); refreshChatBadges();
-    let ok = false;
-    try {
-      const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-        body: JSON.stringify({ fotoUrl: dataUrl })
-      });
-      ok = r.ok;
-    } catch (_) { ok = false; }
+    const res = await _postChatMessage(chatId, { fotoUrl: dataUrl }, null);
     _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== optimisticId);
-    if (ok) {
-      await _loadChatMessages(chatId);
+    if (res.ok && res.row && res.row.id != null) {
+      const newMsg = _chatRowToMsg(res.row, chatId);
+      _chatMessagesByChatId[chatId] = (_chatMessagesByChatId[chatId] || []).filter(m => m.id !== newMsg.id).concat([newMsg]);
+      renderChatMessages(); renderChatList(); refreshChatBadges();
     } else {
       renderChatMessages(); renderChatList(); refreshChatBadges();
-      toast('❌ Invio foto fallito. Riprova.');
+      const code = res.status ? (' (HTTP ' + res.status + (res.detail ? ' ' + res.detail : '') + ')') : '';
+      toast('❌ Invio foto fallito' + code + '. Riprova.');
     }
   };
   reader.readAsDataURL(file);
