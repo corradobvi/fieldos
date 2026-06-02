@@ -10375,9 +10375,14 @@ function getFasePt(dateStr, leva, evObj) {
   return 'none';
 }
 // Helper: precedenza visibilità partita torneo — partita > torneo > leva
+// Fallback: se la partita NON ha data (round-robin non ancora datato), usa
+// dataInizio del torneo come riferimento per il calcolo di fase. Senza
+// questo fallback, getFasePt('') ritorna 'none' e il genitore non vede mai
+// la partita finché il mister non le assegna una data o la gioca.
 function getFasePartitaTorneo(partita, torneo, leva) {
   const subito = !!(partita?.visibilitaSubito || torneo?.visibilitaSubito);
-  return getFasePt(partita.data, leva, { visibilitaSubito: subito });
+  const dateRef = (partita?.data) || (torneo?.dataInizio) || '';
+  return getFasePt(dateRef, leva, { visibilitaSubito: subito });
 }
 function getFaseForFamily(ev) {
   if (!ev) return 'none';
@@ -21945,7 +21950,7 @@ function renderPtTornei() {
       const polisMatches = fSorted.filter(m => mieSquadre.includes(m.casa) || mieSquadre.includes(m.ospite));
       const altriMatches = fSorted.filter(m => !mieSquadre.includes(m.casa) && !mieSquadre.includes(m.ospite));
       const polisHtml = polisMatches.map(m => {
-        if (isFamily() && !m.played && getFasePt(m.data, t.leva, m) === 'none') return '';
+        if (isFamily() && !m.played && getFasePartitaTorneo(m, t, t.leva) === 'none') return '';
         const risBtn = canEnterResult(t.leva) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('torneo','${t.id}__${f.id}__${m.id}');event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
         const score = m.played ? `<span class="mc-score clickable" onclick="event.stopPropagation();openPtDettaglio('torneo','${t.id}__${f.id}__${m.id}')">${m.golCasa} – ${m.golOspiti}</span>` : `<span class="mc-score nd">Da giocare</span>`;
         return `<div class="mc" style="margin-bottom:5px;"><div class="mc-date">${fmtMatchDate(m.data)}${m.orario?' · '+m.orario:''}</div><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span>${score}<span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${m.played?renderMatchScorersCompact(m,t.leva,mieSquadre):''}<div class="mc-actions">${risBtn}</div></div>`;
