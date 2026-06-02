@@ -93046,15 +93046,30 @@ router40.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async 
   const { societyId } = req.jwtUser;
   const leva = req.query.leva || "";
   if (!leva) return res.status(400).json({ error: "leva_required" });
+  const conn = await pool.getConnection();
   try {
-    const [r] = await pool.execute(
+    await conn.beginTransaction();
+    const [r] = await conn.execute(
       "DELETE FROM matches WHERE societa_id = ? AND tipo = 'campionato' AND leva = ?",
       [societyId, leva]
     );
-    return res.json({ ok: true, deleted: r.affectedRows || 0 });
+    const [rs] = await conn.execute(
+      "DELETE FROM campionato_settings WHERE societa_id = ? AND leva = ?",
+      [societyId, leva]
+    );
+    await conn.commit();
+    return res.json({
+      ok: true,
+      deleted: r.affectedRows || 0,
+      settings_deleted: rs.affectedRows || 0
+    });
   } catch (e) {
+    await conn.rollback().catch(() => {
+    });
     logger.error({ err: e?.message }, "DELETE campionato error");
     return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
   }
 });
 var matches_default = router40;

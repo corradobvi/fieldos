@@ -7077,6 +7077,11 @@ async function _syncMatchFromMySQL(force) {
     // Pre-popolo mCa[leva] dai metadati MySQL (nome, stagione, categoria, punti,
     // dataInizio/Fine normalizzate, squadre, squadreInfo, giornate). I match
     // arrivano sotto dal loop su /matches.
+    // IMPORTANTE: per i campi opzionali, MySQL null → undefined così il
+    // _fillMissing(mCa[lv], bCamp) più in basso ripristina dal blob i valori
+    // che MySQL non ha ancora salvato. Senza questa mappa null/'' resterebbe
+    // tale, il fill-missing salterebbe (skip-su-undefined) e i valori del
+    // blob (es. giornate impostate dall'utente) verrebbero azzerati al sync.
     (Array.isArray(campSettingsRows) ? campSettingsRows : []).forEach(s => {
       const lv = s.leva;
       if (!lv) return;
@@ -7087,11 +7092,11 @@ async function _syncMatchFromMySQL(force) {
         puntiV:      s.punti_v != null ? Number(s.punti_v) : undefined,
         puntiN:      s.punti_n != null ? Number(s.punti_n) : undefined,
         puntiP:      s.punti_p != null ? Number(s.punti_p) : undefined,
-        dataInizio:  _normYmd(s.data_inizio),
-        dataFine:    _normYmd(s.data_fine),
-        squadre:     s.squadre,
-        squadreInfo: s.squadre_info,
-        giornate:    s.giornate,
+        dataInizio:  s.data_inizio ? _normYmd(s.data_inizio) : undefined,
+        dataFine:    s.data_fine   ? _normYmd(s.data_fine)   : undefined,
+        squadre:     s.squadre     != null ? s.squadre      : undefined,
+        squadreInfo: s.squadre_info != null ? s.squadre_info : undefined,
+        giornate:    s.giornate    != null ? s.giornate     : undefined,
         partite:     []
       };
     });

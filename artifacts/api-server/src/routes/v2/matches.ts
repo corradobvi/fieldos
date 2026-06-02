@@ -534,15 +534,30 @@ router.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES), async (re
   const { societyId } = req.jwtUser!;
   const leva = (req.query.leva as string | undefined) || "";
   if (!leva) return res.status(400).json({ error: "leva_required" });
+  const conn: PoolConnection = await (pool as any).getConnection();
   try {
-    const [r] = (await pool.execute(
+    await conn.beginTransaction();
+    const [r] = (await conn.execute(
       "DELETE FROM matches WHERE societa_id = ? AND tipo = 'campionato' AND leva = ?",
       [societyId, leva]
     )) as [any, any];
-    return res.json({ ok: true, deleted: (r as any).affectedRows || 0 });
+    // Cleanup settings di QUELLA (societa_id, leva): non tocca altre leve.
+    const [rs] = (await conn.execute(
+      "DELETE FROM campionato_settings WHERE societa_id = ? AND leva = ?",
+      [societyId, leva]
+    )) as [any, any];
+    await conn.commit();
+    return res.json({
+      ok: true,
+      deleted: (r as any).affectedRows || 0,
+      settings_deleted: (rs as any).affectedRows || 0,
+    });
   } catch (e: any) {
+    await conn.rollback().catch(() => {});
     logger.error({ err: e?.message }, "DELETE campionato error");
     return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
   }
 });
 
