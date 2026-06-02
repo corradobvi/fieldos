@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.22</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.23</span></div>
       </div>
 
     </main>
@@ -30241,67 +30241,105 @@ async function doRejoinSocieta() {
     if (indIcon) indIcon.textContent = (errState === 'fatal' || errState === 'retry') ? '🔴' : (pending > 0 ? '🟡' : '🟢');
   }
 
+  // Catena di serializzazione delle PUT /api/state: una sola in volo per volta.
+  // Senza questa coda, due saveState() in rapida successione partivano con la stessa
+  // baseVersion mentre il server aveva gia incrementato → 412 a cascata in loop.
+  let _pushChain = Promise.resolve();
+
   function apiPush(key, json) {
     const stripped = json.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
-    // baseVersion inviato a ogni PUT per check ottimistico server-side.
-    // Se assente o non-number nel backend retrocompat → server ignora il check (fallback upsert).
-    const body = JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion });
     _pendingPushes++;
     _updateSyncBar(_pendingPushes);
+    _pushChain = _pushChain.then(async function () {
+      try {
+        await _doPushOnce(key, stripped);
+      } finally {
+        _pendingPushes = Math.max(0, _pendingPushes - 1);
+        _updateSyncBar(_pendingPushes);
+      }
+    });
+    return _pushChain;
+  }
 
-    let _retries = 0;
-    const _maxRetries = 4; // 0s → 4s → 12s → 36s → abbandono
-    function doFetch() {
-      fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body,
-      }).then(r => {
-        if (r.ok) {
-          // 200 OK: aggiorna _serverVersion dalla response (il server l'ha incrementata).
-          _pendingPushes = Math.max(0, _pendingPushes - 1);
-          _updateSyncBar(_pendingPushes);
-          r.json().then(j => { if (j && typeof j.version === 'number') _serverVersion = j.version; }).catch(() => {});
-        } else if (r.status === 412) {
-          // STALE_BASE_VERSION: NON è success, NON ritentare (il body è già obsoleto per definizione).
-          // Backup locale + pull + ricarica via _handleStaleConflict (poi l'utente rifà l'azione su base fresca).
-          _pendingPushes = Math.max(0, _pendingPushes - 1);
-          _updateSyncBar(_pendingPushes);
-          console.warn('[apiPush] 412 stale_base_version: blob server è avanti rispetto al client', key);
-          // ── DEBUG TEMPORANEO: toast diagnostico (no change di logica) ─────────
-          r.clone().json().then(function(j){
-            try { toast && toast('SAVE 412 — ' + ((j && j.error) || 'stale_base_version') + ' [apiPush]'); } catch(_) {}
-          }).catch(function(){ try { toast && toast('SAVE 412 — stale_base_version [apiPush]'); } catch(_) {} });
-          _handleStaleConflict(key);
-        } else if (r.status === 409) {
-          // 409 = guard esistenti (would_overwrite_real_data / demo_cannot_overwrite_real / would_downgrade_data).
-          // INVARIATO: trattato come risolto (loggato, conteggio decrementato, banner verde).
-          _pendingPushes = Math.max(0, _pendingPushes - 1);
-          _updateSyncBar(_pendingPushes);
-          console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
-          // ── DEBUG TEMPORANEO: toast diagnostico (no change di logica) ─────────
-          r.clone().json().then(function(j){
-            try { toast && toast('SAVE 409 — ' + ((j && j.error) || 'rejected') + ' [apiPush]'); } catch(_) {}
-          }).catch(function(){ try { toast && toast('SAVE 409 — rejected [apiPush]'); } catch(_) {} });
-        } else if (_retries < _maxRetries) {
-          _retries++;
+  async function _doPushOnce(key, stripped) {
+    // baseVersion ottimistica ricostruita ad OGNI tentativo (compresi retry 412):
+    // dopo un retry _serverVersion può essere stata aggiornata dal body 412 stesso.
+    let _412Retries = 0;
+    const _412MaxRetries = 3;
+    let _netRetries = 0;
+    const _netMaxRetries = 4; // 0s → 4s → 12s → 36s → abbandono
+    while (true) {
+      const body = JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion });
+      let r;
+      try {
+        r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+      } catch (_) {
+        // Errore di rete: backoff esponenziale come prima.
+        if (_netRetries < _netMaxRetries) {
+          _netRetries++;
           _updateSyncBar(_pendingPushes, 'retry');
-          setTimeout(doFetch, Math.min(4000 * _retries, 36000));
-        } else {
-          console.error('[apiPush] fallito dopo', _maxRetries, 'tentativi per key', key);
-          _updateSyncBar(_pendingPushes, 'fatal');
+          await new Promise(function (res) { setTimeout(res, Math.min(4000 * _netRetries, 36000)); });
+          continue;
         }
-      }).catch(() => {
-        if (_retries < _maxRetries) {
-          _retries++;
-          _updateSyncBar(_pendingPushes, 'retry');
-          setTimeout(doFetch, Math.min(4000 * _retries, 36000));
-        } else {
-          _updateSyncBar(_pendingPushes, 'fatal');
+        _updateSyncBar(_pendingPushes, 'fatal');
+        return;
+      }
+      if (r.ok) {
+        // 200 OK: AWAITA il parse JSON e aggiorna _serverVersion PRIMA di lasciare
+        // il turno della coda. Cosi la PUT successiva parte con la version fresca.
+        try {
+          const j = await r.json();
+          if (j && typeof j.version === 'number') _serverVersion = j.version;
+        } catch (_) {}
+        return;
+      }
+      if (r.status === 412) {
+        // STALE_BASE_VERSION: leggi server_version dal body, allinea _serverVersion
+        // e ritenta lo STESSO PUT con la baseVersion aggiornata (max 3 retry, ~150ms).
+        console.warn('[apiPush] 412 stale_base_version', key, 'retry', _412Retries + 1, '/', _412MaxRetries);
+        let parsed = null;
+        try { parsed = await r.clone().json(); } catch (_) {}
+        // ── DEBUG TEMPORANEO: toast diagnostico (mantenuto) ─────────
+        try { toast && toast('SAVE 412 — ' + ((parsed && parsed.error) || 'stale_base_version') + ' [apiPush]'); } catch (_) {}
+        if (parsed && typeof parsed.server_version === 'number') {
+          _serverVersion = parsed.server_version;
         }
-      });
+        if (_412Retries < _412MaxRetries) {
+          _412Retries++;
+          await new Promise(function (res) { setTimeout(res, 150); });
+          continue;
+        }
+        // Fallback: comportamento legacy (backup + pull + apply).
+        _handleStaleConflict(key);
+        return;
+      }
+      if (r.status === 409) {
+        // 409 = guard esistenti (would_overwrite_real_data / demo_cannot_overwrite_real / would_downgrade_data).
+        // INVARIATO: trattato come risolto (loggato, no retry, banner verde).
+        console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
+        try {
+          const j = await r.clone().json();
+          try { toast && toast('SAVE 409 — ' + ((j && j.error) || 'rejected') + ' [apiPush]'); } catch (_) {}
+        } catch (_) {
+          try { toast && toast('SAVE 409 — rejected [apiPush]'); } catch (_) {}
+        }
+        return;
+      }
+      // Altri errori (5xx / 4xx generici): retry exponential come prima.
+      if (_netRetries < _netMaxRetries) {
+        _netRetries++;
+        _updateSyncBar(_pendingPushes, 'retry');
+        await new Promise(function (res) { setTimeout(res, Math.min(4000 * _netRetries, 36000)); });
+        continue;
+      }
+      console.error('[apiPush] fallito dopo', _netMaxRetries, 'tentativi per key', key);
+      _updateSyncBar(_pendingPushes, 'fatal');
+      return;
     }
-    doFetch();
   }
 
   // Conflitto ottimistico: il blob server è più avanti di quello che il client ha pushato.
