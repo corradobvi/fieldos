@@ -21939,7 +21939,9 @@ function renderPtTornei() {
     const polis = polisName(t.leva);
     const mieSquadre = _getMieSquadre(t);
     const fasiHtml = (t.fasi||[]).map(f => {
-      const standings = computeStandings(f.squadre||[], f.partite||[]);
+      // Per fasi scontro_diretto / bracket niente classifica: sono partite secche, non gironi.
+      const isPartiteSecche = f.tipo === 'scontro_diretto' || f.tipo === 'bracket';
+      const standings = isPartiteSecche ? [] : computeStandings(f.squadre||[], f.partite||[]);
       const stHtml = standings.length === 0 ? '' : `<div class="st-wrap"><table class="st"><thead><tr><th>#</th><th>Squadra</th><th>G</th><th>V</th><th>N</th><th>P</th><th>DR</th><th>Pt</th></tr></thead><tbody>` +
         standings.map((sq,i) => {
           const isPolis = mieSquadre.includes(sq.nome);
@@ -21963,7 +21965,8 @@ function renderPtTornei() {
         ? altriMatches.filter(m => m.played || getFasePartitaTorneo(m, t, t.leva) !== 'none')
         : altriMatches;
       const altriHtml = renderAltriScontri('torneo', altriForRender, t.leva, t.id, f.id, true);
-      return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${f.tipo==='girone'?'girone':'gironcino/finale'})</span></div>${stHtml}${polisHtml}${altriHtml}`;
+      const tipoLabel = f.tipo==='girone' ? 'girone' : (f.tipo==='scontro_diretto' ? 'scontro diretto' : (f.tipo==='bracket' ? 'tabellone' : 'gironcino/finale'));
+      return `<div class="fase-sep">${escapeHtml(f.nome)} <span style="font-weight:400;color:var(--text3);text-transform:none;">(${tipoLabel})</span></div>${stHtml}${polisHtml}${altriHtml}`;
     }).join('');
     const scorers = computeTopScorers((t.fasi||[]).flatMap(f => f.partite||[]), t.leva);
     const scorersHtml = scorers.length === 0 ? '' : '<div class="fase-sep">⚽ Marcatori torneo</div>' + scorers.slice(0,8).map((s,i) => {
@@ -22510,11 +22513,20 @@ function _gcRenderTorneoTipo2(t) {
 function _gcRenderTorneoTipo3(t) {
   const canEdit = canEditPt(t.leva);
   const mieSquadre = _getMieSquadre(t);
-  const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket');
+  const fGironi = (t.fasi||[]).filter(f=>f.tipo!=='bracket'&&f.tipo!=='scontro_diretto');
   const fBracket = (t.fasi||[]).find(f=>f.tipo==='bracket');
+  const fSD = (t.fasi||[]).find(f=>f.tipo==='scontro_diretto');
+  const bracketMode = t.bracketMode || 'bracket';
   const gHtml = fGironi.length ? fGironi.map(f=>`<div class="fase-sep">${escapeHtml(f.nome)}</div>${_gcFaseStanding(t,f)}${_gcFaseMatches(t,f)}`).join('') : '<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Nessun girone configurato.</div>';
   let bHtml = '';
-  if (fBracket) {
+  if (bracketMode === 'scontro_diretto') {
+    if (fSD) {
+      const accoppiaBtn = canEdit && fGironi.length >= 2 ? `<button class="btn btn-s btn-sm" style="margin-top:6px;margin-left:6px;" onclick="gcAccoppiaFinali('${t.id}','${fSD.id}')">🎯 Accoppia per posizione</button>` : '';
+      bHtml = _gcFaseMatches(t, fSD) + accoppiaBtn;
+    } else {
+      bHtml = `<div style="color:var(--text3);font-size:.8rem;padding:6px 0;">Sezione scontri diretti non ancora configurata. Apri "Gestisci torneo" e salva per inizializzarla.</div>`;
+    }
+  } else if (fBracket) {
     const rounds = {};
     (fBracket.partite||[]).forEach(m => { const r=m.bracketRound||'?'; if(!rounds[r])rounds[r]=[]; rounds[r].push(m); });
     const rOrder = ['qf','sf','f','3p'], rLabels = {qf:'Quarti di Finale',sf:'Semifinale',f:'Finale','3p':'3° Posto'};
@@ -22534,7 +22546,8 @@ function _gcRenderTorneoTipo3(t) {
     if (canEdit) bHtml += `<button class="btn btn-g btn-sm" style="margin-top:4px;" onclick="openGcBracketEdit('${t.id}','')">+ Crea tabellone</button>`;
   }
   const espanso3 = _gcTorneiEspansi.has(t.id);
-  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso3?'':'display:none;'}"><div class="fase-sep" style="color:var(--cp);">📋 Fase a Gironi</div>${gHtml}<div class="fase-sep" style="color:#0369a1;margin-top:4px;">🏆 Tabellone eliminazione diretta</div>${bHtml}${_gcTorneoScorers(t)}</div></div>`;
+  const finaliLabel = bracketMode === 'scontro_diretto' ? '⚔️ Scontri diretti posizionali' : '🏆 Tabellone eliminazione diretta';
+  return `<div class="torneo-card" style="margin-bottom:16px;">${_gcTorneoHd(t)}<div id="tc-body-${t.id}" class="torneo-body" style="${espanso3?'':'display:none;'}"><div class="fase-sep" style="color:var(--cp);">📋 Fase a Gironi</div>${gHtml}<div class="fase-sep" style="color:#0369a1;margin-top:4px;">${finaliLabel}</div>${bHtml}${_gcTorneoScorers(t)}</div></div>`;
 }
 
 // ─── GC: Amichevoli ───
@@ -22671,7 +22684,9 @@ function saveGcAssegnaFinali() {
 function gcAccoppiaFinali(torneoId, faseId) {
   const t = tornei.find(x=>x.id===torneoId); if (!t) return;
   const f = (t.fasi||[]).find(x=>x.id===faseId); if (!f || f.tipo !== 'scontro_diretto') return;
-  const fQ = (t.fasi||[]).filter(x=>x.faseGruppo==='Q');
+  // Gironi sorgente: nel tipo 2 hanno faseGruppo='Q'; nel tipo 3 hanno faseGruppo null e tipo 'girone'.
+  // Filtro agnostico: tipo girone, non la fase SD stessa, non bracket.
+  const fQ = (t.fasi||[]).filter(x => x.tipo === 'girone' && x.id !== faseId && (x.faseGruppo === 'Q' || !x.faseGruppo));
   if (fQ.length < 2) { toast('⚠️ Servono almeno 2 gironi di qualifica'); return; }
   const qPair = fQ.slice(0, 2);
   const incomplete = qPair.some(g => (g.partite||[]).some(m => !m.played) || !(g.partite||[]).length);
@@ -23077,9 +23092,12 @@ function openGcTorneoEdit(id) {
     document.getElementById('gcT2QualPerGirone').value = t?.qualPerGirone||2;
     gcTorneoRenderGironi2Q(); gcTorneoRenderGironi2F();
   } else if (_gcTorneoTipo === 3) {
-    const fG = t ? (t.fasi||[]).filter(f=>f.tipo!=='bracket') : [];
+    const fG = t ? (t.fasi||[]).filter(f=>f.tipo!=='bracket'&&f.tipo!=='scontro_diretto') : [];
     _gcTorneoGironiUI = fG.length ? fG.map(f=>({id:f.id,nome:f.nome,squadre:f.squadre||[],partite:f.partite||[]})) : [{id:null,nome:'Girone A',squadre:[],partite:[]}];
     document.getElementById('gcT3BracketSize').value = t?.bracketSize||8;
+    const _bmSel = document.getElementById('gcT3BracketMode');
+    if (_bmSel) _bmSel.value = t?.bracketMode || 'bracket';
+    if (typeof gcT3OnBracketModeChange === 'function') gcT3OnBracketModeChange();
     gcTorneoRenderGironi3();
   }
   openM('mGcTorneoEdit');
@@ -23213,6 +23231,14 @@ function gcTorneoAddGirone3() {
   _gcTorneoGironiUI.push({id:null,nome:names.find(n=>!used.includes(n))||`Girone ${_gcTorneoGironiUI.length+1}`,squadre:[],partite:[]});
   gcTorneoRenderGironi3();
 }
+function gcT3OnBracketModeChange() {
+  const sel = document.getElementById('gcT3BracketMode');
+  const mode = sel ? sel.value : 'bracket';
+  const wrapSize = document.getElementById('gcT3BracketSizeWrap');
+  const wrapHint = document.getElementById('gcT3SDHint');
+  if (wrapSize) wrapSize.style.display = mode === 'bracket' ? '' : 'none';
+  if (wrapHint) wrapHint.style.display = mode === 'scontro_diretto' ? '' : 'none';
+}
 
 function saveGcTorneo() {
   const nome  = document.getElementById('gcTorneoNome').value.trim();
@@ -23270,16 +23296,27 @@ function saveGcTorneo() {
       if (t.convocazioniPerPartita !== undefined) t.convocazioniPerPartita = gcConvPerPartita;
       if (tipo===2) t.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
       if (tipo===3) t.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
+      if (tipo===3) t.bracketMode = document.getElementById('gcT3BracketMode')?.value || 'bracket';
       const keepIds = newFasiDefs.map(d=>d.id).filter(Boolean);
       const bracketFase = (t.fasi||[]).find(f=>f.tipo==='bracket');
+      const sdFase = (t.fasi||[]).find(f=>f.tipo==='scontro_diretto');
       t.fasi = newFasiDefs.map(d=>buildFase(d, t.fasi));
       if (bracketFase && tipo===3) t.fasi.push(bracketFase);
+      if (sdFase && tipo===3) t.fasi.push(sdFase);
+      // Crea fase scontro_diretto vuota se mode='scontro_diretto' e non esiste già
+      if (tipo===3 && t.bracketMode==='scontro_diretto' && !sdFase) {
+        t.fasi.push({id:'f'+nextFaseId++, nome:'Scontri diretti', tipo:'scontro_diretto', faseGruppo:null, squadre:[..._gcTorneoSquadre], partite:[]});
+      }
     }
   } else {
     const fasi = newFasiDefs.map(d=>({id:'f'+nextFaseId++, nome:d.nome, tipo:d.tipo, faseGruppo:d.faseGruppo||null, squadre:d.squadre, partite:[]}));
     const newT = {id:'t'+nextTorneoId++, nome, leva, luogo, dataInizio:di, dataFine:df, tipo, spareggio, squadrePartecipanti:[..._gcTorneoSquadre], fasi, convocati:[], squadreMieFlag:[..._gcTorneoSquadreMie], convocazioniPerPartita: gcConvPerPartita};
     if (tipo===2) newT.qualPerGirone = parseInt(document.getElementById('gcT2QualPerGirone').value)||2;
     if (tipo===3) newT.bracketSize = parseInt(document.getElementById('gcT3BracketSize').value)||8;
+    if (tipo===3) newT.bracketMode = document.getElementById('gcT3BracketMode')?.value || 'bracket';
+    if (tipo===3 && newT.bracketMode==='scontro_diretto') {
+      newT.fasi.push({id:'f'+nextFaseId++, nome:'Scontri diretti', tipo:'scontro_diretto', faseGruppo:null, squadre:[..._gcTorneoSquadre], partite:[]});
+    }
     tornei.push(newT);
   }
   closeM('mGcTorneoEdit');
@@ -31229,6 +31266,13 @@ async function doRejoinSocieta() {
         <button class="btn btn-g btn-sm" onclick="gcTorneoAddGirone3()">+ Aggiungi girone</button>
       </div>
       <div class="fg">
+        <label class="fl">Formato finali</label>
+        <select class="fs" id="gcT3BracketMode" onchange="gcT3OnBracketModeChange()">
+          <option value="bracket" selected>🏆 Tabellone a eliminazione</option>
+          <option value="scontro_diretto">⚔️ Scontri diretti posizionali</option>
+        </select>
+      </div>
+      <div class="fg" id="gcT3BracketSizeWrap">
         <label class="fl">Dimensione tabellone (n. squadre)</label>
         <select class="fs" id="gcT3BracketSize">
           <option value="4">4 squadre (SF + F)</option>
@@ -31236,6 +31280,7 @@ async function doRejoinSocieta() {
           <option value="16">16 squadre (Ottavi + QF + SF + F)</option>
         </select>
       </div>
+      <div id="gcT3SDHint" style="display:none;font-size:.74rem;color:var(--text3);padding:6px 2px;line-height:1.4;">Le finali si accoppiano per posizione dai gironi: 1°A vs 1°B (finale 1°/2°), 2°A vs 2°B (3°/4°), ecc. Usa "🎯 Accoppia per posizione" dalla card del torneo, oppure "+ Partita" per inserimento manuale.</div>
     </div>
 
     <!-- Spareggio -->
