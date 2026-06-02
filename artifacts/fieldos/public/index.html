@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.26</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.27</span></div>
       </div>
 
     </main>
@@ -30546,7 +30546,22 @@ async function doRejoinSocieta() {
       if (typeof s.nextConvocazioneId === 'number') nextConvocazioneId = s.nextConvocazioneId;
       if (Array.isArray(s.disponibilita)) disponibilita = s.disponibilita;
       if (typeof s.nextDisponibilitaId === 'number') nextDisponibilitaId = s.nextDisponibilitaId;
-      if (Array.isArray(s.notifiche)) notifiche = s.notifiche;
+      // FIX — MERGE difensivo notifiche: preserva le entry LOCALI non ancora
+      // propagate al server (id non presente in s.notifiche). Senza questo,
+      // un applyServerState con serverJson stantio (es. _handleStaleConflict
+      // su 412 di __fieldosSyncToCloud) ribalterebbe notifiche=[OLD] in mem,
+      // cancellando le NEW appena create da pushNotifica → un saveState
+      // successivo propagherebbe [OLD] sovrascrivendo le NEW gia pushate.
+      if (Array.isArray(s.notifiche)) {
+        const _srvNotif = Array.isArray(s.notifiche) ? s.notifiche : [];
+        const _srvIds = new Set(_srvNotif.map(n => n && n.id));
+        const _localOnly = (Array.isArray(notifiche) ? notifiche : []).filter(n => n && !_srvIds.has(n.id));
+        notifiche = _srvNotif.concat(_localOnly);
+        if (typeof nextNotificaId === 'number') {
+          const _maxId = notifiche.reduce((m,n)=> (n && n.id > m ? n.id : m), nextNotificaId-1);
+          nextNotificaId = _maxId + 1;
+        }
+      }
       if (typeof s.nextNotificaId === 'number') nextNotificaId = s.nextNotificaId;
       if (Array.isArray(s.inviti)) inviti = s.inviti;
       if (typeof s.codiceSocieta === 'string') codiceSocieta = s.codiceSocieta;
