@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.24</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.25</span></div>
       </div>
 
     </main>
@@ -23633,15 +23633,21 @@ async function saveQuickResult(tipo, ref, idC, idO) {
   if (typeof window.__fieldosExternalFeed?.onResult === 'function') {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go }); } catch(_) {}
   }
+  // FIX A — cattura il delta reale PRIMA della mutazione esterna.
+  // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
+  // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
+  // anche su modifiche reali → push saltata.
+  const _mPrev = _findMatchByRef(tipo, ref);
+  const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
   // Mutazione idempotente catturata come target assoluto: applicabile a stato locale o fresco da server.
   const applyResult = _buildApplyResult(tipo, ref, { golCasa: gc, golOspiti: go });
   // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
   applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   const res = await saveResultWithRetry(applyResult);
-  console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged);
+  console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
   if (res.ok) {
-    _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
+    _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
     toast('✅ Risultato salvato!');
   } else {
     toast('⚠️ Risultato non salvato — riprova');
@@ -23728,6 +23734,15 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
         pushNotifica(uid, { type: 'risultato_partita', title, body });
       });
       if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
+      // FIX B — propaga notifiche[] al server subito. pushNotifica muta solo
+      // in-memory; senza saveState esplicito le entry restano locali e possono
+      // essere sovrascritte da un successivo applyServerState (polling 30s,
+      // fallback 412). __fieldosSaveState manda lo snapshot via apiPush (coda
+      // + retry 412).
+      if (typeof window.__fieldosSaveState === 'function') {
+        console.log('[NOTIFY] saveState after inapp+ (propaga notifiche[])');
+        window.__fieldosSaveState();
+      }
     } else {
       console.log('[NOTIFY] exit=dest-zero (nessuna pushNotifica in-app)');
     }
@@ -24479,6 +24494,12 @@ async function savePtRisultato() {
     try { window.__fieldosExternalFeed.onResult({ tipo, ref, golCasa: gc, golOspiti: go, stats }); } catch(_) {}
   }
   closeM('mPtRisultato');
+  // FIX A — cattura il delta reale PRIMA della mutazione esterna.
+  // applyResult() viene chiamato due volte (qui e dentro saveResultWithRetry):
+  // al secondo giro il match è già al target e isNewOrChanged tornerebbe false
+  // anche su modifiche reali → push saltata.
+  const _mPrev = _findMatchByRef(tipo, ref);
+  const _trulyChanged = !_mPrev || !_mPrev.played || _mPrev.golCasa !== gc || _mPrev.golOspiti !== go;
   // Mutazione idempotente catturata come target assoluto.
   const target = { golCasa: gc, golOspiti: go, stats };
   if (typeof visibilitaSubito === 'boolean') target.visibilitaSubito = visibilitaSubito;
@@ -24488,9 +24509,9 @@ async function savePtRisultato() {
   applyResult();
   window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
   const res = await saveResultWithRetry(applyResult);
-  console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged);
+  console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
   if (res.ok) {
-    _notifyRisultatoToGenitori(tipo, res.match, gc, go, res.isNewOrChanged);
+    _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
     toast('✅ Risultato salvato!');
   } else {
     toast('⚠️ Risultato non salvato — riprova');
