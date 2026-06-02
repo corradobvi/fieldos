@@ -22771,6 +22771,8 @@ function saveGcBracketEdit() {
     if (!t.fasi) t.fasi = [];
     t.fasi.push(fBracket);
   }
+  // STEP2 — cattura OLD event_keys PRIMA del replace per riconciliazione MySQL.
+  const _oldEks = new Set((fBracket.partite||[]).map(m => 'torneo_' + t.id + '_' + fBracket.id + '_' + m.id));
   // Collect selects
   const rows = document.querySelectorAll('#gcBracketMatchList select[data-round]');
   const slots = {};
@@ -22794,6 +22796,26 @@ function saveGcBracketEdit() {
   // fix: rerender completo dopo save (audit 21/05)
   renderGestComp(); renderPartite(); renderCal();
   toast('✅ Tabellone salvato!');
+
+  // STEP2 — doppia scrittura: riconciliazione via event_key.
+  // OLD = event_keys pre-replace, NEW = event_keys post-replace.
+  // DELETE (OLD - NEW): slot rimossi o non-played rinumerati col nuovo bm<N>.
+  // UPSERT (NEW): tutti gli slot correnti (played mantengono id → idempotente).
+  // NO _postStatsUpsert: per gli slot played le stats sono già su MySQL (salvate
+  // quando l'utente ha inserito il risultato); per i non-played stats=[].
+  try {
+    const _newEks = new Set(newPartite.map(m => 'torneo_' + t.id + '_' + fBracket.id + '_' + m.id));
+    _oldEks.forEach(ek => {
+      if (!_newEks.has(ek)) _deleteMatchByEventKey(ek);
+    });
+    newPartite.forEach(m => {
+      _postMatchUpsert(_buildMatchBody({
+        tipo: 'torneo',
+        event_key: 'torneo_' + t.id + '_' + fBracket.id + '_' + m.id,
+        leva: t.leva, fase_id: fBracket.id, match: m
+      }));
+    });
+  } catch(_) {}
 }
 
 // ─── Campionato: modal ───
