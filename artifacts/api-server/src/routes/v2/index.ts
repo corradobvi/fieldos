@@ -37,7 +37,6 @@ import migratePolisRouter          from "./migrate-polis";
 import matchesRouter               from "./matches";
 import statsRouter                 from "./stats";
 import adminBackfillMatchesRouter  from "./admin-backfill-matches";
-import adminLevaAuditRouter        from "./admin-leva-audit";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -345,5 +344,4 @@ router.use(migratePolisRouter);
 router.use(matchesRouter);
 router.use(statsRouter);
 router.use(adminBackfillMatchesRouter);
-router.use(adminLevaAuditRouter);
 export default router;

@@ -1,12 +1,36 @@
 import { Router } from "express";
+import type { Request } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
+import { requireLeva } from "../../lib/leva-guard";
 import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
 import { addNotificaToBlob } from "./minors";
 
 const router = Router();
+
+// Resolver leva: player.leva via body.playerId
+async function _levaFromPlayerInBody(req: Request): Promise<string | null> {
+  const pid = Number((req.body as any)?.playerId);
+  if (!Number.isFinite(pid) || pid <= 0) return null;
+  const [rows] = (await pool.execute(
+    "SELECT leva FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+    [pid, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+
+// Resolver leva: events.leva via body.eventId
+async function _levaFromEventInBody(req: Request): Promise<string | null> {
+  const eid = Number((req.body as any)?.eventId);
+  if (!Number.isFinite(eid) || eid <= 0) return null;
+  const [rows] = (await pool.execute(
+    "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
+    [eid, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
 
 // GET /api/v2/presenze?eventId=X
 router.get("/presenze", requireAuth, async (req, res) => {
@@ -33,7 +57,7 @@ router.get("/presenze", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/presenze — upsert singola presenza
-router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
+router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { playerId, eventId, stato, nota } = req.body as Record<string, any>;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -59,7 +83,7 @@ router.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirige
 });
 
 // POST /api/v2/presenze/bulk — salva presenze di un intero evento
-router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
+router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { eventId, presenze } = req.body as { eventId: number; presenze: Array<{ playerId: number; stato: string; nota?: string }> };
 

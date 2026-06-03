@@ -1,13 +1,57 @@
 import { Router } from "express";
+import type { Request } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { requireLeva } from "../../lib/leva-guard";
 import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
 const WRITE_ROLES = ["admin", "allenatore", "dirigente"];
 const DEMO_SOC_IDS = new Set<number>([0, 99, 99999]);
+
+// ─── Resolver leva per requireLeva ───────────────────────────────────────────
+
+function _levaFromBody(req: Request): string | null {
+  const v = (req.body && (req.body as any).leva) as any;
+  return typeof v === "string" && v.trim() !== "" ? v : null;
+}
+
+function _levaFromQuery(req: Request): string | null {
+  const v = req.query.leva as string | undefined;
+  return v && v.trim() !== "" ? v : null;
+}
+
+async function _levaFromMatchId(req: Request): Promise<string | null> {
+  const id = Number(req.params.matchId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const [rows] = (await pool.execute(
+    "SELECT leva FROM matches WHERE id = ? AND societa_id = ? LIMIT 1",
+    [id, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+
+async function _levaFromEventKey(req: Request): Promise<string | null> {
+  const ek = String(req.params.eventKey || "");
+  if (!ek) return null;
+  const [rows] = (await pool.execute(
+    "SELECT leva FROM matches WHERE event_key = ? AND societa_id = ? LIMIT 1",
+    [ek, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+
+async function _levaFromTorneoId(req: Request): Promise<string | null> {
+  const id = String(req.params.id || "");
+  if (!id) return null;
+  const [rows] = (await pool.execute(
+    "SELECT leva FROM tornei WHERE id = ? AND societa_id = ? LIMIT 1",
+    [id, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
 
 // Gating: rifiuta le società demo; restituisce true se la richiesta è bloccata.
 function rejectDemo(req: any, res: any): boolean {
@@ -147,7 +191,7 @@ router.get("/tornei", requireAuth, async (req, res) => {
 //         avversario?, lato?, luogo?, played?, gol_casa?, gol_ospiti?,
 //         visibilita_subito?, annullata?, bracket_round?, bracket_pos?, legacy_match_id? }
 // Risposta 200: { id, created } — created=true se nuova riga, false se update.
-router.post("/matches", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.post("/matches", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const b = (req.body || {}) as Record<string, any>;
@@ -214,7 +258,7 @@ router.post("/matches", requireAuth, requireRole(...WRITE_ROLES), async (req, re
 //                   gol_sub?, cs? }, ...] }
 // Semantica "imposta la distinta": ON DUPLICATE KEY UPDATE su (match_id, player_id).
 // Skip per player_id non presenti in players (no FK violation). Conta upsert + skip.
-router.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const matchId = Number(req.params.matchId);
@@ -285,7 +329,7 @@ router.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES),
 //         convocazioni_per_partita?, qual_per_girone?, archiviato?,
 //         fasi?: [{ id, nome?, tipo?, fase_gruppo?, squadre?, ordine? }, ...] }
 // Upsert additivo sulle fasi: non rimuove fasi non presenti nel payload.
-router.post("/tornei", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.post("/tornei", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const t = (req.body || {}) as Record<string, any>;
@@ -394,7 +438,7 @@ router.post("/tornei", requireAuth, requireRole(...WRITE_ROLES), async (req, res
 });
 
 // DELETE /api/v2/matches/:matchId — delete singolo match per BIGINT id (FK CASCADE su stats).
-router.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const matchId = Number(req.params.matchId);
@@ -415,7 +459,7 @@ router.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES), asy
 });
 
 // DELETE /api/v2/matches/by-event-key/:eventKey — alternativa via event_key.
-router.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromEventKey), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const event_key = String(req.params.eventKey || "");
@@ -435,7 +479,7 @@ router.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRI
 
 // DELETE /api/v2/tornei/:id — delete torneo per id naturale.
 // FK CASCADE: tornei_fasi → matches (via fase_id) → match_stats.
-router.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromTorneoId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const id = String(req.params.id || "");
@@ -486,7 +530,7 @@ function _normYmdSrv(v: any): string | null {
   const s = String(v);
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
-router.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const b = (req.body || {}) as Record<string, any>;
@@ -529,7 +573,7 @@ router.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES), as
 
 // DELETE /api/v2/campionato?leva=<nome> — cancella tutti i match tipo='campionato'
 // di quella leva. FK CASCADE rimuove le stats. Convocazioni blob: il FE le purga.
-router.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+router.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_levaFromQuery), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser!;
   const leva = (req.query.leva as string | undefined) || "";

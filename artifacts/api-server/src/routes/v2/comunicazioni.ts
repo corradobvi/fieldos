@@ -1,11 +1,59 @@
 import { Router } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
+import { getUserLeve } from "../../lib/leva-guard";
 import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 
 const router = Router();
+
+// Regola dedicata per comunicazioni:
+//   - body.leva valorizzata → deve essere tra le leve dell'utente (confronto tollerante).
+//   - body.leva null/assente (= comunicazione società-wide) → consenti SOLO se l'utente
+//     è wildcard (getUserLeve === null), altrimenti 403.
+function _normCom(s: any): string {
+  if (s == null) return "";
+  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+}
+async function _checkComLevaScope(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  if (!req.jwtUser) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  try {
+    const { userId, societyId, role } = req.jwtUser;
+    const allowed = await getUserLeve(userId, societyId, role);
+    const bodyLeva = (req.body as any)?.leva;
+    const isWildcard = allowed === null;
+    const bodyLevaStr = typeof bodyLeva === "string" ? bodyLeva : "";
+    if (!bodyLevaStr.trim()) {
+      // società-wide → solo wildcard
+      if (isWildcard) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: "leva_forbidden" });
+      return;
+    }
+    if (isWildcard) {
+      next();
+      return;
+    }
+    if (!allowed!.has(_normCom(bodyLevaStr))) {
+      res.status(403).json({ error: "leva_forbidden", leva: bodyLevaStr });
+      return;
+    }
+    next();
+  } catch {
+    res.status(500).json({ error: "server_error" });
+  }
+}
 
 // GET /api/v2/comunicazioni?leva=U14&limit=50
 router.get("/comunicazioni", requireAuth, async (req, res) => {
@@ -38,7 +86,7 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/comunicazioni
-router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), async (req, res) => {
+router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body as Record<string, any>;
   if (!testo) return res.status(400).json({ error: "testo_required" });

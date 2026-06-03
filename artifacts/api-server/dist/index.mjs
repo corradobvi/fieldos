@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router46;
+    module.exports = Router45;
     module.exports.Route = Route;
-    function Router46(options) {
-      if (!(this instanceof Router46)) {
-        return new Router46(options);
+    function Router45(options) {
+      if (!(this instanceof Router45)) {
+        return new Router45(options);
       }
       const opts = options || {};
-      function router46(req, res, next) {
-        router46.handle(req, res, next);
+      function router45(req, res, next) {
+        router45.handle(req, res, next);
       }
-      Object.setPrototypeOf(router46, this);
-      router46.caseSensitive = opts.caseSensitive;
-      router46.mergeParams = opts.mergeParams;
-      router46.params = {};
-      router46.strict = opts.strict;
-      router46.stack = [];
-      return router46;
+      Object.setPrototypeOf(router45, this);
+      router45.caseSensitive = opts.caseSensitive;
+      router45.mergeParams = opts.mergeParams;
+      router45.params = {};
+      router45.strict = opts.strict;
+      router45.stack = [];
+      return router45;
     }
-    Router46.prototype = function() {
+    Router45.prototype = function() {
     };
-    Router46.prototype.param = function param(name, fn) {
+    Router45.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router46.prototype.handle = function handle(req, res, callback) {
+    Router45.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router46.prototype.use = function use(handler) {
+    Router45.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router46.prototype.route = function route(path4) {
+    Router45.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router46.prototype[method] = function(path4) {
+      Router45.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router46 = require_router();
+    var Router45 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router46 = null;
+      var router45 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router46 === null) {
-            router46 = new Router46({
+          if (router45 === null) {
+            router45 = new Router45({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router46;
+          return router45;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router46 = this.router;
+      var router45 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router46.use(path4, fn2);
+          return router45.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router46.use(path4, function mounted_app(req, res, next) {
+        router45.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router46 = require_router();
+    var Router45 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router46.Route;
-    exports.Router = Router46;
+    exports.Route = Router45.Route;
+    exports.Router = Router45;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express46 = __toESM(require_express2(), 1);
+var import_express45 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express45 = __toESM(require_express2(), 1);
+var import_express44 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78501,7 +78501,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express44 = __toESM(require_express2(), 1);
+var import_express43 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -86611,8 +86611,85 @@ function requirePermission(key) {
   };
 }
 
+// src/lib/leva-guard.ts
+function _norm(s) {
+  if (s == null) return "";
+  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+}
+async function getUserLeve(userId, societyId, role) {
+  if (role === "admin" || role === "mister_admin") return null;
+  if (role === "genitore" || role === "nonno") {
+    const [rows] = await pool.execute(
+      `SELECT DISTINCT p.leva
+         FROM user_players up
+         JOIN players p ON p.id = up.player_id
+        WHERE up.user_id = ? AND p.society_id = ? AND p.leva IS NOT NULL AND p.leva <> ''`,
+      [userId, societyId]
+    );
+    return new Set(rows.map((r) => _norm(r.leva)));
+  }
+  if (role === "allenatore" || role === "dirigente" || role === "preparatore_portieri") {
+    const [rows] = await pool.execute(
+      "SELECT leva FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    if (!rows.length || rows[0].leva == null || rows[0].leva === "") return /* @__PURE__ */ new Set();
+    const leva = String(rows[0].leva);
+    if (leva.trim().toLowerCase() === "tutte") return null;
+    return /* @__PURE__ */ new Set([_norm(leva)]);
+  }
+  return /* @__PURE__ */ new Set();
+}
+function requireLeva(levaResolver) {
+  return async (req, res, next) => {
+    if (!req.jwtUser) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    try {
+      const { userId, societyId, role } = req.jwtUser;
+      const allowed = await getUserLeve(userId, societyId, role);
+      if (allowed === null) {
+        next();
+        return;
+      }
+      const leva = await Promise.resolve(levaResolver(req));
+      if (!leva) {
+        res.status(400).json({ error: "leva_required" });
+        return;
+      }
+      const lvNorm = _norm(leva);
+      if (!allowed.has(lvNorm)) {
+        res.status(403).json({ error: "leva_forbidden", leva });
+        return;
+      }
+      next();
+    } catch (e) {
+      res.status(500).json({ error: "server_error" });
+    }
+  };
+}
+
 // src/routes/v2/presenze.ts
 var router17 = (0, import_express17.Router)();
+async function _levaFromPlayerInBody(req) {
+  const pid = Number(req.body?.playerId);
+  if (!Number.isFinite(pid) || pid <= 0) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+    [pid, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+async function _levaFromEventInBody(req) {
+  const eid = Number(req.body?.eventId);
+  if (!Number.isFinite(eid) || eid <= 0) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
+    [eid, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
 router17.get("/presenze", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId } = req.query;
@@ -86634,7 +86711,7 @@ router17.get("/presenze", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
+router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { playerId, eventId, stato, nota } = req.body;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -86656,7 +86733,7 @@ router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "diri
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), async (req, res) => {
+router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId, presenze } = req.body;
   if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
@@ -86716,6 +86793,42 @@ var presenze_default = router17;
 // src/routes/v2/comunicazioni.ts
 var import_express18 = __toESM(require_express2(), 1);
 var router18 = (0, import_express18.Router)();
+function _normCom(s) {
+  if (s == null) return "";
+  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+}
+async function _checkComLevaScope(req, res, next) {
+  if (!req.jwtUser) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  try {
+    const { userId, societyId, role } = req.jwtUser;
+    const allowed = await getUserLeve(userId, societyId, role);
+    const bodyLeva = req.body?.leva;
+    const isWildcard = allowed === null;
+    const bodyLevaStr = typeof bodyLeva === "string" ? bodyLeva : "";
+    if (!bodyLevaStr.trim()) {
+      if (isWildcard) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: "leva_forbidden" });
+      return;
+    }
+    if (isWildcard) {
+      next();
+      return;
+    }
+    if (!allowed.has(_normCom(bodyLevaStr))) {
+      res.status(403).json({ error: "leva_forbidden", leva: bodyLevaStr });
+      return;
+    }
+    next();
+  } catch {
+    res.status(500).json({ error: "server_error" });
+  }
+}
 router18.get("/comunicazioni", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { leva, limit = "50", offset = "0" } = req.query;
@@ -86741,7 +86854,7 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), async (req, res) => {
+router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
   if (!testo) return res.status(400).json({ error: "testo_required" });
@@ -88927,6 +89040,28 @@ var import_multer = __toESM(require_multer(), 1);
 import { randomUUID as randomUUID2 } from "crypto";
 import path from "path";
 import fs from "fs";
+async function _levaFromLevaIdInBody(req) {
+  const levaId = Number(req.body?.leva_id);
+  if (!Number.isFinite(levaId) || levaId <= 0) return null;
+  const [rows] = await pool.execute(
+    "SELECT nome FROM leve WHERE id = ? AND society_id = ? LIMIT 1",
+    [levaId, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].nome ? String(rows[0].nome) : null;
+}
+async function _levaFromAllenamentoId(req) {
+  const id = String(req.params.id || "");
+  if (!id) return null;
+  const [rows] = await pool.execute(
+    `SELECT l.nome
+       FROM allenamenti a
+       JOIN leve l ON l.id = a.leva_id
+      WHERE a.id = ? AND a.societa_id = ? AND l.society_id = ?
+      LIMIT 1`,
+    [id, req.jwtUser.societyId, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].nome ? String(rows[0].nome) : null;
+}
 var router27 = (0, import_express27.Router)();
 var CATEGORIE_VALIDE = /* @__PURE__ */ new Set([
   "riscaldamento",
@@ -89340,7 +89475,7 @@ router27.get("/allenamenti/:id", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } = req.body;
   if (!leva_id || !titolo)
@@ -89428,7 +89563,7 @@ router27.post("/allenamenti", requireAuth, requirePermission("modifica_piano_all
     conn.release();
   }
 });
-router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   logger.info({ body: req.body, id }, "PATCH allenamenti body");
@@ -89491,7 +89626,7 @@ router27.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_pian
     return res.status(500).json({ error: "server_error" });
   }
 });
-router27.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   try {
@@ -89506,7 +89641,7 @@ router27.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_pia
     return res.status(500).json({ error: "server_error" });
   }
 });
-router27.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   const { ordini } = req.body;
@@ -89539,7 +89674,7 @@ router27.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermissi
     conn.release();
   }
 });
-router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { id } = req.params;
   const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine, note_snapshot } = req.body;
@@ -89626,7 +89761,7 @@ router27.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modif
     conn.release();
   }
 });
-router27.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id, sessioneId } = req.params;
   const conn = await pool.getConnection();
@@ -89703,7 +89838,7 @@ router27.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePerm
     conn.release();
   }
 });
-router27.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router27.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id, sessioneId } = req.params;
   const conn = await pool.getConnection();
@@ -92783,6 +92918,41 @@ var import_express40 = __toESM(require_express2(), 1);
 var router40 = (0, import_express40.Router)();
 var WRITE_ROLES2 = ["admin", "allenatore", "dirigente"];
 var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
+function _levaFromBody(req) {
+  const v = req.body && req.body.leva;
+  return typeof v === "string" && v.trim() !== "" ? v : null;
+}
+function _levaFromQuery(req) {
+  const v = req.query.leva;
+  return v && v.trim() !== "" ? v : null;
+}
+async function _levaFromMatchId(req) {
+  const id = Number(req.params.matchId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM matches WHERE id = ? AND societa_id = ? LIMIT 1",
+    [id, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+async function _levaFromEventKey(req) {
+  const ek = String(req.params.eventKey || "");
+  if (!ek) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM matches WHERE event_key = ? AND societa_id = ? LIMIT 1",
+    [ek, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+async function _levaFromTorneoId(req) {
+  const id = String(req.params.id || "");
+  if (!id) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM tornei WHERE id = ? AND societa_id = ? LIMIT 1",
+    [id, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
 function rejectDemo(req, res) {
   const sid = req.jwtUser?.societyId;
   if (typeof sid !== "number" || DEMO_SOC_IDS2.has(sid)) {
@@ -92898,7 +93068,7 @@ router40.get("/tornei", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const b = req.body || {};
@@ -92963,7 +93133,7 @@ router40.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), async (req,
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -93032,7 +93202,7 @@ router40.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const t = req.body || {};
@@ -93140,7 +93310,7 @@ router40.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), async (req, 
     conn.release();
   }
 });
-router40.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -93159,7 +93329,7 @@ router40.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromEventKey), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const event_key = String(req.params.eventKey || "");
@@ -93176,7 +93346,7 @@ router40.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...W
     return res.status(500).json({ error: "server_error" });
   }
 });
-router40.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromTorneoId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const id = String(req.params.id || "");
@@ -93217,7 +93387,7 @@ function _normYmdSrv(v) {
   const s = String(v);
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
-router40.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const b = req.body || {};
@@ -93258,7 +93428,7 @@ router40.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2),
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router40.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), async (req, res) => {
+router40.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromQuery), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const leva = req.query.leva || "";
@@ -94150,78 +94320,8 @@ router42.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
 });
 var admin_backfill_matches_default = router42;
 
-// src/routes/v2/admin-leva-audit.ts
-var import_express43 = __toESM(require_express2(), 1);
-var router43 = (0, import_express43.Router)();
-var DEMO_SOC_IDS4 = /* @__PURE__ */ new Set([0, 99, 99999]);
-function rejectDemo2(req, res) {
-  const sid = req.jwtUser?.societyId;
-  if (typeof sid !== "number" || DEMO_SOC_IDS4.has(sid)) {
-    res.status(400).json({ error: "demo_society_not_allowed" });
-    return true;
-  }
-  return false;
-}
-router43.get(
-  "/admin/leva-audit",
-  requireAuth,
-  requireRole("admin", "allenatore", "dirigente", "preparatore_portieri", "mister_admin"),
-  async (req, res) => {
-    if (rejectDemo2(req, res)) return;
-    const { societyId, userId, role } = req.jwtUser;
-    try {
-      const [staff] = await pool.execute(
-        `SELECT id, ruolo, leva, stato, email
-           FROM users
-          WHERE society_id = ?
-            AND ruolo IN ('admin','allenatore','dirigente','preparatore_portieri','mister_admin')
-          ORDER BY ruolo, cognome, nome`,
-        [societyId]
-      );
-      const [leve_matches] = await pool.execute(
-        "SELECT DISTINCT leva FROM matches WHERE societa_id = ? ORDER BY leva",
-        [societyId]
-      );
-      const [leve_campionato] = await pool.execute(
-        "SELECT DISTINCT leva FROM campionato_settings WHERE societa_id = ? ORDER BY leva",
-        [societyId]
-      );
-      const [leve_tornei] = await pool.execute(
-        "SELECT DISTINCT leva FROM tornei WHERE societa_id = ? ORDER BY leva",
-        [societyId]
-      );
-      const [leve_tabella] = await pool.execute(
-        "SELECT id, nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
-        [societyId]
-      );
-      const [amichevoli_senza_leva] = await pool.execute(
-        `SELECT id, data, avversario
-           FROM matches
-          WHERE societa_id = ?
-            AND tipo = 'amichevole'
-            AND (leva IS NULL OR leva = '')
-          ORDER BY data DESC`,
-        [societyId]
-      );
-      return res.json({
-        me: { userId, role, societyId },
-        staff,
-        leve_matches: leve_matches.map((r) => r.leva),
-        leve_campionato: leve_campionato.map((r) => r.leva),
-        leve_tornei: leve_tornei.map((r) => r.leva),
-        leve_tabella,
-        amichevoli_senza_leva
-      });
-    } catch (e) {
-      logger.error({ err: e?.message }, "GET admin/leva-audit error");
-      return res.status(500).json({ error: "server_error", detail: e?.message });
-    }
-  }
-);
-var admin_leva_audit_default = router43;
-
 // src/routes/v2/index.ts
-var router44 = (0, import_express44.Router)();
+var router43 = (0, import_express43.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -94405,7 +94505,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router44.use(async (_req, _res, next) => {
+router43.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -94414,7 +94514,7 @@ router44.use(async (_req, _res, next) => {
     next();
   }
 });
-router44.get("/schema-info", async (_req, res) => {
+router43.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -94432,7 +94532,7 @@ router44.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router44.get("/health/ai-key", (_req, res) => {
+router43.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -94443,7 +94543,7 @@ router44.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router44.get("/health/schema-budget", async (_req, res) => {
+router43.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -94458,58 +94558,57 @@ router44.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router44.use(auth_default2);
-router44.use(self_register_default);
-router44.use(society_default);
-router44.use(leve_default);
-router44.use(minors_default);
-router44.use(players_default);
-router44.use(users_default);
-router44.use(events_default);
-router44.use(presenze_default);
-router44.use(comunicazioni_default);
-router44.use(chat_default);
-router44.use(quote_default);
-router44.use(migrate_default);
-router44.use(stripe_default);
-router44.use(demo_wa_default);
-router44.use(superadmin_default);
-router44.use(account_default);
-router44.use(notification_preferences_default);
-router44.use(allenamenti_default);
-router44.use(ai_allenamenti_default);
-router44.use(ai_tornei_default);
-router44.use(utm_stats_default);
-router44.use(admin_reset_demo_default);
-router44.use(admin_populate_sessioni_default);
-router44.use(select_plan_default);
-router44.use(admin_genitore_debug_default);
-router44.use(admin_push_debug_default);
-router44.use(admin_cleanup_preview_default);
-router44.use(admin_backfill_roles_default);
-router44.use(notifiche_risultato_default);
-router44.use(migrate_polis_default);
-router44.use(matches_default);
-router44.use(stats_default);
-router44.use(admin_backfill_matches_default);
-router44.use(admin_leva_audit_default);
-var v2_default = router44;
+router43.use(auth_default2);
+router43.use(self_register_default);
+router43.use(society_default);
+router43.use(leve_default);
+router43.use(minors_default);
+router43.use(players_default);
+router43.use(users_default);
+router43.use(events_default);
+router43.use(presenze_default);
+router43.use(comunicazioni_default);
+router43.use(chat_default);
+router43.use(quote_default);
+router43.use(migrate_default);
+router43.use(stripe_default);
+router43.use(demo_wa_default);
+router43.use(superadmin_default);
+router43.use(account_default);
+router43.use(notification_preferences_default);
+router43.use(allenamenti_default);
+router43.use(ai_allenamenti_default);
+router43.use(ai_tornei_default);
+router43.use(utm_stats_default);
+router43.use(admin_reset_demo_default);
+router43.use(admin_populate_sessioni_default);
+router43.use(select_plan_default);
+router43.use(admin_genitore_debug_default);
+router43.use(admin_push_debug_default);
+router43.use(admin_cleanup_preview_default);
+router43.use(admin_backfill_roles_default);
+router43.use(notifiche_risultato_default);
+router43.use(migrate_polis_default);
+router43.use(matches_default);
+router43.use(stats_default);
+router43.use(admin_backfill_matches_default);
+var v2_default = router43;
 
 // src/routes/index.ts
-var router45 = (0, import_express45.Router)();
-router45.use(health_default);
-router45.use(login_default);
-router45.use(auth_default);
-router45.use(state_default);
-router45.use(assist_default);
-router45.use(push_default);
-router45.use(upload_default);
-router45.use(public_default);
-router45.use("/v2", v2_default);
-var routes_default = router45;
+var router44 = (0, import_express44.Router)();
+router44.use(health_default);
+router44.use(login_default);
+router44.use(auth_default);
+router44.use(state_default);
+router44.use(assist_default);
+router44.use(push_default);
+router44.use(upload_default);
+router44.use(public_default);
+router44.use("/v2", v2_default);
+var routes_default = router44;
 
 // src/app.ts
-var app = (0, import_express46.default)();
+var app = (0, import_express45.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -94530,17 +94629,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express46.default.json({
+app.use(import_express45.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express46.default.urlencoded({ extended: true }));
+app.use(import_express45.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express46.default.static(staticDir));
+  app.use(import_express45.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });

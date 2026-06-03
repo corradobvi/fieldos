@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request } from "express";
 import { randomUUID } from "crypto";
 import path from "path";
 import fs from "fs";
@@ -7,6 +8,31 @@ import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
+import { requireLeva } from "../../lib/leva-guard";
+
+// Resolver leva per allenamenti
+async function _levaFromLevaIdInBody(req: Request): Promise<string | null> {
+  const levaId = Number((req.body as any)?.leva_id);
+  if (!Number.isFinite(levaId) || levaId <= 0) return null;
+  const [rows] = (await pool.execute(
+    "SELECT nome FROM leve WHERE id = ? AND society_id = ? LIMIT 1",
+    [levaId, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].nome ? String(rows[0].nome) : null;
+}
+async function _levaFromAllenamentoId(req: Request): Promise<string | null> {
+  const id = String(req.params.id || "");
+  if (!id) return null;
+  const [rows] = (await pool.execute(
+    `SELECT l.nome
+       FROM allenamenti a
+       JOIN leve l ON l.id = a.leva_id
+      WHERE a.id = ? AND a.societa_id = ? AND l.society_id = ?
+      LIMIT 1`,
+    [id, req.jwtUser!.societyId, req.jwtUser!.societyId]
+  )) as [any[], any];
+  return rows.length && rows[0].nome ? String(rows[0].nome) : null;
+}
 
 const router = Router();
 
@@ -439,7 +465,7 @@ router.get("/allenamenti/:id", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/allenamenti
-router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } =
     req.body as Record<string, any>;
@@ -532,7 +558,7 @@ router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allen
 });
 
 // PATCH /api/v2/allenamenti/:id
-router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
 
@@ -592,7 +618,7 @@ router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_
 });
 
 // DELETE /api/v2/allenamenti/:id
-router.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
 
@@ -609,7 +635,7 @@ router.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano
 });
 
 // POST /api/v2/allenamenti/:id/sessioni/riordina  (prima di /:id/sessioni/:sessioneId)
-router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
   const { ordini }    = req.body as { ordini?: Array<{ sessione_id: string; ordine: number }> };
@@ -643,7 +669,7 @@ router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission
 });
 
 // POST /api/v2/allenamenti/:id/sessioni
-router.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
   const { id }                = req.params;
   const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine, note_snapshot } =
@@ -728,7 +754,7 @@ router.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modific
 });
 
 // PATCH /api/v2/allenamenti/:id/sessioni/:sessioneId
-router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId }   = req.jwtUser!;
   const { id, sessioneId } = req.params;
 
@@ -793,7 +819,7 @@ router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermis
 });
 
 // DELETE /api/v2/allenamenti/:id/sessioni/:sessioneId
-router.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId }      = req.jwtUser!;
   const { id, sessioneId } = req.params;
 
