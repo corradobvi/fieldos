@@ -136,7 +136,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .tb-club{font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:800;color:var(--cp);}
 .tb-app{font-size:.6rem;color:var(--text3);letter-spacing:2px;text-transform:uppercase;}
 .tb-sep{width:1px;height:22px;background:var(--border);}
-.tb-leva{font-size:.72rem;font-weight:700;background:var(--cl);color:var(--cp);padding:3px 11px;border-radius:16px;border:1px solid rgba(var(--cp-rgb),.2);}
+.tb-leva{font-size:.72rem;font-weight:700;background:var(--cl);color:var(--cp);padding:3px 11px;border-radius:16px;border:1px solid rgba(var(--cp-rgb),.2);cursor:pointer;-webkit-tap-highlight-color:transparent;}
 .tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
 .tb-rbadge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:16px;font-size:.7rem;font-weight:700;border:1px solid;}
 .tb-av{width:32px;height:32px;border-radius:50%;background:var(--cp);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:white;flex-shrink:0;}
@@ -3212,7 +3212,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="tb-app">MyVivaio</div>
     </div>
     <div class="tb-sep"></div>
-    <div class="tb-leva" id="tbLeva">U12</div>
+    <div class="tb-leva" id="tbLeva" onclick="_tbLevaClick()" title="Leva attiva">U12</div>
     <div id="syncStatusBar" style="display:none;font-size:.68rem;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">⏳ Salvataggio…</div>
     <div class="tb-right">
       <div class="tb-rbadge" id="tbBadge"></div>
@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.01</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.02</span></div>
       </div>
 
     </main>
@@ -3796,8 +3796,14 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
           <option value="giocatore">🏃 Giocatore</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">Leva</label>
+      <div class="fg" id="uLevaSingleWrap"><label class="fl">Leva</label>
         <select class="fs" id="uLeva"></select>
+      </div>
+      <!-- Multi-leva (collaboratori: allenatore/dirigente/mister_admin/preparatore_portieri) -->
+      <div class="fg" id="uLeveMultiWrap" style="display:none;">
+        <label class="fl">Leve assegnate <span style="font-weight:400;opacity:.6;">(puoi selezionarne più di una)</span></label>
+        <div id="uLeveBox" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);min-height:40px;max-height:140px;overflow:auto;"></div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:6px;">L'utente potrà alternare tra le leve assegnate dal selettore in alto. Nessuna selezione = nessun accesso operativo.</div>
       </div>
     </div>
     <div id="uGenitoreBlock" style="display:none;">
@@ -5708,8 +5714,10 @@ function bootApp(user) {
   // Sidebar nav
   buildSidebar(user.role);
 
-  // Per genitore/giocatore: imposta la leva di default sulla propria
-  if (user.role === 'genitore' || user.role === 'nonno' || user.role === 'giocatore') {
+  // Default leva all'apertura: per i ruoli non-admin (genitore/nonno/giocatore + allenatore/
+  // dirigente/preparatore_portieri) la leva attiva deve essere una di quelle assegnate.
+  // Se il currentLeva ereditato non è tra quelle dell'utente → salto alla prima sua.
+  if (user.role !== 'admin' && user.role !== 'mister_admin') {
     const myLv = userLeve();
     if (myLv.length && !myLv.includes(currentLeva)) currentLeva = myLv[0];
   }
@@ -5931,7 +5939,13 @@ function renderSbLeve() {
   const pills = document.getElementById('sbLevaPills');
   pills.innerHTML = '';
   const _soc = saSocieties.find(x => x.id === currentSocietaId);
-  leve.forEach(l => {
+  // SCOPING leva: admin/mister_admin → tutte le pills (può navigare ovunque);
+  // staff non-admin (allenatore/dirigente/preparatore_portieri) → solo le proprie via userLeve().
+  // Fallback: se userLeve è vuoto, mostra tutto per evitare di lasciarlo senza pills.
+  const _visibleLeve = (me && !isAdminLike())
+    ? ((userLeve().length ? userLeve() : leve))
+    : leve;
+  _visibleLeve.forEach(l => {
     const p = document.createElement('div');
     const frozen = isLevaFrozen(_soc, l, leve);
     p.className = 'lp' + (l === currentLeva ? ' on' : '') + (frozen ? ' frozen' : '');
@@ -6771,6 +6785,18 @@ function renderLevaTabs(containerId, showAdd) {
   el.appendChild(wrap);
 }
 
+// Click sul badge leva in alto: se l'utente ha 2+ leve (admin → tutte; staff multi-leva)
+// apre la sidebar per far vedere il selettore (pills). Su singola leva → no-op.
+function _tbLevaClick(){
+  try {
+    if (!me) return;
+    const _n = (typeof userLeve === 'function') ? (userLeve() || []).length : 0;
+    if (isAdminLike() || _n >= 2) {
+      if (typeof toggleSb === 'function') toggleSb();
+    }
+  } catch(_) {}
+}
+
 function switchLeva(l) {
   currentLeva = l;
   currentPresDate = null;
@@ -6934,6 +6960,37 @@ function populateLevaSelect() {
   const cur = sel.value;
   sel.innerHTML = leve.map(l => `<option value="${l}">${l}</option>`).join('');
   if (cur) sel.value = cur;
+}
+
+// Chip multi-select per le leve assegnate a un collaboratore (allenatore/dirigente/...).
+// preselect può essere: array di stringhe (leve), singola stringa, 'Tutte', null/undefined.
+function populateLeveBox(preselect){
+  const box = document.getElementById('uLeveBox');
+  if (!box) return;
+  let current;
+  if (Array.isArray(preselect)) current = new Set(preselect);
+  else if (preselect === 'Tutte' || preselect === 'tutte') current = new Set(leve);
+  else if (typeof preselect === 'string' && preselect) current = new Set([preselect]);
+  else current = new Set(Array.from(box.querySelectorAll('.lp.on')).map(c => c.dataset.leva));
+  box.innerHTML = '';
+  if (!leve.length) {
+    box.innerHTML = '<div style="font-size:.75rem;color:var(--text3);padding:4px;">Nessuna leva configurata. Aggiungi una leva da Impostazioni → Leve.</div>';
+    return;
+  }
+  leve.forEach(l => {
+    const chip = document.createElement('span');
+    chip.className = 'lp' + (current.has(l) ? ' on' : '');
+    chip.style.cssText = 'cursor:pointer;display:inline-flex;align-items:center;gap:4px;';
+    chip.dataset.leva = l;
+    chip.textContent = l;
+    chip.onclick = () => chip.classList.toggle('on');
+    box.appendChild(chip);
+  });
+}
+
+// Helper: legge le leve selezionate dal box (array di stringhe).
+function getSelectedLeveFromBox(){
+  return Array.from(document.querySelectorAll('#uLeveBox .lp.on')).map(c => c.dataset.leva);
 }
 
 // ═══════════════════════════════════
@@ -9878,13 +9935,19 @@ function _societyHasNonAdminCoaches() {
 // Destinatari avvisi famiglia: allenatori + dirigenti della leva + admin/mister_admin (fallback per società senza coach intermedi)
 function recipientsForCoachesOfLeva(leva, gkOnly) {
   const ids = new Set();
+  // Helper: copre stringa singola, array multi-leva, e 'Tutte' (== match qualsiasi).
+  const _has = (u, lv) => {
+    if (!u.leva) return false;
+    if (Array.isArray(u.leva)) return u.leva.includes(lv) || u.leva.includes('Tutte');
+    return u.leva === lv || u.leva === 'Tutte';
+  };
   USERS_DB.forEach(u => {
     if (u.stato && u.stato !== 'attivo') return;
     // INCLUDI admin/mister_admin senza filtro leva (società piccole senza coach ricevono comunque)
     if (u.role === 'admin' || u.role === 'mister_admin') { ids.add(u.id); return; }
-    if (u.role === 'allenatore' && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
-    else if (u.role === 'dirigente' && (!u.leva || u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
-    else if (u.role === 'preparatore_portieri' && gkOnly && (u.leva === leva || u.leva === 'Tutte')) ids.add(u.id);
+    if (u.role === 'allenatore' && _has(u, leva)) ids.add(u.id);
+    else if (u.role === 'dirigente' && (!u.leva || _has(u, leva))) ids.add(u.id);
+    else if (u.role === 'preparatore_portieri' && gkOnly && _has(u, leva)) ids.add(u.id);
   });
   return [...ids];
 }
@@ -9925,7 +9988,11 @@ function userLevaDisplay(u) {
     const leve = [...new Set(pids.map(pid => (players.find(p => p.id === pid) || {}).leva).filter(Boolean))];
     if (leve.length) return leve.length === 1 ? escapeHtml(leve[0]) : escapeHtml(leve.join(' · '));
     // Fallback legacy: u.leva persistito (genitori migrati dal blob)
-    return u.leva ? escapeHtml(u.leva) : '<span style="color:var(--text3);">—</span>';
+    return u.leva ? escapeHtml(Array.isArray(u.leva) ? u.leva.join(' · ') : u.leva) : '<span style="color:var(--text3);">—</span>';
+  }
+  // Staff multi-leva: serializza array come "U11 · U13"
+  if (u && Array.isArray(u.leva)) {
+    return u.leva.length ? (u.leva.length === 1 ? escapeHtml(u.leva[0]) : escapeHtml(u.leva.join(' · '))) : '<span style="color:var(--text3);">—</span>';
   }
   return (u && u.leva) ? escapeHtml(u.leva) : '<span style="color:var(--text3);">—</span>';
 }
@@ -9942,8 +10009,11 @@ function _userInAnyLeva(u, leveList) {
         return p && leveList.includes(p.leva);
       });
     }
+    if (Array.isArray(u.leva)) return u.leva.some(lv => leveList.includes(lv));
     return !!u.leva && leveList.includes(u.leva);
   }
+  // Staff multi-leva: intersect array vs leveList
+  if (Array.isArray(u.leva)) return u.leva.some(lv => leveList.includes(lv));
   return !!u.leva && leveList.includes(u.leva);
 }
 
@@ -12685,6 +12755,10 @@ function openUserModal(id) {
     if (u.role === 'genitore' || u.role === 'nonno' || u.role === 'dirigente') {
       populateFigliBox(getFigliOf(u));
     }
+    // Multi-leva: pre-popola i chip dell'utente esistente (gestisce stringa singola, array, 'Tutte').
+    if (['allenatore','dirigente','preparatore_portieri'].includes(u.role)) {
+      populateLeveBox(u.leva);
+    }
   }
   openM('mNewUser');
 }
@@ -12763,6 +12837,21 @@ function onUtenteRuolo() {
   document.getElementById('uGiocBlock').style.display     = r === 'giocatore' ? 'block' : 'none';
   if (showFigli) populateFigliBox();
   if (r === 'giocatore') checkAge();
+  // Multi-leva per collaboratori: sostituisce la <select id="uLeva"> singola.
+  // Admin/mister_admin restano sul select (di fatto "Tutte" è implicito → isAdminLike).
+  const _multiLevaRoles = new Set(['allenatore','dirigente','preparatore_portieri']);
+  const _singleWrap = document.getElementById('uLevaSingleWrap');
+  const _multiWrap  = document.getElementById('uLeveMultiWrap');
+  if (_singleWrap && _multiWrap) {
+    if (_multiLevaRoles.has(r)) {
+      _singleWrap.style.display = 'none';
+      _multiWrap.style.display  = 'block';
+      populateLeveBox();
+    } else {
+      _singleWrap.style.display = '';
+      _multiWrap.style.display  = 'none';
+    }
+  }
   const hint = document.getElementById('uGenitoreHint');
   if (hint) hint.textContent = r === 'dirigente'
     ? 'Opzionale: abbina il dirigente al/ai proprio/i figlio/i in rosa per ricevere notifiche convocazioni e avvisare assenze.'
@@ -12929,6 +13018,14 @@ function saveUser() {
     const figliPlayers = players.filter(p => figli.includes(p.nome + ' ' + p.cogn));
     const uniqueLeve = [...new Set(figliPlayers.map(p => p.leva).filter(Boolean))];
     levaFinal = uniqueLeve.length === 1 ? uniqueLeve[0] : (uniqueLeve.length > 1 ? 'Tutte' : leva);
+  } else if (['allenatore','dirigente','preparatore_portieri'].includes(role)) {
+    // Multi-leva: leggi i chip selezionati. 0 → toast errore, 1 → stringa, ≥2 → array,
+    // tutte selezionate (=leve.length) → 'Tutte' (semantica già nota a userLeve()).
+    const _sel = getSelectedLeveFromBox();
+    if (!_sel.length) { toast('⚠️ Seleziona almeno una leva'); return; }
+    if (_sel.length === leve.length) levaFinal = 'Tutte';
+    else if (_sel.length === 1) levaFinal = _sel[0];
+    else levaFinal = _sel.slice();
   }
 
   if (editingUserId === null) {
@@ -12964,10 +13061,13 @@ function saveUser() {
     // Propaga ruolo/leva/stato a MySQL (gating server-side dei sondaggi e altri check live
     // leggono users.ruolo da DB, non dal blob). Fire-and-forget, non blocca il salvataggio locale.
     if (_v2Token && typeof u.id === 'number') {
+      // Multi-leva: il backend ha una colonna leva singola → array serializzato come JSON string.
+      // Il blob resta source of truth per la forma array; questo è solo per gating server-side.
+      const _levaPatch = Array.isArray(levaFinal) ? JSON.stringify(levaFinal) : levaFinal;
       fetch(API_BASE + '/api/v2/users/' + u.id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-        body: JSON.stringify({ ruolo: role, leva: levaFinal, stato })
+        body: JSON.stringify({ ruolo: role, leva: _levaPatch, stato })
       }).then(r => {
         if (!r.ok) {
           console.warn('[saveUser] PATCH ruolo fallito', r.status);
