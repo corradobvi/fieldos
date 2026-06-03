@@ -2,6 +2,7 @@ import { Router } from "express";
 import webpush from "web-push";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
@@ -45,19 +46,20 @@ router.get("/push/vapid-public", (_req, res) => {
 });
 
 // POST /api/push/subscribe — save/update a push subscription
-router.post("/push/subscribe", async (req, res) => {
-  const { userId: rawUserId, societyKey, subscription } = req.body as {
-    userId?: unknown;
+// IMPORTANTE: userId proviene SEMPRE dal JWT (req.jwtUser.userId = MySQL user id),
+// MAI dal body. In passato il body conteneva me.id dal blob FE: id-space diverso da
+// MySQL → subscription salvate con user_id sbagliato → il resolver chat (che usa
+// MySQL user id) non le trovava → niente push. Vedi anche admin-push-debug.ts
+// (endpoint push-remap per ripulire le subscription storiche con id blob).
+router.post("/push/subscribe", requireAuth, async (req, res) => {
+  const userId = req.jwtUser!.userId;
+  const { societyKey, subscription } = req.body as {
     societyKey?: unknown;
     subscription?: unknown;
   };
 
-  const userId = typeof rawUserId === "number" ? rawUserId
-    : typeof rawUserId === "string" ? parseInt(rawUserId, 10)
-    : NaN;
-
-  if (!Number.isFinite(userId) || typeof societyKey !== "string" || !societyKey || !subscription) {
-    logger.warn({ rawUserId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
+  if (typeof societyKey !== "string" || !societyKey || !subscription) {
+    logger.warn({ userId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
     return res.status(400).json({ error: "missing_fields" });
   }
 

@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.14</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.15</span></div>
       </div>
 
     </main>
@@ -33253,10 +33253,17 @@ async function subscribePush(userId, societyKey) {
     }
     const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     console.log('[Push] subscribePush: new subscription created, endpoint:', sub.endpoint.slice(0, 40) + '…');
+    // BE ora richiede JWT e usa req.jwtUser.userId (MySQL id) ignorando body.userId
+    // → manda l'Authorization. Se manca il token, 401 → niente subscription salvata.
+    if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+    if (!_v2Token) {
+      console.error('[Push] subscribePush: no JWT — utente non autenticato, skip');
+      return;
+    }
     const r = await fetch('/api/push/subscribe', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ userId, societyKey, subscription: sub.toJSON() })
+      headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ societyKey, subscription: sub.toJSON() })
     });
     if (r.ok) {
       console.log('[Push] subscribePush: saved to backend ok');
