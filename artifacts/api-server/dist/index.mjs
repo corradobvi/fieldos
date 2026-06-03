@@ -87122,11 +87122,32 @@ router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+function _levaPrefixes(leva) {
+  const out = /* @__PURE__ */ new Set([leva]);
+  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter((s) => s.length > 0);
+}
+function _levaMatchClause(leva) {
+  const targets = _levaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql2 = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql: sql2, params: [...targets, ...targets, ...targets] };
+}
 async function _resolveChatRecipients(societyId, chatId, senderUserId) {
   try {
     const staffMatch = chatId.match(/^staff_(.+)$/);
     if (staffMatch) {
       const leva = staffMatch[1];
+      const lc = _levaMatchClause(leva);
       const [rows] = await pool.execute(
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
@@ -87135,28 +87156,23 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
               ruolo IN ('admin','mister_admin')
               OR (
                 ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                AND (
-                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                )
+                AND ${lc.sql}
               )
             )`,
-        [societyId, senderUserId, leva, leva]
+        [societyId, senderUserId, ...lc.params]
       );
       return rows.map((r) => Number(r.id));
     }
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
+      const lc = _levaMatchClause(leva);
       const [dirRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND (
-              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-            )
+            AND ${lc.sql}
             AND id != ?`,
-        [societyId, leva, leva, senderUserId]
+        [societyId, ...lc.params, senderUserId]
       );
       let famRows = [];
       try {
@@ -87181,16 +87197,14 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
     const squadraMatch = chatId.match(/^squadra_(.+)$/);
     if (squadraMatch) {
       const leva = squadraMatch[1];
+      const lc = _levaMatchClause(leva);
       const [staffRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND (
-              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-            )
+            AND ${lc.sql}
             AND id != ?`,
-        [societyId, leva, leva, senderUserId]
+        [societyId, ...lc.params, senderUserId]
       );
       const [giocRows] = await pool.execute(
         `SELECT DISTINCT u.id
@@ -87228,15 +87242,13 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
         }
         const ids = /* @__PURE__ */ new Set();
         if (leva) {
+          const lc = _levaMatchClause(leva);
           const [dRows] = await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-                AND (
-                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                )
+                AND ${lc.sql}
                 AND id != ?`,
-            [societyId, leva, leva, senderUserId]
+            [societyId, ...lc.params, senderUserId]
           );
           dRows.forEach((r) => ids.add(Number(r.id)));
         }
@@ -92079,6 +92091,26 @@ var admin_genitore_debug_default = router34;
 // src/routes/v2/admin-push-debug.ts
 var import_express35 = __toESM(require_express2(), 1);
 var router35 = (0, import_express35.Router)();
+function _diagLevaPrefixes(leva) {
+  const out = /* @__PURE__ */ new Set([leva]);
+  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter((s) => s.length > 0);
+}
+function _diagLevaClause(leva) {
+  const targets = _diagLevaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql2 = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql: sql2, params: [...targets, ...targets, ...targets] };
+}
 function checkAuth3(req, res) {
   const secret = req.headers["x-sa-secret"];
   const saSecret = process.env.SA_SECRET ?? "super123";
@@ -92288,38 +92320,33 @@ router35.get("/superadmin/_diag/chat-recipients", async (req, res) => {
     const eligibleUsers = allRows.filter((u) => eligibleRoles.includes(u.ruolo));
     let recipients = [];
     if (pattern === "staff" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND id != ?
             AND ( ruolo IN ('admin','mister_admin')
                   OR ( ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                       AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                             OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                           )
-                     )
-                )`,
-        [societyId, senderUserId, lv, lv]
+                       AND ${lc.sql} ) )`,
+        [societyId, senderUserId, ...lc.params]
       );
       recipients = r.map((x) => Number(x.id));
     } else if (pattern === "leva_famiglie" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                ) AND id != ?`,
-        [societyId, lv, lv, senderUserId]
+            AND ${lc.sql} AND id != ?`,
+        [societyId, ...lc.params, senderUserId]
       );
       recipients = r.map((x) => Number(x.id));
     } else if (pattern === "squadra" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                ) AND id != ?`,
-        [societyId, lv, lv, senderUserId]
+            AND ${lc.sql} AND id != ?`,
+        [societyId, ...lc.params, senderUserId]
       );
       recipients = r.map((x) => Number(x.id));
     } else if (pattern === "adhoc") {

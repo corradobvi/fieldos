@@ -230,6 +230,38 @@ router.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
 // ─── RECIPIENT RESOLVER ALLINEATO AL FE (getChatsForUser) ─────────────────────
 // chatId → array userIds da notificare via web push. Esclude sempre il mittente.
 // Allineato alle regole in artifacts/fieldos/index.html getChatsForUser(...).
+
+// Helper: normalizza il nome leva estraendo i prefissi rispetto ai separatori
+// comuni (en-dash, hyphen, em-dash circondati da spazi). Necessario perche'
+// renameLeva FE (index.html:6894) aggiorna solo blob + USERS_DB.leva ma NON
+// propaga a users.leva su MySQL: dopo un rename ad es. 'U11' → 'U11 – Pulcini',
+// la chat_id sara' 'staff_U11 – Pulcini' (dal blob aggiornato) ma users.leva
+// in MySQL resta 'U11' → nessun match nel resolver senza questa normalizzazione.
+function _levaPrefixes(leva: string): string[] {
+  const out = new Set<string>([leva]);
+  for (const sep of [" – ", " - ", " — "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter(s => s.length > 0);
+}
+
+// Helper: clausola SQL per il match leva (collaboratori non-admin). Restituisce
+// (sql, params). Copre: exact match, prefix-extracted stored (3 separatori),
+// null/Tutte, JSON-array contains. Additivo: non rimuove match esistenti.
+function _levaMatchClause(leva: string): { sql: string; params: any[] } {
+  const targets = _levaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' – ', 1), ' - ', 1), ' — ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql, params: [...targets, ...targets, ...targets] };
+}
+
 async function _resolveChatRecipients(
   societyId: number, chatId: string, senderUserId: number
 ): Promise<number[]> {
@@ -241,9 +273,7 @@ async function _resolveChatRecipients(
     const staffMatch = chatId.match(/^staff_(.+)$/);
     if (staffMatch) {
       const leva = staffMatch[1];
-      // Multi-leva: il FE persiste l'array come JSON.stringify (es. '["U11","U12"]')
-      // nella colonna VARCHAR users.leva. Aggiungo JSON_CONTAINS guardato da JSON_VALID
-      // per includere anche questi utenti — additivo, non rompe i match già funzionanti.
+      const lc = _levaMatchClause(leva);
       const [rows] = (await pool.execute(
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
@@ -252,13 +282,10 @@ async function _resolveChatRecipients(
               ruolo IN ('admin','mister_admin')
               OR (
                 ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                AND (
-                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                )
+                AND ${lc.sql}
               )
             )`,
-        [societyId, senderUserId, leva, leva]
+        [societyId, senderUserId, ...lc.params]
       )) as [any[], any];
       return rows.map((r: any) => Number(r.id));
     }
@@ -269,16 +296,13 @@ async function _resolveChatRecipients(
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
-      // Multi-leva: vedi nota su staff_<lv>. Stesso pattern additivo qui per dirigente.
+      const lc = _levaMatchClause(leva);
       const [dirRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND (
-              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-            )
+            AND ${lc.sql}
             AND id != ?`,
-        [societyId, leva, leva, senderUserId]
+        [societyId, ...lc.params, senderUserId]
       )) as [any[], any];
       let famRows: any[] = [];
       try {
@@ -306,17 +330,14 @@ async function _resolveChatRecipients(
     const squadraMatch = chatId.match(/^squadra_(.+)$/);
     if (squadraMatch) {
       const leva = squadraMatch[1];
-      // Multi-leva: vedi nota su staff_<lv>. Stesso pattern additivo per allenatore/preparatore.
+      const lc = _levaMatchClause(leva);
       const [staffRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND (
-              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-            )
+            AND ${lc.sql}
             AND id != ?`,
-        [societyId, leva, leva, senderUserId]
+        [societyId, ...lc.params, senderUserId]
       )) as [any[], any];
       const [giocRows] = (await pool.execute(
         `SELECT DISTINCT u.id
@@ -357,17 +378,16 @@ async function _resolveChatRecipients(
 
         const ids = new Set<number>();
 
-        // Dirigenti della leva (o Tutte). Multi-leva: vedi nota su staff_<lv>.
+        // Dirigenti della leva (o Tutte). Vedi _levaMatchClause per il dettaglio
+        // su prefix/multi-leva — copre i mismatch dopo renameLeva.
         if (leva) {
+          const lc = _levaMatchClause(leva);
           const [dRows] = (await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-                AND (
-                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                )
+                AND ${lc.sql}
                 AND id != ?`,
-            [societyId, leva, leva, senderUserId]
+            [societyId, ...lc.params, senderUserId]
           )) as [any[], any];
           dRows.forEach((r: any) => ids.add(Number(r.id)));
         }

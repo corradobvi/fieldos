@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.12</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.13</span></div>
       </div>
 
     </main>
@@ -6901,6 +6901,13 @@ function renameLeva(oldName, newName) {
   if (campionato[oldName]) { campionato[newName] = campionato[oldName]; delete campionato[oldName]; }
   (Array.isArray(tornei) ? tornei : []).forEach(t => { if (t.leva === oldName) t.leva = newName; });
   USERS_DB.forEach(u => { if (u.leva === oldName) u.leva = newName; });
+  // TODO strutturale: questo aggiorna SOLO blob/USERS_DB; users.leva su MySQL resta
+  // sull'oldName. Risultato: chat staff_<newName> non trova destinatari nel resolver BE
+  // perche' SQL cerca leva=newName ma DB ha oldName. Workaround attivo nel BE:
+  // _levaMatchClause in chat.ts normalizza il prefix prima del separatore (' – ', ' - ',
+  // ' — ') su entrambi i lati. Per fix definitivo: ciclare USERS_DB qui e fare
+  // PATCH /api/v2/users/:id { leva: newName } per ogni utente con u.leva===oldName
+  // (gia' aggiornato in blob sopra). Stessa cosa per multi-leva con array.
   if (currentLeva === oldName) { currentLeva = newName; document.getElementById('tbLeva').textContent = newName; }
   closeM('mLeva');
   renderSbLeve();

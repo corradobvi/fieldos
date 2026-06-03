@@ -3,6 +3,30 @@ import { pool } from "@workspace/db";
 
 const router = Router();
 
+// Helpers di normalizzazione leva: stessi usati dal resolver in chat.ts.
+// renameLeva FE aggiorna blob ma NON propaga a users.leva → mismatch:
+// blob='U11 – Pulcini', users.leva='U11' (old) → niente match senza normalizzazione.
+function _diagLevaPrefixes(leva: string): string[] {
+  const out = new Set<string>([leva]);
+  for (const sep of [" – ", " - ", " — "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter(s => s.length > 0);
+}
+function _diagLevaClause(leva: string): { sql: string; params: any[] } {
+  const targets = _diagLevaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' – ', 1), ' - ', 1), ' — ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql, params: [...targets, ...targets, ...targets] };
+}
+
 function checkAuth(req: any, res: any): boolean {
   const secret = req.headers["x-sa-secret"];
   const saSecret = process.env.SA_SECRET ?? "super123";
@@ -226,38 +250,33 @@ router.get("/superadmin/_diag/chat-recipients", async (req, res) => {
 
     let recipients: number[] = [];
     if (pattern === "staff" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND id != ?
             AND ( ruolo IN ('admin','mister_admin')
                   OR ( ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                       AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                             OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                           )
-                     )
-                )`,
-        [societyId, senderUserId, lv, lv]
+                       AND ${lc.sql} ) )`,
+        [societyId, senderUserId, ...lc.params]
       ) as [any[], any];
       recipients = (r as any[]).map(x => Number(x.id));
     } else if (pattern === "leva_famiglie" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                ) AND id != ?`,
-        [societyId, lv, lv, senderUserId]
+            AND ${lc.sql} AND id != ?`,
+        [societyId, ...lc.params, senderUserId]
       ) as [any[], any];
       recipients = (r as any[]).map(x => Number(x.id));
     } else if (pattern === "squadra" && lv) {
+      const lc = _diagLevaClause(lv);
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-                ) AND id != ?`,
-        [societyId, lv, lv, senderUserId]
+            AND ${lc.sql} AND id != ?`,
+        [societyId, ...lc.params, senderUserId]
       ) as [any[], any];
       recipients = (r as any[]).map(x => Number(x.id));
     } else if (pattern === "adhoc") {
