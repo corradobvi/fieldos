@@ -25403,14 +25403,13 @@ function renderChatMessages() {
     if (!u && (m._authorName || m._authorCogn)) {
       u = { id: m.userId, nome: m._authorName || '', cogn: m._authorCogn || '', role: m._authorRole || '' };
     }
-    // isMe: confronto id-based; fallback per id-space mismatch tra blob locale e MySQL
-    // (può capitare per account riallineati da _reconcileUserRoles o registrazioni doppie).
-    // Confronto secondario su nome+cogn quando server ha fornito i campi autore.
-    const _meNome = (me && me.nome || '').toLowerCase().trim();
-    const _meCogn = (me && me.cogn || '').toLowerCase().trim();
-    const _aNome = (m._authorName || (u && u.nome) || '').toLowerCase().trim();
-    const _aCogn = (m._authorCogn || (u && u.cogn) || '').toLowerCase().trim();
-    const isMe = (m.userId === me.id) || (_meNome && _meCogn && _aNome === _meNome && _aCogn === _meCogn);
+    // isMe: confronto strict per id. Coercion Number per gestire type-mismatch (string vs number)
+    // tra blob locale e MySQL senza falsi positivi su omonimi.
+    // Niente fallback su nome+cogn: produceva "tutto a destra" quando la chat aveva solo
+    // messaggi dello stesso autore (Federico solo nella chat) o omonimi reali in società.
+    const _meIdN = (me && me.id != null) ? Number(me.id) : NaN;
+    const _muIdN = (m.userId != null) ? Number(m.userId) : NaN;
+    const isMe = Number.isFinite(_meIdN) && Number.isFinite(_muIdN) && _meIdN === _muIdN;
     const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '??';
     const color = u ? (ROLE_CFG[u.role] && ROLE_CFG[u.role].color || '#888') : '#888';
     const senderName = u ? `${u.nome} ${u.cogn}`.trim() : 'Utente';
