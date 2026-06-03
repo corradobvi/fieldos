@@ -86980,13 +86980,21 @@ router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
 });
 async function _resolveChatRecipients(societyId, chatId, senderUserId) {
   try {
-    if (chatId === "allenatori") {
+    const staffMatch = chatId.match(/^staff_(.+)$/);
+    if (staffMatch) {
+      const leva = staffMatch[1];
       const [rows] = await pool.execute(
-        `SELECT id FROM users
+        `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','dirigente','preparatore_portieri')
-            AND id != ?`,
-        [societyId, senderUserId]
+            AND id != ?
+            AND (
+              ruolo IN ('admin','mister_admin')
+              OR (
+                ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+              )
+            )`,
+        [societyId, senderUserId, leva]
       );
       return rows.map((r) => Number(r.id));
     }
@@ -87130,6 +87138,8 @@ function _chatPushTitle(chatId, chatNameHint) {
   if (chatNameHint && typeof chatNameHint === "string" && chatNameHint.trim()) {
     return `\u{1F4AC} ${chatNameHint.trim()}`;
   }
+  const stm = chatId.match(/^staff_(.+)$/);
+  if (stm) return `\u{1F3E2} Staff ${stm[1]}`;
   if (chatId === "allenatori") return "\u{1F4AC} Staff";
   const lm = chatId.match(/^(?:leva|group)_(.+)$/);
   if (lm) return `\u{1F4AC} Leva ${lm[1]}`;

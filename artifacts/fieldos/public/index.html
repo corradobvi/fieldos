@@ -24747,13 +24747,32 @@ function getChatsForUser(user) {
     return [l];
   }
 
-  // 1. Chat Staff — allenatori + dirigenti + preparatori portieri (NO admin)
-  if (user.role === 'allenatore' || user.role === 'dirigente' || user.role === 'preparatore_portieri') {
-    const members = USERS_DB.filter(u => ['allenatore','dirigente','preparatore_portieri'].includes(u.role) && u.stato === 'attivo').map(u => u.id);
-    if (members.length > 0) {
-      out.push({ id: 'allenatori', name: '🏢 Staff', avatar: '🏢', color: '#374151', members, kind: 'staff' });
+  // 1. Chat Staff PER-LEVA — staff_<lv> sostituisce la vecchia 'allenatori' globale.
+  // Membri di ciascuna staff_<lv>:
+  //   - admin + mister_admin attivi → membri di TUTTE le leve (super)
+  //   - allenatore/dirigente/preparatore_portieri attivi con staffLeve(u).includes(lv)
+  // L'utente corrente è membro (belongs) se:
+  //   - isAdminLike() === true (admin/mister_admin → vede tutte le leve)
+  //   - OPPURE user.role ∈ {allenatore,dirigente,preparatore_portieri} && staffLeve(user).includes(lv)
+  // Storia: i messaggi della vecchia chat_id='allenatori' restano orfani nel DB (decisione esplicita,
+  // nessun DELETE; nessun utente vedrà più 'allenatori' nella lista chat).
+  const _isSuper = isAdminLike();
+  leve.forEach(lv => {
+    const superMembers = USERS_DB.filter(u =>
+      (u.role === 'admin' || u.role === 'mister_admin') && u.stato === 'attivo'
+    ).map(u => u.id);
+    const staffOfLeva = USERS_DB.filter(u =>
+      ['allenatore','dirigente','preparatore_portieri'].includes(u.role)
+      && u.stato === 'attivo'
+      && staffLeve(u).includes(lv)
+    ).map(u => u.id);
+    const members = [...new Set([...superMembers, ...staffOfLeva])];
+    const belongs = _isSuper
+      || (['allenatore','dirigente','preparatore_portieri'].includes(user.role) && staffLeve(user).includes(lv));
+    if (belongs && members.length > 0) {
+      out.push({ id: 'staff_' + lv, name: '🏢 Staff ' + lv, avatar: '🏢', color: '#374151', members, kind: 'staff', leva: lv });
     }
-  }
+  });
 
   // 2. Chat Leva Famiglie — dirigenti della leva + genitori/nonni con figli nella leva (NO admin)
   leve.forEach(lv => {

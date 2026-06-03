@@ -228,14 +228,25 @@ async function _resolveChatRecipients(
   societyId: number, chatId: string, senderUserId: number
 ): Promise<number[]> {
   try {
-    // 1) Staff chat: 'allenatori' → allenatore/dirigente/preparatore_portieri (NO admin, NO genitori)
-    if (chatId === "allenatori") {
+    // 1) Staff PER-LEVA chat: 'staff_<X>' → admin/mister_admin (TUTTE le leve di società)
+    //    UNION allenatore/dirigente/preparatore_portieri della leva (matching leva o Tutte/null).
+    //    Allineato 1:1 al FE getChatsForUser dopo la migrazione staff-per-leva.
+    //    La vecchia 'allenatori' globale NON è più valida: messaggi storici restano orfani in DB.
+    const staffMatch = chatId.match(/^staff_(.+)$/);
+    if (staffMatch) {
+      const leva = staffMatch[1];
       const [rows] = (await pool.execute(
-        `SELECT id FROM users
+        `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','dirigente','preparatore_portieri')
-            AND id != ?`,
-        [societyId, senderUserId]
+            AND id != ?
+            AND (
+              ruolo IN ('admin','mister_admin')
+              OR (
+                ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+              )
+            )`,
+        [societyId, senderUserId, leva]
       )) as [any[], any];
       return rows.map((r: any) => Number(r.id));
     }
@@ -403,7 +414,9 @@ function _chatPushTitle(chatId: string, chatNameHint?: string | null): string {
   if (chatNameHint && typeof chatNameHint === "string" && chatNameHint.trim()) {
     return `💬 ${chatNameHint.trim()}`;
   }
-  if (chatId === "allenatori") return "💬 Staff";
+  const stm = chatId.match(/^staff_(.+)$/);
+  if (stm) return `🏢 Staff ${stm[1]}`;
+  if (chatId === "allenatori") return "💬 Staff"; // legacy fallback (chat globale non più listata)
   const lm = chatId.match(/^(?:leva|group)_(.+)$/);
   if (lm) return `💬 Leva ${lm[1]}`;
   const sm = chatId.match(/^squadra_(.+)$/);
