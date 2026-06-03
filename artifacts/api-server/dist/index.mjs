@@ -86943,6 +86943,38 @@ var comunicazioni_default = router18;
 // src/routes/v2/chat.ts
 var import_express19 = __toESM(require_express2(), 1);
 var router19 = (0, import_express19.Router)();
+router19.get("/chat/push-test", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  try {
+    const societyKey = societyKeyFor(societyId);
+    const [subs] = await pool.execute(
+      "SELECT id FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+      [userId, societyKey]
+    );
+    const subscriptionCount = subs.length;
+    if (!subscriptionCount) {
+      return res.json({ hasSubscription: false, subscriptionCount: 0, pushSent: false, pushError: null });
+    }
+    let pushSent = false;
+    let pushError = null;
+    try {
+      const result = await sendPushToUsers(
+        [userId],
+        societyKey,
+        { title: "Test push", body: "Funziona!", url: "/", tag: "push_test" },
+        "notify_chat"
+      );
+      pushSent = result.sent > 0;
+      if (!pushSent && result.errors > 0) pushError = `${result.errors} delivery error(s) \u2014 vedi log Railway push-sender`;
+    } catch (e) {
+      pushError = e?.message || String(e);
+    }
+    return res.json({ hasSubscription: true, subscriptionCount, pushSent, pushError });
+  } catch (e) {
+    logger.error({ err: e?.message, userId, societyId }, "GET chat push-test error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
 router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;

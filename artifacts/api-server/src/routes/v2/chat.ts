@@ -6,6 +6,44 @@ import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-
 
 const router = Router();
 
+// GET /api/v2/chat/push-test
+// Self-test: verifica se l'utente corrente ha subscription(s) push registrate
+// per la sua societa' e, se si, gli invia una push di test "Funziona!".
+// Risposta: { hasSubscription, subscriptionCount, pushSent, pushError }.
+// Auth: JWT standard (requireAuth). Nessun SA-secret.
+router.get("/chat/push-test", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  try {
+    const societyKey = societyKeyFor(societyId);
+    const [subs] = (await pool.execute(
+      "SELECT id FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+      [userId, societyKey]
+    )) as [any[], any];
+    const subscriptionCount = (subs as any[]).length;
+    if (!subscriptionCount) {
+      return res.json({ hasSubscription: false, subscriptionCount: 0, pushSent: false, pushError: null });
+    }
+    let pushSent = false;
+    let pushError: string | null = null;
+    try {
+      const result = await sendPushToUsers(
+        [userId],
+        societyKey,
+        { title: "Test push", body: "Funziona!", url: "/", tag: "push_test" },
+        "notify_chat"
+      );
+      pushSent = result.sent > 0;
+      if (!pushSent && result.errors > 0) pushError = `${result.errors} delivery error(s) — vedi log Railway push-sender`;
+    } catch (e: any) {
+      pushError = e?.message || String(e);
+    }
+    return res.json({ hasSubscription: true, subscriptionCount, pushSent, pushError });
+  } catch (e: any) {
+    logger.error({ err: e?.message, userId, societyId }, "GET chat push-test error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+
 // GET /api/v2/chat/:chatId/messages?limit=50&before=<id>
 // Uso pool.query (interpolazione client-side delle ?) invece di pool.execute (server-prepared):
 // LIMIT ? con prepared statements ha avuto regressioni in alcune combinazioni mysql2/MySQL → pool.query è più robusto.
