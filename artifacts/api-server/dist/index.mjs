@@ -87135,10 +87135,13 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
               ruolo IN ('admin','mister_admin')
               OR (
                 ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+                AND (
+                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                )
               )
             )`,
-        [societyId, senderUserId, leva]
+        [societyId, senderUserId, leva, leva]
       );
       return rows.map((r) => Number(r.id));
     }
@@ -87148,9 +87151,12 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const [dirRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND (
+              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+            )
             AND id != ?`,
-        [societyId, leva, senderUserId]
+        [societyId, leva, leva, senderUserId]
       );
       let famRows = [];
       try {
@@ -87179,9 +87185,12 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND (
+              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+            )
             AND id != ?`,
-        [societyId, leva, senderUserId]
+        [societyId, leva, leva, senderUserId]
       );
       const [giocRows] = await pool.execute(
         `SELECT DISTINCT u.id
@@ -87222,9 +87231,12 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
           const [dRows] = await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+                AND (
+                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                )
                 AND id != ?`,
-            [societyId, leva, senderUserId]
+            [societyId, leva, leva, senderUserId]
           );
           dRows.forEach((r) => ids.add(Number(r.id)));
         }

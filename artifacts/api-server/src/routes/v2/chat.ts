@@ -241,6 +241,9 @@ async function _resolveChatRecipients(
     const staffMatch = chatId.match(/^staff_(.+)$/);
     if (staffMatch) {
       const leva = staffMatch[1];
+      // Multi-leva: il FE persiste l'array come JSON.stringify (es. '["U11","U12"]')
+      // nella colonna VARCHAR users.leva. Aggiungo JSON_CONTAINS guardato da JSON_VALID
+      // per includere anche questi utenti — additivo, non rompe i match già funzionanti.
       const [rows] = (await pool.execute(
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
@@ -249,10 +252,13 @@ async function _resolveChatRecipients(
               ruolo IN ('admin','mister_admin')
               OR (
                 ruolo IN ('allenatore','dirigente','preparatore_portieri')
-                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+                AND (
+                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                )
               )
             )`,
-        [societyId, senderUserId, leva]
+        [societyId, senderUserId, leva, leva]
       )) as [any[], any];
       return rows.map((r: any) => Number(r.id));
     }
@@ -263,12 +269,16 @@ async function _resolveChatRecipients(
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
+      // Multi-leva: vedi nota su staff_<lv>. Stesso pattern additivo qui per dirigente.
       const [dirRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND (
+              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+            )
             AND id != ?`,
-        [societyId, leva, senderUserId]
+        [societyId, leva, leva, senderUserId]
       )) as [any[], any];
       let famRows: any[] = [];
       try {
@@ -296,13 +306,17 @@ async function _resolveChatRecipients(
     const squadraMatch = chatId.match(/^squadra_(.+)$/);
     if (squadraMatch) {
       const leva = squadraMatch[1];
+      // Multi-leva: vedi nota su staff_<lv>. Stesso pattern additivo per allenatore/preparatore.
       const [staffRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND ruolo IN ('allenatore','preparatore_portieri')
-            AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+            AND (
+              leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+              OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+            )
             AND id != ?`,
-        [societyId, leva, senderUserId]
+        [societyId, leva, leva, senderUserId]
       )) as [any[], any];
       const [giocRows] = (await pool.execute(
         `SELECT DISTINCT u.id
@@ -343,14 +357,17 @@ async function _resolveChatRecipients(
 
         const ids = new Set<number>();
 
-        // Dirigenti della leva (o Tutte)
+        // Dirigenti della leva (o Tutte). Multi-leva: vedi nota su staff_<lv>.
         if (leva) {
           const [dRows] = (await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
-                AND (leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte')
+                AND (
+                  leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                )
                 AND id != ?`,
-            [societyId, leva, senderUserId]
+            [societyId, leva, leva, senderUserId]
           )) as [any[], any];
           dRows.forEach((r: any) => ids.add(Number(r.id)));
         }
