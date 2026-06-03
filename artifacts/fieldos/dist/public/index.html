@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.10</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.11</span></div>
       </div>
 
     </main>
@@ -25241,14 +25241,14 @@ function _renderChatBadges() {
 }
 
 // Marca chat letta server-side (POST /chat/:chatId/read).
-// Aggiorna anche chatLastSeen nel blob per backward-compat. Il source of truth dei badge è MySQL.
-// NIENTE renderChatList qui dentro (ricorsione con selectChat); aggiornamento DOM mirato via _renderChatBadges.
+// Source of truth = MySQL chat_reads. Non muto piu' chatLastSeen nel blob:
+// ogni selectChat/sendMessage modificava il blob → autosave 1.5s → apiPush →
+// "Salvataggio in corso..." quasi permanente con piu' device aperti.
+// Niente renderChatList qui (ricorsione con selectChat); update DOM mirato via _renderChatBadges.
 async function markChatRead(user, chatId) {
   if (!user || !chatId) return;
   // Optimistic local: badge a 0 subito.
   _chatUnreadByChatId[chatId] = 0;
-  if (!chatLastSeen[user.id]) chatLastSeen[user.id] = {};
-  chatLastSeen[user.id][chatId] = Date.now();
   _renderChatBadges();
   if (typeof refreshChatBadges === 'function') refreshChatBadges();
   if (!_ensureV2Token()) return;
@@ -30896,6 +30896,11 @@ async function doRejoinSocieta() {
 
   // ── API sync helpers ─────────────────────────────────────
   let _pendingPushes = 0;
+  // Banner topbar (syncStatusBar): mostrato SOLO in stato 'fatal' (push fallito definitivamente
+  // dopo tutti i retry). Push pendenti e retry 412/network intermedi NON mostrano il banner —
+  // sono attesi e si risolvono da soli, mostrarli causava un "Salvataggio in corso..."
+  // quasi permanente con due device aperti. L'indicatore in impostazioni (syncSettingsIndicator)
+  // continua a riflettere lo stato per chi vuole controllare.
   function _updateSyncBar(pending, errState) {
     const bar = document.getElementById('syncStatusBar');
     const ind = document.getElementById('syncSettingsIndicator');
@@ -30905,11 +30910,11 @@ async function doRejoinSocieta() {
       if (ind) { ind.style.background = '#fef2f2'; ind.style.borderColor = '#fecaca'; ind.style.color = '#dc2626'; }
       if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
     } else if (errState === 'retry') {
-      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(234,88,12,.1)'; bar.style.color = '#ea580c'; bar.style.borderColor = 'rgba(234,88,12,.3)'; bar.textContent = '⚠️ Riconnessione in corso…'; }
+      if (bar) { bar.style.display = 'none'; bar.style.background = ''; bar.style.color = ''; bar.style.borderColor = ''; }
       if (ind) { ind.style.background = '#fff7ed'; ind.style.borderColor = '#fed7aa'; ind.style.color = '#ea580c'; }
       if (indText) indText.textContent = 'Connessione persa - riconnessione in corso...';
     } else if (pending > 0) {
-      if (bar) { bar.style.display = ''; bar.style.background = 'rgba(245,158,11,.1)'; bar.style.color = '#f59e0b'; bar.style.borderColor = 'rgba(245,158,11,.3)'; bar.textContent = '⏳ Salvataggio in corso…'; }
+      if (bar) { bar.style.display = 'none'; bar.style.background = ''; bar.style.color = ''; bar.style.borderColor = ''; }
       if (ind) { ind.style.background = '#fefce8'; ind.style.borderColor = '#fde047'; ind.style.color = '#854d0e'; }
       if (indText) indText.textContent = 'Salvataggio in corso...';
     } else {
