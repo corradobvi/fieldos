@@ -10,7 +10,7 @@ const router = Router();
 // Uso pool.query (interpolazione client-side delle ?) invece di pool.execute (server-prepared):
 // LIMIT ? con prepared statements ha avuto regressioni in alcune combinazioni mysql2/MySQL → pool.query è più robusto.
 router.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query as Record<string, string>;
   const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
@@ -27,7 +27,13 @@ router.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
       : `${sqlBase} ORDER BY m.created_at DESC, m.id DESC LIMIT ${lim}`;
     const params = beforeId != null ? [societyId, chatId, beforeId] : [societyId, chatId];
     const [rows] = (await pool.query(sql, params)) as [any[], any];
-    return res.json(rows.reverse());
+    // Calcola "mine" server-side: confronta autore_id con userId del JWT (stesso id-space).
+    // Il FE NON deve riconciliare gli id (blob locale vs MySQL): usa direttamente questo flag.
+    const out = (rows as any[]).map(r => ({
+      ...r,
+      mine: r.autore_id != null && Number(r.autore_id) === Number(userId),
+    }));
+    return res.json(out.reverse());
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId }, "GET chat messages error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
@@ -494,6 +500,7 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     })();
 
     // Risposta sincrona col messaggio per riconciliazione FE.
+    // mine:true perché il POST inserisce sempre il messaggio del mittente autenticato.
     return res.status(201).json({
       id: insertedId,
       chat_id: chatId,
@@ -502,7 +509,8 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       foto_url: fotoUrl ?? null,
       tipo: null,
       meta: null,
-      created_at: createdAtIso
+      created_at: createdAtIso,
+      mine: true,
     });
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId, userId }, "POST chat message error");

@@ -86917,7 +86917,7 @@ var comunicazioni_default = router18;
 var import_express19 = __toESM(require_express2(), 1);
 var router19 = (0, import_express19.Router)();
 router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query;
   const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
@@ -86931,7 +86931,11 @@ router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
     const sql2 = beforeId != null ? `${sqlBase} AND m.id < ? ORDER BY m.created_at DESC, m.id DESC LIMIT ${lim}` : `${sqlBase} ORDER BY m.created_at DESC, m.id DESC LIMIT ${lim}`;
     const params = beforeId != null ? [societyId, chatId, beforeId] : [societyId, chatId];
     const [rows] = await pool.query(sql2, params);
-    return res.json(rows.reverse());
+    const out = rows.map((r) => ({
+      ...r,
+      mine: r.autore_id != null && Number(r.autore_id) === Number(userId)
+    }));
+    return res.json(out.reverse());
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId }, "GET chat messages error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
@@ -87330,7 +87334,8 @@ router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
       foto_url: fotoUrl ?? null,
       tipo: null,
       meta: null,
-      created_at: createdAtIso
+      created_at: createdAtIso,
+      mine: true
     });
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId, userId }, "POST chat message error");
