@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.11</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.12</span></div>
       </div>
 
     </main>
@@ -25332,6 +25332,10 @@ function renderChatList() {
   if (!container || !me) return;
   // Kick-off async: aggiorna conteggi non-letti dal server (debounced internamente).
   if (typeof _loadChatUnreadCounts === 'function') _loadChatUnreadCounts();
+  // Avvia il polling 4s (idempotente). Se nessuna chat e' aperta, _loadChatMessages
+  // viene saltato; _loadChatUnreadCounts gira comunque ogni 4s → il badge "1" appare
+  // sulla lista chat anche se l'utente non ha mai selezionato una chat in questa sessione.
+  if (typeof _ensureChatMsgsPoll === 'function') _ensureChatMsgsPoll();
   // One-shot backfill membri ad-hoc preesistenti (idempotente, guard interno).
   if (typeof _backfillAdhocMembers === 'function') _backfillAdhocMembers();
   const btnNew = document.getElementById('btnNewChat');

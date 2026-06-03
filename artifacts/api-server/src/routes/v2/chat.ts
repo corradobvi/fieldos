@@ -506,12 +506,15 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
           url:   "/#chat",
           tag:   `chat_${chatId}`,
         };
-        logger.info({ chatId, recipientCount: recipients.length, sender: userId }, "chat-push: recipients resolved");
+        // Log gli ID effettivi: consente di sapere a colpo d'occhio dai log Railway
+        // se uno specifico utente atteso (es. Federico userId=60) e' o non e' tra i destinatari.
+        logger.info({ chatId, recipientCount: recipients.length, recipientIds: recipients, sender: userId }, "chat-push: recipients resolved");
         if (!recipients.length) return;
         const result = await sendPushToUsers(recipients, societyKeyFor(societyId), payload, "notify_chat");
         logger.info({
           chatId,
           requested: recipients.length,
+          requestedIds: recipients,
           sent: result.sent,
           errors: result.errors,
           sender: userId

@@ -183,4 +183,149 @@ router.get("/superadmin/_diag/push-remap", async (req, res) => {
   }
 });
 
+// GET /api/v2/superadmin/_diag/chat-recipients?societyId=X&chatId=staff_U11&senderUserId=Y
+// Spiega per quale motivo (ruolo / leva / subscription / pref) un utente non riceve la push
+// per una chat. Restituisce:
+//   - recipients: utenti effettivamente targettati dal resolver (esclusi sender + sospesi)
+//   - user_breakdown: TUTTI gli utenti della società col ruolo eligibile per quel pattern,
+//     con la leva grezza dal DB e il motivo include/exclude
+//   - push_subscriptions: present_for vs missing_for per ciascun recipient
+//   - notify_chat_optouts: opt-out per ciascun recipient
+//   - hint: riassunto della causa probabile
+router.get("/superadmin/_diag/chat-recipients", async (req, res) => {
+  if (!checkAuth(req, res)) return;
+  const societyId    = parseInt(String(req.query.societyId || ''));
+  const chatId       = String(req.query.chatId || '').trim();
+  const senderUserId = parseInt(String(req.query.senderUserId || '0')) || 0;
+  if (!societyId || !chatId) {
+    return res.status(400).json({ error: "societyId_and_chatId_required" });
+  }
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  try {
+    const staffMatch   = chatId.match(/^staff_(.+)$/);
+    const levaFamMatch = chatId.match(/^(?:leva|group)_(.+)$/);
+    const squadraMatch = chatId.match(/^squadra_(.+)$/);
+    const adhocMatch   = chatId.match(/^adhoc_/);
+    const pattern = staffMatch ? "staff"
+                  : levaFamMatch ? "leva_famiglie"
+                  : squadraMatch ? "squadra"
+                  : adhocMatch ? "adhoc" : "unknown";
+    const lv = staffMatch?.[1] || levaFamMatch?.[1] || squadraMatch?.[1] || null;
+
+    const eligibleRoles =
+      pattern === "staff"         ? ["admin","mister_admin","allenatore","dirigente","preparatore_portieri"] :
+      pattern === "leva_famiglie" ? ["dirigente","genitore","nonno"] :
+      pattern === "squadra"       ? ["allenatore","preparatore_portieri","giocatore"] :
+      [];
+
+    const [allRows] = await pool.execute(
+      `SELECT id, nome, cognome, ruolo, leva, stato FROM users WHERE society_id = ? ORDER BY ruolo, cognome, nome`,
+      [societyId]
+    ) as [any[], any];
+    const eligibleUsers = (allRows as any[]).filter(u => eligibleRoles.includes(u.ruolo));
+
+    let recipients: number[] = [];
+    if (pattern === "staff" && lv) {
+      const [r] = await pool.execute(
+        `SELECT DISTINCT id FROM users
+          WHERE society_id = ? AND stato = 'attivo' AND id != ?
+            AND ( ruolo IN ('admin','mister_admin')
+                  OR ( ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                       AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                             OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                           )
+                     )
+                )`,
+        [societyId, senderUserId, lv, lv]
+      ) as [any[], any];
+      recipients = (r as any[]).map(x => Number(x.id));
+    } else if (pattern === "leva_famiglie" && lv) {
+      const [r] = await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                ) AND id != ?`,
+        [societyId, lv, lv, senderUserId]
+      ) as [any[], any];
+      recipients = (r as any[]).map(x => Number(x.id));
+    } else if (pattern === "squadra" && lv) {
+      const [r] = await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND ( leva = ? OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+                  OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+                ) AND id != ?`,
+        [societyId, lv, lv, senderUserId]
+      ) as [any[], any];
+      recipients = (r as any[]).map(x => Number(x.id));
+    } else if (pattern === "adhoc") {
+      const [r] = await pool.execute(
+        `SELECT user_id AS id FROM adhoc_chat_members
+          WHERE society_id = ? AND chat_id = ? AND user_id != ?`,
+        [societyId, chatId, senderUserId]
+      ) as [any[], any];
+      recipients = (r as any[]).map(x => Number(x.id));
+    }
+
+    const recipientSet = new Set(recipients);
+    const userBreakdown = eligibleUsers.map(u => {
+      const included = recipientSet.has(Number(u.id));
+      let reason: string = included ? "included" : "excluded";
+      if (!included) {
+        if (u.stato !== 'attivo') reason = `excluded: stato='${u.stato}'`;
+        else if (Number(u.id) === senderUserId) reason = "excluded: is_sender";
+        else if (lv && !['admin','mister_admin'].includes(u.ruolo)) {
+          const raw = u.leva;
+          let parsedArr: any = null;
+          try { parsedArr = (raw && typeof raw === 'string' && raw.startsWith('[')) ? JSON.parse(raw) : null; } catch {}
+          const isMultiLeva = Array.isArray(parsedArr);
+          reason = `excluded: leva_mismatch (stored=${JSON.stringify(raw)}, target=${JSON.stringify(lv)}, json_array=${isMultiLeva})`;
+        }
+      }
+      return { id: u.id, nome: u.nome, cognome: u.cognome, ruolo: u.ruolo, leva_stored: u.leva, stato: u.stato, reason };
+    });
+
+    let subInfo: any[] = [];
+    let prefInfo: any[] = [];
+    if (recipients.length) {
+      const ph = recipients.map(() => '?').join(',');
+      const [subs] = await pool.execute(
+        `SELECT user_id, CHAR_LENGTH(subscription) AS sub_size, updated_at
+           FROM push_subscriptions WHERE user_id IN (${ph}) AND society_key = ?`,
+        [...recipients, stateKey]
+      ) as [any[], any];
+      subInfo = subs as any[];
+      try {
+        const [prefs] = await pool.execute(
+          `SELECT user_id, notify_chat FROM user_notification_preferences WHERE user_id IN (${ph})`,
+          recipients
+        ) as [any[], any];
+        prefInfo = prefs as any[];
+      } catch (_) { /* tabella opzionale */ }
+    }
+    const subbedSet = new Set(subInfo.map(s => Number(s.user_id)));
+    const noSubscription = recipients.filter(id => !subbedSet.has(id));
+    const optedOut = prefInfo.filter(p => Number(p.notify_chat) === 0).map(p => Number(p.user_id));
+
+    return res.json({
+      input: { societyId, chatId, senderUserId, pattern, leva_extracted: lv },
+      recipients,
+      recipients_count: recipients.length,
+      eligible_role_count: eligibleUsers.length,
+      user_breakdown: userBreakdown,
+      push_subscriptions: { present_for: Array.from(subbedSet), missing_for: noSubscription, sample: subInfo },
+      notify_chat_optouts: optedOut,
+      hint: recipients.length === 0
+        ? "Nessun destinatario: probabile mismatch leva o stato!='attivo' per i ruoli eligibili. Vedi user_breakdown."
+        : (noSubscription.length
+            ? `Push subscription mancante per: ${noSubscription.join(', ')} → device non sottoscritto.`
+            : (optedOut.length ? `Opt-out notify_chat per: ${optedOut.join(', ')}` : "Tutto ok lato resolver+sub+pref."))
+    });
+  } catch (e: any) {
+    return res.status(500).json({ error: e?.message });
+  }
+});
+
 export default router;
