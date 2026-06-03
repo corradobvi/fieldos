@@ -25140,8 +25140,24 @@ function renderChatList() {
   }
   if (panel) panel.style.display = '';
   if (empty) empty.style.display = 'none';
-  if (!currentChatId || !chats.find(c => c.id === currentChatId)) {
+  // Auto-set della prima chat SOLO su desktop (layout largo).
+  // Su mobile (≤640) l'utente deve restare sulla lista finché non tocca esplicitamente una chat:
+  // senza questa gate, dopo `chatGoBack` qualunque rerender (es. polling _loadChatMessages)
+  // rimette currentChatId=chats[0].id e l'app rientra subito nella prima chat → loop "back".
+  const _isWideChatLayout = window.innerWidth > 640;
+  if (_isWideChatLayout && (!currentChatId || !chats.find(c => c.id === currentChatId))) {
     currentChatId = chats[0].id;
+  } else if (!_isWideChatLayout && currentChatId && !chats.find(c => c.id === currentChatId)) {
+    // Su mobile: se currentChatId non esiste più tra le chat (es. cambiata membership), pulisci.
+    currentChatId = null;
+  }
+  // Defensive: su mobile, se nessuna chat è selezionata, rimuovi un eventuale `chat-panel-open`
+  // stale lasciato da una sessione precedente (es. navigazione via push notification).
+  if (!_isWideChatLayout && !currentChatId) {
+    const _wrap = document.getElementById('chatWrap');
+    if (_wrap) _wrap.classList.remove('chat-panel-open');
+    const _pgChat = document.getElementById('pg-chat');
+    if (_pgChat) _pgChat.classList.remove('chat-panel-open');
   }
   container.innerHTML = chats.map(c => {
     const msgs = chatMsgsFor(c.id);
@@ -25170,8 +25186,11 @@ function renderChatList() {
     el.addEventListener('click', () => selectChat(el.getAttribute('data-chatid')));
   });
   if (window.innerWidth > 640) {
-    selectChat(currentChatId, /*skipListRefresh*/true);
-  } else {
+    // Desktop: lista + dettaglio affiancati → apri di default la chat corrente.
+    if (currentChatId) selectChat(currentChatId, /*skipListRefresh*/true);
+  } else if (currentChatId) {
+    // Mobile: solo highlight (niente auto-open). Skip se nessuna chat selezionata
+    // per evitare CSS.escape(null) e selettori sempre vuoti.
     const _act=document.querySelector('#chatList .ci[data-chatid="'+CSS.escape(currentChatId)+'"]');
     if (_act) _act.classList.add('on');
   }
@@ -25273,6 +25292,12 @@ function chatGoBack() {
   if (wrap) wrap.classList.remove('chat-panel-open');
   const _pgChat = document.getElementById('pg-chat');
   if (_pgChat) _pgChat.classList.remove('chat-panel-open');
+  // Reset currentChatId: senza questo il polling _chatMsgsPollInterval continua a girare per
+  // la chat appena chiusa, e qualunque rerender successivo (es. _loadChatMessages → renderChatList)
+  // poteva riportare l'utente dentro la stessa chat su mobile.
+  currentChatId = null;
+  // Aggiorna la lista per togliere lo stato `.on` dall'item appena chiuso.
+  if (typeof renderChatList === 'function') renderChatList();
 }
 
 function renderChatMessages() {
