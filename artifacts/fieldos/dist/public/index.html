@@ -25225,8 +25225,9 @@ function renderChatList() {
   const empty = document.getElementById('chatEmpty');
   if (!container || !me) return;
   // Kick-off async: aggiorna conteggi non-letti dal server (debounced internamente).
-  // Re-renderizza la lista al ritorno per applicare i badge senza far flicker il primo paint.
   if (typeof _loadChatUnreadCounts === 'function') _loadChatUnreadCounts();
+  // One-shot backfill membri ad-hoc preesistenti (idempotente, guard interno).
+  if (typeof _backfillAdhocMembers === 'function') _backfillAdhocMembers();
   const btnNew = document.getElementById('btnNewChat');
   if (btnNew) btnNew.style.display = (me && ['admin','allenatore','dirigente','preparatore_portieri'].includes(me.role)) ? '' : 'none';
   const chats = getChatsForUser(me);
@@ -25846,6 +25847,45 @@ function createAdHocChat() {
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   currentChatId = 'adhoc_' + newChat.id;
   renderChatList();
+  // Persisti i membri lato server: senza questo, il resolver push BE non sa chi sono e
+  // (post-fix) NON invierà alcuna push (zero spam, ma anche zero notifica per i membri reali).
+  _persistAdhocMembers('adhoc_' + newChat.id, members);
+}
+
+// Salva/sostituisce il set membri di una chat ad-hoc lato server (PUT replace-all).
+// Best-effort: errori loggati, niente toast (creazione blob già riuscita; il sync di membri è secondario).
+async function _persistAdhocMembers(chatId, memberIds) {
+  if (!chatId || !Array.isArray(memberIds) || !memberIds.length) return;
+  if (!_ensureV2Token()) return;
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/adhoc/' + encodeURIComponent(chatId) + '/members', {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberIds: memberIds.map(Number).filter(Number.isFinite) })
+    });
+    if (!r.ok) console.warn('[chat] PUT adhoc members HTTP', r.status, 'for', chatId);
+  } catch (e) {
+    console.warn('[chat] PUT adhoc members error', e && e.message);
+  }
+}
+
+// Backfill: alla prima volta che _v2Token e adHocChats sono entrambi disponibili,
+// sincronizza i membri di TUTTE le ad-hoc preesistenti al DB (PUT idempotente).
+// Senza questo, le ad-hoc create prima del deploy non riceverebbero più push (resolver BE → 0).
+let _adhocBackfillDone = false;
+async function _backfillAdhocMembers() {
+  if (_adhocBackfillDone) return;
+  if (!me || !_ensureV2Token()) return;
+  if (!Array.isArray(adHocChats) || !adHocChats.length) { _adhocBackfillDone = true; return; }
+  _adhocBackfillDone = true; // segna prima per evitare doppio fire da chiamate concorrenti
+  for (const ch of adHocChats) {
+    try {
+      // L'utente corrente DEVE essere nei membri (gating BE). Se non lo è, skippa: significa
+      // che questa chat è di altri, non gliela persisto io.
+      if (!Array.isArray(ch.members) || !ch.members.includes(me.id)) continue;
+      await _persistAdhocMembers('adhoc_' + ch.id, ch.members);
+    } catch (_) { /* best-effort, continua col prossimo */ }
+  }
 }
 
 function refreshChatBadges() {

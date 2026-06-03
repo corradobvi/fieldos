@@ -78800,6 +78800,15 @@ CREATE TABLE IF NOT EXISTS chat_reads (
   PRIMARY KEY (user_id, society_id, chat_id),
   INDEX idx_chat_reads_user (user_id, society_id)
 );
+CREATE TABLE IF NOT EXISTS adhoc_chat_members (
+  society_id INT NOT NULL,
+  chat_id    VARCHAR(100) NOT NULL,
+  user_id    INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (society_id, chat_id, user_id),
+  INDEX idx_adhoc_chat (society_id, chat_id),
+  INDEX idx_adhoc_user (society_id, user_id)
+);
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
@@ -87247,11 +87256,16 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
     }
     if (chatId.startsWith("adhoc_")) {
       const [rows] = await pool.execute(
-        `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?`,
-        [societyId, senderUserId]
+        `SELECT m.user_id
+           FROM adhoc_chat_members m
+           JOIN users u ON u.id = m.user_id AND u.society_id = ? AND u.stato = 'attivo'
+          WHERE m.society_id = ? AND m.chat_id = ? AND m.user_id != ?`,
+        [societyId, societyId, chatId, senderUserId]
       );
-      logger.info({ chatId, recipientCount: rows.length }, "chat-push adhoc: fallback all-society (members non in DB)");
-      return rows.map((r) => Number(r.id));
+      if (!rows.length) {
+        logger.warn({ chatId, societyId }, "chat-push adhoc: nessun membro in DB \u2192 ZERO push (no spam all-society fallback)");
+      }
+      return rows.map((r) => Number(r.user_id));
     }
     logger.warn({ chatId }, "chat-push: chatId pattern sconosciuto \u2014 skip");
     return [];
@@ -87408,6 +87422,57 @@ router19.post("/chat/unread", requireAuth, async (req, res) => {
     return res.json(out);
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+router19.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "invalid_chat_id", detail: "must start with adhoc_" });
+  }
+  const body = req.body;
+  const raw = Array.isArray(body?.memberIds) ? body.memberIds : [];
+  const seen = /* @__PURE__ */ new Set();
+  const memberIds = [];
+  for (const v of raw) {
+    const n = typeof v === "number" ? v : Number(v);
+    if (Number.isInteger(n) && n > 0 && !seen.has(n)) {
+      seen.add(n);
+      memberIds.push(n);
+      if (memberIds.length >= 500) break;
+    }
+  }
+  if (!memberIds.includes(userId)) {
+    return res.status(403).json({ error: "forbidden", detail: "caller must be in memberIds" });
+  }
+  try {
+    const placeholders = memberIds.map(() => "?").join(",");
+    const [validRows] = await pool.query(
+      `SELECT id FROM users WHERE society_id = ? AND id IN (${placeholders})`,
+      [societyId, ...memberIds]
+    );
+    const validIds = validRows.map((r) => Number(r.id));
+    if (!validIds.length) {
+      return res.status(400).json({ error: "no_valid_members" });
+    }
+    await pool.query(
+      "DELETE FROM adhoc_chat_members WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    );
+    const values = validIds.map(() => "(?, ?, ?)").join(",");
+    const params = [];
+    for (const id of validIds) {
+      params.push(societyId, chatId, id);
+    }
+    await pool.query(
+      `INSERT INTO adhoc_chat_members (society_id, chat_id, user_id) VALUES ${values}`,
+      params
+    );
+    logger.info({ chatId, societyId, members: validIds.length, caller: userId }, "adhoc members updated");
+    return res.json({ ok: true, members: validIds });
+  } catch (e) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "PUT adhoc members error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });

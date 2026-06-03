@@ -393,16 +393,21 @@ async function _resolveChatRecipients(
       }
     }
 
-    // 5) Adhoc chat: i membri vivono nel blob FE (adHocChats[].members). Senza migrazione DB,
-    //    fallback conservativo: tutti gli utenti attivi della società escluso il mittente.
-    //    Over-notification accettabile per ora (vs nessuna notifica). Marcato come limite noto.
+    // 5) Adhoc chat: membri persistiti in adhoc_chat_members (PUT /chat/adhoc/:chatId/members).
+    //    NIENTE PIÙ fallback "tutta la società": se nessun membro in DB → ZERO push + log warn.
+    //    Meglio zero notifiche che spam alla società intera (privacy).
     if (chatId.startsWith("adhoc_")) {
       const [rows] = (await pool.execute(
-        `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?`,
-        [societyId, senderUserId]
+        `SELECT m.user_id
+           FROM adhoc_chat_members m
+           JOIN users u ON u.id = m.user_id AND u.society_id = ? AND u.stato = 'attivo'
+          WHERE m.society_id = ? AND m.chat_id = ? AND m.user_id != ?`,
+        [societyId, societyId, chatId, senderUserId]
       )) as [any[], any];
-      logger.info({ chatId, recipientCount: rows.length }, "chat-push adhoc: fallback all-society (members non in DB)");
-      return rows.map((r: any) => Number(r.id));
+      if (!rows.length) {
+        logger.warn({ chatId, societyId }, "chat-push adhoc: nessun membro in DB → ZERO push (no spam all-society fallback)");
+      }
+      return rows.map((r: any) => Number(r.user_id));
     }
 
     // 6) Sconosciuto → skip per non spammare
@@ -584,6 +589,64 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
     return res.json(out);
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// PUT /api/v2/chat/adhoc/:chatId/members
+// Sostituisce il set membri della chat ad-hoc (idempotente, "replace all").
+// Body: { memberIds: number[] }.
+// Auth: il chiamante DEVE essere nella nuova lista membri (gating contro modifiche random
+// da utenti terzi). Per chat appena create il creatore include sé stesso → check pass.
+router.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "invalid_chat_id", detail: "must start with adhoc_" });
+  }
+  const body = req.body as { memberIds?: unknown };
+  const raw = Array.isArray(body?.memberIds) ? body!.memberIds! : [];
+  // Sanifica: solo numeri positivi, dedupe, cap.
+  const seen = new Set<number>();
+  const memberIds: number[] = [];
+  for (const v of raw) {
+    const n = typeof v === "number" ? v : Number(v);
+    if (Number.isInteger(n) && n > 0 && !seen.has(n)) {
+      seen.add(n);
+      memberIds.push(n);
+      if (memberIds.length >= 500) break;
+    }
+  }
+  if (!memberIds.includes(userId)) {
+    return res.status(403).json({ error: "forbidden", detail: "caller must be in memberIds" });
+  }
+  try {
+    // Verifica che tutti gli id siano utenti della stessa società (anti-cross-society leak).
+    const placeholders = memberIds.map(() => "?").join(",");
+    const [validRows] = (await pool.query(
+      `SELECT id FROM users WHERE society_id = ? AND id IN (${placeholders})`,
+      [societyId, ...memberIds]
+    )) as [any[], any];
+    const validIds: number[] = (validRows as any[]).map(r => Number(r.id));
+    if (!validIds.length) {
+      return res.status(400).json({ error: "no_valid_members" });
+    }
+    // Replace set: DELETE poi INSERT. Idempotente.
+    await pool.query(
+      "DELETE FROM adhoc_chat_members WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    );
+    const values = validIds.map(() => "(?, ?, ?)").join(",");
+    const params: any[] = [];
+    for (const id of validIds) { params.push(societyId, chatId, id); }
+    await pool.query(
+      `INSERT INTO adhoc_chat_members (society_id, chat_id, user_id) VALUES ${values}`,
+      params
+    );
+    logger.info({ chatId, societyId, members: validIds.length, caller: userId }, "adhoc members updated");
+    return res.json({ ok: true, members: validIds });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "PUT adhoc members error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });

@@ -297,6 +297,15 @@ CREATE TABLE IF NOT EXISTS chat_reads (
   PRIMARY KEY (user_id, society_id, chat_id),
   INDEX idx_chat_reads_user (user_id, society_id)
 );
+CREATE TABLE IF NOT EXISTS adhoc_chat_members (
+  society_id INT NOT NULL,
+  chat_id    VARCHAR(100) NOT NULL,
+  user_id    INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (society_id, chat_id, user_id),
+  INDEX idx_adhoc_chat (society_id, chat_id),
+  INDEX idx_adhoc_user (society_id, user_id)
+);
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
