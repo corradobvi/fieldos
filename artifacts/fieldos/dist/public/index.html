@@ -25123,16 +25123,46 @@ function chatTotalUnread(user) {
   return getChatsForUser(user).reduce((sum, c) => sum + chatUnreadCount(user, c.id), 0);
 }
 
+// Aggiorna SOLO i badge ".ci-un" sugli item ".ci" già renderizzati nel DOM.
+// CRITICO: non chiama renderChatList → evita ricorsione SYNC con selectChat→markChatRead→renderChatList
+// (che su desktop richiama selectChat con skipListRefresh=true → markChatRead → infinite loop).
+function _renderChatBadges() {
+  try {
+    const items = document.querySelectorAll('#chatList .ci[data-chatid]');
+    items.forEach(item => {
+      const cid = item.getAttribute('data-chatid');
+      const n = Number(_chatUnreadByChatId[cid] || 0);
+      const existing = item.querySelector('.ci-un');
+      if (n > 0) {
+        item.classList.add('has-unread');
+        if (existing) { existing.textContent = String(n); }
+        else {
+          const bottom = item.querySelector('.ci-bottom');
+          if (bottom) {
+            const span = document.createElement('span');
+            span.className = 'ci-un';
+            span.textContent = String(n);
+            bottom.appendChild(span);
+          }
+        }
+      } else {
+        item.classList.remove('has-unread');
+        if (existing) existing.remove();
+      }
+    });
+  } catch (_) {}
+}
+
 // Marca chat letta server-side (POST /chat/:chatId/read).
-// Aggiorna anche chatLastSeen nel blob per backward-compat (codice legacy potrebbe leggerlo),
-// ma il source of truth dei badge è ora MySQL.
+// Aggiorna anche chatLastSeen nel blob per backward-compat. Il source of truth dei badge è MySQL.
+// NIENTE renderChatList qui dentro (ricorsione con selectChat); aggiornamento DOM mirato via _renderChatBadges.
 async function markChatRead(user, chatId) {
   if (!user || !chatId) return;
-  // Aggiornamento ottimistico locale: badge a 0 subito.
+  // Optimistic local: badge a 0 subito.
   _chatUnreadByChatId[chatId] = 0;
   if (!chatLastSeen[user.id]) chatLastSeen[user.id] = {};
   chatLastSeen[user.id][chatId] = Date.now();
-  if (typeof renderChatList === 'function') renderChatList();
+  _renderChatBadges();
   if (typeof refreshChatBadges === 'function') refreshChatBadges();
   if (!_ensureV2Token()) return;
   try {
@@ -25144,7 +25174,8 @@ async function markChatRead(user, chatId) {
 }
 
 // Carica i conteggi non-letti per tutte le chat dell'utente da MySQL.
-// Debounced: max 1 fetch ogni 1.5s per evitare spam durante interazioni rapide.
+// Debounced: max 1 fetch ogni 1.5s per evitare spam.
+// NIENTE renderChatList qui (stessa logica anti-ricorsione): aggiornamento DOM mirato via _renderChatBadges.
 async function _loadChatUnreadCounts(opts) {
   if (!me) return;
   if (!_ensureV2Token()) return;
@@ -25167,7 +25198,7 @@ async function _loadChatUnreadCounts(opts) {
     const data = await r.json();
     if (!data || typeof data !== 'object') return;
     _chatUnreadByChatId = data;
-    if (typeof renderChatList === 'function') renderChatList();
+    _renderChatBadges();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
   } catch (e) {
     console.warn('[chat] _loadChatUnreadCounts error', e && e.message);
