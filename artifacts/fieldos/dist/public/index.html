@@ -3641,7 +3641,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-05-29.27</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.01</span></div>
       </div>
 
     </main>
@@ -21748,7 +21748,11 @@ function renderPartite() {
   // Leva tabs
   const ltEl = document.getElementById('ptLevaTabs');
   if (ltEl) {
-    const visLeve = (me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente')) ? leve : (userLeve().length ? userLeve() : leve);
+    // SCOPING leva: admin/mister_admin → tutte; staff non-admin (allenatore/dirigente/preparatore)
+    // → solo le proprie via userLeve() (che gestisce 'Tutte' → leve.slice()).
+    // Fallback: se userLeve è vuoto (utente senza leva assegnata), mostra tutto per evitare schermata vuota.
+    const _mineP = (me && !isAdminLike()) ? userLeve() : null;
+    const visLeve = isAdminLike() ? leve : (_mineP && _mineP.length ? _mineP : leve);
     if (visLeve.length > 1) {
       ltEl.innerHTML = '<div class="leva-tabs">' + visLeve.map(l =>
         `<button class="lt${l===currentLeva?' on':''}" onclick="switchLeva('${escapeHtml(l)}')">${escapeHtml(l)}</button>`
@@ -22081,7 +22085,8 @@ function renderGestComp() {
   // Leva tabs
   const ltEl = document.getElementById('gcLevaTabs');
   if (ltEl) {
-    const vis = (me && (me.role==='admin'||me.role==='allenatore'||me.role==='dirigente')) ? leve : userLeve();
+    // SCOPING leva (vedi nota in renderPartite + getPtVirtualEvents): admin tutto, gli altri solo userLeve().
+    const vis = isAdminLike() ? leve : userLeve();
     ltEl.innerHTML = vis.length > 1 ? '<div class="leva-tabs">' + vis.map(l =>
       `<button class="lt${l===currentLeva?' on':''}" onclick="switchLeva('${escapeHtml(l)}')">${escapeHtml(l)}</button>`
     ).join('') + '</div>' : '';
@@ -23469,7 +23474,11 @@ function getPtVirtualEvents(dateStr) {
   const family = isFamily();
   leve.forEach(lv => {
     if (calFilterLeva !== '__all' && calFilterLeva !== lv) return;
-    const canSee = me.role==='admin'||me.role==='allenatore'||me.role==='dirigente' || userLeve().includes(lv);
+    // SCOPING leva (admin sempre tutto; staff non-admin: solo la/e leva assegnata/e via userLeve()).
+    // Prima qui c'era me.role==='allenatore'||me.role==='dirigente' che bypassava il filtro:
+    // un dirigente di U11 vedeva virtual events (campionato/torneo/amichevoli) di TUTTE le leve.
+    // userLeve() restituisce l'array delle leve assegnate (gestisce 'Tutte' → leve.slice()).
+    const canSee = isAdminLike() || userLeve().includes(lv);
     if (!canSee) return;
     const polis = polisName(lv);
     amichevoli.filter(m=>m.leva===lv&&m.data===dateStr).forEach(m => {
