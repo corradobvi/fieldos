@@ -78791,6 +78791,15 @@ ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
+CREATE TABLE IF NOT EXISTS chat_reads (
+  user_id              INT NOT NULL,
+  society_id           INT NOT NULL,
+  chat_id              VARCHAR(100) NOT NULL,
+  last_read_message_id INT NOT NULL DEFAULT 0,
+  updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, society_id, chat_id),
+  INDEX idx_chat_reads_user (user_id, society_id)
+);
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,
@@ -87339,6 +87348,66 @@ router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     });
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, errno: e?.errno, chatId, societyId, userId }, "POST chat message error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+router19.post("/chat/:chatId/read", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  try {
+    const [mx] = await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    );
+    const maxId = Number(mx[0]?.max_id || 0);
+    await pool.query(
+      `INSERT INTO chat_reads (user_id, society_id, chat_id, last_read_message_id)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE last_read_message_id = GREATEST(last_read_message_id, VALUES(last_read_message_id))`,
+      [userId, societyId, chatId, maxId]
+    );
+    return res.json({ ok: true, last_read_message_id: maxId });
+  } catch (e) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat read error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+router19.post("/chat/unread", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const body = req.body;
+  const raw = Array.isArray(body?.chatIds) ? body.chatIds : [];
+  const seen = /* @__PURE__ */ new Set();
+  const chatIds = [];
+  for (const v of raw) {
+    if (typeof v === "string" && v.length > 0 && v.length <= 100 && !seen.has(v)) {
+      seen.add(v);
+      chatIds.push(v);
+      if (chatIds.length >= 200) break;
+    }
+  }
+  const out = {};
+  for (const id of chatIds) out[id] = 0;
+  if (!chatIds.length) return res.json(out);
+  try {
+    const placeholders = chatIds.map(() => "?").join(",");
+    const [rows] = await pool.query(
+      `SELECT m.chat_id, COUNT(*) AS unread
+         FROM chat_messages m
+         LEFT JOIN chat_reads r
+                ON r.user_id = ? AND r.society_id = m.society_id AND r.chat_id = m.chat_id
+        WHERE m.society_id = ?
+          AND m.chat_id IN (${placeholders})
+          AND m.autore_id <> ?
+          AND m.id > COALESCE(r.last_read_message_id, 0)
+        GROUP BY m.chat_id`,
+      [userId, societyId, ...chatIds, userId]
+    );
+    for (const r of rows) {
+      out[String(r.chat_id)] = Number(r.unread || 0);
+    }
+    return res.json(out);
+  } catch (e) {
+    logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });

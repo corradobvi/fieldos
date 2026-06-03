@@ -288,6 +288,15 @@ ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
+CREATE TABLE IF NOT EXISTS chat_reads (
+  user_id              INT NOT NULL,
+  society_id           INT NOT NULL,
+  chat_id              VARCHAR(100) NOT NULL,
+  last_read_message_id INT NOT NULL DEFAULT 0,
+  updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, society_id, chat_id),
+  INDEX idx_chat_reads_user (user_id, society_id)
+);
 ALTER TABLE sessioni_libreria MODIFY COLUMN eta_leva ENUM('primi_calci','pulcini','esordienti','giovanissimi','allievi','juniores') NOT NULL;
 CREATE TABLE IF NOT EXISTS user_notification_preferences (
   user_id INT PRIMARY KEY,

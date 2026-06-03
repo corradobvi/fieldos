@@ -25098,16 +25098,24 @@ function _ensureChatMsgsPoll() {
   if (window._chatMsgsPollInterval) return;
   window._chatMsgsPollInterval = setInterval(() => {
     if (typeof document !== 'undefined' && document.hidden) return;
-    if (!currentChatId) return;
     if (!_ensureV2Token()) return;
-    _loadChatMessages(currentChatId);
+    // Polling messaggi solo se c'è una chat aperta.
+    if (currentChatId) _loadChatMessages(currentChatId);
+    // Polling badge non-letti: gira anche senza chat aperta (lista chat visibile).
+    _loadChatUnreadCounts({ force: false });
   }, 4000);
 }
 
+// Conteggi non-letti per ogni chat — source of truth = MySQL (chat_reads + chat_messages).
+// Popolato da _loadChatUnreadCounts che chiama POST /api/v2/chat/unread con la lista dei propri chatId.
+let _chatUnreadByChatId = {};
+let _chatUnreadFetchInFlight = false;
+let _chatUnreadLastFetch = 0;
+
 function chatUnreadCount(user, chatId) {
   if (!user) return 0;
-  const seen = (chatLastSeen[user.id] && chatLastSeen[user.id][chatId]) || 0;
-  return (_chatMessagesByChatId[chatId] || []).filter(m => m.userId !== user.id && (m.ts||0) > seen && !m._pending).length;
+  const n = Number(_chatUnreadByChatId[chatId] || 0);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function chatTotalUnread(user) {
@@ -25115,10 +25123,57 @@ function chatTotalUnread(user) {
   return getChatsForUser(user).reduce((sum, c) => sum + chatUnreadCount(user, c.id), 0);
 }
 
-function markChatRead(user, chatId) {
-  if (!user) return;
+// Marca chat letta server-side (POST /chat/:chatId/read).
+// Aggiorna anche chatLastSeen nel blob per backward-compat (codice legacy potrebbe leggerlo),
+// ma il source of truth dei badge è ora MySQL.
+async function markChatRead(user, chatId) {
+  if (!user || !chatId) return;
+  // Aggiornamento ottimistico locale: badge a 0 subito.
+  _chatUnreadByChatId[chatId] = 0;
   if (!chatLastSeen[user.id]) chatLastSeen[user.id] = {};
   chatLastSeen[user.id][chatId] = Date.now();
+  if (typeof renderChatList === 'function') renderChatList();
+  if (typeof refreshChatBadges === 'function') refreshChatBadges();
+  if (!_ensureV2Token()) return;
+  try {
+    await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/read', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' }
+    });
+  } catch (_) { /* network: la prossima _loadChatUnreadCounts riallinea */ }
+}
+
+// Carica i conteggi non-letti per tutte le chat dell'utente da MySQL.
+// Debounced: max 1 fetch ogni 1.5s per evitare spam durante interazioni rapide.
+async function _loadChatUnreadCounts(opts) {
+  if (!me) return;
+  if (!_ensureV2Token()) return;
+  const force = opts && opts.force;
+  const now = Date.now();
+  if (!force && (now - _chatUnreadLastFetch) < 1500) return;
+  if (_chatUnreadFetchInFlight) return;
+  _chatUnreadFetchInFlight = true;
+  _chatUnreadLastFetch = now;
+  try {
+    const chats = (typeof getChatsForUser === 'function') ? getChatsForUser(me) : [];
+    const chatIds = chats.map(c => c.id).filter(Boolean);
+    if (!chatIds.length) { _chatUnreadByChatId = {}; return; }
+    const r = await fetch(API_BASE + '/api/v2/chat/unread', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatIds })
+    });
+    if (!r.ok) { console.warn('[chat] POST /chat/unread HTTP', r.status); return; }
+    const data = await r.json();
+    if (!data || typeof data !== 'object') return;
+    _chatUnreadByChatId = data;
+    if (typeof renderChatList === 'function') renderChatList();
+    if (typeof refreshChatBadges === 'function') refreshChatBadges();
+  } catch (e) {
+    console.warn('[chat] _loadChatUnreadCounts error', e && e.message);
+  } finally {
+    _chatUnreadFetchInFlight = false;
+  }
 }
 
 function fmtChatTime(ts) {
@@ -25138,6 +25193,9 @@ function renderChatList() {
   const panel = document.getElementById('chatPanel');
   const empty = document.getElementById('chatEmpty');
   if (!container || !me) return;
+  // Kick-off async: aggiorna conteggi non-letti dal server (debounced internamente).
+  // Re-renderizza la lista al ritorno per applicare i badge senza far flicker il primo paint.
+  if (typeof _loadChatUnreadCounts === 'function') _loadChatUnreadCounts();
   const btnNew = document.getElementById('btnNewChat');
   if (btnNew) btnNew.style.display = (me && ['admin','allenatore','dirigente','preparatore_portieri'].includes(me.role)) ? '' : 'none';
   const chats = getChatsForUser(me);
@@ -30711,8 +30769,9 @@ async function doRejoinSocieta() {
         console.warn('[apiPush] 412 stale_base_version', key, 'retry', _412Retries + 1, '/', _412MaxRetries);
         let parsed = null;
         try { parsed = await r.clone().json(); } catch (_) {}
-        // ── DEBUG TEMPORANEO: toast diagnostico (mantenuto) ─────────
-        try { toast && toast('SAVE 412 — ' + ((parsed && parsed.error) || 'stale_base_version') + ' [apiPush]'); } catch (_) {}
+        // 412 retry intermedio NON è perdita dati (messaggi+letti vivono nel DB ora):
+        // silenzio il toast diagnostico. Il toast resta solo nel fallback finale
+        // (_handleStaleConflict mostra "Dati cambiati sul server, ricarico…").
         if (parsed && typeof parsed.server_version === 'number') {
           _serverVersion = parsed.server_version;
         }
@@ -31170,11 +31229,8 @@ async function doRejoinSocieta() {
     if (resp.status === 412) {
       // STALE: non distruggere il lavoro altrui. Backup locale + pull + ricarica (toast UX onesto).
       console.warn('[__fieldosSyncToCloud] 412 stale_base_version');
-      // ── DEBUG TEMPORANEO: toast diagnostico ──────────────────────────────
-      try {
-        const _j412 = await resp.clone().json().catch(function(){ return null; });
-        try { toast && toast('SAVE 412 — ' + ((_j412 && _j412.error) || 'stale_base_version') + ' [syncToCloud]'); } catch(_) {}
-      } catch(_) {}
+      // 412 NON è perdita dati per chat (messaggi+letti vivono nel DB). Silenzio il toast
+      // diagnostico; _handleStaleConflict mostrerà il toast UX onesto se serve.
       _handleStaleConflict(KEY);
       return resp; // resp.ok=false → caller skippa notifica e mostra "non salvato"
     }

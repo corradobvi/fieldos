@@ -518,4 +518,74 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/v2/chat/:chatId/read
+// Marca la chat come letta per l'utente autenticato fino all'ultimo messaggio attuale.
+// Idempotente: UPSERT con GREATEST per evitare regressioni in caso di race condition.
+router.post("/chat/:chatId/read", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  try {
+    const [mx] = (await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    )) as [any[], any];
+    const maxId = Number(mx[0]?.max_id || 0);
+    await pool.query(
+      `INSERT INTO chat_reads (user_id, society_id, chat_id, last_read_message_id)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE last_read_message_id = GREATEST(last_read_message_id, VALUES(last_read_message_id))`,
+      [userId, societyId, chatId, maxId]
+    );
+    return res.json({ ok: true, last_read_message_id: maxId });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat read error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// POST /api/v2/chat/unread
+// Body: { chatIds: string[] } — lista di chat di interesse del FE (da getChatsForUser).
+// Risposta: { [chatId]: count } per ciascuna chat richiesta.
+// Conteggio: chat_messages.id > chat_reads.last_read_message_id (0 se mai letto) AND autore_id != userId.
+router.post("/chat/unread", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const body = req.body as { chatIds?: unknown };
+  const raw = Array.isArray(body?.chatIds) ? body!.chatIds! : [];
+  // Sanifica + dedupe + limita
+  const seen = new Set<string>();
+  const chatIds: string[] = [];
+  for (const v of raw) {
+    if (typeof v === "string" && v.length > 0 && v.length <= 100 && !seen.has(v)) {
+      seen.add(v);
+      chatIds.push(v);
+      if (chatIds.length >= 200) break;
+    }
+  }
+  const out: Record<string, number> = {};
+  for (const id of chatIds) out[id] = 0;
+  if (!chatIds.length) return res.json(out);
+  try {
+    const placeholders = chatIds.map(() => "?").join(",");
+    const [rows] = (await pool.query(
+      `SELECT m.chat_id, COUNT(*) AS unread
+         FROM chat_messages m
+         LEFT JOIN chat_reads r
+                ON r.user_id = ? AND r.society_id = m.society_id AND r.chat_id = m.chat_id
+        WHERE m.society_id = ?
+          AND m.chat_id IN (${placeholders})
+          AND m.autore_id <> ?
+          AND m.id > COALESCE(r.last_read_message_id, 0)
+        GROUP BY m.chat_id`,
+      [userId, societyId, ...chatIds, userId]
+    )) as [any[], any];
+    for (const r of (rows as any[])) {
+      out[String(r.chat_id)] = Number(r.unread || 0);
+    }
+    return res.json(out);
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
 export default router;
