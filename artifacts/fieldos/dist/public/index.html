@@ -25029,6 +25029,8 @@ function chatMsgsFor(chatId) {
 }
 
 // Trasforma riga server (GET /chat/:chatId/messages) in shape FE coerente con il vecchio chatMessaggi[].
+// PRESERVA autore_nome/cognome/ruolo come fallback per renderChatMessages quando USERS_DB
+// locale è stale e l'autore non è ancora propagato nel blob (società grandi, nuovi membri).
 function _chatRowToMsg(row, chatId) {
   const ts = row.created_at ? Date.parse(row.created_at) : Date.now();
   return {
@@ -25038,6 +25040,9 @@ function _chatRowToMsg(row, chatId) {
     text: row.testo || '',
     photo: row.foto_url || undefined,
     ts: Number.isFinite(ts) ? ts : Date.now(),
+    _authorName: row.autore_nome || null,
+    _authorCogn: row.autore_cognome || null,
+    _authorRole: row.autore_ruolo || null,
     _serverConfirmed: true
   };
 }
@@ -25233,14 +25238,36 @@ function selectChat(chatId, skipListRefresh) {
   }
   renderChatMessages();
   refreshChatBadges();
-  // Mobile: la conversazione passa in modalità full-screen (overlay sopra header+nav).
+  // Mobile (≤640): la conversazione passa in modalità full-screen (overlay sopra header+nav).
   // L'altezza segue visualViewport (top + height inline) per ancorare l'input
   // esattamente sopra la tastiera iOS, senza barra bianca scollata.
-  const wrap = document.getElementById('chatWrap');
-  if (wrap) wrap.classList.add('chat-panel-open');
-  const _pgChat = document.getElementById('pg-chat');
-  if (_pgChat) _pgChat.classList.add('chat-panel-open');
-  _chatPanelVvSetup();
+  // Desktop (>640): NO chat-panel-open (CSS della classe è solo dentro @media(max-width:640px))
+  // e NO _chatPanelVvSetup: setterebbe inline width=viewportWidth su pg-chat, forzandolo a essere
+  // largo come tutto lo schermo dentro .main (che è già ridotto dal sidebar) → overflow a destra.
+  if (window.innerWidth <= 640) {
+    const wrap = document.getElementById('chatWrap');
+    if (wrap) wrap.classList.add('chat-panel-open');
+    const _pgChat = document.getElementById('pg-chat');
+    if (_pgChat) _pgChat.classList.add('chat-panel-open');
+    _chatPanelVvSetup();
+  } else {
+    // Desktop: cleanup difensivo di eventuali inline styles stale lasciati da
+    // un'esecuzione precedente di _chatPanelVvSetup (es. utente che ha resizato la finestra
+    // da mobile a desktop senza navigare). Senza questo cleanup width/top inline
+    // sopravvivono e causano overflow a destra.
+    const _pgChat = document.getElementById('pg-chat');
+    if (_pgChat) {
+      _pgChat.style.top = '';
+      _pgChat.style.height = '';
+      _pgChat.style.bottom = '';
+      _pgChat.style.width = '';
+      _pgChat.style.left = '';
+      _pgChat.style.right = '';
+      _pgChat.classList.remove('chat-panel-open');
+    }
+    const _wrap = document.getElementById('chatWrap');
+    if (_wrap) _wrap.classList.remove('chat-panel-open');
+  }
   // Scroll all'ultimo messaggio dopo che il layout fullscreen è applicato.
   setTimeout(() => {
     const _msgs = document.getElementById('chatMsgs');
@@ -25369,11 +25396,24 @@ function renderChatMessages() {
       </div>`;
     }
     const m = item;
-    const u = USERS_DB.find(x => x.id === m.userId);
-    const isMe = m.userId === me.id;
+    // Lookup user: prima nel blob locale (USERS_DB); se non trovato, fallback a un user "virtuale"
+    // costruito dai campi server (autore_nome/cognome/ruolo via LEFT JOIN della GET messages).
+    // Questo evita "Utente/??" quando il blob non è ancora sync con MySQL (nuovi membri, blob stale).
+    let u = USERS_DB.find(x => x.id === m.userId);
+    if (!u && (m._authorName || m._authorCogn)) {
+      u = { id: m.userId, nome: m._authorName || '', cogn: m._authorCogn || '', role: m._authorRole || '' };
+    }
+    // isMe: confronto id-based; fallback per id-space mismatch tra blob locale e MySQL
+    // (può capitare per account riallineati da _reconcileUserRoles o registrazioni doppie).
+    // Confronto secondario su nome+cogn quando server ha fornito i campi autore.
+    const _meNome = (me && me.nome || '').toLowerCase().trim();
+    const _meCogn = (me && me.cogn || '').toLowerCase().trim();
+    const _aNome = (m._authorName || (u && u.nome) || '').toLowerCase().trim();
+    const _aCogn = (m._authorCogn || (u && u.cogn) || '').toLowerCase().trim();
+    const isMe = (m.userId === me.id) || (_meNome && _meCogn && _aNome === _meNome && _aCogn === _meCogn);
     const av = u ? ((u.nome[0]||'?')+(u.cogn[0]||'?')).toUpperCase() : '??';
     const color = u ? (ROLE_CFG[u.role] && ROLE_CFG[u.role].color || '#888') : '#888';
-    const senderName = u ? `${u.nome} ${u.cogn}` : 'Utente';
+    const senderName = u ? `${u.nome} ${u.cogn}`.trim() : 'Utente';
     const time = new Date(m.ts);
     const timeStr = String(time.getHours()).padStart(2,'0')+':'+String(time.getMinutes()).padStart(2,'0');
     let body;
