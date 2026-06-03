@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.13</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.14</span></div>
       </div>
 
     </main>
@@ -6900,14 +6900,58 @@ function renameLeva(oldName, newName) {
   events.forEach(e => { if (e.leve) e.leve = e.leve.map(l => l === oldName ? newName : l); });
   if (campionato[oldName]) { campionato[newName] = campionato[oldName]; delete campionato[oldName]; }
   (Array.isArray(tornei) ? tornei : []).forEach(t => { if (t.leva === oldName) t.leva = newName; });
-  USERS_DB.forEach(u => { if (u.leva === oldName) u.leva = newName; });
-  // TODO strutturale: questo aggiorna SOLO blob/USERS_DB; users.leva su MySQL resta
-  // sull'oldName. Risultato: chat staff_<newName> non trova destinatari nel resolver BE
-  // perche' SQL cerca leva=newName ma DB ha oldName. Workaround attivo nel BE:
-  // _levaMatchClause in chat.ts normalizza il prefix prima del separatore (' – ', ' - ',
-  // ' — ') su entrambi i lati. Per fix definitivo: ciclare USERS_DB qui e fare
-  // PATCH /api/v2/users/:id { leva: newName } per ogni utente con u.leva===oldName
-  // (gia' aggiornato in blob sopra). Stessa cosa per multi-leva con array.
+  // USERS_DB: gestisce sia single-leva (stringa) che multi-leva (array). Raccoglie
+  // gli utenti modificati per la propagazione MySQL sottostante.
+  const _renamePatchTargets = [];
+  USERS_DB.forEach(u => {
+    if (u.leva === oldName) {
+      u.leva = newName;
+      if (typeof u.id === 'number') _renamePatchTargets.push({ id: u.id, leva: newName });
+    } else if (Array.isArray(u.leva) && u.leva.includes(oldName)) {
+      u.leva = u.leva.map(l => l === oldName ? newName : l);
+      if (typeof u.id === 'number') _renamePatchTargets.push({ id: u.id, leva: u.leva.slice() });
+    }
+  });
+  // Propaga il rename a MySQL users.leva via PATCH /api/v2/users/:id.
+  // Senza questa propagazione il resolver chat (chat.ts _resolveChatRecipients)
+  // cercherebbe users.leva=newName ma il DB conterrebbe ancora oldName → niente
+  // destinatari per staff_<newName>/leva_<newName>/squadra_<newName>. Il BE ha
+  // anche un workaround SQL (_levaMatchClause normalizza il prefisso), ma la
+  // propagazione qui rende i dati DB coerenti col blob ed evita di affidarsi
+  // alla normalizzazione per tutti i flussi futuri.
+  // Fire-and-forget: errori loggati in console, NON bloccano la UI ne mostrano toast.
+  if (_renamePatchTargets.length && _v2Token) {
+    _renamePatchTargets.forEach(t => {
+      const _payload = Array.isArray(t.leva) ? JSON.stringify(t.leva) : t.leva;
+      fetch(API_BASE + '/api/v2/users/' + t.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ leva: _payload })
+      }).then(r => {
+        if (!r.ok) console.warn('[renameLeva] PATCH /users/' + t.id + ' HTTP ' + r.status);
+      }).catch(e => console.warn('[renameLeva] PATCH /users/' + t.id + ' err', e && e.message));
+    });
+  }
+  // Propaga anche il rename del record leve su MySQL (usato da events via FK leva_id).
+  // Senza, _calLeveMap (caricato da GET /api/v2/leve) avrebbe ancora oldName.
+  // Best-effort: cerco l'id via _calLeveMap; se mancante (rename prima del fetch
+  // iniziale di /leve), skip silenzioso. Il prossimo _loadCalEvents riallinea.
+  try {
+    const _leveId = (_calLeveMap && _calLeveMap[oldName]) || null;
+    if (_leveId && _v2Token) {
+      fetch(API_BASE + '/api/v2/leve/' + _leveId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ nome: newName })
+      }).then(r => {
+        if (!r.ok) console.warn('[renameLeva] PUT /leve/' + _leveId + ' HTTP ' + r.status);
+        else {
+          // Aggiorna _calLeveMap locale per non aspettare il prossimo _loadCalEvents.
+          try { _calLeveMap[newName] = _leveId; delete _calLeveMap[oldName]; } catch(_) {}
+        }
+      }).catch(e => console.warn('[renameLeva] PUT /leve/' + _leveId + ' err', e && e.message));
+    }
+  } catch(_) { /* best-effort */ }
   if (currentLeva === oldName) { currentLeva = newName; document.getElementById('tbLeva').textContent = newName; }
   closeM('mLeva');
   renderSbLeve();
