@@ -566,12 +566,16 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
       if (chatIds.length >= 200) break;
     }
   }
-  const out: Record<string, number> = {};
-  for (const id of chatIds) out[id] = 0;
-  if (!chatIds.length) return res.json(out);
+  // Risposta arricchita: counts (non-letti) + archived (chat attualmente archiviate).
+  // Backward-compat: il vecchio shape era `{ [chatId]: count }`. Per evitare regressioni client,
+  // mantengo entrambe le rappresentazioni: il body include `counts` E i campi piatti per ciascun chatId.
+  const counts: Record<string, number> = {};
+  for (const id of chatIds) counts[id] = 0;
+  const archived: string[] = [];
+  if (!chatIds.length) return res.json({ counts, archived, ...counts });
   try {
     const placeholders = chatIds.map(() => "?").join(",");
-    const [rows] = (await pool.query(
+    const [unreadRows] = (await pool.query(
       `SELECT m.chat_id, COUNT(*) AS unread
          FROM chat_messages m
          LEFT JOIN chat_reads r
@@ -583,12 +587,72 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
         GROUP BY m.chat_id`,
       [userId, societyId, ...chatIds, userId]
     )) as [any[], any];
-    for (const r of (rows as any[])) {
-      out[String(r.chat_id)] = Number(r.unread || 0);
+    for (const r of (unreadRows as any[])) {
+      counts[String(r.chat_id)] = Number(r.unread || 0);
     }
-    return res.json(out);
+    // Archiviate: record presente E nessun messaggio più nuovo di archived_at_message_id.
+    // Se arriva un nuovo messaggio dopo l'archiviazione → max_id > archived_at → la chat NON
+    // è più archiviata (auto-unarchive: torna in lista principale).
+    const [archRows] = (await pool.query(
+      `SELECT a.chat_id
+         FROM chat_archives a
+         LEFT JOIN (
+           SELECT chat_id, MAX(id) AS max_id
+             FROM chat_messages
+            WHERE society_id = ? AND chat_id IN (${placeholders})
+            GROUP BY chat_id
+         ) m ON m.chat_id = a.chat_id
+        WHERE a.user_id = ? AND a.society_id = ?
+          AND a.chat_id IN (${placeholders})
+          AND COALESCE(m.max_id, 0) <= a.archived_at_message_id`,
+      [societyId, ...chatIds, userId, societyId, ...chatIds]
+    )) as [any[], any];
+    for (const r of (archRows as any[])) {
+      archived.push(String(r.chat_id));
+    }
+    return res.json({ counts, archived, ...counts });
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// POST /api/v2/chat/:chatId/archive — archivia per-utente.
+// Record con archived_at_message_id = MAX(id) corrente. Idempotente (REPLACE).
+router.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  try {
+    const [mx] = (await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    )) as [any[], any];
+    const maxId = Number(mx[0]?.max_id || 0);
+    await pool.query(
+      `INSERT INTO chat_archives (user_id, society_id, chat_id, archived_at_message_id)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE archived_at_message_id = VALUES(archived_at_message_id), archived_at = CURRENT_TIMESTAMP`,
+      [userId, societyId, chatId, maxId]
+    );
+    return res.json({ ok: true, archived_at_message_id: maxId });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat archive error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// POST /api/v2/chat/:chatId/unarchive — rimuove l'archiviazione manuale.
+router.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  try {
+    await pool.query(
+      "DELETE FROM chat_archives WHERE user_id = ? AND society_id = ? AND chat_id = ?",
+      [userId, societyId, chatId]
+    );
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat unarchive error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
