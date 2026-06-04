@@ -303,7 +303,7 @@ router.get("/schema-info", async (_req, res) => {
 // disponibile come RAILWAY_GIT_COMMIT_SHA. Nessun secret esposto.
 router.get("/_bundle-info", (_req, res) => {
   return res.json({
-    bundle: "2026-06-04-v23-force-redeploy",
+    bundle: "2026-06-04-v24-stable",
     commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
     gitBranch: process.env.RAILWAY_GIT_BRANCH || null,
     deploymentId: process.env.RAILWAY_DEPLOYMENT_ID || null,

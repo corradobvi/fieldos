@@ -95145,7 +95145,7 @@ router43.get("/schema-info", async (_req, res) => {
 });
 router43.get("/_bundle-info", (_req, res) => {
   return res.json({
-    bundle: "2026-06-04-v23-force-redeploy",
+    bundle: "2026-06-04-v24-stable",
     commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
     gitBranch: process.env.RAILWAY_GIT_BRANCH || null,
     deploymentId: process.env.RAILWAY_DEPLOYMENT_ID || null,
@@ -95285,7 +95285,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-06-04-v23-force-redeploy" }, "Server listening");
+    logger.info({ port, bundle: "2026-06-04-v24-stable" }, "Server listening");
   });
 }
 async function ensureSchema2() {
