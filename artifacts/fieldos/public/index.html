@@ -13610,16 +13610,24 @@ function srShowStep(n){
 
 function srBackStep(n){ srShowStep(n); }
 
-// Indietro da step 2: se ho passato per step1b (più leve), torno lì; altrimenti torno a step 1
+// Indietro da step 2: 1b è ora sempre mostrato quando ci sono leve attive,
+// quindi tornare a 1b se la sorgente leve (blob `leve` o player legacy) è
+// non vuota; altrimenti fallback a step 1.
 function srStep2Back() {
-  const uniqueLeve = [...new Set((_srApiPlayers||[]).map(p => p.levaKey).filter(Boolean))];
-  if (uniqueLeve.length > 1) {
-    // Reset filtro e torna a scelta leva
+  const hasAnyLeva = (Array.isArray(leve) && leve.length > 0)
+    || (_srApiPlayers || []).some(p => p.levaKey);
+  if (hasAnyLeva) {
+    // Reset filtro e torna a scelta leva. Riusa la stessa sorgente usata in
+    // srNextStep1: blob `leve` (autorevoli, no orfane), fallback ai player.
     _srSelectedLeva = '';
     _srFilteredPlayers = null;
     _selfRegSelectedIds = [];
+    const activeLeve = (Array.isArray(leve) && leve.length)
+      ? leve.slice()
+      : [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))];
+    activeLeve.sort();
     srShowStep('1b');
-    renderSrLevaList(uniqueLeve);
+    renderSrLevaList(activeLeve);
   } else {
     srShowStep(1);
   }
@@ -13634,10 +13642,16 @@ function renderSrLevaList(leveDisponibili) {
   ).join('');
 }
 
+// Confronto leva tollerante: ammette differenze di whitespace e case fra il
+// nome leva nel blob (variabile `leve`) e p.levaKey lato API. Evita falsi
+// negativi del filtro quando il nome è stato editato/rinominato (es. " U11 "
+// vs "U11", "u11" vs "U11").
+const _srNormLeva = s => (s == null ? '' : String(s)).trim().replace(/\s+/g, ' ').toLowerCase();
+
 // Selezione leva → filtra _srApiPlayers e vai a step 2
 function srSelectLeva(levaKey) {
   _srSelectedLeva = levaKey;
-  _srFilteredPlayers = (_srApiPlayers || []).filter(p => p.levaKey === levaKey);
+  _srFilteredPlayers = (_srApiPlayers || []).filter(p => _srNormLeva(p.levaKey) === _srNormLeva(levaKey));
   _selfRegSelectedIds = [];
   const badge = document.getElementById('srStep2LevaBadge');
   if (badge) {
@@ -13746,20 +13760,23 @@ async function srNextStep1(){
     await srLoadApiPlayers(v);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
 
-    // Ricava leve disponibili
-    const leveDisponibili = [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))].sort();
-    if (leveDisponibili.length > 1) {
-      // Più leve → mostra step1b per scelta
-      renderSrLevaList(leveDisponibili);
+    // Leve ATTIVE = variabile globale `leve` (popolata da restoreState dopo
+    // __fieldosSetSocietaKey). Fallback ai player solo se `leve` è vuoto/non
+    // disponibile (società appena caricata, stato non sincronizzato).
+    // Cosi' leve orfane (eliminate ma ancora presenti nei player.levaKey legacy)
+    // NON compaiono nel selettore.
+    const activeLeve = (Array.isArray(leve) && leve.length)
+      ? leve.slice()
+      : [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))];
+    activeLeve.sort();
+    if (activeLeve.length >= 1) {
+      // Step 1b SEMPRE mostrato (anche con 1 sola leva): leva = prima scelta esplicita.
+      renderSrLevaList(activeLeve);
       srShowStep('1b');
-    } else if (leveDisponibili.length === 1) {
-      // 1 sola leva → preseleziona e vai a step 2
-      _srSelectedLeva = leveDisponibili[0];
-      _srFilteredPlayers = _srApiPlayers.filter(p => p.levaKey === _srSelectedLeva);
-      srShowStep(2);
-      renderSrRoster();
     } else {
-      // Nessuna leva nei giocatori (o nessun giocatore API) → vai a step 2 senza filtro
+      // Fallback di sicurezza: 0 leve attive → step 2 senza filtro.
+      _srSelectedLeva = '';
+      _srFilteredPlayers = null;
       srShowStep(2);
       renderSrRoster();
     }
@@ -14037,7 +14054,7 @@ function renderSrRoster(){
   // Aggiungi anche blob players, filtrati per leva selezionata se presente
   players.forEach(p => {
     if (apiByMyId.has(p.id)) return; // dedup: già in API list
-    if (_srSelectedLeva && p.leva !== _srSelectedLeva) return; // filtro leva
+    if (_srSelectedLeva && _srNormLeva(p.leva) !== _srNormLeva(_srSelectedLeva)) return; // filtro leva (tollerante)
     list.push({
       displayId:   p.id,
       displayName: (p.nome || '') + ' ' + (p.cogn || p.cogn_iniziale || ''),
