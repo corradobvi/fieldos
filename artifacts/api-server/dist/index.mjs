@@ -95272,7 +95272,7 @@ function startListening() {
       logger.error({ err }, "Error listening on port");
       process.exit(1);
     }
-    logger.info({ port, bundle: "2026-05-23-v21-phone-required" }, "Server listening");
+    logger.info({ port, bundle: "2026-06-04-v22-push-resolver" }, "Server listening");
   });
 }
 async function ensureSchema2() {
