@@ -95143,6 +95143,17 @@ router43.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
+router43.get("/_bundle-info", (_req, res) => {
+  return res.json({
+    bundle: "2026-06-04-v23-force-redeploy",
+    commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
+    gitBranch: process.env.RAILWAY_GIT_BRANCH || null,
+    deploymentId: process.env.RAILWAY_DEPLOYMENT_ID || null,
+    nodeVersion: process.version,
+    uptimeSec: Math.round(process.uptime()),
+    startedAt: new Date(Date.now() - process.uptime() * 1e3).toISOString()
+  });
+});
 router43.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {

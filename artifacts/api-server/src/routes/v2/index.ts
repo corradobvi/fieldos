@@ -297,6 +297,22 @@ router.get("/schema-info", async (_req, res) => {
 });
 
 
+// GET /api/v2/_bundle-info — diagnostic: ritorna il marker del bundle in esecuzione.
+// Serve per verificare via HTTP se Railway sta servendo il commit pushato o un'immagine
+// cached. Marker hardcoded in src/index.ts:1 e bumpato a ogni release; commit SHA
+// disponibile come RAILWAY_GIT_COMMIT_SHA. Nessun secret esposto.
+router.get("/_bundle-info", (_req, res) => {
+  return res.json({
+    bundle: "2026-06-04-v23-force-redeploy",
+    commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
+    gitBranch: process.env.RAILWAY_GIT_BRANCH || null,
+    deploymentId: process.env.RAILWAY_DEPLOYMENT_ID || null,
+    nodeVersion: process.version,
+    uptimeSec: Math.round(process.uptime()),
+    startedAt: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+  });
+});
+
 // GET /api/v2/health/ai-key — diagnostic: verifica presenza ANTHROPIC_API_KEY senza esporla
 router.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
