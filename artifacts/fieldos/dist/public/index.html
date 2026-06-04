@@ -3649,7 +3649,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <div class="page" id="pg-profilo">
         <div class="sec-h"><div class="sec-t" id="profiloPageTitle">👤 Il mio profilo</div></div>
         <div id="profiloContent"></div>
-        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-03.15</span></div>
+        <div id="mvVersionBadge" style="text-align:center;font-size:.7rem;color:var(--text3);padding:22px 8px 8px;letter-spacing:.5px;line-height:1.5;">MyVivaio v<span id="mvVersionTxt">2026-06-04.02</span></div>
       </div>
 
     </main>
@@ -24989,11 +24989,19 @@ function getChatsForUser(user) {
   if (Array.isArray(tornei)) {
     tornei.forEach(t => {
       const convocatiSet = new Set(t.convocati || []);
+      // FIX A: riusa staffLeve() (array/'Tutte'/null) come negli altri branch.
+      // Il check === diretto escludeva i dirigenti multi-leva (u.leva array).
       const dirigenti = USERS_DB.filter(u =>
-        u.role === 'dirigente' && (!u.leva || u.leva === t.leva || u.leva === 'Tutte')
+        u.role === 'dirigente' && staffLeve(u).includes(t.leva)
       ).map(u => u.id);
       const genitoriConvocati = USERS_DB.filter(u => {
         if (u.role !== 'genitore' && u.role !== 'nonno') return false;
+        // FIX C: match per ID figlio quando disponibile (popolato da syncGuardianToBlob,
+        // minors.ts:572-580). Robusto contro rename/diacritici/cogn_iniziale. Fallback
+        // sul match per nome per blob legacy che ancora non ha figliIds.
+        if (Array.isArray(u.figliIds) && u.figliIds.length) {
+          return u.figliIds.some(id => convocatiSet.has(id));
+        }
         const figli = Array.isArray(u.figli) ? u.figli : (u.figlio ? [u.figlio] : []);
         return figli.some(f => {
           const p = players.find(pl => (pl.nome + ' ' + pl.cogn).toLowerCase() === String(f).toLowerCase());
@@ -25083,6 +25091,11 @@ function saveTorneoConvocati() {
   if (!t) return;
   t.convocati = Array.from(document.querySelectorAll('#tcPlayerList input[type=checkbox]:checked')).map(cb => parseInt(cb.value));
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
+  // FIX B: propaga i convocati anche a MySQL tornei.convocati (ON DUPLICATE KEY UPDATE
+  // idempotente). Senza, il prossimo _syncMatchFromMySQL (es. renderPartite poco sotto)
+  // azzera il campo nel blob con il null di MySQL → chat torneo perde i genitori.
+  // Stesso campo letto dal BE chat resolver (torneo_ branch) per le push.
+  try { _postTorneoUpsert(t); } catch(_) {}
   closeM('mTorneoConvocati');
   if (typeof renderChatList === 'function') renderChatList();
   renderGestComp(); renderPartite();
