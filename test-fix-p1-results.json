@@ -1,0 +1,462 @@
+{
+  "timestamp": "2026-06-04T05:32:20.668Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "51131849",
+  "socId": 60,
+  "counts": {
+    "PASS": 51,
+    "FAIL": 4,
+    "SKIP": 1
+  },
+  "elapsedSec": 8.8,
+  "results": [
+    {
+      "area": "SETUP",
+      "name": "Crea società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=60"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea leva U12",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=35 name=\"U12 QA 51131849\""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea leva U14",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=36 name=\"U14 QA 51131849\""
+    },
+    {
+      "area": "SETUP",
+      "name": "Player U12 under13",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=72"
+    },
+    {
+      "area": "SETUP",
+      "name": "Player U14 over13",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=73"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea mister (ruolo=mister)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=101 leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login mister",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=mister leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea allenatore (ruolo=allenatore)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=102 leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login allenatore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=allenatore leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea dirigente (ruolo=dirigente)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=103 leva=U12 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login dirigente",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=dirigente leva=U12 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea genitore (ruolo=genitore)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=104 leva=—"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login genitore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=genitore leva=null"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea giocatore (ruolo=giocatore)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=105 leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login giocatore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=giocatore leva=U14 QA 51131849"
+    },
+    {
+      "area": "SETUP",
+      "name": "Link genitore → player_u12 via /claim",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "guardianId=50"
+    },
+    {
+      "area": "FIX1",
+      "name": "Mister POST /events → 201 (prima 403)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=92"
+    },
+    {
+      "area": "FIX1",
+      "name": "Mister POST /presenze/bulk (sua leva) → 200 (prima 403)",
+      "expected": "200",
+      "got": "400",
+      "status": "FAIL",
+      "detail": "{\"error\":\"leva_required\"}"
+    },
+    {
+      "area": "FIX1",
+      "name": "POST convocazione (endpoint REST inesistente)",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Convocazioni vivono nel blob USERS_DB/FE; proxy REST = POST /events (vedi sopra)"
+    },
+    {
+      "area": "FIX1",
+      "name": "Mister GET /players?leva=<sua> → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=1"
+    },
+    {
+      "area": "FIX1",
+      "name": "Mister GET /players?leva=<altra> → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA RESIDUA (P2 noto): mister legge players di ogni leva (count=1)"
+    },
+    {
+      "area": "FIX1",
+      "name": "Mister GET /quote → 403 (invariato)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "FIX2",
+      "name": "Genitore GET /players → solo figlio",
+      "expected": "200 + [PLAYER_U12_ID]",
+      "got": "200 + [72]",
+      "status": "PASS",
+      "detail": "ownership attivo"
+    },
+    {
+      "area": "FIX2",
+      "name": "Giocatore GET /players → solo se stesso",
+      "expected": "200 + [PLAYER_U14_ID]",
+      "got": "200 + [73]",
+      "status": "PASS",
+      "detail": "match nome+cognome attivo"
+    },
+    {
+      "area": "FIX2",
+      "name": "Genitore GET /players/:altro → 403/404",
+      "expected": "403|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "404 anti-leak (preferibile a 403)"
+    },
+    {
+      "area": "FIX2",
+      "name": "Giocatore GET /players/:altro → 403/404",
+      "expected": "403|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "404 anti-leak"
+    },
+    {
+      "area": "FIX2",
+      "name": "Genitore GET /stats/player/:altro → 403/404",
+      "expected": "403|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "404 anti-leak"
+    },
+    {
+      "area": "FIX2",
+      "name": "Giocatore GET /stats/player/:altro → 403/404",
+      "expected": "403|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "404 anti-leak"
+    },
+    {
+      "area": "FIX2",
+      "name": "Genitore GET /stats/leva → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "FIX2",
+      "name": "Giocatore GET /stats/leva → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "FIX2",
+      "name": "Genitore GET /stats/player/:figlio → 200 (positive)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":72,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "area": "FIX2",
+      "name": "Giocatore GET /stats/player/:proprio → 200 (positive)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":73,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "area": "FIX3",
+      "name": "Genitore GET /chat/leva_U12 → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "FIX3",
+      "name": "Giocatore GET /chat/leva_U12 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "U12 = under13, giocatori non in leva chat"
+    },
+    {
+      "area": "FIX3",
+      "name": "Mister GET /chat/leva_U12 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "leva_<X> chat = dirigenti+genitori (mister escluso)"
+    },
+    {
+      "area": "FIX3",
+      "name": "Genitore POST /chat/leva_U12 → 200/201",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":44,\"chat_id\":\"leva_U12 QA 51131849\",\"autore_id\":104,\"testo\":\"Test genitore 51131849\",\"foto_url\":null,\"tipo\":null,\"meta\":null"
+    },
+    {
+      "area": "FIX3",
+      "name": "Giocatore POST /chat/leva_U12 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "FIX3",
+      "name": "Giocatore GET /chat/leva_U14 → 200 (spec)",
+      "expected": "200",
+      "got": "403",
+      "status": "FAIL",
+      "detail": "Spec attesa 200, ma resolver leva_<X> non include giocatori — usare squadra_<X>"
+    },
+    {
+      "area": "FIX3",
+      "name": "Giocatore GET /chat/squadra_U14 → 200 (codice)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "membership via match nome+cognome del giocatore con player in leva"
+    },
+    {
+      "area": "FIX3",
+      "name": "Mister GET /chat/leva_U14 → 200 (spec)",
+      "expected": "200",
+      "got": "403",
+      "status": "FAIL",
+      "detail": "Spec attesa 200, ma resolver leva_<X> esclude mister anche U14+ — usare squadra_<X>"
+    },
+    {
+      "area": "FIX3",
+      "name": "Mister GET /chat/squadra_U14 → 200 (codice)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "FIX3",
+      "name": "Mister GET /chat/staff_U14 → 200 (bonus)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "FIX3",
+      "name": "Genitore GET /chat/staff_U14 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "FIX3",
+      "name": "Admin GET /chat/<sconosciuto> → 403 (default-deny)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "event mister 92",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user giocatore 105",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user genitore 104",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user dirigente 103",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user allenatore 102",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user mister 101",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "player U12 72",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "player U14 73",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "leva U12 35",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "leva U14 36",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 60",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

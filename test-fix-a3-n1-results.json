@@ -1,0 +1,398 @@
+{
+  "timestamp": "2026-06-04T19:13:50.958Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "00420954",
+  "socId": 65,
+  "counts": {
+    "PASS": 46,
+    "FAIL": 1,
+    "SKIP": 1
+  },
+  "elapsedSec": 10,
+  "results": [
+    {
+      "area": "SETUP",
+      "name": "Crea società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=65"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea leva U12",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=45"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea leva U16",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=46"
+    },
+    {
+      "area": "SETUP",
+      "name": "Player U12 under13 (Luca Bianchi)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=83"
+    },
+    {
+      "area": "SETUP",
+      "name": "Player U16 over13 (Marco Rossi)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=84"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea mister (ruolo=mister)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=128"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login mister",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea dirigente (ruolo=dirigente)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=129"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login dirigente",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea genitore (ruolo=genitore)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=130"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login genitore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea giocatore (ruolo=giocatore)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=131"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login giocatore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Link genitore → player_u12",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "guardianId=56"
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea evento M2M (event_leve, events.leva NULL)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=97"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore GET /chat/leva_U12/polls → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore GET /chat/leva_U12/polls → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "U12 famiglie esclude giocatori"
+    },
+    {
+      "area": "A3",
+      "name": "Mister GET /chat/leva_U12/polls → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "U12 famiglie esclude mister"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore POST /chat/leva_U12/polls → 403 (gating ruolo)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"Solo admin/dirigenti possono creare sondaggi.\"}"
+    },
+    {
+      "area": "A3",
+      "name": "Admin POST /chat/leva_U12/polls → 200 (spec)",
+      "expected": "200|201",
+      "got": "403",
+      "status": "FAIL",
+      "detail": "Spec=200, codice=403: admin NON è membro di leva_<X> (chat famiglie per design)"
+    },
+    {
+      "area": "A3",
+      "name": "Dirigente POST /chat/leva_U12/polls → 201 (bonus, caller membro)",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=8"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore POST /chat/polls/:id/vote → 200 (membro)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":8,\"chatId\":\"leva_U12 QA 00420954\",\"question\":\"Quando alleniamo?\",\"createdAt\":\"2026-06-04T19:13:46.000Z\",\"createdBy\":129,\"cre"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore POST /chat/polls/:id/vote → 403 (non membro U12)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore POST /chat/leva_U12/read → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "spec scriveva GET, ma endpoint reale è POST"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore POST /chat/leva_U12/read → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore POST /chat/leva_U12/archive → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"archived_at_message_id\":56}"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore POST /chat/leva_U12/archive → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore POST /chat/leva_U12/unarchive → 200 (bonus)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore POST /chat/leva_U12/unarchive → 403 (bonus)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "area": "A3",
+      "name": "Giocatore GET /chat/squadra_U16/polls → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "U16 squadra include giocatori via match nome+cognome"
+    },
+    {
+      "area": "A3",
+      "name": "Mister POST /chat/squadra_U16/read → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"last_read_message_id\":0}"
+    },
+    {
+      "area": "A3",
+      "name": "Genitore GET /chat/squadra_U16/polls → 403 (bonus negative)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "squadra_<X> esclude genitori"
+    },
+    {
+      "area": "N1",
+      "name": "Dirigente POST /presenze/bulk (event_leve M2M) → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "resolver legge prima event_leve"
+    },
+    {
+      "area": "N1",
+      "name": "Mister POST /presenze/bulk (altra leva) → 403 leva_forbidden",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "resolver risolve la leva, requireLeva blocca correttamente"
+    },
+    {
+      "area": "N1",
+      "name": "Admin POST /presenze/bulk (event_leve M2M) → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"updated\":1}"
+    },
+    {
+      "area": "N1",
+      "name": "Dirigente POST /presenze (single, player.leva) → 200 (sanity check)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "N1",
+      "name": "Fallback events.leva legacy → 200 (eventi pre-migrazione)",
+      "expected": "200",
+      "got": "skip",
+      "status": "SKIP",
+      "detail": "Non riproducibile via API: POST /events non scrive events.leva. Verifica solo via UPDATE manuale o leggendo events legacy in DB."
+    },
+    {
+      "area": "CLEANUP",
+      "name": "event M2M 97",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user giocatore 131",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user genitore 130",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user dirigente 129",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user mister 128",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "player U12 83",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "player U16 84",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "leva U12 45",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "leva U16 46",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 65",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
