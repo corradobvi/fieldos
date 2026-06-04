@@ -348,16 +348,17 @@ async function _resolveChatRecipients(
       return includedIds;
     }
 
-    // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti della leva (o senza leva/Tutte)
+    // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti+mister della leva (o senza leva/Tutte)
     //    + genitori/nonni di giocatori della leva (via player_guardians).
-    //    NO mister/admin (matches FE: solo dirigente+genitore/nonno).
+    //    'mister' incluso per coerenza con staff_/squadra_/torneo_ e con getUsersForPush.
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
       const lc = _levaMatchClause(leva);
       const [dirRows] = (await pool.execute(
         `SELECT id FROM users
-          WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('dirigente','mister')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -411,7 +412,7 @@ async function _resolveChatRecipients(
       return Array.from(ids);
     }
 
-    // 4) Torneo chat: 'torneo_<id>' → dirigenti della leva + genitori/giocatori dei convocati.
+    // 4) Torneo chat: 'torneo_<id>' → dirigenti+mister della leva + genitori/giocatori dei convocati.
     const torneoMatch = chatId.match(/^torneo_(.+)$/);
     if (torneoMatch) {
       const torneoId = torneoMatch[1];
@@ -436,13 +437,14 @@ async function _resolveChatRecipients(
 
         const ids = new Set<number>();
 
-        // Dirigenti della leva (o Tutte). Vedi _levaMatchClause per il dettaglio
+        // Dirigenti+mister della leva (o Tutte). Vedi _levaMatchClause per il dettaglio
         // su prefix/multi-leva — copre i mismatch dopo renameLeva.
         if (leva) {
           const lc = _levaMatchClause(leva);
           const [dRows] = (await pool.execute(
             `SELECT id FROM users
-              WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+              WHERE society_id = ? AND stato = 'attivo'
+                AND ruolo IN ('dirigente','mister')
                 AND ${lc.sql}
                 AND id != ?`,
             [societyId, ...lc.params, senderUserId]

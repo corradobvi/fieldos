@@ -87334,7 +87334,8 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const lc = _levaMatchClause(leva);
       const [dirRows] = await pool.execute(
         `SELECT id FROM users
-          WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('dirigente','mister')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -87410,7 +87411,8 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
           const lc = _levaMatchClause(leva);
           const [dRows] = await pool.execute(
             `SELECT id FROM users
-              WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'dirigente'
+              WHERE society_id = ? AND stato = 'attivo'
+                AND ruolo IN ('dirigente','mister')
                 AND ${lc.sql}
                 AND id != ?`,
             [societyId, ...lc.params, senderUserId]
