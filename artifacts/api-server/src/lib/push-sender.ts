@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { pool } from "@workspace/db";
 import { logger } from "./logger";
+import { _levaMatchClause } from "./leva-match";
 
 export interface PushPayload {
   title: string;
@@ -119,29 +120,28 @@ export async function getUsersForPush(
 ): Promise<number[]> {
   const { leva, excludeUserId, staffOnly } = options;
   try {
-    // Query 1: staff users (same as before)
-    let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
+    // Query 1: staff users.
+    // Logica leva: identica al chat resolver (_levaMatchClause condiviso in lib/leva-match.ts).
+    // Copre exact, prefix-stored (en-dash/hyphen/em-dash), null/empty/Tutte/tutte, JSON array.
+    // Catch-all ruoli admin/mister_admin/dirigente (sempre inclusi indipendentemente da leva).
+    // 'mister' incluso come ruolo "staff" ma soggetto a leva-match come allenatore.
+    let staffQuery = `SELECT id, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'`;
     const staffParams: any[] = [societyId];
     if (excludeUserId) { staffQuery += " AND id != ?"; staffParams.push(excludeUserId); }
     if (leva) {
-      // Catch-all role allargato (mister_admin mancava → super-admin con titolo mister
-      // mai destinatario). E leva-match esteso a null/empty/Tutte e JSON-array
-      // multi-leva (stesso pattern del fix chat _levaMatchClause, commit 8bba841):
-      // serve perche' users.leva puo' essere "Tutte", NULL, '["U11"]' (multi-leva
-      // JSON-stringify dal FE, commit 1906964) o non sincronizzato dopo renameLeva.
-      // Senza, il mister non viene mai trovato dai trigger che usano questo helper
-      // (es. POST /players/:id/claim "nuovo_genitore" in minors.ts:236).
+      const lc = _levaMatchClause(leva);
       staffQuery += ` AND (
-        leva = ?
-        OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-        OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-        OR ruolo IN ('admin', 'mister_admin', 'dirigente')
+        ruolo IN ('admin','mister_admin','dirigente')
+        OR (ruolo IN ('allenatore','mister','preparatore_portieri') AND ${lc.sql})
       )`;
-      staffParams.push(leva, leva);
+      staffParams.push(...lc.params);
     }
 
     const [staffRows] = (await pool.execute(staffQuery, staffParams)) as [any[], any];
-    const staffIds: number[] = staffRows.map((r: any) => r.id as number);
+    const staffIds: number[] = (staffRows as any[]).map((r: any) => Number(r.id));
+    const staffDetail = (staffRows as any[]).map((r: any) => ({
+      user_id: Number(r.id), ruolo: r.ruolo, leva_stored: r.leva,
+    }));
 
     // Query 2: guardians of players in this leva (new GDPR flow) — solo se NON staffOnly
     let guardianIds: number[] = [];
@@ -155,13 +155,27 @@ export async function getUsersForPush(
         const gParams: any[] = [societyId, leva];
         if (excludeUserId) { gQuery += " AND pg.user_id != ?"; gParams.push(excludeUserId); }
         const [gRows] = (await pool.execute(gQuery, gParams)) as [any[], any];
-        guardianIds = gRows.map((r: any) => r.id as number);
+        guardianIds = (gRows as any[]).map((r: any) => Number(r.id));
       } catch {
         // player_guardians table may not exist yet — safe to ignore
       }
     }
 
     const allIds = [...new Set([...staffIds, ...guardianIds])];
+
+    // Logging: ogni chiamata logga societyId, leva target, staff destinatari (con ruolo+leva),
+    // guardian count, totale. Permette di tracciare su Railway quando un mister/allenatore
+    // viene (o non viene) incluso e perche'.
+    logger.info({
+      societyId,
+      leva_target: leva ?? null,
+      excludeUserId: excludeUserId ?? null,
+      staffOnly: !!staffOnly,
+      staff: staffDetail,
+      guardianCount: guardianIds.length,
+      total: allIds.length,
+    }, "push-sender: getUsersForPush resolved");
+
     return allIds;
   } catch (e: any) {
     logger.warn({ err: e }, "push-sender: getUsersForPush error");

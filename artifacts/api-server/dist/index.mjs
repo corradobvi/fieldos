@@ -84783,6 +84783,30 @@ var import_express13 = __toESM(require_express2(), 1);
 
 // src/lib/push-sender.ts
 var import_web_push2 = __toESM(require_src2(), 1);
+
+// src/lib/leva-match.ts
+function _levaPrefixes(leva) {
+  const out = /* @__PURE__ */ new Set([leva]);
+  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter((s) => s.length > 0);
+}
+function _levaMatchClause(leva) {
+  const targets = _levaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql2 = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql: sql2, params: [...targets, ...targets, ...targets] };
+}
+
+// src/lib/push-sender.ts
 function societyKeyFor(societyId) {
   return `fieldos_state_soc_${societyId}`;
 }
@@ -84871,23 +84895,27 @@ async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
 async function getUsersForPush(societyId, options = {}) {
   const { leva, excludeUserId, staffOnly } = options;
   try {
-    let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
+    let staffQuery = `SELECT id, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'`;
     const staffParams = [societyId];
     if (excludeUserId) {
       staffQuery += " AND id != ?";
       staffParams.push(excludeUserId);
     }
     if (leva) {
+      const lc = _levaMatchClause(leva);
       staffQuery += ` AND (
-        leva = ?
-        OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-        OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
-        OR ruolo IN ('admin', 'mister_admin', 'dirigente')
+        ruolo IN ('admin','mister_admin','dirigente')
+        OR (ruolo IN ('allenatore','mister','preparatore_portieri') AND ${lc.sql})
       )`;
-      staffParams.push(leva, leva);
+      staffParams.push(...lc.params);
     }
     const [staffRows] = await pool.execute(staffQuery, staffParams);
-    const staffIds = staffRows.map((r) => r.id);
+    const staffIds = staffRows.map((r) => Number(r.id));
+    const staffDetail = staffRows.map((r) => ({
+      user_id: Number(r.id),
+      ruolo: r.ruolo,
+      leva_stored: r.leva
+    }));
     let guardianIds = [];
     if (!staffOnly && leva) {
       try {
@@ -84902,11 +84930,20 @@ async function getUsersForPush(societyId, options = {}) {
           gParams.push(excludeUserId);
         }
         const [gRows] = await pool.execute(gQuery, gParams);
-        guardianIds = gRows.map((r) => r.id);
+        guardianIds = gRows.map((r) => Number(r.id));
       } catch {
       }
     }
     const allIds = [.../* @__PURE__ */ new Set([...staffIds, ...guardianIds])];
+    logger.info({
+      societyId,
+      leva_target: leva ?? null,
+      excludeUserId: excludeUserId ?? null,
+      staffOnly: !!staffOnly,
+      staff: staffDetail,
+      guardianCount: guardianIds.length,
+      total: allIds.length
+    }, "push-sender: getUsersForPush resolved");
     return allIds;
   } catch (e) {
     logger.warn({ err: e }, "push-sender: getUsersForPush error");
@@ -87223,26 +87260,6 @@ router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-function _levaPrefixes(leva) {
-  const out = /* @__PURE__ */ new Set([leva]);
-  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
-    const idx = leva.indexOf(sep);
-    if (idx > 0) out.add(leva.substring(0, idx).trim());
-  }
-  return Array.from(out).filter((s) => s.length > 0);
-}
-function _levaMatchClause(leva) {
-  const targets = _levaPrefixes(leva);
-  const inPh = targets.map(() => "?").join(",");
-  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
-  const sql2 = `(
-    leva IN (${inPh})
-    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
-    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-    OR (JSON_VALID(leva) AND (${jsonOr}))
-  )`;
-  return { sql: sql2, params: [...targets, ...targets, ...targets] };
-}
 async function _resolveChatRecipients(societyId, chatId, senderUserId) {
   try {
     const staffMatch = chatId.match(/^staff_(.+)$/);
@@ -87250,7 +87267,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const leva = staffMatch[1];
       const lc = _levaMatchClause(leva);
       const [rows] = await pool.execute(
-        `SELECT DISTINCT id FROM users
+        `SELECT DISTINCT id, ruolo, leva FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND id != ?
             AND (
@@ -87262,7 +87279,32 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
             )`,
         [societyId, senderUserId, ...lc.params]
       );
-      return rows.map((r) => Number(r.id));
+      const includedIds = rows.map((r) => Number(r.id));
+      try {
+        const [staffAll] = await pool.execute(
+          `SELECT id, ruolo, leva, stato FROM users
+            WHERE society_id = ?
+              AND ruolo IN ('admin','mister_admin','allenatore','mister','dirigente','preparatore_portieri')`,
+          [societyId]
+        );
+        const inc = new Set(includedIds);
+        const detail = staffAll.map((u) => {
+          const id = Number(u.id);
+          const included = inc.has(id);
+          let reason;
+          if (u.stato !== "attivo") reason = "excluded_stato_not_attivo";
+          else if (id === senderUserId) reason = "excluded_sender";
+          else if (included) {
+            if (u.ruolo === "admin" || u.ruolo === "mister_admin") reason = "included_catchall_role";
+            else reason = "included_leva_match";
+          } else reason = "excluded_leva_mismatch";
+          return { user_id: id, ruolo: u.ruolo, leva_stored: u.leva, included, reason };
+        });
+        logger.info({ chatId, leva_target: leva, sender: senderUserId, candidates: detail }, "chat-push staff_: candidates breakdown");
+      } catch (e) {
+        logger.warn({ err: e?.message, chatId }, "chat-push staff_: candidates breakdown failed (non-blocking)");
+      }
+      return includedIds;
     }
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {

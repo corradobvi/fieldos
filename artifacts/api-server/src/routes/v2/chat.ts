@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth } from "../../lib/auth";
 import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
+import { _levaMatchClause } from "../../lib/leva-match";
 
 const router = Router();
 
@@ -272,36 +273,8 @@ router.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
 // chatId → array userIds da notificare via web push. Esclude sempre il mittente.
 // Allineato alle regole in artifacts/fieldos/index.html getChatsForUser(...).
 
-// Helper: normalizza il nome leva estraendo i prefissi rispetto ai separatori
-// comuni (en-dash, hyphen, em-dash circondati da spazi). Necessario perche'
-// renameLeva FE (index.html:6894) aggiorna solo blob + USERS_DB.leva ma NON
-// propaga a users.leva su MySQL: dopo un rename ad es. 'U11' → 'U11 – Pulcini',
-// la chat_id sara' 'staff_U11 – Pulcini' (dal blob aggiornato) ma users.leva
-// in MySQL resta 'U11' → nessun match nel resolver senza questa normalizzazione.
-function _levaPrefixes(leva: string): string[] {
-  const out = new Set<string>([leva]);
-  for (const sep of [" – ", " - ", " — "]) {
-    const idx = leva.indexOf(sep);
-    if (idx > 0) out.add(leva.substring(0, idx).trim());
-  }
-  return Array.from(out).filter(s => s.length > 0);
-}
-
-// Helper: clausola SQL per il match leva (collaboratori non-admin). Restituisce
-// (sql, params). Copre: exact match, prefix-extracted stored (3 separatori),
-// null/Tutte, JSON-array contains. Additivo: non rimuove match esistenti.
-function _levaMatchClause(leva: string): { sql: string; params: any[] } {
-  const targets = _levaPrefixes(leva);
-  const inPh = targets.map(() => "?").join(",");
-  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
-  const sql = `(
-    leva IN (${inPh})
-    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' – ', 1), ' - ', 1), ' — ', 1) IN (${inPh})
-    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-    OR (JSON_VALID(leva) AND (${jsonOr}))
-  )`;
-  return { sql, params: [...targets, ...targets, ...targets] };
-}
+// _levaPrefixes / _levaMatchClause: estratti in lib/leva-match.ts per
+// condividerli con getUsersForPush (push-sender) — stesso behaviour battle-tested.
 
 async function _resolveChatRecipients(
   societyId: number, chatId: string, senderUserId: number
@@ -315,8 +288,9 @@ async function _resolveChatRecipients(
     if (staffMatch) {
       const leva = staffMatch[1];
       const lc = _levaMatchClause(leva);
+      // Query principale: id dei destinatari. ruolo+leva nel SELECT per il log dettaglio.
       const [rows] = (await pool.execute(
-        `SELECT DISTINCT id FROM users
+        `SELECT DISTINCT id, ruolo, leva FROM users
           WHERE society_id = ? AND stato = 'attivo'
             AND id != ?
             AND (
@@ -328,7 +302,35 @@ async function _resolveChatRecipients(
             )`,
         [societyId, senderUserId, ...lc.params]
       )) as [any[], any];
-      return rows.map((r: any) => Number(r.id));
+      const includedIds = (rows as any[]).map((r: any) => Number(r.id));
+      // Diagnostica: enumera TUTTI gli staff candidati della societa' e annota perche' uno
+      // specifico user e' included/excluded — utile per capire perche' il mister/allenatore
+      // non riceve la push (esempio: leva stored 'U11' vs target 'U11 – Pulcini').
+      try {
+        const [staffAll] = (await pool.execute(
+          `SELECT id, ruolo, leva, stato FROM users
+            WHERE society_id = ?
+              AND ruolo IN ('admin','mister_admin','allenatore','mister','dirigente','preparatore_portieri')`,
+          [societyId]
+        )) as [any[], any];
+        const inc = new Set(includedIds);
+        const detail = (staffAll as any[]).map((u: any) => {
+          const id = Number(u.id);
+          const included = inc.has(id);
+          let reason: string;
+          if (u.stato !== "attivo") reason = "excluded_stato_not_attivo";
+          else if (id === senderUserId) reason = "excluded_sender";
+          else if (included) {
+            if (u.ruolo === "admin" || u.ruolo === "mister_admin") reason = "included_catchall_role";
+            else reason = "included_leva_match";
+          } else reason = "excluded_leva_mismatch";
+          return { user_id: id, ruolo: u.ruolo, leva_stored: u.leva, included, reason };
+        });
+        logger.info({ chatId, leva_target: leva, sender: senderUserId, candidates: detail }, "chat-push staff_: candidates breakdown");
+      } catch (e: any) {
+        logger.warn({ err: e?.message, chatId }, "chat-push staff_: candidates breakdown failed (non-blocking)");
+      }
+      return includedIds;
     }
 
     // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti della leva (o senza leva/Tutte)
