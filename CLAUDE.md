@@ -19,16 +19,16 @@ Se il push fallisce per credenziali:
 git remote set-url origin https://corradobvi:[TOKEN]@github.com/corradobvi/fieldos.git
 ```
 
-- **Railway** fa il deploy automatico del backend API dopo ogni push su `main`
-- **Netlify** fa il deploy automatico del frontend dopo ogni push su `main`
+- **Railway** fa il deploy automatico (backend API + frontend statico) dopo ogni push su `main`.
+  Il backend Express serve la SPA da `artifacts/api-server/dist/public/` (mirror di `artifacts/fieldos/dist/public/`).
 
 ## Architettura deploy
 
 - Frontend (SPA): `artifacts/fieldos/index.html` è la sorgente
 - Frontend (deployed): `artifacts/fieldos/dist/public/index.html` deve essere sempre identico alla sorgente
-- **CRITICO**: ogni modifica a `index.html` deve essere copiata in `dist/public/index.html` prima del commit, altrimenti Netlify serve la versione vecchia
-- Backend API: `artifacts/api-server/` → Railway (Dockerfile)
-- Proxy API: Netlify redirige `/api/*` → `https://workspacefieldos-production.up.railway.app/api/:splat`
+- **CRITICO**: ogni modifica a `index.html` deve essere copiata in `dist/public/index.html` (e quando serve `public/index.html`) prima del commit, altrimenti Railway serve la versione vecchia
+- Backend API + FE statico: `artifacts/api-server/` → Railway (Dockerfile). Express serve la SPA via static middleware, `/api/*` punta agli handlers v2.
+- Verifica bundle attivo in produzione: `GET /api/v2/_bundle-info` ritorna `{bundle, commitSha, deploymentId, uptimeSec}`. Se l'endpoint torna HTML invece di JSON → Railway sta servendo un bundle pre-`2d9ac03` e va forzato un redeploy dal dashboard.
 
 ## REGOLA CRITICA: verifica sintassi JS prima del push
 
