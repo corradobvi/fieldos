@@ -123,7 +123,22 @@ export async function getUsersForPush(
     let staffQuery = "SELECT id FROM users WHERE society_id = ? AND stato = 'attivo'";
     const staffParams: any[] = [societyId];
     if (excludeUserId) { staffQuery += " AND id != ?"; staffParams.push(excludeUserId); }
-    if (leva) { staffQuery += " AND (leva = ? OR ruolo IN ('admin', 'dirigente'))"; staffParams.push(leva); }
+    if (leva) {
+      // Catch-all role allargato (mister_admin mancava → super-admin con titolo mister
+      // mai destinatario). E leva-match esteso a null/empty/Tutte e JSON-array
+      // multi-leva (stesso pattern del fix chat _levaMatchClause, commit 8bba841):
+      // serve perche' users.leva puo' essere "Tutte", NULL, '["U11"]' (multi-leva
+      // JSON-stringify dal FE, commit 1906964) o non sincronizzato dopo renameLeva.
+      // Senza, il mister non viene mai trovato dai trigger che usano questo helper
+      // (es. POST /players/:id/claim "nuovo_genitore" in minors.ts:236).
+      staffQuery += ` AND (
+        leva = ?
+        OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+        OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))
+        OR ruolo IN ('admin', 'mister_admin', 'dirigente')
+      )`;
+      staffParams.push(leva, leva);
+    }
 
     const [staffRows] = (await pool.execute(staffQuery, staffParams)) as [any[], any];
     const staffIds: number[] = staffRows.map((r: any) => r.id as number);
