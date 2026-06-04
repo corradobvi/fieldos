@@ -86,7 +86,7 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/comunicazioni
-router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
+router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body as Record<string, any>;
   if (!testo) return res.status(400).json({ error: "testo_required" });

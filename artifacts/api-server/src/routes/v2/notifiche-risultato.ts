@@ -32,7 +32,7 @@ async function getGuardiansForLeva(
 router.post(
   "/notifiche/risultato-partita",
   requireAuth,
-  requireRole("admin", "allenatore", "dirigente", "mister_admin"),
+  requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"),
   async (req, res) => {
     const { societyId, userId } = req.jwtUser!;
     const { leva, title, body } = req.body as Record<string, any>;

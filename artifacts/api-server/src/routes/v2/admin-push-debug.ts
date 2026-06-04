@@ -237,9 +237,9 @@ router.get("/superadmin/_diag/chat-recipients", async (req, res) => {
     const lv = staffMatch?.[1] || levaFamMatch?.[1] || squadraMatch?.[1] || null;
 
     const eligibleRoles =
-      pattern === "staff"         ? ["admin","mister_admin","allenatore","dirigente","preparatore_portieri"] :
+      pattern === "staff"         ? ["admin","mister_admin","allenatore","mister","dirigente","preparatore_portieri"] :
       pattern === "leva_famiglie" ? ["dirigente","genitore","nonno"] :
-      pattern === "squadra"       ? ["allenatore","preparatore_portieri","giocatore"] :
+      pattern === "squadra"       ? ["allenatore","mister","preparatore_portieri","giocatore"] :
       [];
 
     const [allRows] = await pool.execute(
@@ -255,7 +255,7 @@ router.get("/superadmin/_diag/chat-recipients", async (req, res) => {
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND id != ?
             AND ( ruolo IN ('admin','mister_admin')
-                  OR ( ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                  OR ( ruolo IN ('allenatore','mister','dirigente','preparatore_portieri')
                        AND ${lc.sql} ) )`,
         [societyId, senderUserId, ...lc.params]
       ) as [any[], any];
@@ -274,7 +274,7 @@ router.get("/superadmin/_diag/chat-recipients", async (req, res) => {
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','preparatore_portieri')
             AND ${lc.sql} AND id != ?`,
         [societyId, ...lc.params, senderUserId]
       ) as [any[], any];

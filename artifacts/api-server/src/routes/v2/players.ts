@@ -6,7 +6,13 @@ import { syncGuardianToBlob } from "./minors";
 
 const router = Router();
 
-const ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
+const ADMIN_ROLES = ["admin", "allenatore", "mister", "dirigente"];
+
+// Ruoli staff abilitati alla lettura completa rosa: aggiunge mister_admin/preparatore
+// rispetto a ADMIN_ROLES (che è whitelist di scrittura).
+const STAFF_READ_ROLES = new Set([
+  "admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri",
+]);
 
 const PIANO_NORM: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 const PLAYER_LIMITS: Record<string, number> = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
@@ -44,22 +50,60 @@ router.get("/players/pending-parental-consent", requireAuth, async (req, res) =>
 });
 
 // GET /api/v2/players?leva=U14
+// Gating ownership server-side (P1 security):
+//   - staff (admin/mister_admin/allenatore/mister/dirigente/preparatore_portieri)
+//       → lista completa della società (eventualmente filtrata per leva).
+//   - genitore/nonno → SOLO i player con riga in player_guardians (legati al
+//       chiamante via user_id).
+//   - giocatore     → SOLO il player con (society_id, nome, cognome) ==
+//       (jwt.societyId, users.nome, users.cognome). Match per nome+cognome:
+//       stesso pattern usato dal resolver chat (squadra/torneo).
+//   - altri ruoli   → 403.
 router.get("/players", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId, role } = req.jwtUser!;
   const leva = req.query.leva as string | undefined;
 
-  try {
-    const [rows] = (await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
               p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
               p.note, p.foto_url, p.created_at,
-              p.parental_consent_given_by, p.parental_consent_at
-       FROM players p
-       WHERE p.society_id = ?
-         ${leva ? "AND p.leva = ?" : ""}
-       ORDER BY p.cognome, p.nome`,
-      leva ? [societyId, leva] : [societyId]
-    )) as [any[], any];
+              p.parental_consent_given_by, p.parental_consent_at`;
+
+  try {
+    let rows: any[];
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = (await pool.execute(
+        `${baseSelect}
+         FROM players p
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [societyId, leva] : [societyId]
+      )) as [any[], any];
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = (await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      )) as [any[], any];
+    } else if (role === "giocatore") {
+      [rows] = (await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      )) as [any[], any];
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
     return res.json(rows);
   } catch (e: any) {
     logger.error({ err: e }, "GET players error");
@@ -68,16 +112,44 @@ router.get("/players", requireAuth, async (req, res) => {
 });
 
 // GET /api/v2/players/:id
+// Ownership server-side: stesso pattern di GET /players (staff full, genitore/nonno
+// via player_guardians, giocatore via match nome+cognome). Altri ruoli → 403.
+// Per non leak-are esistenza di player altrui: 404 se la riga non passa il filtro
+// (anziché 403, che rivelerebbe che l'id esiste in altra ownership).
 router.get("/players/:id", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId, role } = req.jwtUser!;
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at`;
   try {
-    const [rows] = (await pool.execute(
-      `SELECT id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva,
-              telefono_genitore, email_genitore, note, foto_url, created_at,
-              parental_consent_given_by, parental_consent_at
-       FROM players WHERE id = ? AND society_id = ?`,
-      [req.params.id, societyId]
-    )) as [any[], any];
+    let rows: any[];
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = (await pool.execute(
+        `${baseSelect} FROM players p WHERE p.id = ? AND p.society_id = ?`,
+        [req.params.id, societyId]
+      )) as [any[], any];
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = (await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      )) as [any[], any];
+    } else if (role === "giocatore") {
+      [rows] = (await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      )) as [any[], any];
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     return res.json(rows[0]);
   } catch (e: any) {

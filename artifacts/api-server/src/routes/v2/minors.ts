@@ -6,7 +6,7 @@ import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-
 
 const router = Router();
 
-const STAFF_ROLES = ["admin", "allenatore", "dirigente"];
+const STAFF_ROLES = ["admin", "allenatore", "mister", "dirigente"];
 const VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
 
 // POST /api/v2/players/minor — Mister/admin crea giocatore minore con dati minimi GDPR

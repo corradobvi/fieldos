@@ -106,7 +106,7 @@ router.get("/ai/allowlist", requireAuth, async (req, res) => {
        FROM users u
        LEFT JOIN ai_societa_allowlist al ON al.mister_id = u.id AND al.societa_id = ?
        WHERE u.society_id = ?
-         AND u.ruolo IN ('allenatore','mister_admin','admin','preparatore_portieri','dirigente')
+         AND u.ruolo IN ('allenatore','mister','mister_admin','admin','preparatore_portieri','dirigente')
        ORDER BY u.cognome, u.nome`,
       [user.societyId, user.societyId]
     )) as [any[], any];

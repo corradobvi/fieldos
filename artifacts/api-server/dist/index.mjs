@@ -84916,7 +84916,7 @@ async function getUsersForPush(societyId, options = {}) {
 
 // src/routes/v2/minors.ts
 var router13 = (0, import_express13.Router)();
-var STAFF_ROLES = ["admin", "allenatore", "dirigente"];
+var STAFF_ROLES = ["admin", "allenatore", "mister", "dirigente"];
 var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
 router13.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
   const { societyId, userId } = req.jwtUser;
@@ -85485,7 +85485,15 @@ var minors_default = router13;
 
 // src/routes/v2/players.ts
 var router14 = (0, import_express14.Router)();
-var ADMIN_ROLES = ["admin", "allenatore", "dirigente"];
+var ADMIN_ROLES = ["admin", "allenatore", "mister", "dirigente"];
+var STAFF_READ_ROLES = /* @__PURE__ */ new Set([
+  "admin",
+  "mister_admin",
+  "allenatore",
+  "mister",
+  "dirigente",
+  "preparatore_portieri"
+]);
 var PIANO_NORM = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 var PLAYER_LIMITS = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
 async function getSocietyPlayerLimit(societyId) {
@@ -85516,20 +85524,48 @@ router14.get("/players/pending-parental-consent", requireAuth, async (req, res) 
   }
 });
 router14.get("/players", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, userId, role } = req.jwtUser;
   const leva = req.query.leva;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
               p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
               p.note, p.foto_url, p.created_at,
-              p.parental_consent_given_by, p.parental_consent_at
-       FROM players p
-       WHERE p.society_id = ?
-         ${leva ? "AND p.leva = ?" : ""}
-       ORDER BY p.cognome, p.nome`,
-      leva ? [societyId, leva] : [societyId]
-    );
+              p.parental_consent_given_by, p.parental_consent_at`;
+  try {
+    let rows;
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [societyId, leva] : [societyId]
+      );
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      );
+    } else if (role === "giocatore") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      );
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
     return res.json(rows);
   } catch (e) {
     logger.error({ err: e }, "GET players error");
@@ -85537,15 +85573,39 @@ router14.get("/players", requireAuth, async (req, res) => {
   }
 });
 router14.get("/players/:id", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, userId, role } = req.jwtUser;
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at`;
   try {
-    const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita, leva,
-              telefono_genitore, email_genitore, note, foto_url, created_at,
-              parental_consent_given_by, parental_consent_at
-       FROM players WHERE id = ? AND society_id = ?`,
-      [req.params.id, societyId]
-    );
+    let rows;
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = await pool.execute(
+        `${baseSelect} FROM players p WHERE p.id = ? AND p.society_id = ?`,
+        [req.params.id, societyId]
+      );
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      );
+    } else if (role === "giocatore") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      );
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
     if (!rows.length) return res.status(404).json({ error: "not_found" });
     return res.json(rows[0]);
   } catch (e) {
@@ -85696,7 +85756,7 @@ var import_express15 = __toESM(require_express2(), 1);
 var router15 = (0, import_express15.Router)();
 var PIANO_NORM_U = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 var COLLAB_LIMITS = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
-var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "dirigente", "preparatore_portieri", "mister_admin"]);
+var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin"]);
 async function getCollabLimit(societyId) {
   const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
   const raw = rows[0]?.piano || "demo";
@@ -85751,7 +85811,7 @@ router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       const maxCollab = await getCollabLimit(societyId);
       if (isFinite(maxCollab)) {
         const [cnt] = await pool.execute(
-          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
           [societyId]
         );
         if (cnt[0].n >= maxCollab) {
@@ -85800,7 +85860,7 @@ router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
         const maxCollab = await getCollabLimit(societyId);
         if (isFinite(maxCollab)) {
           const [cnt] = await pool.execute(
-            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
             [societyId, req.params.id]
           );
           if (cnt[0].n >= maxCollab) {
@@ -85868,6 +85928,7 @@ router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) =
 var PATCH_RUOLO_WHITELIST = /* @__PURE__ */ new Set([
   "admin",
   "allenatore",
+  "mister",
   "dirigente",
   "preparatore_portieri",
   "mister_admin",
@@ -85972,7 +86033,7 @@ var users_default = router15;
 var import_express16 = __toESM(require_express2(), 1);
 import { randomUUID } from "crypto";
 var router16 = (0, import_express16.Router)();
-var WRITE_ROLES = ["admin", "allenatore", "dirigente", "mister_admin"];
+var WRITE_ROLES = ["admin", "allenatore", "mister", "dirigente", "mister_admin"];
 function addDays(d, n) {
   const r = new Date(d);
   r.setUTCDate(r.getUTCDate() + n);
@@ -86660,7 +86721,7 @@ async function getUserLeve(userId, societyId, role) {
     );
     return new Set(rows.map((r) => _norm(r.leva)));
   }
-  if (role === "allenatore" || role === "dirigente" || role === "preparatore_portieri") {
+  if (role === "allenatore" || role === "mister" || role === "dirigente" || role === "preparatore_portieri") {
     const [rows] = await pool.execute(
       "SELECT leva FROM users WHERE id = ? AND society_id = ? LIMIT 1",
       [userId, societyId]
@@ -86743,7 +86804,7 @@ router17.get("/presenze", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
+router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { playerId, eventId, stato, nota } = req.body;
   if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
@@ -86765,7 +86826,7 @@ router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "diri
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
+router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { eventId, presenze } = req.body;
   if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
@@ -86797,7 +86858,7 @@ router17.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
   try {
     const [rows] = await pool.execute(
       `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?
-         AND ruolo IN ('admin','dirigente','allenatore','preparatore_portieri','mister_admin')
+         AND ruolo IN ('admin','dirigente','allenatore','mister','preparatore_portieri','mister_admin')
          AND (leva = ? OR ruolo IN ('admin','dirigente','mister_admin'))`,
       [societyId, userId, leva]
     );
@@ -86886,7 +86947,7 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
+router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
   if (!testo) return res.status(400).json({ error: "testo_required" });
@@ -86987,6 +87048,9 @@ router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
   const beforeId = before ? parseInt(before) : null;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const sqlBase = `SELECT m.id, m.chat_id, m.autore_id, m.testo, m.foto_url, m.tipo, m.meta, m.created_at,
                             u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
                        FROM chat_messages m
@@ -87192,7 +87256,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
             AND (
               ruolo IN ('admin','mister_admin')
               OR (
-                ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                ruolo IN ('allenatore','mister','dirigente','preparatore_portieri')
                 AND ${lc.sql}
               )
             )`,
@@ -87238,7 +87302,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const [staffRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','preparatore_portieri')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -87344,6 +87408,10 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
     return [];
   }
 }
+async function _isChatMember(societyId, chatId, userId) {
+  const members = await _resolveChatRecipients(societyId, chatId, -1);
+  return members.includes(userId);
+}
 function _chatPushTitle(chatId, chatNameHint) {
   if (chatNameHint && typeof chatNameHint === "string" && chatNameHint.trim()) {
     return `\u{1F4AC} ${chatNameHint.trim()}`;
@@ -87368,6 +87436,9 @@ router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   let insertedId = null;
   let createdAtIso = null;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [result] = await pool.execute(
       "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]
@@ -90551,7 +90622,7 @@ router28.get("/ai/allowlist", requireAuth, async (req, res) => {
        FROM users u
        LEFT JOIN ai_societa_allowlist al ON al.mister_id = u.id AND al.societa_id = ?
        WHERE u.society_id = ?
-         AND u.ruolo IN ('allenatore','mister_admin','admin','preparatore_portieri','dirigente')
+         AND u.ruolo IN ('allenatore','mister','mister_admin','admin','preparatore_portieri','dirigente')
        ORDER BY u.cognome, u.nome`,
       [user.societyId, user.societyId]
     );
@@ -92349,7 +92420,7 @@ router35.get("/superadmin/_diag/chat-recipients", async (req, res) => {
     const adhocMatch = chatId.match(/^adhoc_/);
     const pattern = staffMatch ? "staff" : levaFamMatch ? "leva_famiglie" : squadraMatch ? "squadra" : adhocMatch ? "adhoc" : "unknown";
     const lv = staffMatch?.[1] || levaFamMatch?.[1] || squadraMatch?.[1] || null;
-    const eligibleRoles = pattern === "staff" ? ["admin", "mister_admin", "allenatore", "dirigente", "preparatore_portieri"] : pattern === "leva_famiglie" ? ["dirigente", "genitore", "nonno"] : pattern === "squadra" ? ["allenatore", "preparatore_portieri", "giocatore"] : [];
+    const eligibleRoles = pattern === "staff" ? ["admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri"] : pattern === "leva_famiglie" ? ["dirigente", "genitore", "nonno"] : pattern === "squadra" ? ["allenatore", "mister", "preparatore_portieri", "giocatore"] : [];
     const [allRows] = await pool.execute(
       `SELECT id, nome, cognome, ruolo, leva, stato FROM users WHERE society_id = ? ORDER BY ruolo, cognome, nome`,
       [societyId]
@@ -92362,7 +92433,7 @@ router35.get("/superadmin/_diag/chat-recipients", async (req, res) => {
         `SELECT DISTINCT id FROM users
           WHERE society_id = ? AND stato = 'attivo' AND id != ?
             AND ( ruolo IN ('admin','mister_admin')
-                  OR ( ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                  OR ( ruolo IN ('allenatore','mister','dirigente','preparatore_portieri')
                        AND ${lc.sql} ) )`,
         [societyId, senderUserId, ...lc.params]
       );
@@ -92381,7 +92452,7 @@ router35.get("/superadmin/_diag/chat-recipients", async (req, res) => {
       const [r] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','preparatore_portieri')
             AND ${lc.sql} AND id != ?`,
         [societyId, ...lc.params, senderUserId]
       );
@@ -92929,6 +93000,7 @@ var router37 = (0, import_express37.Router)();
 var RUOLO_WHITELIST = /* @__PURE__ */ new Set([
   "admin",
   "allenatore",
+  "mister",
   "dirigente",
   "preparatore_portieri",
   "mister_admin",
@@ -93089,7 +93161,7 @@ async function getGuardiansForLeva(societyId, leva, excludeUserId) {
 router38.post(
   "/notifiche/risultato-partita",
   requireAuth,
-  requireRole("admin", "allenatore", "dirigente", "mister_admin"),
+  requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"),
   async (req, res) => {
     const { societyId, userId } = req.jwtUser;
     const { leva, title, body } = req.body;
@@ -93316,7 +93388,7 @@ var migrate_polis_default = router39;
 // src/routes/v2/matches.ts
 var import_express40 = __toESM(require_express2(), 1);
 var router40 = (0, import_express40.Router)();
-var WRITE_ROLES2 = ["admin", "allenatore", "dirigente"];
+var WRITE_ROLES2 = ["admin", "allenatore", "mister", "dirigente"];
 var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
 function _levaFromBody(req) {
   const v = req.body && req.body.leva;
@@ -93864,6 +93936,43 @@ var matches_default = router40;
 // src/routes/v2/stats.ts
 var import_express41 = __toESM(require_express2(), 1);
 var router41 = (0, import_express41.Router)();
+var STAFF_READ_ROLES2 = /* @__PURE__ */ new Set([
+  "admin",
+  "mister_admin",
+  "allenatore",
+  "mister",
+  "dirigente",
+  "preparatore_portieri"
+]);
+async function _playerOwned(societyId, userId, role, playerId) {
+  if (STAFF_READ_ROLES2.has(role)) {
+    const [rows] = await pool.execute(
+      "SELECT 1 FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+      [playerId, societyId]
+    );
+    return rows.length > 0;
+  }
+  if (role === "genitore" || role === "nonno") {
+    const [rows] = await pool.execute(
+      `SELECT 1 FROM player_guardians pg
+         JOIN players p ON p.id = pg.player_id AND p.society_id = ?
+        WHERE pg.player_id = ? AND pg.user_id = ? LIMIT 1`,
+      [societyId, playerId, userId]
+    );
+    return rows.length > 0;
+  }
+  if (role === "giocatore") {
+    const [rows] = await pool.execute(
+      `SELECT 1 FROM players p
+         JOIN users u ON u.id = ? AND u.society_id = p.society_id
+                     AND u.nome = p.nome AND u.cognome = p.cognome
+        WHERE p.id = ? AND p.society_id = ? LIMIT 1`,
+      [userId, playerId, societyId]
+    );
+    return rows.length > 0;
+  }
+  return false;
+}
 function zero() {
   return { presenze: 0, gol: 0, assist: 0, minuti: 0, gialli: 0, rossi: 0, gol_sub: 0, cs: 0 };
 }
@@ -93906,13 +94015,18 @@ var AGG_SELECT = `
   JOIN matches m ON m.id = ms.match_id
 `;
 router41.get("/stats/player/:playerId", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, userId, role } = req.jwtUser;
   const playerId = Number(req.params.playerId);
   if (!Number.isFinite(playerId) || playerId <= 0) {
     return res.status(400).json({ error: "invalid_player_id" });
   }
   const leva = req.query.leva || void 0;
   try {
+    if (!STAFF_READ_ROLES2.has(role) && role !== "genitore" && role !== "nonno" && role !== "giocatore") {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const owned = await _playerOwned(societyId, userId, role, playerId);
+    if (!owned) return res.status(404).json({ error: "not_found" });
     const conds = ["m.societa_id = ?", "m.played = 1", "ms.player_id = ?"];
     const params = [societyId, playerId];
     if (leva) {
@@ -93949,7 +94063,10 @@ router41.get("/stats/player/:playerId", requireAuth, async (req, res) => {
   }
 });
 router41.get("/stats/leva", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
+  const { societyId, role } = req.jwtUser;
+  if (!STAFF_READ_ROLES2.has(role)) {
+    return res.status(403).json({ error: "forbidden" });
+  }
   const leva = req.query.leva || void 0;
   if (!leva) return res.status(400).json({ error: "leva_required" });
   try {

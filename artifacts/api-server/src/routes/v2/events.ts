@@ -5,7 +5,7 @@ import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 
 const router = Router();
-const WRITE_ROLES = ["admin", "allenatore", "dirigente", "mister_admin"];
+const WRITE_ROLES = ["admin", "allenatore", "mister", "dirigente", "mister_admin"];
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 

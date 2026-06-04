@@ -5,6 +5,48 @@ import { requireAuth } from "../../lib/auth";
 
 const router = Router();
 
+// Stessa whitelist di players.ts: ruoli staff abilitati alla lettura completa.
+const STAFF_READ_ROLES = new Set([
+  "admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri",
+]);
+
+// Verifica ownership di un singolo player rispetto al chiamante.
+// - staff → sempre true (purché il player appartenga alla società).
+// - genitore/nonno → true sse esiste riga in player_guardians (player_id, user_id).
+// - giocatore → true sse player.nome+cognome == user.nome+cognome nella stessa società.
+// - altri → false.
+async function _playerOwned(
+  societyId: number, userId: number, role: string, playerId: number
+): Promise<boolean> {
+  if (STAFF_READ_ROLES.has(role)) {
+    const [rows] = (await pool.execute(
+      "SELECT 1 FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+      [playerId, societyId]
+    )) as [any[], any];
+    return rows.length > 0;
+  }
+  if (role === "genitore" || role === "nonno") {
+    const [rows] = (await pool.execute(
+      `SELECT 1 FROM player_guardians pg
+         JOIN players p ON p.id = pg.player_id AND p.society_id = ?
+        WHERE pg.player_id = ? AND pg.user_id = ? LIMIT 1`,
+      [societyId, playerId, userId]
+    )) as [any[], any];
+    return rows.length > 0;
+  }
+  if (role === "giocatore") {
+    const [rows] = (await pool.execute(
+      `SELECT 1 FROM players p
+         JOIN users u ON u.id = ? AND u.society_id = p.society_id
+                     AND u.nome = p.nome AND u.cognome = p.cognome
+        WHERE p.id = ? AND p.society_id = ? LIMIT 1`,
+      [userId, playerId, societyId]
+    )) as [any[], any];
+    return rows.length > 0;
+  }
+  return false;
+}
+
 // Semantica: ESATTA replica di playerMatchStats (FE index.html:19623-19647).
 // - presenze = numero di match con played=1 in cui il player ha una riga in match_stats.
 // - somme gol/assist/minuti/gialli/rossi/gol_sub direttamente dai campi.
@@ -61,8 +103,10 @@ const AGG_SELECT = `
 
 // GET /api/v2/stats/player/:playerId?leva=<nome>
 // Breakdown {amichevole, campionato, torneo} + totale per UN giocatore.
+// Ownership: solo staff o utente collegato al player (genitore/nonno/giocatore).
+// Per non leak-are esistenza, ritorno 404 sui non-autorizzati come fa /players/:id.
 router.get("/stats/player/:playerId", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, userId, role } = req.jwtUser!;
   const playerId = Number(req.params.playerId);
   if (!Number.isFinite(playerId) || playerId <= 0) {
     return res.status(400).json({ error: "invalid_player_id" });
@@ -70,6 +114,12 @@ router.get("/stats/player/:playerId", requireAuth, async (req, res) => {
   const leva = (req.query.leva as string | undefined) || undefined;
 
   try {
+    if (!STAFF_READ_ROLES.has(role) && role !== "genitore" && role !== "nonno" && role !== "giocatore") {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    const owned = await _playerOwned(societyId, userId, role, playerId);
+    if (!owned) return res.status(404).json({ error: "not_found" });
+
     const conds: string[] = ["m.societa_id = ?", "m.played = 1", "ms.player_id = ?"];
     const params: any[] = [societyId, playerId];
     if (leva) { conds.push("m.leva = ?"); params.push(leva); }
@@ -107,8 +157,13 @@ router.get("/stats/player/:playerId", requireAuth, async (req, res) => {
 // Aggregato per TUTTI i giocatori di una leva. CHIUDE il bug della lista mister desktop:
 // replica la stessa semantica di playerMatchStats, inclusi i gol nei tornei.
 // Restituisce SEMPRE il player_id, anche se ha 0 stat in qualche tipo.
+// Gating: solo staff (aggregato per leva, non per singolo player). Genitore/giocatore
+// che vogliono le proprie stats devono usare /stats/player/:id.
 router.get("/stats/leva", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser!;
+  const { societyId, role } = req.jwtUser!;
+  if (!STAFF_READ_ROLES.has(role)) {
+    return res.status(403).json({ error: "forbidden" });
+  }
   const leva = (req.query.leva as string | undefined) || undefined;
   if (!leva) return res.status(400).json({ error: "leva_required" });
 

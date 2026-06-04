@@ -16,7 +16,7 @@ import { logger } from "../../lib/logger";
 const router = Router();
 
 const RUOLO_WHITELIST = new Set([
-  "admin", "allenatore", "dirigente", "preparatore_portieri", "mister_admin",
+  "admin", "allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin",
   "genitore", "nonno", "giocatore", "pendente",
 ]);
 

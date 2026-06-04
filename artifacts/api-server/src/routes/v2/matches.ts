@@ -8,7 +8,7 @@ import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
-const WRITE_ROLES = ["admin", "allenatore", "dirigente"];
+const WRITE_ROLES = ["admin", "allenatore", "mister", "dirigente"];
 const DEMO_SOC_IDS = new Set<number>([0, 99, 99999]);
 
 // ─── Resolver leva per requireLeva ───────────────────────────────────────────

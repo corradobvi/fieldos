@@ -44,7 +44,7 @@ export async function getUserLeve(
   }
 
   if (
-    role === "allenatore" ||
+    role === "allenatore" || role === "mister" ||
     role === "dirigente" ||
     role === "preparatore_portieri"
   ) {

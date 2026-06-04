@@ -55,6 +55,9 @@ router.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const beforeId = before ? parseInt(before) : null;
 
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const sqlBase = `SELECT m.id, m.chat_id, m.autore_id, m.testo, m.foto_url, m.tipo, m.meta, m.created_at,
                             u.nome AS autore_nome, u.cognome AS autore_cognome, u.ruolo AS autore_ruolo
                        FROM chat_messages m
@@ -319,7 +322,7 @@ async function _resolveChatRecipients(
             AND (
               ruolo IN ('admin','mister_admin')
               OR (
-                ruolo IN ('allenatore','dirigente','preparatore_portieri')
+                ruolo IN ('allenatore','mister','dirigente','preparatore_portieri')
                 AND ${lc.sql}
               )
             )`,
@@ -372,7 +375,7 @@ async function _resolveChatRecipients(
       const [staffRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','preparatore_portieri')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -494,6 +497,20 @@ async function _resolveChatRecipients(
   }
 }
 
+// Membership check riusando il resolver: senderUserId = -1 (sentinel impossibile)
+// fa sì che tutti i veri membri vengano restituiti (i resolver escludono solo
+// quel sender). Il check copre identicamente staff_/leva_/squadra_/torneo_/adhoc_,
+// e per chatId sconosciuti ritorna [] → nessuno è membro → 403. Coerente con
+// la regola età-dipendente già implementata: staff = solo staff; U6-U13 (leva_)
+// = dirigenti + genitori/nonni (mister escluso); U14+ (squadra_) = mister/preparatore +
+// giocatori. admin/mister_admin sono ammessi solo dove il resolver li include
+// (staff e admin-overrides interni); non hanno accesso automatico alle chat
+// famiglie/squadra — questo è coerente con la separazione di ruoli (privacy GDPR).
+async function _isChatMember(societyId: number, chatId: string, userId: number): Promise<boolean> {
+  const members = await _resolveChatRecipients(societyId, chatId, -1);
+  return members.includes(userId);
+}
+
 // Titolo leggibile della chat per la push (riusa il chatName inviato dal FE se presente,
 // altrimenti deriva dal chatId).
 function _chatPushTitle(chatId: string, chatNameHint?: string | null): string {
@@ -524,6 +541,9 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   let insertedId: number | null = null;
   let createdAtIso: string | null = null;
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [result] = (await pool.execute(
       "INSERT INTO chat_messages (society_id, chat_id, autore_id, testo, foto_url) VALUES (?, ?, ?, ?, ?)",
       [societyId, chatId, userId, testo?.trim() ?? null, fotoUrl ?? null]

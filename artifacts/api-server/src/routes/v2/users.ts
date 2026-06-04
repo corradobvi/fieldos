@@ -7,7 +7,7 @@ const router = Router();
 
 const PIANO_NORM_U: Record<string, string> = { gratuito: "mister", base: "mister_pro", premium: "societa" };
 const COLLAB_LIMITS: Record<string, number> = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
-const COLLAB_ROLES = new Set(["allenatore", "dirigente", "preparatore_portieri", "mister_admin"]);
+const COLLAB_ROLES = new Set(["allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin"]);
 
 async function getCollabLimit(societyId: number): Promise<number> {
   const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]) as [any[], any];
@@ -80,7 +80,7 @@ router.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       const maxCollab = await getCollabLimit(societyId);
       if (isFinite(maxCollab)) {
         const [cnt] = await pool.execute(
-          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
           [societyId]
         ) as [any[], any];
         if (cnt[0].n >= maxCollab) {
@@ -127,7 +127,7 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
         const maxCollab = await getCollabLimit(societyId);
         if (isFinite(maxCollab)) {
           const [cnt] = await pool.execute(
-            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
             [societyId, req.params.id]
           ) as [any[], any];
           if (cnt[0].n >= maxCollab) {
@@ -176,7 +176,7 @@ router.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
 // che oggi vive solo nel blob USERS_DB. Gating LIVE (legge users.ruolo del chiamante da MySQL,
 // non si fida del JWT che potrebbe essere stale) + whitelist ruoli (no email/password/permissions).
 const PATCH_RUOLO_WHITELIST = new Set([
-  "admin", "allenatore", "dirigente", "preparatore_portieri", "mister_admin",
+  "admin", "allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin",
   "genitore", "nonno", "giocatore", "pendente",
 ]);
 router.patch("/users/:id", requireAuth, async (req, res) => {
