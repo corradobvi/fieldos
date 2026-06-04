@@ -37,6 +37,7 @@ import migratePolisRouter          from "./migrate-polis";
 import matchesRouter               from "./matches";
 import statsRouter                 from "./stats";
 import adminBackfillMatchesRouter  from "./admin-backfill-matches";
+import adminChatDiagRouter         from "./admin-chat-diag";
 const router = Router();
 
 // Run schema creation on startup (idempotent)
@@ -377,4 +378,5 @@ router.use(migratePolisRouter);
 router.use(matchesRouter);
 router.use(statsRouter);
 router.use(adminBackfillMatchesRouter);
+router.use(adminChatDiagRouter);
 export default router;

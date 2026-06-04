@@ -28,7 +28,7 @@ function _initVapid(): boolean {
 type NotifPrefKey = "notify_convocazioni" | "notify_comunicazioni" | "notify_chat" | "notify_reminders";
 
 // Filters out users who have opted out of a specific notification type.
-async function filterByPref(userIds: number[], prefKey: NotifPrefKey): Promise<number[]> {
+export async function filterByPref(userIds: number[], prefKey: NotifPrefKey): Promise<number[]> {
   if (!userIds.length) return [];
   try {
     const placeholders = userIds.map(() => "?").join(",");

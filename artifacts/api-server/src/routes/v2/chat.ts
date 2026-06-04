@@ -291,7 +291,7 @@ router.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
 // _levaPrefixes / _levaMatchClause: estratti in lib/leva-match.ts per
 // condividerli con getUsersForPush (push-sender) — stesso behaviour battle-tested.
 
-async function _resolveChatRecipients(
+export async function _resolveChatRecipients(
   societyId: number, chatId: string, senderUserId: number
 ): Promise<number[]> {
   try {

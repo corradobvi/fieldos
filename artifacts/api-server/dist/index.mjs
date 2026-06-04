@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router45;
+    module.exports = Router46;
     module.exports.Route = Route;
-    function Router45(options) {
-      if (!(this instanceof Router45)) {
-        return new Router45(options);
+    function Router46(options) {
+      if (!(this instanceof Router46)) {
+        return new Router46(options);
       }
       const opts = options || {};
-      function router45(req, res, next) {
-        router45.handle(req, res, next);
+      function router46(req, res, next) {
+        router46.handle(req, res, next);
       }
-      Object.setPrototypeOf(router45, this);
-      router45.caseSensitive = opts.caseSensitive;
-      router45.mergeParams = opts.mergeParams;
-      router45.params = {};
-      router45.strict = opts.strict;
-      router45.stack = [];
-      return router45;
+      Object.setPrototypeOf(router46, this);
+      router46.caseSensitive = opts.caseSensitive;
+      router46.mergeParams = opts.mergeParams;
+      router46.params = {};
+      router46.strict = opts.strict;
+      router46.stack = [];
+      return router46;
     }
-    Router45.prototype = function() {
+    Router46.prototype = function() {
     };
-    Router45.prototype.param = function param(name, fn) {
+    Router46.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router45.prototype.handle = function handle(req, res, callback) {
+    Router46.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router45.prototype.use = function use(handler) {
+    Router46.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router45.prototype.route = function route(path4) {
+    Router46.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router45.prototype[method] = function(path4) {
+      Router46.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router45 = require_router();
+    var Router46 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router45 = null;
+      var router46 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router45 === null) {
-            router45 = new Router45({
+          if (router46 === null) {
+            router46 = new Router46({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router45;
+          return router46;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router45 = this.router;
+      var router46 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router45.use(path4, fn2);
+          return router46.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router45.use(path4, function mounted_app(req, res, next) {
+        router46.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router45 = require_router();
+    var Router46 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router45.Route;
-    exports.Router = Router45;
+    exports.Route = Router46.Route;
+    exports.Router = Router46;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express45 = __toESM(require_express2(), 1);
+var import_express46 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express44 = __toESM(require_express2(), 1);
+var import_express45 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78501,7 +78501,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express43 = __toESM(require_express2(), 1);
+var import_express44 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -94919,8 +94919,266 @@ router42.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
 });
 var admin_backfill_matches_default = router42;
 
-// src/routes/v2/index.ts
+// src/routes/v2/admin-chat-diag.ts
+var import_express43 = __toESM(require_express2(), 1);
 var router43 = (0, import_express43.Router)();
+function _gate(req, res) {
+  const j = req.jwtUser;
+  if (j.role !== "admin" && j.role !== "mister_admin") {
+    res.status(403).json({ error: "forbidden", detail: "admin/mister_admin only" });
+    return null;
+  }
+  const qSoc = Number(req.query.societyId);
+  if (Number.isFinite(qSoc) && qSoc > 0 && qSoc !== j.societyId) {
+    res.status(403).json({ error: "forbidden", detail: "cross-society lookup denied" });
+    return null;
+  }
+  return { societyId: j.societyId, userId: j.userId, role: j.role };
+}
+function _patternOf(chatId) {
+  let m;
+  if (m = chatId.match(/^staff_(.+)$/)) return { pattern: "staff", leva: m[1] };
+  if (m = chatId.match(/^(?:leva|group)_(.+)$/)) return { pattern: "leva_famiglie", leva: m[1] };
+  if (m = chatId.match(/^squadra_(.+)$/)) return { pattern: "squadra", leva: m[1] };
+  if (m = chatId.match(/^torneo_(.+)$/)) return { pattern: "torneo", leva: null };
+  if (chatId.startsWith("adhoc_")) return { pattern: "adhoc", leva: null };
+  return { pattern: "unknown", leva: null };
+}
+async function _shortlistForChat(societyId, chatId) {
+  const { pattern } = _patternOf(chatId);
+  if (pattern === "staff" || pattern === "leva_famiglie" || pattern === "squadra" || pattern === "torneo") {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, ruolo, leva, stato, email
+         FROM users
+        WHERE society_id = ?
+          AND ruolo IN ('admin','mister_admin','allenatore','mister','dirigente','preparatore_portieri','genitore','nonno','giocatore')
+        ORDER BY ruolo, cognome, nome`,
+      [societyId]
+    );
+    return rows;
+  }
+  if (pattern === "adhoc") {
+    const [rows] = await pool.execute(
+      `SELECT u.id, u.nome, u.cognome, u.ruolo, u.leva, u.stato, u.email
+         FROM adhoc_chat_members m
+         LEFT JOIN users u ON u.id = m.user_id
+        WHERE m.society_id = ? AND m.chat_id = ?
+        ORDER BY u.ruolo, u.cognome, u.nome`,
+      [societyId, chatId]
+    );
+    const [orphan] = await pool.execute(
+      `SELECT m.user_id AS id, m.created_at
+         FROM adhoc_chat_members m
+         LEFT JOIN users u ON u.id = m.user_id
+        WHERE m.society_id = ? AND m.chat_id = ? AND u.id IS NULL`,
+      [societyId, chatId]
+    );
+    const out = rows.filter((r) => r.id != null).map((r) => ({ ...r, _adhocRowValid: true }));
+    for (const o of orphan) {
+      out.push({ id: o.id, nome: null, cognome: null, ruolo: null, leva: null, stato: null, email: null, _adhocRowValid: false, _orphanReason: "user_id not in users table" });
+    }
+    return out;
+  }
+  return [];
+}
+async function _discoverChats(societyId) {
+  const [leveRows] = await pool.execute(
+    "SELECT nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
+    [societyId]
+  );
+  const staff = leveRows.map((r) => `staff_${r.nome}`);
+  let adhoc = [];
+  try {
+    const [adhocRows] = await pool.execute(
+      "SELECT DISTINCT chat_id FROM adhoc_chat_members WHERE society_id = ? ORDER BY chat_id",
+      [societyId]
+    );
+    adhoc = adhocRows.map((r) => String(r.chat_id));
+  } catch (_) {
+  }
+  return { staff, adhoc };
+}
+async function _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet) {
+  const id = Number(u.id);
+  const isRecipient = recipientSet.has(id);
+  const isMember = memberSet.has(id);
+  const stateKey = societyKeyFor(societyId);
+  const [subRows] = await pool.execute(
+    "SELECT id, CHAR_LENGTH(subscription) AS sub_size, updated_at FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+    [id, stateKey]
+  );
+  const hasSubscription = subRows.length > 0;
+  let optedOutNotifyChat = false;
+  try {
+    const survives = await filterByPref([id], "notify_chat");
+    optedOutNotifyChat = survives.length === 0;
+  } catch (_) {
+  }
+  let reason;
+  if (isRecipient) {
+    reason = "included_recipient";
+  } else if (Number(senderUserId) === id) {
+    reason = "excluded_sender";
+  } else if (isMember) {
+    reason = "member_but_not_recipient_for_this_sender";
+  } else {
+    if (u.stato && u.stato !== "attivo") {
+      reason = `excluded_stato_${u.stato}`;
+    } else if (u._adhocRowValid === false) {
+      reason = "excluded_adhoc_orphan_user_id (blob_id != MySQL users.id)";
+    } else if (chatId.startsWith("adhoc_")) {
+      reason = "excluded_not_in_adhoc_chat_members";
+    } else {
+      reason = `excluded_role_or_leva_mismatch (ruolo='${u.ruolo}', leva_stored=${JSON.stringify(u.leva)})`;
+    }
+  }
+  return {
+    id,
+    nome: u.nome,
+    cognome: u.cognome,
+    email: u.email,
+    ruolo: u.ruolo,
+    leva_stored: u.leva,
+    stato: u.stato,
+    is_recipient: isRecipient,
+    is_member: isMember,
+    has_push_subscription: hasSubscription,
+    opted_out_notify_chat: optedOutNotifyChat,
+    adhoc_row_valid: u._adhocRowValid ?? null,
+    sub_meta: hasSubscription ? { sub_size: subRows[0].sub_size, updated_at: subRows[0].updated_at } : null,
+    reason
+  };
+}
+router43.get("/_diag/chat", requireAuth, async (req, res) => {
+  const ctx = _gate(req, res);
+  if (!ctx) return;
+  const { societyId, userId } = ctx;
+  const senderUserId = Number(req.query.senderUserId) || userId;
+  const explicitChatId = String(req.query.chatId || "").trim();
+  try {
+    const stateKey = societyKeyFor(societyId);
+    let chatIds;
+    if (explicitChatId) {
+      chatIds = [explicitChatId];
+    } else {
+      const d = await _discoverChats(societyId);
+      chatIds = [...d.staff, ...d.adhoc];
+    }
+    const perChat = [];
+    for (const chatId of chatIds) {
+      const { pattern, leva } = _patternOf(chatId);
+      const recipients = await _resolveChatRecipients(societyId, chatId, senderUserId);
+      const recipientSet = new Set(recipients.map(Number));
+      const members = await _resolveChatRecipients(societyId, chatId, -1);
+      const memberSet = new Set(members.map(Number));
+      const shortlist = await _shortlistForChat(societyId, chatId);
+      const users = [];
+      for (const u of shortlist) {
+        users.push(await _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet));
+      }
+      const misters = users.filter((u) => u.ruolo === "allenatore" || u.ruolo === "mister");
+      const dirigenti = users.filter((u) => u.ruolo === "dirigente");
+      let hint;
+      if (misters.length === 0) {
+        hint = "Nessun utente con ruolo allenatore/mister in societ\xE0.";
+      } else {
+        const m = misters[0];
+        if (!m.is_member) {
+          hint = `Il mister (id=${m.id}, ruolo='${m.ruolo}', leva='${m.leva_stored}') NON \xE8 membro della chat \u2192 resolver lo esclude. Motivo: ${m.reason}.`;
+        } else if (!m.is_recipient) {
+          hint = `Il mister \xE8 membro ma non \xE8 recipient quando il sender \xE8 id=${senderUserId} (probabile: lui \xE8 il sender, o esclusione SQL).`;
+        } else if (!m.has_push_subscription) {
+          hint = `Il mister \xE8 recipient ma NON ha push_subscription per society_key='${stateKey}'. Device non sottoscritto al deploy attuale.`;
+        } else if (m.opted_out_notify_chat) {
+          hint = `Il mister \xE8 recipient con subscription valida, ma ha opt-out notify_chat=0 in user_notification_preferences.`;
+        } else {
+          hint = `Lato resolver OK: mister recipient + subscription OK + nessun opt-out. Se il push non arriva, indagare webpush delivery (410/404 statusCode in push-sender logs).`;
+        }
+      }
+      perChat.push({
+        chatId,
+        pattern,
+        leva_target: leva,
+        recipients_count: recipients.length,
+        recipients_ids: recipients,
+        members_count: members.length,
+        members_ids: members,
+        users,
+        misters_ids: misters.map((m) => m.id),
+        dirigenti_ids: dirigenti.map((d) => d.id),
+        hint
+      });
+    }
+    return res.json({
+      input: { societyId, senderUserId, chatId: explicitChatId || null },
+      society_key: stateKey,
+      discovered_chat_count: chatIds.length,
+      per_chat: perChat
+    });
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, senderUserId }, "_diag/chat error");
+    return res.status(500).json({ error: "server_error", detail: e?.message });
+  }
+});
+router43.get("/_diag/chat/ui", (_req, res) => {
+  res.type("html").send(`<!doctype html>
+<html><head><meta charset="utf-8"><title>Chat recipient diagnostic</title>
+<style>
+  body{font-family:system-ui,-apple-system,sans-serif;padding:16px;max-width:1100px;margin:0 auto;background:#f8fafc;color:#1e293b;}
+  h1{font-size:1.1rem;margin:0 0 12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  input,button{padding:6px 10px;font-size:.9rem;border-radius:6px;border:1px solid #cbd5e1}
+  button{background:#0f172a;color:#fff;cursor:pointer;border:0}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;max-height:80vh;font-size:.78rem;white-space:pre-wrap;word-break:break-word}
+  .err{background:#fef2f2;color:#991b1b;padding:8px 12px;border-radius:6px;font-size:.85rem}
+  .ok{background:#ecfdf5;color:#065f46;padding:8px 12px;border-radius:6px;font-size:.85rem}
+</style></head><body>
+<h1>\u{1F50D} Chat recipient diagnostic (read-only)</h1>
+<div class="row">
+  <input id="chatId" placeholder="chatId opzionale (es. staff_U11, adhoc_3, o vuoto = scopri tutte)" style="flex:1;min-width:280px">
+  <input id="senderUserId" placeholder="senderUserId (default = tuo userId JWT)" style="width:220px">
+  <button onclick="run()">Esegui</button>
+</div>
+<div id="msg"></div>
+<pre id="out">// Premi "Esegui" per la diagnosi sulla TUA societ\xE0.
+// Token letto da localStorage.mv_v2_token (lo stesso che usa l'app).</pre>
+<script>
+async function run() {
+  const out = document.getElementById('out');
+  const msg = document.getElementById('msg');
+  msg.innerHTML = '';
+  const tok = localStorage.getItem('mv_v2_token');
+  if (!tok) { msg.innerHTML = '<div class="err">\u26D4 Nessun mv_v2_token in localStorage. Devi essere loggato in MyVivaio in questa origin.</div>'; return; }
+  const chatId = document.getElementById('chatId').value.trim();
+  const sender = document.getElementById('senderUserId').value.trim();
+  const qs = new URLSearchParams();
+  if (chatId) qs.set('chatId', chatId);
+  if (sender) qs.set('senderUserId', sender);
+  out.textContent = '\u23F3 Caricamento...';
+  try {
+    const r = await fetch('/api/v2/_diag/chat' + (qs.toString() ? '?' + qs : ''), {
+      headers: { 'Authorization': 'Bearer ' + tok }
+    });
+    const t = await r.text();
+    if (!r.ok) {
+      msg.innerHTML = '<div class="err">HTTP ' + r.status + '</div>';
+      out.textContent = t;
+      return;
+    }
+    let j; try { j = JSON.parse(t); } catch { out.textContent = t; return; }
+    msg.innerHTML = '<div class="ok">OK \xB7 societyId=' + j.input.societyId + ' \xB7 sender=' + j.input.senderUserId + ' \xB7 chat='  + j.discovered_chat_count + '</div>';
+    out.textContent = JSON.stringify(j, null, 2);
+  } catch (e) {
+    msg.innerHTML = '<div class="err">Errore di rete: ' + (e.message || e) + '</div>';
+  }
+}
+</script>
+</body></html>`);
+});
+var admin_chat_diag_default = router43;
+
+// src/routes/v2/index.ts
+var router44 = (0, import_express44.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -95116,7 +95374,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router43.use(async (_req, _res, next) => {
+router44.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -95125,7 +95383,7 @@ router43.use(async (_req, _res, next) => {
     next();
   }
 });
-router43.get("/schema-info", async (_req, res) => {
+router44.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -95143,7 +95401,7 @@ router43.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router43.get("/_bundle-info", (_req, res) => {
+router44.get("/_bundle-info", (_req, res) => {
   return res.json({
     bundle: "2026-06-04-v24-stable",
     commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
@@ -95154,7 +95412,7 @@ router43.get("/_bundle-info", (_req, res) => {
     startedAt: new Date(Date.now() - process.uptime() * 1e3).toISOString()
   });
 });
-router43.get("/health/ai-key", (_req, res) => {
+router44.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -95165,7 +95423,7 @@ router43.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router43.get("/health/schema-budget", async (_req, res) => {
+router44.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -95180,57 +95438,58 @@ router43.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router43.use(auth_default2);
-router43.use(self_register_default);
-router43.use(society_default);
-router43.use(leve_default);
-router43.use(minors_default);
-router43.use(players_default);
-router43.use(users_default);
-router43.use(events_default);
-router43.use(presenze_default);
-router43.use(comunicazioni_default);
-router43.use(chat_default);
-router43.use(quote_default);
-router43.use(migrate_default);
-router43.use(stripe_default);
-router43.use(demo_wa_default);
-router43.use(superadmin_default);
-router43.use(account_default);
-router43.use(notification_preferences_default);
-router43.use(allenamenti_default);
-router43.use(ai_allenamenti_default);
-router43.use(ai_tornei_default);
-router43.use(utm_stats_default);
-router43.use(admin_reset_demo_default);
-router43.use(admin_populate_sessioni_default);
-router43.use(select_plan_default);
-router43.use(admin_genitore_debug_default);
-router43.use(admin_push_debug_default);
-router43.use(admin_cleanup_preview_default);
-router43.use(admin_backfill_roles_default);
-router43.use(notifiche_risultato_default);
-router43.use(migrate_polis_default);
-router43.use(matches_default);
-router43.use(stats_default);
-router43.use(admin_backfill_matches_default);
-var v2_default = router43;
+router44.use(auth_default2);
+router44.use(self_register_default);
+router44.use(society_default);
+router44.use(leve_default);
+router44.use(minors_default);
+router44.use(players_default);
+router44.use(users_default);
+router44.use(events_default);
+router44.use(presenze_default);
+router44.use(comunicazioni_default);
+router44.use(chat_default);
+router44.use(quote_default);
+router44.use(migrate_default);
+router44.use(stripe_default);
+router44.use(demo_wa_default);
+router44.use(superadmin_default);
+router44.use(account_default);
+router44.use(notification_preferences_default);
+router44.use(allenamenti_default);
+router44.use(ai_allenamenti_default);
+router44.use(ai_tornei_default);
+router44.use(utm_stats_default);
+router44.use(admin_reset_demo_default);
+router44.use(admin_populate_sessioni_default);
+router44.use(select_plan_default);
+router44.use(admin_genitore_debug_default);
+router44.use(admin_push_debug_default);
+router44.use(admin_cleanup_preview_default);
+router44.use(admin_backfill_roles_default);
+router44.use(notifiche_risultato_default);
+router44.use(migrate_polis_default);
+router44.use(matches_default);
+router44.use(stats_default);
+router44.use(admin_backfill_matches_default);
+router44.use(admin_chat_diag_default);
+var v2_default = router44;
 
 // src/routes/index.ts
-var router44 = (0, import_express44.Router)();
-router44.use(health_default);
-router44.use(login_default);
-router44.use(auth_default);
-router44.use(state_default);
-router44.use(assist_default);
-router44.use(push_default);
-router44.use(upload_default);
-router44.use(public_default);
-router44.use("/v2", v2_default);
-var routes_default = router44;
+var router45 = (0, import_express45.Router)();
+router45.use(health_default);
+router45.use(login_default);
+router45.use(auth_default);
+router45.use(state_default);
+router45.use(assist_default);
+router45.use(push_default);
+router45.use(upload_default);
+router45.use(public_default);
+router45.use("/v2", v2_default);
+var routes_default = router45;
 
 // src/app.ts
-var app = (0, import_express45.default)();
+var app = (0, import_express46.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -95251,17 +95510,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express45.default.json({
+app.use(import_express46.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express45.default.urlencoded({ extended: true }));
+app.use(import_express46.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express45.default.static(staticDir));
+  app.use(import_express46.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });
