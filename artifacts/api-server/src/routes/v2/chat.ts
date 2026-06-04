@@ -153,6 +153,9 @@ router.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [ids] = (await pool.execute(
       "SELECT id FROM chat_polls WHERE society_id = ? AND chat_id = ? ORDER BY created_at ASC, id ASC",
       [societyId, chatId]
@@ -175,6 +178,11 @@ router.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   const { question, options } = req.body as { question?: string; options?: unknown };
+
+  // Membership: il creatore del sondaggio deve essere membro della chat (P1 follow-up).
+  if (!(await _isChatMember(societyId, chatId, userId))) {
+    return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+  }
 
   // Gating server-side: ruolo admin/dirigente
   const [meRows] = (await pool.execute(
@@ -247,6 +255,13 @@ router.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
       [pollId, oid, societyId]
     )) as [any[], any];
     if (!check.length) return res.status(404).json({ error: "poll_or_option_not_found" });
+
+    // Membership: il votante deve essere membro della chat in cui vive il sondaggio.
+    // chatId è derivato dal poll, non dal path → query extra.
+    const chatIdOfPoll = String(check[0].chat_id);
+    if (!(await _isChatMember(societyId, chatIdOfPoll, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
 
     // Toggle: se esiste la riga (option_id, user_id) la cancelliamo, altrimenti la inseriamo.
     const [existing] = (await pool.execute(
@@ -630,6 +645,9 @@ router.post("/chat/:chatId/read", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [mx] = (await pool.query(
       "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
       [societyId, chatId]
@@ -723,6 +741,9 @@ router.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [mx] = (await pool.query(
       "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
       [societyId, chatId]
@@ -746,6 +767,9 @@ router.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { chatId } = req.params;
   try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     await pool.query(
       "DELETE FROM chat_archives WHERE user_id = ? AND society_id = ? AND chat_id = ?",
       [userId, societyId, chatId]
@@ -785,6 +809,17 @@ router.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
     return res.status(403).json({ error: "forbidden", detail: "caller must be in memberIds" });
   }
   try {
+    // Anti-hijack: se la chat esiste già con membri persistiti, il caller deve
+    // essere uno di quelli. Per creazioni (tabella vuota per quel chatId) il
+    // gating sopra (caller IN memberIds) è sufficiente.
+    const [existing] = (await pool.execute(
+      "SELECT user_id FROM adhoc_chat_members WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    )) as [any[], any];
+    if (existing.length && !(existing as any[]).some(r => Number(r.user_id) === userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
+
     // Verifica che tutti gli id siano utenti della stessa società (anti-cross-society leak).
     const placeholders = memberIds.map(() => "?").join(",");
     const [validRows] = (await pool.query(

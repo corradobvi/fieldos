@@ -21,13 +21,33 @@ async function _levaFromPlayerInBody(req: Request): Promise<string | null> {
   return rows.length && rows[0].leva ? String(rows[0].leva) : null;
 }
 
-// Resolver leva: events.leva via body.eventId
+// Resolver leva via body.eventId.
+// FIX N1: gli eventi creati via POST /api/v2/events popolano `event_leve`
+// (tabella M2M) MA NON `events.leva` (colonna single-value legacy). Il vecchio
+// resolver leggeva solo `events.leva` → 400 `leva_required` su ogni evento
+// multi-leva moderno, bloccando POST /presenze/bulk per allenatore/mister/etc.
+// Strategia: prima lookup in `event_leve` (prendiamo la prima leva associata),
+// poi fallback su `events.leva` per retrocompatibilità con eventi legacy.
 async function _levaFromEventInBody(req: Request): Promise<string | null> {
   const eid = Number((req.body as any)?.eventId);
   if (!Number.isFinite(eid) || eid <= 0) return null;
+  const societyId = req.jwtUser!.societyId;
+  // 1) event_leve M2M (path moderno)
+  const [m2m] = (await pool.execute(
+    `SELECT l.nome
+       FROM event_leve el
+       JOIN leve   l ON l.id = el.leva_id
+       JOIN events e ON e.id = el.event_id AND e.society_id = ?
+      WHERE el.event_id = ?
+      ORDER BY l.ordine, l.nome
+      LIMIT 1`,
+    [societyId, eid]
+  )) as [any[], any];
+  if (m2m.length && m2m[0].nome) return String(m2m[0].nome);
+  // 2) Fallback legacy: events.leva (eventi pre-migrazione)
   const [rows] = (await pool.execute(
     "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
-    [eid, req.jwtUser!.societyId]
+    [eid, societyId]
   )) as [any[], any];
   return rows.length && rows[0].leva ? String(rows[0].leva) : null;
 }

@@ -86814,9 +86814,21 @@ async function _levaFromPlayerInBody(req) {
 async function _levaFromEventInBody(req) {
   const eid = Number(req.body?.eventId);
   if (!Number.isFinite(eid) || eid <= 0) return null;
+  const societyId = req.jwtUser.societyId;
+  const [m2m] = await pool.execute(
+    `SELECT l.nome
+       FROM event_leve el
+       JOIN leve   l ON l.id = el.leva_id
+       JOIN events e ON e.id = el.event_id AND e.society_id = ?
+      WHERE el.event_id = ?
+      ORDER BY l.ordine, l.nome
+      LIMIT 1`,
+    [societyId, eid]
+  );
+  if (m2m.length && m2m[0].nome) return String(m2m[0].nome);
   const [rows] = await pool.execute(
     "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
-    [eid, req.jwtUser.societyId]
+    [eid, societyId]
   );
   return rows.length && rows[0].leva ? String(rows[0].leva) : null;
 }
@@ -87165,6 +87177,9 @@ router19.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [ids] = await pool.execute(
       "SELECT id FROM chat_polls WHERE society_id = ? AND chat_id = ? ORDER BY created_at ASC, id ASC",
       [societyId, chatId]
@@ -87184,6 +87199,9 @@ router19.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { question, options } = req.body;
+  if (!await _isChatMember(societyId, chatId, userId)) {
+    return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+  }
   const [meRows] = await pool.execute(
     "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
     [userId, societyId]
@@ -87241,6 +87259,10 @@ router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
       [pollId, oid, societyId]
     );
     if (!check.length) return res.status(404).json({ error: "poll_or_option_not_found" });
+    const chatIdOfPoll = String(check[0].chat_id);
+    if (!await _isChatMember(societyId, chatIdOfPoll, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [existing] = await pool.execute(
       "SELECT id FROM chat_poll_votes WHERE option_id = ? AND user_id = ? LIMIT 1",
       [oid, userId]
@@ -87553,6 +87575,9 @@ router19.post("/chat/:chatId/read", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [mx] = await pool.query(
       "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
       [societyId, chatId]
@@ -87631,6 +87656,9 @@ router19.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const [mx] = await pool.query(
       "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
       [societyId, chatId]
@@ -87652,6 +87680,9 @@ router19.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     await pool.query(
       "DELETE FROM chat_archives WHERE user_id = ? AND society_id = ? AND chat_id = ?",
       [userId, societyId, chatId]
@@ -87684,6 +87715,13 @@ router19.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
     return res.status(403).json({ error: "forbidden", detail: "caller must be in memberIds" });
   }
   try {
+    const [existing] = await pool.execute(
+      "SELECT user_id FROM adhoc_chat_members WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    );
+    if (existing.length && !existing.some((r) => Number(r.user_id) === userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
     const placeholders = memberIds.map(() => "?").join(",");
     const [validRows] = await pool.query(
       `SELECT id FROM users WHERE society_id = ? AND id IN (${placeholders})`,
