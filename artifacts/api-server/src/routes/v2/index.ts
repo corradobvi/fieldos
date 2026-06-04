@@ -243,6 +243,23 @@ async function ensureSchema() {
     }
     logger.info("v2: seed data inserted");
   }
+
+  // Cleanup orphan push_subscriptions: righe con user_id non esistente in `users`
+  // (residuo di blob-id salvati prima del fix che ora usa req.jwtUser.userId / MySQL id).
+  // Una volta rimosse, la prossima subscribePush crea la riga corretta con MySQL id.
+  try {
+    const [res] = await pool.execute(
+      "DELETE FROM `push_subscriptions` WHERE `user_id` NOT IN (SELECT `id` FROM `users`)"
+    ) as [any, any];
+    const affected = (res as any)?.affectedRows ?? 0;
+    if (affected > 0) {
+      console.log(`[SCHEMA_GUARD] orphan push_subscriptions cleaned: ${affected} rows`);
+      logger.info({ affected }, "v2: orphan push_subscriptions cleaned");
+    }
+  } catch (e: any) {
+    logger.warn({ err: e?.message }, "v2: orphan push_subscriptions cleanup failed");
+  }
+
   _schemaReady = true;
   console.log("[SCHEMA_GUARD] ensureSchema completed — _schemaReady=true");
   logger.info("v2: schema ready");

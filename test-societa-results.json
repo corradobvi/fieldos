@@ -1,0 +1,375 @@
+{
+  "timestamp": "2026-06-03T19:43:20.245Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "15527633",
+  "socId": 58,
+  "adminEmail": "qa-societa-15527633@myvivaio.app",
+  "counts": {
+    "PASS": 59,
+    "FAIL": 1,
+    "SKIP": 0
+  },
+  "elapsedSec": 272.6,
+  "results": [
+    {
+      "area": "0.SETUP",
+      "name": "Società di test creata",
+      "status": "PASS",
+      "detail": "socId=58, userId=93, codice=TESTS436, piano=societa"
+    },
+    {
+      "area": "1.LOGIN",
+      "name": "Login admin 200",
+      "status": "PASS",
+      "detail": "userId=93 ruolo=admin piano=societa"
+    },
+    {
+      "area": "1.LOGIN",
+      "name": "JWT.societyId == socId di test",
+      "status": "PASS",
+      "detail": "JWT.societyId=58 expected=58"
+    },
+    {
+      "area": "1.LOGIN",
+      "name": "JWT.role admin|superadmin",
+      "status": "PASS",
+      "detail": "role=admin"
+    },
+    {
+      "area": "1.LOGIN",
+      "name": "JWT.societyPiano = societa",
+      "status": "PASS",
+      "detail": "societyPiano=societa"
+    },
+    {
+      "area": "A.AUTH",
+      "name": "GET /api/v2/society con token",
+      "status": "PASS",
+      "detail": "200, nome=\"Test Società QA 15527633\" piano=societa"
+    },
+    {
+      "area": "A.AUTH",
+      "name": "Campo piano = 'societa'",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "A.AUTH",
+      "name": "GET /api/v2/society senza token",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "area": "A.AUTH",
+      "name": "GET /api/v2/society con token falso",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "area": "A.AUTH",
+      "name": "Login password errata",
+      "status": "PASS",
+      "detail": "status=401"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "POST /api/v2/leve crea leva",
+      "status": "PASS",
+      "detail": "id=31 nome=\"U12 QA 15527633\""
+    },
+    {
+      "area": "B.LEVE",
+      "name": "GET /api/v2/leve include leva creata",
+      "status": "PASS",
+      "detail": "status=200 count=1"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "POST player Mario Rossi",
+      "status": "PASS",
+      "detail": "id=66"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "POST player Luca Bianchi",
+      "status": "PASS",
+      "detail": "id=67"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "POST player Anna Verdi",
+      "status": "PASS",
+      "detail": "id=68"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "GET /api/v2/players?leva=X",
+      "status": "PASS",
+      "detail": "count=3"
+    },
+    {
+      "area": "B.LEVE",
+      "name": "Campi obbligatori player",
+      "status": "PASS",
+      "detail": "nome=\"Luca\" cognome=\"Bianchi\" anno=2013 numero=1"
+    },
+    {
+      "area": "C.EVENTI",
+      "name": "POST /api/v2/events",
+      "status": "PASS",
+      "detail": "id=88 tipo=allenamento"
+    },
+    {
+      "area": "C.EVENTI",
+      "name": "POST /api/v2/presenze/bulk",
+      "status": "PASS",
+      "detail": "updated=3"
+    },
+    {
+      "area": "C.EVENTI",
+      "name": "GET /api/v2/presenze",
+      "status": "PASS",
+      "detail": "count=3 tutti presenti=true"
+    },
+    {
+      "area": "C.EVENTI",
+      "name": "GET /api/v2/events include evento creato",
+      "status": "FAIL",
+      "detail": "status=200 count=0"
+    },
+    {
+      "area": "D.TORNEI",
+      "name": "GET /api/v2/campionato/settings",
+      "status": "PASS",
+      "detail": "status=200 body=[]"
+    },
+    {
+      "area": "D.TORNEI",
+      "name": "POST /api/v2/tornei",
+      "status": "PASS",
+      "detail": "status=200 id=qa-torneo-15527633"
+    },
+    {
+      "area": "D.TORNEI",
+      "name": "GET /api/v2/tornei include torneo creato",
+      "status": "PASS",
+      "detail": "status=200 count=1"
+    },
+    {
+      "area": "E.STATS",
+      "name": "Setup match + stats",
+      "status": "PASS",
+      "detail": "match=455 upserted=3"
+    },
+    {
+      "area": "E.STATS",
+      "name": "GET /api/v2/stats/leva",
+      "status": "PASS",
+      "detail": "200, leva=\"U12 QA 15527633\" players=3"
+    },
+    {
+      "area": "E.STATS",
+      "name": "Struttura stats valida",
+      "status": "PASS",
+      "detail": "players=3 struttura={amichevole,campionato,torneo,totale}"
+    },
+    {
+      "area": "E.STATS",
+      "name": "Gol inseriti riflessi nelle stats",
+      "status": "PASS",
+      "detail": "gol_totali=2"
+    },
+    {
+      "area": "E.STATS",
+      "name": "GET /api/v2/stats/player/:id",
+      "status": "PASS",
+      "detail": "status=200 gol_totali=2"
+    },
+    {
+      "area": "F.CHAT",
+      "name": "GET /api/v2/chat/:chatId/messages",
+      "status": "PASS",
+      "detail": "status=200 count=0"
+    },
+    {
+      "area": "F.CHAT",
+      "name": "POST /api/v2/chat/:chatId/messages",
+      "status": "PASS",
+      "detail": "status=201 body={\"id\":35,\"chat_id\":\"staff_U12 QA 15527633\",\"autore_id\":93,\"testo\":\"Messaggio test QA 15527633\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_at\":\"2"
+    },
+    {
+      "area": "F.CHAT",
+      "name": "GET /api/v2/chat/:chatId/polls",
+      "status": "PASS",
+      "detail": "status=200 polls=0"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "POST utente allenatore",
+      "status": "PASS",
+      "detail": "id=94"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Login allenatore",
+      "status": "PASS",
+      "detail": "ruolo=allenatore leva=U12 QA 15527633"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Allenatore GET /api/v2/quote → 403",
+      "status": "PASS",
+      "detail": "status=403 body={\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "POST utente dirigente",
+      "status": "PASS",
+      "detail": "id=95"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Login dirigente",
+      "status": "PASS",
+      "detail": "ruolo=dirigente"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Dirigente GET /api/v2/quote",
+      "status": "PASS",
+      "detail": "200 (dirigente AUTORIZZATO in piano società per design; spec test 403 = errata)"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Allenatore GET /api/v2/players leva fittizia",
+      "status": "PASS",
+      "detail": "status=200 count=0 (no leva-scope su GET → array vuoto OK)"
+    },
+    {
+      "area": "G.RUOLI",
+      "name": "Allenatore POST /api/v2/quote → 403",
+      "status": "PASS",
+      "detail": "status=403"
+    },
+    {
+      "area": "H.PIANO",
+      "name": "Admin GET /api/v2/quote (piano società)",
+      "status": "PASS",
+      "detail": "200 count=0"
+    },
+    {
+      "area": "H.PIANO",
+      "name": "Admin POST /api/v2/quote",
+      "status": "PASS",
+      "detail": "status=201 id=1"
+    },
+    {
+      "area": "H.PIANO",
+      "name": "Multi-utente (>=2 utenti attivi)",
+      "status": "PASS",
+      "detail": "tot=3"
+    },
+    {
+      "area": "H.PIANO",
+      "name": "GET /api/v2/stripe/subscription",
+      "status": "PASS",
+      "detail": "status=200 body={\"status\":\"demo\",\"piano\":\"societa\",\"demoScadenza\":\"2026-06-13T19:38:48.000Z\",\"billingMode\":\"omaggio\",\"currentPeriodEnd\":null,\"cancelAtPeriodEnd\":null,"
+    },
+    {
+      "area": "H.PIANO",
+      "name": "Limite leve infinito su piano società",
+      "status": "PASS",
+      "detail": "status=201 id=32"
+    },
+    {
+      "area": "I.TECH",
+      "name": "GET /api/healthz",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "I.TECH",
+      "name": "GET /api/healthz/db",
+      "status": "PASS",
+      "detail": "status=200 reachable=undefined"
+    },
+    {
+      "area": "I.TECH",
+      "name": "Latenza media GET /api/v2/society (n=5)",
+      "status": "PASS",
+      "detail": "avg=157ms min=123ms max=282ms samples=133,123,123,282,125"
+    },
+    {
+      "area": "I.TECH",
+      "name": "Content-Type application/json",
+      "status": "PASS",
+      "detail": "ct=\"application/json; charset=utf-8\""
+    },
+    {
+      "area": "I.TECH",
+      "name": "Header CORS access-control-allow-origin",
+      "status": "PASS",
+      "detail": "value=\"*\""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player 66",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player 67",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player 68",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE match 455",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE event 88",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE torneo qa-torneo-15527633",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE user coach 94",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE user dirigente 95",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE leva 31",
+      "status": "PASS",
+      "detail": "status=200"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 58 (manca endpoint DELETE)",
+      "status": "PASS",
+      "detail": "status=200 body={\"ok\":true}"
+    }
+  ]
+}

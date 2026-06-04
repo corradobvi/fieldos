@@ -33232,32 +33232,76 @@ function pwaApplyUpdate() {
   }
 }
 
+// ── Toast visibile per stato push (verde successo, arancione errore)
+//    Serve sul telefono: il tester vede subito l'esito senza DevTools.
+function _pushToast(msg, color) {
+  try {
+    const t = document.getElementById('toastEl');
+    if (!t) return;
+    t.textContent = msg;
+    t.style.background = color;
+    t.style.boxShadow  = '0 8px 28px rgba(0,0,0,.35)';
+    t.classList.add('on');
+    setTimeout(() => {
+      t.classList.remove('on');
+      setTimeout(() => { t.style.background = ''; t.style.boxShadow = ''; }, 400);
+    }, 3000);
+  } catch (_) {}
+}
+
+// Guard anti-doppione: ricorda l'endpoint salvato con successo in questa sessione.
+let _pushSavedEndpoint = null;
+let _pushInflight = false;
+
 // ── Subscribe to push notifications for the current user
-async function subscribePush(userId, societyKey) {
-  console.log('[Push] subscribePush start — userId:', userId, 'societyKey:', societyKey);
-  if (!('serviceWorker' in navigator)) { console.warn('[Push] subscribePush: serviceWorker not supported'); return; }
+//    Retry interno: se _v2Token non è ancora pronto, riprova una volta dopo 2s.
+async function subscribePush(userId, societyKey, _isRetry) {
+  console.log('[Push] subscribePush start — userId:', userId, 'societyKey:', societyKey, 'retry:', !!_isRetry);
+  if (_pushInflight) { console.log('[Push] subscribePush: already in-flight, skip'); return; }
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[Push] subscribePush: serviceWorker not supported');
+    _pushToast('🔔 Notifiche non attive — browser non supportato', '#d97706');
+    return;
+  }
+  _pushInflight = true;
   try {
     const reg = _swReg || await navigator.serviceWorker.ready;
-    if (!reg) { console.warn('[Push] subscribePush: no SW registration'); return; }
+    if (!reg) {
+      console.warn('[Push] subscribePush: no SW registration');
+      _pushToast('🔔 Notifiche non attive — service worker mancante', '#d97706');
+      return;
+    }
     const pubKey = await getPushPublicKey();
     if (!pubKey) {
       console.error('[Push] subscribePush: no VAPID public key — backend push not configured');
+      _pushToast('🔔 Notifiche non attive — VAPID assente', '#d97706');
       return;
     }
     const key = urlBase64ToUint8Array(pubKey);
-    // Always unsubscribe existing and re-subscribe to ensure key matches current VAPID
-    const existing = await reg.pushManager.getSubscription();
-    if (existing) {
-      await existing.unsubscribe();
+    // Riusa subscription esistente se già salvata in questa sessione (no churn ad ogni boot).
+    let sub = await reg.pushManager.getSubscription();
+    if (sub && _pushSavedEndpoint === sub.endpoint) {
+      console.log('[Push] subscribePush: subscription already saved this session, skip POST');
+      _pushToast('🔔 Notifiche attive', '#16a34a');
+      return;
+    }
+    if (sub) {
+      await sub.unsubscribe();
       console.log('[Push] subscribePush: unsubscribed old subscription');
     }
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
     console.log('[Push] subscribePush: new subscription created, endpoint:', sub.endpoint.slice(0, 40) + '…');
-    // BE ora richiede JWT e usa req.jwtUser.userId (MySQL id) ignorando body.userId
-    // → manda l'Authorization. Se manca il token, 401 → niente subscription salvata.
+    // BE richiede JWT e usa req.jwtUser.userId (MySQL id) ignorando body.userId.
     if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
     if (!_v2Token) {
-      console.error('[Push] subscribePush: no JWT — utente non autenticato, skip');
+      if (!_isRetry) {
+        console.warn('[Push] subscribePush: no JWT — retry in 2s');
+        _pushInflight = false;
+        setTimeout(() => { subscribePush(userId, societyKey, true); }, 2000);
+        return;
+      }
+      console.error('[Push] subscribePush: no JWT dopo retry, abort');
+      _pushToast('🔔 Notifiche non attive — sessione non pronta', '#d97706');
       return;
     }
     const r = await fetch('/api/push/subscribe', {
@@ -33267,12 +33311,18 @@ async function subscribePush(userId, societyKey) {
     });
     if (r.ok) {
       console.log('[Push] subscribePush: saved to backend ok');
+      _pushSavedEndpoint = sub.endpoint;
+      _pushToast('🔔 Notifiche attive', '#16a34a');
     } else {
       const errText = await r.text().catch(() => '');
       console.error('[Push] subscribePush: backend save failed', r.status, errText);
+      _pushToast('🔔 Notifiche non attive — server ' + r.status, '#d97706');
     }
   } catch (e) {
     console.error('[Push] subscribePush failed:', e);
+    _pushToast('🔔 Notifiche non attive — ' + (e && e.message ? e.message : 'errore'), '#d97706');
+  } finally {
+    _pushInflight = false;
   }
 }
 

@@ -1,0 +1,519 @@
+{
+  "timestamp": "2026-06-03T20:01:32.413Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "16879419",
+  "socId": 59,
+  "misterRoleUsed": "mister",
+  "counts": {
+    "PASS": 48,
+    "FAIL": 11,
+    "SKIP": 4
+  },
+  "elapsedSec": 13,
+  "results": [
+    {
+      "area": "0.SETUP",
+      "name": "Crea società piano società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=59 codice=TESTR237"
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "userId=96"
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Crea leva primaria",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=33 nome=\"U14 QA 16879419\""
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Crea leva secondaria",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=34"
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Player over13 (Marco Rossi, 2010)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=69"
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Player under13 (Luca Bianchi, 2018, U10)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=70"
+    },
+    {
+      "area": "0.SETUP",
+      "name": "Player altro over13 (Andrea Verdi)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=71"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Crea utente ruolo='mister'",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=97"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Login mister (ruolo='mister')",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=mister leva=U14 QA 16879419"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Crea utente genitore",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=98"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Login genitore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=genitore"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Link genitore → player under13 (claim)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "guardianId=49"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Crea utente giocatore over13",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=99 nome=Marco Rossi (matcha player 69)"
+    },
+    {
+      "area": "1.USERS",
+      "name": "Login giocatore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "ruolo=giocatore"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/society",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":59,\"nome\":\"Test Ruoli QA 16879419\",\"citta\":\"QA City\",\"colore_primario\":\"#1A7A4A\",\"colore_accento\":\"#FFD93D\",\"logo_"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/leve",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=2"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/players?leva=<sua>",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=2"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/convocazioni",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Endpoint REST convocazioni NON ESISTE in api-server. Le convocazioni sono nel blob USERS_DB/FE."
+    },
+    {
+      "area": "MISTER",
+      "name": "POST /api/v2/events (proxy convocazione)",
+      "expected": "201",
+      "got": "403",
+      "status": "FAIL",
+      "detail": "id=undefined"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/stats/leva (sua)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"leva\":\"U14 QA 16879419\",\"players\":[{\"player_id\":69,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/documenti",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Endpoint REST documenti NON ESISTE in api-server (gestiti via uploadFile blob)"
+    },
+    {
+      "area": "MISTER",
+      "name": "GET /api/v2/chat/staff_<sua>/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "MISTER",
+      "name": "POST /api/v2/presenze/bulk (altra leva) → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "MISTER",
+      "name": "POST /api/v2/players",
+      "expected": "201",
+      "got": "403",
+      "status": "FAIL",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/society → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: backend non gattella per ruolo, genitore vede dati società"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/players (tutti) → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: genitore può listare TUTTI i 3 giocatori della società"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/players/:figlioId",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "nome=Luca Bianchi"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/players/:altroId → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: GET /players/:id non gattella per ownership — genitore vede QUALSIASI player"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET convocazioni figlio",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Endpoint REST convocazioni NON ESISTE; le convocazioni vivono nel blob USERS_DB."
+    },
+    {
+      "area": "GENITORE",
+      "name": "POST /api/v2/events (proxy convocazione) → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/presenze (evento figlio)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/stats/player/:figlioId",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":70,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"c"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET stats altro player → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: stats/player/:id non gattella per ownership"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GENITORE",
+      "name": "POST /api/v2/quote (pagamento) → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GENITORE",
+      "name": "GET /api/v2/chat/leva_<sua>/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "GENITORE",
+      "name": "POST /api/v2/chat/leva_<sua>/messages",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":40,\"chat_id\":\"leva_U10 QA 16879419\",\"autore_id\":98,\"testo\":\"Test genitore 16879419\",\"foto_url\":null,\"tipo\":null,\"m"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/society → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: giocatore vede dati società"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/players (tutti) → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: giocatore lista 3 giocatori"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/players/:idProprio",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "nome=Marco Rossi"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/players/:altroId → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SICUREZZA: giocatore vede dati di QUALSIASI altro player"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET convocazioni proprie",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "endpoint REST non esiste"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "POST /api/v2/events → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/presenze (evento sua leva)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/stats/player/:proprio",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":69,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"c"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "POST /api/v2/quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "GET /api/v2/chat/squadra_<sua>/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "area": "GIOCATORE",
+      "name": "POST /api/v2/chat/squadra_<sua>/messages",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":41,\"chat_id\":\"squadra_U14 QA 16879419\",\"autore_id\":99,\"testo\":\"Test giocatore 16879419\",\"foto_url\":null,\"tipo\":nul"
+    },
+    {
+      "area": "CROSS",
+      "name": "Genitore GET player over13 NON-figlio → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA: genitore vede dati di player non collegato (status=200)"
+    },
+    {
+      "area": "CROSS",
+      "name": "Giocatore GET /api/v2/users (per leggere genitori) → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "CROSS",
+      "name": "Mister POST /api/v2/quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "CROSS",
+      "name": "Genitore GET chat di altra leva → 403",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA: GET /chat/:chatId/messages non controlla membership → leggi qualsiasi chat"
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE user giocatore 99",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE user genitore 98",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE user mister 97",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player over13 69",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player under13 70",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE player other 71",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE second leva 34",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "DELETE leva 33",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 59 (manca DELETE)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    }
+  ]
+}
