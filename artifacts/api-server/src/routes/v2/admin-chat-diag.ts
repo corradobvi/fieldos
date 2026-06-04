@@ -274,58 +274,196 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
 });
 
 // GET /api/v2/_diag/chat/ui
-// Pagina HTML wrapper che chiama l'endpoint JSON usando il Bearer dal localStorage.mv_v2_token.
-// L'admin loggato apre questa URL dal browser → nessun copia-incolla di token, nessun SA-secret.
+// Pagina HTML auto-eseguente: appena l'admin loggato la apre, esegue la diagnosi
+// e mostra UN VERDETTO in italiano per chat. Bearer letto da localStorage.mv_v2_token.
+// La logica diagnostica vive lato server in GET /_diag/chat — qui solo presentazione.
 router.get("/_diag/chat/ui", (_req, res) => {
   res.type("html").send(`<!doctype html>
-<html><head><meta charset="utf-8"><title>Chat recipient diagnostic</title>
+<html lang="it"><head><meta charset="utf-8"><title>Diagnosi notifiche chat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body{font-family:system-ui,-apple-system,sans-serif;padding:16px;max-width:1100px;margin:0 auto;background:#f8fafc;color:#1e293b;}
-  h1{font-size:1.1rem;margin:0 0 12px}
-  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  input,button{padding:6px 10px;font-size:.9rem;border-radius:6px;border:1px solid #cbd5e1}
-  button{background:#0f172a;color:#fff;cursor:pointer;border:0}
-  pre{background:#0f172a;color:#e2e8f0;padding:12px;border-radius:8px;overflow:auto;max-height:80vh;font-size:.78rem;white-space:pre-wrap;word-break:break-word}
-  .err{background:#fef2f2;color:#991b1b;padding:8px 12px;border-radius:6px;font-size:.85rem}
-  .ok{background:#ecfdf5;color:#065f46;padding:8px 12px;border-radius:6px;font-size:.85rem}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;padding:18px;max-width:920px;margin:0 auto;background:#f8fafc;color:#0f172a;line-height:1.45}
+  h1{font-size:1.25rem;margin:0 0 4px}
+  .sub{color:#64748b;font-size:.85rem;margin-bottom:18px}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card h2{font-size:1rem;margin:0 0 10px;color:#1e293b;font-weight:700}
+  .verdict{padding:10px 12px;border-radius:8px;margin:6px 0;font-size:.95rem;line-height:1.45}
+  .verdict.ok{background:#ecfdf5;color:#065f46;border-left:4px solid #10b981}
+  .verdict.ko{background:#fef2f2;color:#991b1b;border-left:4px solid #ef4444}
+  .verdict.warn{background:#fffbeb;color:#92400e;border-left:4px solid #f59e0b}
+  .verdict strong{font-weight:700}
+  .tech{font-size:.74rem;color:#64748b;margin-top:6px;font-family:ui-monospace,Menlo,monospace;background:#f1f5f9;padding:6px 8px;border-radius:6px;white-space:pre-wrap;word-break:break-word}
+  .status{padding:10px 14px;border-radius:8px;font-size:.9rem;margin-bottom:14px}
+  .status.loading{background:#eff6ff;color:#1e40af}
+  .status.err{background:#fef2f2;color:#991b1b}
+  .empty{color:#64748b;font-size:.85rem;font-style:italic;padding:8px}
+  details{margin-top:14px;font-size:.78rem;color:#475569}
+  details pre{background:#0f172a;color:#e2e8f0;padding:10px;border-radius:6px;overflow:auto;max-height:50vh;font-size:.7rem;white-space:pre-wrap;word-break:break-word}
+  .meta{color:#64748b;font-size:.78rem;margin-bottom:14px}
+  .btn{background:#0f172a;color:#fff;border:0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:.85rem;margin-top:8px}
 </style></head><body>
-<h1>🔍 Chat recipient diagnostic (read-only)</h1>
-<div class="row">
-  <input id="chatId" placeholder="chatId opzionale (es. staff_U11, adhoc_3, o vuoto = scopri tutte)" style="flex:1;min-width:280px">
-  <input id="senderUserId" placeholder="senderUserId (default = tuo userId JWT)" style="width:220px">
-  <button onclick="run()">Esegui</button>
-</div>
-<div id="msg"></div>
-<pre id="out">// Premi "Esegui" per la diagnosi sulla TUA società.\n// Token letto da localStorage.mv_v2_token (lo stesso che usa l'app).</pre>
+<h1>🔍 Diagnosi notifiche chat</h1>
+<div class="sub">Analizza tutte le chat Staff e ad hoc della tua società per scoprire chi non riceve le notifiche.</div>
+
+<div id="status" class="status loading">⏳ Carico la diagnosi…</div>
+<div id="meta" class="meta" style="display:none"></div>
+<div id="results"></div>
+
+<details><summary>Mostra dati grezzi (JSON)</summary><pre id="raw">—</pre></details>
+
 <script>
-async function run() {
-  const out = document.getElementById('out');
-  const msg = document.getElementById('msg');
-  msg.innerHTML = '';
-  const tok = localStorage.getItem('mv_v2_token');
-  if (!tok) { msg.innerHTML = '<div class="err">⛔ Nessun mv_v2_token in localStorage. Devi essere loggato in MyVivaio in questa origin.</div>'; return; }
-  const chatId = document.getElementById('chatId').value.trim();
-  const sender = document.getElementById('senderUserId').value.trim();
-  const qs = new URLSearchParams();
-  if (chatId) qs.set('chatId', chatId);
-  if (sender) qs.set('senderUserId', sender);
-  out.textContent = '⏳ Caricamento...';
-  try {
-    const r = await fetch('/api/v2/_diag/chat' + (qs.toString() ? '?' + qs : ''), {
-      headers: { 'Authorization': 'Bearer ' + tok }
-    });
-    const t = await r.text();
-    if (!r.ok) {
-      msg.innerHTML = '<div class="err">HTTP ' + r.status + '</div>';
-      out.textContent = t;
+// Traduce il "reason" tecnico restituito dall'endpoint in italiano umano.
+function reasonHuman(u, chatPattern) {
+  if (u.is_recipient || u.is_member) {
+    if (!u.has_push_subscription) return "il suo telefono non è iscritto alle notifiche push";
+    if (u.opted_out_notify_chat)    return "ha disattivato le notifiche chat nelle impostazioni";
+    return null; // tutto OK
+  }
+  // non e' member
+  if (chatPattern === 'adhoc') {
+    if (u.adhoc_row_valid === false) return "non risulta tra i membri salvati della chat (id non valido)";
+    return "non risulta tra i membri salvati della chat";
+  }
+  // staff/leva/squadra/torneo
+  if (u.stato && u.stato !== 'attivo') return "il suo account non e' attivo (stato='" + u.stato + "')";
+  return "il sistema non lo include come destinatario (ruolo/leva non corrispondono al filtro)";
+}
+
+function chatTitle(chat) {
+  if (chat.pattern === 'staff')          return 'Chat Staff (' + (chat.leva_target || '?') + ')';
+  if (chat.pattern === 'leva_famiglie')  return 'Chat Leva Famiglie (' + (chat.leva_target || '?') + ')';
+  if (chat.pattern === 'squadra')        return 'Chat Squadra (' + (chat.leva_target || '?') + ')';
+  if (chat.pattern === 'torneo')         return 'Chat Torneo';
+  if (chat.pattern === 'adhoc')          return 'Chat ad hoc "' + chat.chatId.replace(/^adhoc_/,'') + '"';
+  return chat.chatId;
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function fullName(u) {
+  const n = (u.nome || '').trim();
+  const c = (u.cognome || '').trim();
+  return (n || c) ? (n + ' ' + c).trim() : ('utente #' + u.id);
+}
+
+function render(j) {
+  document.getElementById('raw').textContent = JSON.stringify(j, null, 2);
+  const meta = document.getElementById('meta');
+  meta.style.display = 'block';
+  meta.textContent = 'Societa\\' id: ' + j.input.societyId
+    + ' · sender simulato (tuo JWT): user id ' + j.input.senderUserId
+    + ' · chat analizzate: ' + j.discovered_chat_count;
+
+  const root = document.getElementById('results');
+  root.innerHTML = '';
+
+  if (!j.per_chat || !j.per_chat.length) {
+    root.innerHTML = '<div class="empty">Nessuna chat trovata per questa società.</div>';
+    return;
+  }
+
+  let totMister = 0, totKo = 0;
+  j.per_chat.forEach(chat => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const h = document.createElement('h2');
+    h.textContent = chatTitle(chat);
+    card.appendChild(h);
+
+    const misters = (chat.users || []).filter(u => u.ruolo === 'allenatore' || u.ruolo === 'mister');
+    if (!misters.length) {
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'Nessun mister/allenatore tra i candidati a questa chat.';
+      card.appendChild(e);
+      root.appendChild(card);
       return;
     }
-    let j; try { j = JSON.parse(t); } catch { out.textContent = t; return; }
-    msg.innerHTML = '<div class="ok">OK · societyId=' + j.input.societyId + ' · sender=' + j.input.senderUserId + ' · chat='  + j.discovered_chat_count + '</div>';
-    out.textContent = JSON.stringify(j, null, 2);
-  } catch (e) {
-    msg.innerHTML = '<div class="err">Errore di rete: ' + (e.message || e) + '</div>';
+
+    misters.forEach(m => {
+      totMister++;
+      const why = reasonHuman(m, chat.pattern);
+      const v = document.createElement('div');
+      if (why) {
+        totKo++;
+        v.className = 'verdict ko';
+        v.innerHTML = '<strong>Il mister ' + escapeHtml(fullName(m)) + ' NON riceve le notifiche.</strong> Motivo: ' + escapeHtml(why) + '.';
+      } else {
+        v.className = 'verdict ok';
+        v.innerHTML = '<strong>Il mister ' + escapeHtml(fullName(m)) + ' riceve regolarmente le notifiche.</strong> ✅';
+      }
+      const t = document.createElement('div');
+      t.className = 'tech';
+      t.textContent = 'id=' + m.id
+        + ' · ruolo=' + (m.ruolo || '-')
+        + ' · leva=' + JSON.stringify(m.leva_stored)
+        + ' · stato=' + (m.stato || '-')
+        + ' · membro=' + m.is_member
+        + ' · destinatario=' + m.is_recipient
+        + ' · push=' + (m.has_push_subscription ? 'iscritto' : 'mancante')
+        + ' · opt_out_chat=' + m.opted_out_notify_chat
+        + (chat.pattern === 'adhoc' ? ' · adhoc_row_valid=' + m.adhoc_row_valid : '');
+      v.appendChild(t);
+      card.appendChild(v);
+    });
+
+    root.appendChild(card);
+  });
+
+  const status = document.getElementById('status');
+  if (totKo === 0) {
+    status.className = 'status'; status.style.background='#ecfdf5'; status.style.color='#065f46';
+    status.textContent = '✅ Diagnosi completata. ' + totMister + ' mister analizzati, tutti ricevono le notifiche.';
+  } else {
+    status.className = 'status'; status.style.background='#fef2f2'; status.style.color='#991b1b';
+    status.textContent = '⚠️ Diagnosi completata. ' + totKo + ' su ' + totMister + ' analisi mostrano un mister che NON riceve.';
   }
+}
+
+async function run() {
+  const status = document.getElementById('status');
+  const tok = localStorage.getItem('mv_v2_token');
+  if (!tok) {
+    status.className = 'status err';
+    status.innerHTML = '⛔ Non sei loggato in MyVivaio su questo dominio (nessun token in localStorage). '
+      + 'Apri prima MyVivaio e fai il login, poi torna su questa pagina. '
+      + 'Se sei sicuro di essere loggato, segnalalo: useremo l\\'alternativa.';
+    return;
+  }
+  try {
+    const r = await fetch('/api/v2/_diag/chat', { headers: { 'Authorization': 'Bearer ' + tok } });
+    const t = await r.text();
+    if (!r.ok) {
+      status.className = 'status err';
+      status.innerHTML = '⛔ Endpoint risposta HTTP ' + r.status + '. '
+        + (r.status === 401 ? 'Token scaduto o invalido: rifai login a MyVivaio.' :
+           r.status === 403 ? 'Devi essere admin o mister_admin per usare questa pagina.' :
+           'Errore inatteso. Dettagli: ' + escapeHtml(t.slice(0, 300)));
+      return;
+    }
+    let j; try { j = JSON.parse(t); }
+    catch {
+      status.className = 'status err';
+      status.textContent = '⛔ Risposta non JSON (forse Railway sta servendo un bundle vecchio). Aspetta 1-2 minuti e ricarica.';
+      return;
+    }
+    render(j);
+  } catch (e) {
+    status.className = 'status err';
+    status.textContent = '⛔ Errore di rete: ' + (e && e.message ? e.message : e);
+  }
+}
+
+// Auto-run all'apertura. Nessun bottone, nessun campo da compilare.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', run);
+} else {
+  run();
 }
 </script>
 </body></html>`);
