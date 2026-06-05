@@ -87335,7 +87335,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const [dirRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('dirigente','mister')
+            AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -87367,7 +87367,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
       const [staffRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','mister','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','mister_admin','preparatore_portieri')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -87412,7 +87412,7 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
           const [dRows] = await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo'
-                AND ruolo IN ('dirigente','mister')
+                AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
                 AND ${lc.sql}
                 AND id != ?`,
             [societyId, ...lc.params, senderUserId]
@@ -95076,7 +95076,7 @@ router43.get("/_diag/chat", requireAuth, async (req, res) => {
       for (const u of shortlist) {
         users.push(await _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet));
       }
-      const misters = users.filter((u) => u.ruolo === "allenatore" || u.ruolo === "mister");
+      const misters = users.filter((u) => u.ruolo === "allenatore" || u.ruolo === "mister" || u.ruolo === "mister_admin");
       const dirigenti = users.filter((u) => u.ruolo === "dirigente");
       let hint;
       if (misters.length === 0) {
@@ -95218,7 +95218,11 @@ function render(j) {
     h.textContent = chatTitle(chat);
     card.appendChild(h);
 
-    const misters = (chat.users || []).filter(u => u.ruolo === 'allenatore' || u.ruolo === 'mister');
+    // isMister-like: include mister_admin (super-mister con poteri admin, ma per la chat
+    // viene trattato come un mister normale).
+    const misters = (chat.users || []).filter(u =>
+      u.ruolo === 'allenatore' || u.ruolo === 'mister' || u.ruolo === 'mister_admin'
+    );
     if (!misters.length) {
       const e = document.createElement('div');
       e.className = 'empty';

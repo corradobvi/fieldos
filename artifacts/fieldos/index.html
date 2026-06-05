@@ -24993,7 +24993,11 @@ function getChatsForUser(user) {
       if (u.role !== 'giocatore') return false;
       return players.some(pl => pl.nome === u.nome && pl.cogn === u.cogn && pl.leva === lv);
     }).map(u => u.id);
-    const allenatori = USERS_DB.filter(u => u.role === 'allenatore' && staffLeve(u).includes(lv)).map(u => u.id);
+    // FIX mister_admin: trattato come allenatore (mister normale). isMister-like:
+    // role === 'allenatore' || role === 'mister_admin' (coerente con index.html:5809).
+    const allenatori = USERS_DB.filter(u =>
+      (u.role === 'allenatore' || u.role === 'mister_admin') && staffLeve(u).includes(lv)
+    ).map(u => u.id);
     const preparatori = USERS_DB.filter(u => u.role === 'preparatore_portieri' && staffLeve(u).includes(lv)).map(u => u.id);
     const members = [...new Set([...giocatoriInLeva, ...allenatori, ...preparatori])];
     const belongs = allenatori.includes(user.id) || preparatori.includes(user.id) || giocatoriInLeva.includes(user.id);
@@ -26083,14 +26087,46 @@ function createAdHocChat() {
 
 // Salva/sostituisce il set membri di una chat ad-hoc lato server (PUT replace-all).
 // Best-effort: errori loggati, niente toast (creazione blob già riuscita; il sync di membri è secondario).
+//
+// FIX id-mismatch blob ↔ MySQL: createAdHocChat passa [me.id (=MySQL), ...checked (=blob nextUserId)].
+// Il PUT server-side valida via SELECT id FROM users WHERE id IN (...) e scarta SILENZIOSAMENTE
+// i blob_id che non corrispondono a users.id MySQL → mister/dirigenti non risultano membri,
+// _resolveChatRecipients li esclude → niente push né badge per quegli utenti.
+// Mappiamo blob_id → MySQL_id via match per email, usando /api/v2/users come Rosetta Stone.
 async function _persistAdhocMembers(chatId, memberIds) {
   if (!chatId || !Array.isArray(memberIds) || !memberIds.length) return;
   if (!_ensureV2Token()) return;
   try {
+    let mysqlIds = memberIds.map(Number).filter(Number.isFinite);
+    try {
+      const r0 = await fetch(API_BASE + '/api/v2/users', {
+        headers: { 'Authorization': 'Bearer ' + _v2Token }
+      });
+      if (r0.ok) {
+        const mysqlUsers = await r0.json();
+        const mysqlIdSet = new Set((mysqlUsers || []).map(u => Number(u.id)));
+        const idByEmail = new Map(
+          (mysqlUsers || [])
+            .map(u => [String(u.email || '').toLowerCase(), Number(u.id)])
+            .filter(([e, id]) => e && Number.isFinite(id))
+        );
+        const remapped = mysqlIds.map(id => {
+          if (mysqlIdSet.has(id)) return id; // già MySQL id (es. me.id, oppure altri coincidenti)
+          const blobU = (USERS_DB || []).find(u => u.id === id);
+          if (!blobU) return null;
+          const mapped = idByEmail.get(String(blobU.email || '').toLowerCase());
+          return Number.isFinite(mapped) ? mapped : null;
+        }).filter(x => x != null);
+        // Solo se la mappatura ha prodotto almeno un id reale, sostituisci.
+        if (remapped.length) mysqlIds = [...new Set(remapped)];
+      }
+    } catch (e) {
+      console.warn('[chat] adhoc id-remap fallito, invio raw ids', e && e.message);
+    }
     const r = await fetch(API_BASE + '/api/v2/chat/adhoc/' + encodeURIComponent(chatId) + '/members', {
       method: 'PUT',
       headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberIds: memberIds.map(Number).filter(Number.isFinite) })
+      body: JSON.stringify({ memberIds: mysqlIds })
     });
     if (!r.ok) console.warn('[chat] PUT adhoc members HTTP', r.status, 'for', chatId);
   } catch (e) {

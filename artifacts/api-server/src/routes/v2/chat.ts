@@ -350,7 +350,8 @@ export async function _resolveChatRecipients(
 
     // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti+mister della leva (o senza leva/Tutte)
     //    + genitori/nonni di giocatori della leva (via player_guardians).
-    //    'mister' incluso per coerenza con staff_/squadra_/torneo_ e con getUsersForPush.
+    //    'mister' / 'mister_admin' / 'allenatore' inclusi per coerenza con staff_/squadra_/torneo_
+    //    e con getUsersForPush. mister_admin = mister normale (regola "isMister-like").
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
@@ -358,7 +359,7 @@ export async function _resolveChatRecipients(
       const [dirRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('dirigente','mister')
+            AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -393,7 +394,7 @@ export async function _resolveChatRecipients(
       const [staffRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('allenatore','mister','preparatore_portieri')
+            AND ruolo IN ('allenatore','mister','mister_admin','preparatore_portieri')
             AND ${lc.sql}
             AND id != ?`,
         [societyId, ...lc.params, senderUserId]
@@ -444,7 +445,7 @@ export async function _resolveChatRecipients(
           const [dRows] = (await pool.execute(
             `SELECT id FROM users
               WHERE society_id = ? AND stato = 'attivo'
-                AND ruolo IN ('dirigente','mister')
+                AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
                 AND ${lc.sql}
                 AND id != ?`,
             [societyId, ...lc.params, senderUserId]

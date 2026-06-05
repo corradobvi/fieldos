@@ -226,7 +226,7 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
       }
 
       // Hint per la chat: focus sul mister (ruolo allenatore o mister)
-      const misters = users.filter(u => u.ruolo === "allenatore" || u.ruolo === "mister");
+      const misters = users.filter(u => u.ruolo === "allenatore" || u.ruolo === "mister" || u.ruolo === "mister_admin");
       const dirigenti = users.filter(u => u.ruolo === "dirigente");
       let hint: string;
       if (misters.length === 0) {
@@ -375,7 +375,11 @@ function render(j) {
     h.textContent = chatTitle(chat);
     card.appendChild(h);
 
-    const misters = (chat.users || []).filter(u => u.ruolo === 'allenatore' || u.ruolo === 'mister');
+    // isMister-like: include mister_admin (super-mister con poteri admin, ma per la chat
+    // viene trattato come un mister normale).
+    const misters = (chat.users || []).filter(u =>
+      u.ruolo === 'allenatore' || u.ruolo === 'mister' || u.ruolo === 'mister_admin'
+    );
     if (!misters.length) {
       const e = document.createElement('div');
       e.className = 'empty';
