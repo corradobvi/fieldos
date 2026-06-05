@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { sendCancelledEmail, sendPaymentFailedEmail } from "../../lib/email";
+import { requireAuth } from "../../lib/auth";
 
 const router = Router();
 
@@ -111,12 +112,25 @@ async function stripeGet(path: string): Promise<any> {
 // IDs demo/locali che non sono presenti nel DB MySQL reale
 const DEMO_SOC_IDS = new Set([0, 99, 99999]);
 
-router.post("/stripe/create-checkout", async (req, res) => {
-  const { piano, intervallo, societyId: rawSocietyId, email } = req.body as Record<string, string | number | undefined>;
+router.post("/stripe/create-checkout", requireAuth, async (req, res) => {
+  // FIX security: prima del fix, endpoint accessibile senza auth → chiunque
+  // poteva creare checkout per qualsiasi email (phishing facile). Aggiunto
+  // requireAuth + ownership check su societyId (deve corrispondere al JWT).
+  // L'email è ora derivata dal JWT (più safe) con fallback al body per
+  // backward-compat dei vecchi client.
+  const jwtSocId  = req.jwtUser!.societyId;
+  const jwtEmail  = (req.jwtUser as any).email as string | undefined;
+  const { piano, intervallo, societyId: rawSocietyId, email: bodyEmail } = req.body as Record<string, string | number | undefined>;
 
   if (!piano || !intervallo) {
     return res.status(400).json({ error: "missing_fields" });
   }
+  // Ownership: se il body specifica societyId, deve corrispondere al JWT.
+  // Eccezione: DEMO_SOC_IDS (società demo locali pre-MySQL) restano accettati.
+  if (rawSocietyId != null && !DEMO_SOC_IDS.has(Number(rawSocietyId)) && Number(rawSocietyId) !== jwtSocId) {
+    return res.status(403).json({ error: "forbidden", detail: "societyId mismatch with JWT" });
+  }
+  const email = jwtEmail || bodyEmail;
   if (!email) {
     return res.status(400).json({ error: "missing_email", detail: "Accedi prima di procedere al pagamento." });
   }
@@ -217,14 +231,20 @@ router.post("/stripe/create-checkout", async (req, res) => {
     params["metadata[societyId]"] = String(societyId);
   }
 
-  // Pre-lancio (giu-lug 2026): annuale con trial di DEMO_DAYS giorni, NIENTE anchor
-  // (no proration / no allineamento al 1° agosto).
-  // Stagione normale: nessuna modifica, Stripe usa il ciclo standard (1 anno da oggi).
-  const DEMO_DAYS = 14;
+  // FIX P1: pre-lancio (giu-lug 2026), allinea primo addebito al 1 agosto 2026.
+  // Prima del fix: trial_end = oggi + 14gg → primo addebito a giorno+14, NON
+  // al 1 agosto come da spec "tutti pagano dal 1 agosto".
+  // Ora: trial_end = anchor (1ago2026) → utente gratis fino al 1 ago.
+  //      billing_cycle_anchor = anchor → ciclo annuale ancora al 1 agosto.
+  //      proration_behavior = none → niente fatture pro-rata al checkout.
+  // Stagione normale (post-luglio 2026): nessuna modifica, Stripe usa il
+  // ciclo standard (1 anno da oggi) come prima.
   if (String(intervallo) === "annuale") {
     const anchorTs = getPreLaunchAnchorTs();
     if (anchorTs) {
-      params["subscription_data[trial_end]"] = Math.floor((Date.now() + DEMO_DAYS * 86400 * 1000) / 1000);
+      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
+      params["subscription_data[proration_behavior]"]   = "none";
+      params["subscription_data[trial_end]"]            = anchorTs;
     }
   }
 
@@ -631,10 +651,12 @@ router.post("/stripe/webhook", async (req, res) => {
   return res.sendStatus(200);
 });
 
-// GET /api/v2/stripe/subscription?societyId=X
-router.get("/stripe/subscription", async (req, res) => {
-  const societyId = req.query.societyId;
-  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+// GET /api/v2/stripe/subscription
+// FIX security: prima del fix, endpoint accessibile senza auth, societyId dal
+// query → chiunque leggeva subscription/4-cifre carta/period_end di qualsiasi
+// società. Ora societyId è derivato dal JWT, no più query param.
+router.get("/stripe/subscription", requireAuth, async (req, res) => {
+  const societyId = req.jwtUser!.societyId;
 
   try {
     const [rows] = await pool.execute(
@@ -688,9 +710,15 @@ router.get("/stripe/subscription", async (req, res) => {
 });
 
 // POST /api/v2/stripe/customer-portal
-router.post("/stripe/customer-portal", async (req, res) => {
-  const { societyId } = req.body as Record<string, string | undefined>;
-  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+// FIX security: aggiunto requireAuth + ownership check. Prima del fix, chiunque
+// poteva aprire il customer portal di una società terza conoscendo solo societyId.
+router.post("/stripe/customer-portal", requireAuth, async (req, res) => {
+  const jwtSocId = req.jwtUser!.societyId;
+  const { societyId: bodySocId } = req.body as Record<string, string | undefined>;
+  if (bodySocId != null && Number(bodySocId) !== jwtSocId) {
+    return res.status(403).json({ error: "forbidden", detail: "societyId mismatch with JWT" });
+  }
+  const societyId = jwtSocId;
 
   try {
     const [rows] = await pool.execute(
@@ -716,9 +744,16 @@ router.post("/stripe/customer-portal", async (req, res) => {
 });
 
 // POST /api/v2/stripe/cancel
-router.post("/stripe/cancel", async (req, res) => {
-  const { societyId, motivo, dettaglio } = req.body as Record<string, string | undefined>;
-  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+// FIX security: aggiunto requireAuth + ownership check. Prima del fix,
+// chiunque conoscendo societyId poteva cancellare l'abbonamento di una
+// società terza. Severità: P0 (modifica destructive senza auth).
+router.post("/stripe/cancel", requireAuth, async (req, res) => {
+  const jwtSocId = req.jwtUser!.societyId;
+  const { societyId: bodySocId, motivo, dettaglio } = req.body as Record<string, string | undefined>;
+  if (bodySocId != null && Number(bodySocId) !== jwtSocId) {
+    return res.status(403).json({ error: "forbidden", detail: "societyId mismatch with JWT" });
+  }
+  const societyId = jwtSocId;
 
   try {
     const [rows] = await pool.execute(
@@ -746,10 +781,11 @@ router.post("/stripe/cancel", async (req, res) => {
   }
 });
 
-// GET /api/v2/stripe/invoices?societyId=X
-router.get("/stripe/invoices", async (req, res) => {
-  const societyId = req.query.societyId;
-  if (!societyId) return res.status(400).json({ error: "missing_societyId" });
+// GET /api/v2/stripe/invoices
+// FIX security: societyId dal JWT (non più query param). Prima del fix,
+// chiunque vedeva importi+date fatture di qualsiasi società conoscendo l'id.
+router.get("/stripe/invoices", requireAuth, async (req, res) => {
+  const societyId = req.jwtUser!.societyId;
 
   try {
     const [rows] = await pool.execute(
