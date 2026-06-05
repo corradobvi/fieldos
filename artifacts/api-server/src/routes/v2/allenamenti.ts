@@ -6,9 +6,16 @@ import fs from "fs";
 import multer from "multer";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
-import { requireAuth } from "../../lib/auth";
+import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
 import { requireLeva } from "../../lib/leva-guard";
+
+// FIX security: prima del fix, gli endpoint write avevano solo requirePermission.
+// requirePermission ha policy fail-open su permissions=NULL (default per consumer
+// roles) → genitore/giocatore/nonno passavano il check creando/modificando
+// allenamenti, sessioni e note vocali. Aggiunto requireRole prima del permission
+// check per restringere ai 6 ruoli staff.
+const STAFF_WRITE_ROLES = ["admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri"];
 
 // Resolver leva per allenamenti
 async function _levaFromLevaIdInBody(req: Request): Promise<string | null> {
@@ -197,7 +204,7 @@ router.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/allenamenti/sessioni-libreria
-router.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.post("/allenamenti/sessioni-libreria", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
   const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita = "privata", note } =
     req.body as Record<string, any>;
@@ -244,7 +251,7 @@ router.post("/allenamenti/sessioni-libreria", requireAuth, requirePermission("mo
 });
 
 // PATCH /api/v2/allenamenti/sessioni-libreria/:id
-router.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId } = req.jwtUser!;
   const { id }     = req.params;
 
@@ -312,7 +319,7 @@ router.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermissio
 });
 
 // DELETE /api/v2/allenamenti/sessioni-libreria/:id
-router.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId } = req.jwtUser!;
   const { id }     = req.params;
 
@@ -465,7 +472,7 @@ router.get("/allenamenti/:id", requireAuth, async (req, res) => {
 });
 
 // POST /api/v2/allenamenti
-router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
+router.post("/allenamenti", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } =
     req.body as Record<string, any>;
@@ -558,7 +565,7 @@ router.post("/allenamenti", requireAuth, requirePermission("modifica_piano_allen
 });
 
 // PATCH /api/v2/allenamenti/:id
-router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.patch("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
 
@@ -618,7 +625,7 @@ router.patch("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_
 });
 
 // DELETE /api/v2/allenamenti/:id
-router.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.delete("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
 
@@ -635,7 +642,7 @@ router.delete("/allenamenti/:id", requireAuth, requirePermission("modifica_piano
 });
 
 // POST /api/v2/allenamenti/:id/sessioni/riordina  (prima di /:id/sessioni/:sessioneId)
-router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser!;
   const { id }        = req.params;
   const { ordini }    = req.body as { ordini?: Array<{ sessione_id: string; ordine: number }> };
@@ -669,7 +676,7 @@ router.post("/allenamenti/:id/sessioni/riordina", requireAuth, requirePermission
 });
 
 // POST /api/v2/allenamenti/:id/sessioni
-router.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.post("/allenamenti/:id/sessioni", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { userId, societyId } = req.jwtUser!;
   const { id }                = req.params;
   const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine, note_snapshot } =
@@ -754,7 +761,7 @@ router.post("/allenamenti/:id/sessioni", requireAuth, requirePermission("modific
 });
 
 // PATCH /api/v2/allenamenti/:id/sessioni/:sessioneId
-router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId }   = req.jwtUser!;
   const { id, sessioneId } = req.params;
 
@@ -819,7 +826,7 @@ router.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermis
 });
 
 // DELETE /api/v2/allenamenti/:id/sessioni/:sessioneId
-router.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId }      = req.jwtUser!;
   const { id, sessioneId } = req.params;
 
@@ -888,7 +895,7 @@ router.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res) =
 });
 
 // DELETE /api/v2/allenamenti/note-vocali/:id
-router.delete("/allenamenti/note-vocali/:id", requireAuth, requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router.delete("/allenamenti/note-vocali/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId, role } = req.jwtUser!;
   const isAdmin = role === "admin" || role === "mister_admin";
   const { id } = req.params;
@@ -925,7 +932,7 @@ router.delete("/allenamenti/note-vocali/:id", requireAuth, requirePermission("mo
 });
 
 // POST /api/v2/allenamenti/:id/note-vocali  (upload multer)
-router.post("/allenamenti/:id/note-vocali", requireAuth, requirePermission("modifica_piano_allenamento"),
+router.post("/allenamenti/:id/note-vocali", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"),
   (req, res, next) => uploadAudio.single("audio")(req, res, (err) => {
     if (err) {
       if (err.message === "formato_non_supportato")
