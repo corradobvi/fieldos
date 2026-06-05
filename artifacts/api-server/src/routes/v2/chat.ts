@@ -830,16 +830,27 @@ router.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
   if (!chatId.startsWith("adhoc_")) {
     return res.status(400).json({ error: "invalid_chat_id", detail: "must start with adhoc_" });
   }
-  const body = req.body as { memberIds?: unknown };
+  const body = req.body as { memberIds?: unknown; memberEmails?: unknown };
   const raw = Array.isArray(body?.memberIds) ? body!.memberIds! : [];
-  // Sanifica: solo numeri positivi, dedupe, cap.
+  // memberEmails: parallelo a memberIds (stesso indice). Usato come fallback
+  // server-side per remappare id non trovati in users (caso: caller non-admin,
+  // il FE non puo' chiamare GET /api/v2/users — gated requireRole("admin") — e
+  // invia id blob "raw" che non coincidono col MySQL id. Senza fallback, il
+  // PUT scartava silenziosamente questi membri e solo il caller sopravviveva).
+  const rawEmails = Array.isArray(body?.memberEmails) ? body!.memberEmails! : [];
+  // Sanifica: solo numeri positivi, dedupe, cap. Mantieni la corrispondenza id↔email
+  // dell'index originale del payload.
   const seen = new Set<number>();
   const memberIds: number[] = [];
-  for (const v of raw) {
+  const emailByRawId = new Map<number, string>();
+  for (let i = 0; i < raw.length; i++) {
+    const v = raw[i];
     const n = typeof v === "number" ? v : Number(v);
     if (Number.isInteger(n) && n > 0 && !seen.has(n)) {
       seen.add(n);
       memberIds.push(n);
+      const e = typeof rawEmails[i] === "string" ? String(rawEmails[i]).trim().toLowerCase() : "";
+      if (e) emailByRawId.set(n, e);
       if (memberIds.length >= 500) break;
     }
   }
@@ -864,7 +875,27 @@ router.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
       `SELECT id FROM users WHERE society_id = ? AND id IN (${placeholders})`,
       [societyId, ...memberIds]
     )) as [any[], any];
-    const validIds: number[] = (validRows as any[]).map(r => Number(r.id));
+    const validIdSet = new Set<number>((validRows as any[]).map(r => Number(r.id)));
+    // Fallback email-lookup per gli id NON trovati come MySQL id (caller non-admin,
+    // id blob ≠ MySQL): se il FE ha allegato l'email corrispondente in memberEmails,
+    // risolviamo qui e aggiungiamo l'id MySQL reale al set valido.
+    const invalidWithEmail = memberIds
+      .filter(id => !validIdSet.has(id))
+      .map(id => emailByRawId.get(id))
+      .filter((e): e is string => !!e);
+    if (invalidWithEmail.length) {
+      const ePh = invalidWithEmail.map(() => "?").join(",");
+      const [byEmail] = (await pool.query(
+        `SELECT id FROM users WHERE society_id = ? AND LOWER(email) IN (${ePh})`,
+        [societyId, ...invalidWithEmail]
+      )) as [any[], any];
+      for (const r of (byEmail as any[])) validIdSet.add(Number(r.id));
+      if ((byEmail as any[]).length) {
+        logger.info({ chatId, societyId, remapped: (byEmail as any[]).length, caller: userId },
+          "adhoc members: id-remap server-side via email fallback");
+      }
+    }
+    const validIds: number[] = Array.from(validIdSet);
     if (!validIds.length) {
       return res.status(400).json({ error: "no_valid_members" });
     }

@@ -26136,10 +26136,20 @@ async function _persistAdhocMembers(chatId, memberIds) {
     } catch (e) {
       console.warn('[chat] adhoc id-remap fallito, invio raw ids', e && e.message);
     }
+    // Allego anche memberEmails (parallelo a memberIds): se il GET /api/v2/users sopra
+    // ha fallito perche' il caller non e' admin (e' gated su requireRole("admin")),
+    // mysqlIds contiene ancora id BLOB per i selezionati non remappati. Il BE usa
+    // queste email come fallback per ritrovare l'id MySQL corretto nella stessa societa'.
+    // Senza questo array, il PUT scartava silenziosamente i membri con id blob ≠ MySQL
+    // (es. admin selezionato con id basso nel blob ma id MySQL diverso).
+    const memberEmails = mysqlIds.map(id => {
+      const u = (USERS_DB || []).find(x => x && x.id === id);
+      return u && typeof u.email === 'string' ? u.email.toLowerCase().trim() : '';
+    });
     const r = await fetch(API_BASE + '/api/v2/chat/adhoc/' + encodeURIComponent(chatId) + '/members', {
       method: 'PUT',
       headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberIds: mysqlIds })
+      body: JSON.stringify({ memberIds: mysqlIds, memberEmails })
     });
     if (!r.ok) console.warn('[chat] PUT adhoc members HTTP', r.status, 'for', chatId);
   } catch (e) {
