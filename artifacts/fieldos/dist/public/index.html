@@ -11404,9 +11404,15 @@ function _renderCommTabContent() {
 
   if (_commActiveTab === 'notifiche') {
     let list = userNotifiche(me.id, false);
-    // Admin nasconde avvisi di assenza SOLO se esistono coach intermedi (allenatore/dirigente/prep.portieri).
-    // Su società senza coach, l'admin riceve l'avviso come fallback (vedi recipientsForCoachesOfLeva).
-    if (isAdminLike() && _societyHasNonAdminCoaches()) list = list.filter(n => n.type !== 'avviso_assenza');
+    // DECISIONE: il mister/admin vede TUTTE le comunicazioni delle sue leve
+    // (avvisi assenza, convocazioni, risultati, ecc.), come da regola di
+    // destinazione di recipientsForCoachesOfLeva (riga 10061) che include
+    // sempre admin/mister_admin tra i destinatari. L'avviso_assenza nella
+    // lista resta SOLO informativo: il render qui sotto (riga ~11430) mostra
+    // il CTA "Tocca per gestire" solo per type==='convocazione'. Nessun
+    // CTA per type==='avviso_assenza'.
+    // Filtro storico `n.type !== 'avviso_assenza'` rimosso: causava lista
+    // vuota mentre il badge contava comunicazioni in Bacheca.
     if (q) list = list.filter(n=>(n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q));
     if (!list.length) {
       cont.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text2);">Nessuna notifica.</div>';
