@@ -306,7 +306,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .ci.has-unread .ci-time{color:var(--cp);font-weight:700;}
 .ci-un{background:var(--cp);color:#fff;font-size:.65rem;font-weight:800;min-width:20px;height:20px;padding:0 6px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .ci{position:relative;}
-.ci-arch{position:absolute;top:8px;right:8px;background:transparent;border:none;cursor:pointer;font-size:.95rem;line-height:1;padding:4px 6px;border-radius:6px;color:var(--text3);opacity:.55;transition:opacity .12s,background .12s;}
+/* Contenitore in riga per i controlli (📥 archivia, 🗑️ elimina): senza, i
+   bottoni con position:absolute si sovrapponevano nello stesso top:8px;right:8px. */
+.ci-actions{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:8px;}
+.ci-arch{background:transparent;border:none;cursor:pointer;font-size:.95rem;line-height:1;padding:4px 6px;border-radius:6px;color:var(--text3);opacity:.55;transition:opacity .12s,background .12s;}
 .ci:hover .ci-arch{opacity:1;}
 .ci-arch:hover{background:var(--bg);color:var(--text);}
 .cl-arch-toggle{padding:10px 15px;font-size:.76rem;color:var(--cp);cursor:pointer;border-top:1px solid var(--border);text-align:center;font-weight:700;user-select:none;}
@@ -25554,7 +25557,7 @@ function renderChatList() {
       ? `<button class="ci-arch" data-act="unarchive" title="Ripristina">↩</button>`
       : `<button class="ci-arch" data-act="archive" title="Archivia">📥</button>`;
     const removeBtn = isAdhoc
-      ? `<button class="ci-arch" data-act="remove-from-list" title="Elimina dalla mia lista" style="margin-left:4px;">🗑️</button>`
+      ? `<button class="ci-arch" data-act="remove-from-list" title="Elimina dalla mia lista">🗑️</button>`
       : '';
     return `<div class="${cls.join(' ')}" data-chatid="${escapeHtml(c.id)}" style="${isArchived?'opacity:.65;':''}">
       <div class="ci-av" style="background:${safeColor};color:white;">${escapeHtml(c.avatar)}</div>
@@ -25563,7 +25566,7 @@ function renderChatList() {
         ${audRow}
         <div class="ci-bottom"><span class="ci-msg">${previewText}</span>${unread>0 && !isArchived ? `<span class="ci-un">${unread}</span>` : ''}</div>
       </div>
-      ${archBtn}${removeBtn}
+      <div class="ci-actions">${archBtn}${removeBtn}</div>
     </div>`;
   };
   const mainHtml = mainChats.length
