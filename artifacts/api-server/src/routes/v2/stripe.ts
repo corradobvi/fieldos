@@ -234,17 +234,19 @@ router.post("/stripe/create-checkout", requireAuth, async (req, res) => {
   // FIX P1: pre-lancio (giu-lug 2026), allinea primo addebito al 1 agosto 2026.
   // Prima del fix: trial_end = oggi + 14gg → primo addebito a giorno+14, NON
   // al 1 agosto come da spec "tutti pagano dal 1 agosto".
-  // Ora: trial_end = anchor (1ago2026) → utente gratis fino al 1 ago.
-  //      billing_cycle_anchor = anchor → ciclo annuale ancora al 1 agosto.
-  //      proration_behavior = none → niente fatture pro-rata al checkout.
-  // Stagione normale (post-luglio 2026): nessuna modifica, Stripe usa il
-  // ciclo standard (1 anno da oggi) come prima.
+  // Tentativo intermedio (rejected from Stripe API): settare insieme
+  // trial_end + billing_cycle_anchor + proration_behavior → 500 perché Stripe
+  // non accetta entrambi (sono mutualmente esclusivi — vedi Stripe API docs:
+  // "If trial_end is set, the billing_cycle_anchor will be automatically
+  // set to the same time and the subscription will go from trial to active
+  // when the trial ends").
+  // Fix definitivo: SOLO trial_end = anchorTs. Stripe usa automaticamente
+  // questo timestamp come ancora del ciclo annuale → utente gratis fino al
+  // 1 ago, primo addebito esatto al 1 ago, ciclo annuale ancorato.
   if (String(intervallo) === "annuale") {
     const anchorTs = getPreLaunchAnchorTs();
     if (anchorTs) {
-      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
-      params["subscription_data[proration_behavior]"]   = "none";
-      params["subscription_data[trial_end]"]            = anchorTs;
+      params["subscription_data[trial_end]"] = anchorTs;
     }
   }
 

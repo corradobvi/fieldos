@@ -88396,8 +88396,6 @@ router22.post("/stripe/create-checkout", requireAuth, async (req, res) => {
   if (String(intervallo) === "annuale") {
     const anchorTs = getPreLaunchAnchorTs();
     if (anchorTs) {
-      params["subscription_data[billing_cycle_anchor]"] = anchorTs;
-      params["subscription_data[proration_behavior]"] = "none";
       params["subscription_data[trial_end]"] = anchorTs;
     }
   }
