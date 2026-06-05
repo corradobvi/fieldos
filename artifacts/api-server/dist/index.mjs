@@ -86979,13 +86979,12 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
       `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
               c.urgente, c.created_at,
               u.nome AS autore_nome, u.cognome AS autore_cognome,
-              MAX(cr.letto_at) IS NOT NULL AS letto
+              EXISTS(SELECT 1 FROM comunicazioni_reads
+                      WHERE comunicazione_id = c.id AND user_id = ?) AS letto
        FROM comunicazioni c
        LEFT JOIN users u ON u.id = c.autore_id
-       LEFT JOIN comunicazioni_reads cr ON cr.comunicazione_id = c.id AND cr.user_id = ?
        WHERE c.society_id = ?
          ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
-       GROUP BY c.id
        ORDER BY c.created_at DESC
        LIMIT ? OFFSET ?`,
       leva ? [userId, societyId, leva, parseInt(limit), parseInt(offset)] : [userId, societyId, parseInt(limit), parseInt(offset)]

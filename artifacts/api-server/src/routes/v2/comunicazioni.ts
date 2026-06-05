@@ -61,17 +61,21 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
   const { leva, limit = "50", offset = "0" } = req.query as Record<string, string>;
 
   try {
+    // FIX P0: la query precedente usava LEFT JOIN + MAX(cr.letto_at) + GROUP BY c.id.
+    // Su MySQL con sql_mode=ONLY_FULL_GROUP_BY (default Railway/5.7.5+) le colonne
+    // c.autore_id/c.tipo/c.titolo/... non-aggregate fuori dal GROUP BY causano errore
+    // 1055 → 500 server_error per ogni chiamante. Sostituito con EXISTS subquery:
+    // stessa semantica (`letto` = 0/1), niente GROUP BY, niente vincoli sql_mode.
     const [rows] = (await pool.execute(
       `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
               c.urgente, c.created_at,
               u.nome AS autore_nome, u.cognome AS autore_cognome,
-              MAX(cr.letto_at) IS NOT NULL AS letto
+              EXISTS(SELECT 1 FROM comunicazioni_reads
+                      WHERE comunicazione_id = c.id AND user_id = ?) AS letto
        FROM comunicazioni c
        LEFT JOIN users u ON u.id = c.autore_id
-       LEFT JOIN comunicazioni_reads cr ON cr.comunicazione_id = c.id AND cr.user_id = ?
        WHERE c.society_id = ?
          ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
-       GROUP BY c.id
        ORDER BY c.created_at DESC
        LIMIT ? OFFSET ?`,
       leva
