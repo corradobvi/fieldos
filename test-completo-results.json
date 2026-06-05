@@ -1,0 +1,2462 @@
+{
+  "timestamp": "2026-06-05T16:38:35.927Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "77457639",
+  "socId": 70,
+  "counts": {
+    "PASS": 221,
+    "FAIL": 1,
+    "SKIP": 50
+  },
+  "elapsedSec": 58.3,
+  "results": [
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=70"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea leva U12",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=53"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea leva U16",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=54"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea player U12 Luca",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=93"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea player U12 Mario",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=94"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea player U12 Pippo",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=95"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea player U16 Marco",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=96"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea player U16 Giorgio",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=97"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea evento U12 M2M",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=103"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea evento U16 M2M",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=104"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea torneo U12",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "id=qa-torneo-77457639"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea mister",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=143 ruolo=mister"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Login mister",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea dirigente",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=144 ruolo=dirigente"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Login dirigente",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea genitore",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=145 ruolo=genitore"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Login genitore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Crea giocatore",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=146 ruolo=giocatore"
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Login giocatore",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "SETUP",
+      "role": "",
+      "name": "Link genitore → PLAYER1",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "guardianId=58"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "GET /society",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":70,\"nome\":\"Test Full QA 77457639\",\"citta\":\"QA City\",\"colore_primario\":\"#1A7A4A\",\"colore_accento\":\"#FFD93D\",\"logo_url\":null,\""
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "PATCH /society (spec PATCH)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "PUT /society (endpoint reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":70,\"nome\":\"Test Full QA 77457639\",\"citta\":\"QA City\",\"colore_primario\":\"#1A7A4A\",\"colore_accento\":\"#FFD93D\",\"logo_url\":null,\""
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "GET /society/subscription (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "GET /stripe/subscription (endpoint reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "piano=societa"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "GET /leve",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=2"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "POST /leve extra",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=55"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "PATCH /leve/:id (spec)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "PUT /leve/:id (endpoint reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "admin",
+      "name": "DELETE /leve/:id",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "mister",
+      "name": "GET /society",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":70,\"nome\":\"Test Full QA 77457639\",\"citta\":\"QA City\",\"colore_primario\":\"#1A7A4A\",\"colore_accento\":\"#FFD93D\",\"logo_url\":null,\""
+    },
+    {
+      "section": "SOCIETA",
+      "role": "mister",
+      "name": "PUT /society → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "mister",
+      "name": "GET /leve",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":54,\"nome\":\"U16 QA 77457639\",\"ordine\":98},{\"id\":53,\"nome\":\"U12 QA 77457639\",\"ordine\":99}]"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "dirigente",
+      "name": "GET /society",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":70,\"nome\":\"Test Full QA 77457639\",\"citta\":\"QA City\",\"colore_primario\":\"#1A7A4A\",\"colore_accento\":\"#FFD93D\",\"logo_url\":null,\""
+    },
+    {
+      "section": "SOCIETA",
+      "role": "dirigente",
+      "name": "PUT /society (200 o 403, verifica)",
+      "expected": "200|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "dirigente",
+      "name": "POST /leve (200 o 403)",
+      "expected": "200|201|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "genitore",
+      "name": "GET /society (spec 403, oggi 200 = anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "genitore",
+      "name": "PUT /society → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "giocatore",
+      "name": "GET /society (spec 403, oggi 200 = anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "SOCIETA",
+      "role": "giocatore",
+      "name": "PUT /society → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "GET /players",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=5"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "POST /players",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":98}"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "GET /players/:PLAYER1",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":93,\"nome\":\"Luca\",\"cognome\":\"Bianchi\",\"soprannome\":null,\"numero\":9,\"ruolo_campo\":\"CEN\",\"anno_nascita\":2018,\"leva\":\"U12 QA 774"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "PATCH /players/:id (spec)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "PUT /players/:id (endpoint reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "DELETE /players/:id (tmp)",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "ROSA",
+      "role": "admin",
+      "name": "GET /players?leva=U12",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=3"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "GET /players?leva=<sua>",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":93,\"nome\":\"Luca\",\"cognome\":\"Bianchi\",\"soprannome\":null,\"numero\":99,\"ruolo_campo\":\"CEN\",\"anno_nascita\":2018,\"leva\":\"U12 QA 7"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "GET /players?leva=<altra> (anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "GET /players/:PLAYER1 (sua leva)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":93,\"nome\":\"Luca\",\"cognome\":\"Bianchi\",\"soprannome\":null,\"numero\":99,\"ruolo_campo\":\"CEN\",\"anno_nascita\":2018,\"leva\":\"U12 QA 77"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "GET /players/:PLAYER4 (altra leva)",
+      "expected": "200|403|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "POST /players (mister ora è in ADMIN_ROLES post FIX 1)",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "ROSA",
+      "role": "mister",
+      "name": "PUT /players/:PLAYER1",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ROSA",
+      "role": "dirigente",
+      "name": "GET /players",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":93,\"nome\":\"Luca\",\"cognome\":\"Bianchi\",\"soprannome\":null,\"numero\":42,\"ruolo_campo\":\"CEN\",\"anno_nascita\":2018,\"leva\":\"U12 QA 7"
+    },
+    {
+      "section": "ROSA",
+      "role": "dirigente",
+      "name": "POST /players",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "ROSA",
+      "role": "dirigente",
+      "name": "PUT /players/:PLAYER1",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ROSA",
+      "role": "dirigente",
+      "name": "DELETE /players/:PLAYER2",
+      "expected": "200|204|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "ROSA",
+      "role": "genitore",
+      "name": "GET /players → solo figlio (FIX 2)",
+      "expected": "200 + [PLAYER1]",
+      "got": "200 + [93]",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "ROSA",
+      "role": "genitore",
+      "name": "GET /players/:PLAYER1 (figlio)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":93,\"nome\":\"Luca\",\"cognome\":\"Bianchi\",\"soprannome\":null,\"numero\":33,\"ruolo_campo\":\"CEN\",\"anno_nascita\":2018,\"leva\":\"U12 QA 77"
+    },
+    {
+      "section": "ROSA",
+      "role": "genitore",
+      "name": "GET /players/:PLAYER4 (non figlio) → 404",
+      "expected": "404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "ROSA",
+      "role": "genitore",
+      "name": "PUT /players/:PLAYER1 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "ROSA",
+      "role": "giocatore",
+      "name": "GET /players → solo se stesso (FIX 2)",
+      "expected": "200 + [PLAYER4]",
+      "got": "200 + [96]",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "ROSA",
+      "role": "giocatore",
+      "name": "GET /players/:PLAYER4 (se stesso)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":96,\"nome\":\"Marco\",\"cognome\":\"Rossi\",\"soprannome\":null,\"numero\":7,\"ruolo_campo\":\"ATT\",\"anno_nascita\":2010,\"leva\":\"U16 QA 7745"
+    },
+    {
+      "section": "ROSA",
+      "role": "giocatore",
+      "name": "GET /players/:PLAYER1 (altro) → 404",
+      "expected": "404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "ROSA",
+      "role": "giocatore",
+      "name": "PUT /players/:PLAYER4 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "GET /events",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "POST /events",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":105,\"society_id\":70,\"tipo\":\"amichevole\",\"titolo\":\"Admin evt 77457639\",\"leva\":null,\"luogo\":\"X\",\"data_inizio\":\"2026-12-17T00:0"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "GET /events/:id",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":103,\"society_id\":70,\"tipo\":\"allenamento\",\"titolo\":\"Evt U12 77457639\",\"leva\":null,\"luogo\":\"Campo\",\"data_inizio\":\"2026-12-15T0"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "PATCH /events/:id (spec)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "PUT /events/:id (endpoint reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "admin",
+      "name": "DELETE /events/:id (tmp)",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "mister",
+      "name": "GET /events",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "EVENTI",
+      "role": "mister",
+      "name": "POST /events",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":106,\"society_id\":70,\"tipo\":\"allenamento\",\"titolo\":\"Mister evt 77457639\",\"leva\":null,\"luogo\":null,\"data_inizio\":\"2026-12-18T0"
+    },
+    {
+      "section": "EVENTI",
+      "role": "mister",
+      "name": "PUT /events/:id (sua leva)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "mister",
+      "name": "DELETE /events/:id (proprio)",
+      "expected": "200|204|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "EVENTI",
+      "role": "dirigente",
+      "name": "GET /events",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "EVENTI",
+      "role": "dirigente",
+      "name": "POST /events",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "EVENTI",
+      "role": "dirigente",
+      "name": "PUT /events/:id",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "EVENTI",
+      "role": "genitore",
+      "name": "GET /events",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "EVENTI",
+      "role": "genitore",
+      "name": "POST /events → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "genitore",
+      "name": "PUT /events/:id → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "EVENTI",
+      "role": "giocatore",
+      "name": "GET /events",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "EVENTI",
+      "role": "giocatore",
+      "name": "POST /events → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "admin",
+      "name": "GET /presenze?eventId=",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "admin",
+      "name": "POST /presenze/bulk",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"updated\":1}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "admin",
+      "name": "DELETE /presenze (spec)",
+      "expected": "200|204",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "mister",
+      "name": "GET /presenze?eventId=U12",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":18,\"player_id\":93,\"event_id\":103,\"stato\":\"presente\",\"nota\":null,\"created_at\":\"2026-06-05T16:37:53.000Z\",\"nome\":\"Luca\",\"cogn"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "mister",
+      "name": "POST /presenze/bulk (FIX N1 sua leva)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"updated\":1}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "mister",
+      "name": "POST /presenze/bulk evento U16 → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"leva_forbidden\",\"leva\":\"U16 QA 77457639\"}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "dirigente",
+      "name": "GET /presenze",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":18,\"player_id\":93,\"event_id\":103,\"stato\":\"presente\",\"nota\":null,\"created_at\":\"2026-06-05T16:37:53.000Z\",\"nome\":\"Luca\",\"cogn"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "dirigente",
+      "name": "POST /presenze/bulk",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"updated\":1}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "genitore",
+      "name": "GET /presenze figlio (anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "genitore",
+      "name": "POST /presenze → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "giocatore",
+      "name": "GET /presenze proprie (anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "PRESENZE",
+      "role": "giocatore",
+      "name": "POST /presenze → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "GET /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "POST /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "id=478"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "PATCH /matches/:id (spec)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "POST /matches UPSERT (update via stesso event_key)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":478,\"created\":false}"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "GET /campionato/settings",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "POST /campionato/settings",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"societa_id\":70,\"leva\":\"U12 QA 77457639\"}"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "GET /campionato/giornate (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PARTITE",
+      "role": "admin",
+      "name": "POST /campionato/genera (spec)",
+      "expected": "200|201|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PARTITE",
+      "role": "mister",
+      "name": "GET /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":478,\"societa_id\":70,\"tipo\":\"amichevole\",\"event_key\":\"qa-match-77457639\",\"legacy_match_id\":null,\"leva\":\"U12 QA 77457639\",\"fa"
+    },
+    {
+      "section": "PARTITE",
+      "role": "mister",
+      "name": "POST /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":480,\"created\":true}"
+    },
+    {
+      "section": "PARTITE",
+      "role": "dirigente",
+      "name": "GET /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":480,\"societa_id\":70,\"tipo\":\"amichevole\",\"event_key\":\"qa-mister-match-77457639\",\"legacy_match_id\":null,\"leva\":\"U12 QA 774576"
+    },
+    {
+      "section": "PARTITE",
+      "role": "dirigente",
+      "name": "POST /matches",
+      "expected": "200|201|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "PARTITE",
+      "role": "dirigente",
+      "name": "GET /campionato/settings",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"societa_id\":70,\"leva\":\"U12 QA 77457639\",\"nome\":null,\"stagione\":null,\"categoria\":null,\"punti_v\":3,\"punti_n\":1,\"punti_p\":0,\"data_"
+    },
+    {
+      "section": "PARTITE",
+      "role": "genitore",
+      "name": "GET /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":481,\"societa_id\":70,\"tipo\":\"amichevole\",\"event_key\":\"qa-dir-match-77457639\",\"legacy_match_id\":null,\"leva\":\"U12 QA 77457639\""
+    },
+    {
+      "section": "PARTITE",
+      "role": "genitore",
+      "name": "POST /matches → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "PARTITE",
+      "role": "giocatore",
+      "name": "GET /matches",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":481,\"societa_id\":70,\"tipo\":\"amichevole\",\"event_key\":\"qa-dir-match-77457639\",\"legacy_match_id\":null,\"leva\":\"U12 QA 77457639\""
+    },
+    {
+      "section": "PARTITE",
+      "role": "giocatore",
+      "name": "POST /matches → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "GET /tornei",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":\"qa-torneo-77457639\",\"societa_id\":70,\"nome\":\"Torneo QA 77457639\",\"leva\":\"U12 QA 77457639\",\"luogo\":\"Campo Test\",\"data_inizio"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "POST /tornei extra",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"id\":\"qa-extra-77457639\",\"fasi_upserted\":0,\"fasi_deleted_orphan\":0,\"fasi_skipped_has_matches\":0}"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "GET /tornei/:id (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "PATCH /tornei/:id (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "DELETE /tornei/:id",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "TORNEI",
+      "role": "admin",
+      "name": "POST /tornei/:id/genera (spec)",
+      "expected": "200|201|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "TORNEI",
+      "role": "mister",
+      "name": "GET /tornei",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":\"qa-torneo-77457639\",\"societa_id\":70,\"nome\":\"Torneo QA 77457639\",\"leva\":\"U12 QA 77457639\",\"luogo\":\"Campo Test\",\"data_inizio"
+    },
+    {
+      "section": "TORNEI",
+      "role": "mister",
+      "name": "POST /tornei",
+      "expected": "200|201|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "TORNEI",
+      "role": "dirigente",
+      "name": "GET /tornei",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":\"qa-torneo-77457639\",\"societa_id\":70,\"nome\":\"Torneo QA 77457639\",\"leva\":\"U12 QA 77457639\",\"luogo\":\"Campo Test\",\"data_inizio"
+    },
+    {
+      "section": "TORNEI",
+      "role": "dirigente",
+      "name": "POST /tornei",
+      "expected": "200|201|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "TORNEI",
+      "role": "genitore",
+      "name": "GET /tornei",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "TORNEI",
+      "role": "genitore",
+      "name": "POST /tornei → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "TORNEI",
+      "role": "giocatore",
+      "name": "GET /tornei",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "TORNEI",
+      "role": "giocatore",
+      "name": "POST /tornei → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "STATS",
+      "role": "admin",
+      "name": "GET /stats/leva U12",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"leva\":\"U12 QA 77457639\",\"players\":[{\"player_id\":93,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0"
+    },
+    {
+      "section": "STATS",
+      "role": "admin",
+      "name": "GET /stats/leva U16",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"leva\":\"U16 QA 77457639\",\"players\":[{\"player_id\":96,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0"
+    },
+    {
+      "section": "STATS",
+      "role": "admin",
+      "name": "GET /stats/player/:PLAYER1",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":93,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "admin",
+      "name": "GET /stats/player/:PLAYER4",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":96,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "mister",
+      "name": "GET /stats/leva U12 (sua)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"leva\":\"U12 QA 77457639\",\"players\":[{\"player_id\":93,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0"
+    },
+    {
+      "section": "STATS",
+      "role": "mister",
+      "name": "GET /stats/leva U16 (anomalia P2)",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "STATS",
+      "role": "mister",
+      "name": "GET /stats/player/:PLAYER1",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":93,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "dirigente",
+      "name": "GET /stats/leva",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"leva\":\"U12 QA 77457639\",\"players\":[{\"player_id\":93,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0"
+    },
+    {
+      "section": "STATS",
+      "role": "dirigente",
+      "name": "GET /stats/player/:PLAYER1",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":93,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "genitore",
+      "name": "GET /stats/leva → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "STATS",
+      "role": "genitore",
+      "name": "GET /stats/player/:figlio",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":93,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "genitore",
+      "name": "GET /stats/player/:altro → 404",
+      "expected": "404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "STATS",
+      "role": "giocatore",
+      "name": "GET /stats/leva → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "STATS",
+      "role": "giocatore",
+      "name": "GET /stats/player/:proprio",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"player_id\":96,\"leva\":null,\"amichevole\":{\"presenze\":0,\"gol\":0,\"assist\":0,\"minuti\":0,\"gialli\":0,\"rossi\":0,\"gol_sub\":0,\"cs\":0},\"cam"
+    },
+    {
+      "section": "STATS",
+      "role": "giocatore",
+      "name": "GET /stats/player/:altro → 404",
+      "expected": "404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "GET /chats (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "GET /chat/leva_U12/messages (admin non membro)",
+      "expected": "200|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "POST /chat/leva_U12/messages",
+      "expected": "200|201|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "GET /chat/leva_U12/polls",
+      "expected": "200|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "POST /chat/leva_U12/polls (admin non membro famiglie)",
+      "expected": "200|201|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "GET /chat/staff_U12/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "CHAT",
+      "role": "admin",
+      "name": "POST /chat/staff_U12/messages",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":72,\"chat_id\":\"staff_U12 QA 77457639\",\"autore_id\":142,\"testo\":\"admin staff\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_"
+    },
+    {
+      "section": "CHAT",
+      "role": "mister",
+      "name": "GET /chat/leva_U12/messages → 403 (mister escluso famiglie)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "mister",
+      "name": "GET /chat/leva_U16/messages (mister non assegnato U16 + leva esclude mister)",
+      "expected": "200|403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "osservato: 403"
+    },
+    {
+      "section": "CHAT",
+      "role": "mister",
+      "name": "GET /chat/staff_U12/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":72,\"chat_id\":\"staff_U12 QA 77457639\",\"autore_id\":142,\"testo\":\"admin staff\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created"
+    },
+    {
+      "section": "CHAT",
+      "role": "mister",
+      "name": "POST /chat/staff_U12/messages",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":73,\"chat_id\":\"staff_U12 QA 77457639\",\"autore_id\":143,\"testo\":\"mister staff\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created"
+    },
+    {
+      "section": "CHAT",
+      "role": "dirigente",
+      "name": "GET /chat/leva_U12/messages",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "CHAT",
+      "role": "dirigente",
+      "name": "POST /chat/leva_U12/messages",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":74,\"chat_id\":\"leva_U12 QA 77457639\",\"autore_id\":144,\"testo\":\"dir msg\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_at\":\""
+    },
+    {
+      "section": "CHAT",
+      "role": "dirigente",
+      "name": "GET /chat/leva_U12/polls",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "CHAT",
+      "role": "dirigente",
+      "name": "POST /chat/leva_U12/polls",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":10,\"chatId\":\"leva_U12 QA 77457639\",\"question\":\"Q?\",\"createdAt\":\"2026-06-05T16:38:05.000Z\",\"createdBy\":144,\"createdByName\":\"D"
+    },
+    {
+      "section": "CHAT",
+      "role": "genitore",
+      "name": "GET /chat/leva_U12/messages (membro)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[{\"id\":74,\"chat_id\":\"leva_U12 QA 77457639\",\"autore_id\":144,\"testo\":\"dir msg\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_at\":"
+    },
+    {
+      "section": "CHAT",
+      "role": "genitore",
+      "name": "POST /chat/leva_U12/messages",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":76,\"chat_id\":\"leva_U12 QA 77457639\",\"autore_id\":145,\"testo\":\"gen msg\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_at\":\""
+    },
+    {
+      "section": "CHAT",
+      "role": "genitore",
+      "name": "GET /chat/leva_U16/messages → 403 (figlio è U12)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "genitore",
+      "name": "GET /chat/staff_U12/messages → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "giocatore",
+      "name": "GET /chat/squadra_U16/messages (membro)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "CHAT",
+      "role": "giocatore",
+      "name": "GET /chat/leva_U16/messages (giocatori non in leva famiglie) → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "giocatore",
+      "name": "POST /chat/squadra_U16/messages",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "{\"id\":77,\"chat_id\":\"squadra_U16 QA 77457639\",\"autore_id\":146,\"testo\":\"gioc msg\",\"foto_url\":null,\"tipo\":null,\"meta\":null,\"created_a"
+    },
+    {
+      "section": "CHAT",
+      "role": "giocatore",
+      "name": "GET /chat/leva_U12/messages → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "CHAT",
+      "role": "giocatore",
+      "name": "GET /chat/staff_U16/messages → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\",\"detail\":\"not_chat_member\"}"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "admin",
+      "name": "GET /comunicazioni",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "admin",
+      "name": "POST /comunicazioni",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=6"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "admin",
+      "name": "PATCH /comunicazioni/:id (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "admin",
+      "name": "DELETE /comunicazioni/:id",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "mister",
+      "name": "GET /comunicazioni",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "mister",
+      "name": "POST /comunicazioni (post FIX 1)",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "dirigente",
+      "name": "GET /comunicazioni",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "dirigente",
+      "name": "POST /comunicazioni",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "genitore",
+      "name": "GET /comunicazioni",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "genitore",
+      "name": "POST /comunicazioni → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "giocatore",
+      "name": "GET /comunicazioni",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "COMUNICAZIONI",
+      "role": "giocatore",
+      "name": "POST /comunicazioni → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "GET /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "PATCH /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "PUT /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "POST /push/subscribe (spec v2)",
+      "expected": "200|201|400|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "admin",
+      "name": "DELETE /push/subscribe (spec v2)",
+      "expected": "200|204|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "GET /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "PATCH /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "PUT /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "POST /push/subscribe (spec v2)",
+      "expected": "200|201|400|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "mister",
+      "name": "DELETE /push/subscribe (spec v2)",
+      "expected": "200|204|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "GET /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "PATCH /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "PUT /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "POST /push/subscribe (spec v2)",
+      "expected": "200|201|400|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "dirigente",
+      "name": "DELETE /push/subscribe (spec v2)",
+      "expected": "200|204|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "GET /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "PATCH /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "PUT /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "POST /push/subscribe (spec v2)",
+      "expected": "200|201|400|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "genitore",
+      "name": "DELETE /push/subscribe (spec v2)",
+      "expected": "200|204|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "GET /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "PATCH /notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "PUT /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "POST /push/subscribe (spec v2)",
+      "expected": "200|201|400|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "NOTIFICHE",
+      "role": "giocatore",
+      "name": "DELETE /push/subscribe (spec v2)",
+      "expected": "200|204|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "QUOTE",
+      "role": "admin",
+      "name": "GET /quote",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "QUOTE",
+      "role": "admin",
+      "name": "POST /quote",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=4"
+    },
+    {
+      "section": "QUOTE",
+      "role": "admin",
+      "name": "PATCH /quote/:id (spec)",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "QUOTE",
+      "role": "admin",
+      "name": "PUT /quote/:id (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "QUOTE",
+      "role": "admin",
+      "name": "DELETE /quote/:id",
+      "expected": "200|204",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "section": "QUOTE",
+      "role": "dirigente",
+      "name": "GET /quote (autorizzato per design)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "section": "QUOTE",
+      "role": "dirigente",
+      "name": "POST /quote",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "QUOTE",
+      "role": "mister",
+      "name": "GET /quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "QUOTE",
+      "role": "genitore",
+      "name": "GET /quote → 403 (manca /quote/mine)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "QUOTE",
+      "role": "giocatore",
+      "name": "GET /quote → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "admin",
+      "name": "GET /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "admin",
+      "name": "GET /account/consents (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"marketingConsent\":false,\"marketingConsentAt\":null,\"privacyAcceptedAt\":null}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "admin",
+      "name": "PATCH /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "admin",
+      "name": "POST /auth/change-password",
+      "expected": "200|400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "mister",
+      "name": "GET /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "mister",
+      "name": "GET /account/consents (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"marketingConsent\":false,\"marketingConsentAt\":null,\"privacyAcceptedAt\":null}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "mister",
+      "name": "PATCH /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "mister",
+      "name": "POST /auth/change-password",
+      "expected": "200|400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "dirigente",
+      "name": "GET /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "dirigente",
+      "name": "GET /account/consents (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"marketingConsent\":false,\"marketingConsentAt\":null,\"privacyAcceptedAt\":null}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "dirigente",
+      "name": "PATCH /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "dirigente",
+      "name": "POST /auth/change-password",
+      "expected": "200|400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "genitore",
+      "name": "GET /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "genitore",
+      "name": "GET /account/consents (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"marketingConsent\":false,\"marketingConsentAt\":null,\"privacyAcceptedAt\":null}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "genitore",
+      "name": "PATCH /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "genitore",
+      "name": "POST /auth/change-password",
+      "expected": "200|400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "giocatore",
+      "name": "GET /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "giocatore",
+      "name": "GET /account/consents (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"marketingConsent\":false,\"marketingConsentAt\":null,\"privacyAcceptedAt\":null}"
+    },
+    {
+      "section": "PROFILO",
+      "role": "giocatore",
+      "name": "PATCH /me (spec)",
+      "expected": "200|404",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (catch-all SPA)"
+    },
+    {
+      "section": "PROFILO",
+      "role": "giocatore",
+      "name": "POST /auth/change-password",
+      "expected": "200|400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "GET /allenamenti",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"items\":[]}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "POST /allenamenti",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "GET /allenamenti/:id",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":\"effe5f60-6774-4267-bfbf-e6a9f3c86f51\",\"leva_id\":53,\"societa_id\":70,\"creato_da\":142,\"titolo\":\"Test allenamento admin 7745763"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "PATCH /allenamenti/:id",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"id\":\"effe5f60-6774-4267-bfbf-e6a9f3c86f51\"}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "DELETE /allenamenti/:id",
+      "expected": "200|204|403",
+      "got": "204",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "admin",
+      "name": "GET /allenamenti/presenze (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "GET /allenamenti",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"items\":[]}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "POST /allenamenti",
+      "expected": "200|201|403",
+      "got": "201",
+      "status": "PASS",
+      "detail": "osservato: 201"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "GET /allenamenti/:id",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"id\":\"3780e6db-8be0-4494-9456-46f93020bd00\",\"leva_id\":53,\"societa_id\":70,\"creato_da\":143,\"titolo\":\"Test allenamento mister 774576"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "PATCH /allenamenti/:id",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"id\":\"3780e6db-8be0-4494-9456-46f93020bd00\"}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "DELETE /allenamenti/:id",
+      "expected": "200|204|403",
+      "got": "204",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "mister",
+      "name": "GET /allenamenti/presenze (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "PASS",
+      "detail": "{\"error\":\"not_found\"}"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "genitore",
+      "name": "GET /allenamenti",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "genitore",
+      "name": "POST /allenamenti → 403",
+      "expected": "403",
+      "got": "201",
+      "status": "FAIL",
+      "detail": "{\"id\":\"d6612e03-f560-47f4-88e5-9ef96c14b4ff\",\"leva_id\":53,\"societa_id\":70,\"creato_da\":145,\"titolo\":\"Test genitore\",\"obiettivo\":nul"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "giocatore",
+      "name": "GET /allenamenti",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "osservato: 200"
+    },
+    {
+      "section": "ALLENAMENTI",
+      "role": "giocatore",
+      "name": "POST /allenamenti → 403",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"leva_forbidden\",\"leva\":\"U12 QA 77457639\"}"
+    },
+    {
+      "section": "BLOB_ONLY",
+      "role": "",
+      "name": "Convocazioni",
+      "expected": "endpoint",
+      "got": "blob-only",
+      "status": "SKIP",
+      "detail": "convocazioni vivono nel blob USERS_DB/FE — no endpoint REST"
+    },
+    {
+      "section": "BLOB_ONLY",
+      "role": "",
+      "name": "Documenti",
+      "expected": "endpoint",
+      "got": "blob-only",
+      "status": "SKIP",
+      "detail": "documenti gestiti via upload custom blob storage"
+    },
+    {
+      "section": "BLOB_ONLY",
+      "role": "",
+      "name": "Disponibilità",
+      "expected": "endpoint",
+      "got": "blob-only",
+      "status": "SKIP",
+      "detail": "saveDisponibilita() salva nel blob, no endpoint REST"
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE torneo qa-torneo-77457639",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE event U12 103",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE event U16 104",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE player PLAYER1 (93)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE player PLAYER2 (94)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE player PLAYER3 (95)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE player PLAYER4 (96)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE player PLAYER5 (97)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE user giocatore (146)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE user genitore (145)",
+      "expected": "200|204|404",
+      "got": "500",
+      "status": "SKIP",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE user dirigente (144)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE user mister (143)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE leva U12 (53)",
+      "expected": "200|204|404",
+      "got": "500",
+      "status": "SKIP",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "DELETE leva U16 (54)",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "section": "CLEANUP",
+      "role": "",
+      "name": "SUSPEND società 70",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
