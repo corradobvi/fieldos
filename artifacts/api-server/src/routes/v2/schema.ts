@@ -288,6 +288,7 @@ ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
+ALTER TABLE chat_archives ADD COLUMN removed TINYINT(1) NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS chat_reads (
   user_id              INT NOT NULL,
   society_id           INT NOT NULL,
@@ -312,6 +313,7 @@ CREATE TABLE IF NOT EXISTS chat_archives (
   chat_id                  VARCHAR(100) NOT NULL,
   archived_at_message_id   INT NOT NULL DEFAULT 0,
   archived_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  removed                  TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, society_id, chat_id),
   INDEX idx_chat_archives_user (user_id, society_id)
 );

@@ -78791,6 +78791,7 @@ ALTER TABLE users ADD COLUMN permissions JSON NULL;
 ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
+ALTER TABLE chat_archives ADD COLUMN removed TINYINT(1) NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS chat_reads (
   user_id              INT NOT NULL,
   society_id           INT NOT NULL,
@@ -78815,6 +78816,7 @@ CREATE TABLE IF NOT EXISTS chat_archives (
   chat_id                  VARCHAR(100) NOT NULL,
   archived_at_message_id   INT NOT NULL DEFAULT 0,
   archived_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  removed                  TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, society_id, chat_id),
   INDEX idx_chat_archives_user (user_id, society_id)
 );
@@ -87646,8 +87648,9 @@ router19.post("/chat/unread", requireAuth, async (req, res) => {
     for (const r of unreadRows) {
       counts[String(r.chat_id)] = Number(r.unread || 0);
     }
+    const removed = [];
     const [archRows] = await pool.query(
-      `SELECT a.chat_id
+      `SELECT a.chat_id, a.removed
          FROM chat_archives a
          LEFT JOIN (
            SELECT chat_id, MAX(id) AS max_id
@@ -87657,13 +87660,17 @@ router19.post("/chat/unread", requireAuth, async (req, res) => {
          ) m ON m.chat_id = a.chat_id
         WHERE a.user_id = ? AND a.society_id = ?
           AND a.chat_id IN (${placeholders})
-          AND COALESCE(m.max_id, 0) <= a.archived_at_message_id`,
+          AND (
+            a.removed = 1
+            OR COALESCE(m.max_id, 0) <= a.archived_at_message_id
+          )`,
       [societyId, ...chatIds, userId, societyId, ...chatIds]
     );
     for (const r of archRows) {
-      archived.push(String(r.chat_id));
+      if (Number(r.removed) === 1) removed.push(String(r.chat_id));
+      else archived.push(String(r.chat_id));
     }
-    return res.json({ counts, archived, ...counts });
+    return res.json({ counts, archived, removed, ...counts });
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
@@ -87707,6 +87714,53 @@ router19.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (e) {
     logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat unarchive error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+router19.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "only_adhoc_supported" });
+  }
+  try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
+    const [mx] = await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    );
+    const maxId = Number(mx[0]?.max_id || 0);
+    await pool.query(
+      `INSERT INTO chat_archives (user_id, society_id, chat_id, archived_at_message_id, removed)
+       VALUES (?, ?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE removed = 1, archived_at_message_id = VALUES(archived_at_message_id), archived_at = CURRENT_TIMESTAMP`,
+      [userId, societyId, chatId, maxId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat remove-from-list error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+router19.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "only_adhoc_supported" });
+  }
+  try {
+    if (!await _isChatMember(societyId, chatId, userId)) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
+    await pool.query(
+      "DELETE FROM chat_archives WHERE user_id = ? AND society_id = ? AND chat_id = ? AND removed = 1",
+      [userId, societyId, chatId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat restore-to-list error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });

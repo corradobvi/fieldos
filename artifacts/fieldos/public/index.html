@@ -25239,6 +25239,10 @@ let _chatUnreadLastFetch = 0;
 // il BE non lo include più in `archived` → la chat ricompare in lista principale.
 let _chatArchivedSet = new Set();
 let _chatShowArchived = false; // toggle UI: mostra/nascondi la sezione "Archiviate"
+// Set di chatId rimossi dalla lista (PERMANENTE, solo per adhoc). Riusa lo stesso
+// storage di chat_archives col flag removed=1: NESSUN auto-unarchive al nuovo
+// messaggio. Esclusi sia da mainChats che da archivedChats.
+let _chatRemovedSet = new Set();
 
 function chatUnreadCount(user, chatId) {
   if (!user) return 0;
@@ -25248,9 +25252,10 @@ function chatUnreadCount(user, chatId) {
 
 function chatTotalUnread(user) {
   if (!user) return 0;
-  // Conteggio totale solo sulle chat NON archiviate: una chat archiviata non genera badge nav.
+  // Conteggio totale solo sulle chat NON archiviate e NON rimosse-dalla-lista:
+  // né una archiviata né una rimossa generano badge nav.
   return getChatsForUser(user).reduce((sum, c) => {
-    if (_chatArchivedSet.has(c.id)) return sum;
+    if (_chatArchivedSet.has(c.id) || _chatRemovedSet.has(c.id)) return sum;
     return sum + chatUnreadCount(user, c.id);
   }, 0);
 }
@@ -25299,6 +25304,57 @@ async function unarchiveChat(chatId) {
   } catch (e) {
     _chatArchivedSet.add(String(chatId));
     console.warn('[chat] POST unarchive error', e && e.message);
+    if (typeof renderChatList === 'function') renderChatList();
+  }
+}
+
+// Riusa il pattern di archiveChat/unarchiveChat. Solo chat adhoc.
+// Effetto: la chat sparisce dalla lista (anche dall'archivio) per questo utente,
+// in modo PERMANENTE (no auto-unarchive al nuovo messaggio). Gli altri membri
+// non sono toccati.
+function chatIsRemovedFromList(chatId) { return _chatRemovedSet.has(String(chatId)); }
+async function removeChatFromList(chatId) {
+  if (!chatId || !_ensureV2Token()) return;
+  if (!String(chatId).startsWith('adhoc_')) return; // gate: solo adhoc
+  if (!confirm('Rimuovere questa chat dalla tua lista?')) return;
+  // Optimistic update
+  _chatRemovedSet.add(String(chatId));
+  _chatArchivedSet.delete(String(chatId));
+  if (currentChatId === chatId) currentChatId = null;
+  if (typeof renderChatList === 'function') renderChatList();
+  if (typeof refreshChatBadges === 'function') refreshChatBadges();
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/remove-from-list', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) {
+      console.warn('[chat] POST remove-from-list HTTP', r.status, 'for', chatId);
+      _chatRemovedSet.delete(String(chatId));
+      if (typeof renderChatList === 'function') renderChatList();
+    }
+  } catch (e) {
+    _chatRemovedSet.delete(String(chatId));
+    console.warn('[chat] POST remove-from-list error', e && e.message);
+    if (typeof renderChatList === 'function') renderChatList();
+  }
+}
+async function restoreChatToList(chatId) {
+  if (!chatId || !_ensureV2Token()) return;
+  if (!String(chatId).startsWith('adhoc_')) return;
+  _chatRemovedSet.delete(String(chatId));
+  if (typeof renderChatList === 'function') renderChatList();
+  try {
+    const r = await fetch(API_BASE + '/api/v2/chat/' + encodeURIComponent(chatId) + '/restore-to-list', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + _v2Token, 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) {
+      _chatRemovedSet.add(String(chatId));
+      if (typeof renderChatList === 'function') renderChatList();
+    }
+  } catch (e) {
+    _chatRemovedSet.add(String(chatId));
     if (typeof renderChatList === 'function') renderChatList();
   }
 }
@@ -25387,15 +25443,22 @@ async function _loadChatUnreadCounts(opts) {
     const counts = (data.counts && typeof data.counts === 'object') ? data.counts : data;
     _chatUnreadByChatId = counts;
     const archived = Array.isArray(data.archived) ? data.archived : [];
+    const removed = Array.isArray(data.removed) ? data.removed : [];
     const newArchSet = new Set(archived.map(String));
-    // Re-render lista SOLO se cambia il set archiviato (per applicare main/archive split).
+    const newRemSet = new Set(removed.map(String));
+    // Re-render lista SOLO se cambia uno dei set (per applicare main/archive/removed split).
     let archSetChanged = false;
     if (newArchSet.size !== _chatArchivedSet.size) archSetChanged = true;
     else { for (const id of newArchSet) if (!_chatArchivedSet.has(id)) { archSetChanged = true; break; } }
+    if (!archSetChanged) {
+      if (newRemSet.size !== _chatRemovedSet.size) archSetChanged = true;
+      else { for (const id of newRemSet) if (!_chatRemovedSet.has(id)) { archSetChanged = true; break; } }
+    }
     _chatArchivedSet = newArchSet;
+    _chatRemovedSet = newRemSet;
     _renderChatBadges();
     if (typeof refreshChatBadges === 'function') refreshChatBadges();
-    // Quando set archiviato cambia, serve full renderChatList per spostare item tra le sezioni.
+    // Quando set archiviato/rimosso cambia, serve full renderChatList per spostare item tra le sezioni.
     // Guard contro ricorsione: _loadChatUnreadCounts ha già il debounce 1.5s e in-flight guard,
     // quindi il renderChatList successivo non rifa un fetch immediato.
     if (archSetChanged && typeof renderChatList === 'function') {
@@ -25466,9 +25529,11 @@ function renderChatList() {
     const _pgChat = document.getElementById('pg-chat');
     if (_pgChat) _pgChat.classList.remove('chat-panel-open');
   }
-  // Split chat tra "main" (visibili in lista) e "archived" (nascoste, mostrabili via toggle).
-  const mainChats = chats.filter(c => !_chatArchivedSet.has(c.id));
-  const archivedChats = chats.filter(c => _chatArchivedSet.has(c.id));
+  // Split chat tra "main" (visibili in lista) e "archived" (nascoste, mostrabili via
+  // toggle). Le "rimosse dalla lista" (_chatRemovedSet) sono escluse da entrambe:
+  // restano fuori dalla UI per questo utente in modo permanente.
+  const mainChats = chats.filter(c => !_chatArchivedSet.has(c.id) && !_chatRemovedSet.has(c.id));
+  const archivedChats = chats.filter(c => _chatArchivedSet.has(c.id) && !_chatRemovedSet.has(c.id));
   const _renderItem = (c, isArchived) => {
     const msgs = chatMsgsFor(c.id);
     const last = msgs[msgs.length-1];
@@ -25482,9 +25547,15 @@ function renderChatList() {
     const audLbl = _chatAudienceLabel(c);
     const audRow = audLbl ? `<div class="ci-audience">${escapeHtml(audLbl)}</div>` : '';
     // Bottone archivia/disarchivia a destra. Stopper sull'onclick per non aprire la chat.
+    // Per le sole adhoc, aggiungo anche "🗑️ Elimina dalla mia lista" (rimozione
+    // permanente per-utente, non tocca dati condivisi).
+    const isAdhoc = String(c.id).startsWith('adhoc_');
     const archBtn = isArchived
       ? `<button class="ci-arch" data-act="unarchive" title="Ripristina">↩</button>`
       : `<button class="ci-arch" data-act="archive" title="Archivia">📥</button>`;
+    const removeBtn = isAdhoc
+      ? `<button class="ci-arch" data-act="remove-from-list" title="Elimina dalla mia lista" style="margin-left:4px;">🗑️</button>`
+      : '';
     return `<div class="${cls.join(' ')}" data-chatid="${escapeHtml(c.id)}" style="${isArchived?'opacity:.65;':''}">
       <div class="ci-av" style="background:${safeColor};color:white;">${escapeHtml(c.avatar)}</div>
       <div class="ci-body">
@@ -25492,7 +25563,7 @@ function renderChatList() {
         ${audRow}
         <div class="ci-bottom"><span class="ci-msg">${previewText}</span>${unread>0 && !isArchived ? `<span class="ci-un">${unread}</span>` : ''}</div>
       </div>
-      ${archBtn}
+      ${archBtn}${removeBtn}
     </div>`;
   };
   const mainHtml = mainChats.length
@@ -25526,6 +25597,7 @@ function renderChatList() {
       const act = ev.currentTarget.getAttribute('data-act');
       if (act === 'archive') archiveChat(chatId);
       else if (act === 'unarchive') unarchiveChat(chatId);
+      else if (act === 'remove-from-list') removeChatFromList(chatId);
     });
   });
   const toggleEl = container.querySelector('[data-act="toggle-arch"]');

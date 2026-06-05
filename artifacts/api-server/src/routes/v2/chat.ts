@@ -746,11 +746,12 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
     for (const r of (unreadRows as any[])) {
       counts[String(r.chat_id)] = Number(r.unread || 0);
     }
-    // Archiviate: record presente E nessun messaggio più nuovo di archived_at_message_id.
-    // Se arriva un nuovo messaggio dopo l'archiviazione → max_id > archived_at → la chat NON
-    // è più archiviata (auto-unarchive: torna in lista principale).
+    // Archiviate (removed=0): comportamento storico invariato — riappare al nuovo messaggio.
+    // Rimosse dalla lista (removed=1): permanente, NESSUN auto-unarchive: ignoriamo max_id.
+    // Restituisco due liste separate: il FE le tratta come gruppi distinti.
+    const removed: string[] = [];
     const [archRows] = (await pool.query(
-      `SELECT a.chat_id
+      `SELECT a.chat_id, a.removed
          FROM chat_archives a
          LEFT JOIN (
            SELECT chat_id, MAX(id) AS max_id
@@ -760,13 +761,17 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
          ) m ON m.chat_id = a.chat_id
         WHERE a.user_id = ? AND a.society_id = ?
           AND a.chat_id IN (${placeholders})
-          AND COALESCE(m.max_id, 0) <= a.archived_at_message_id`,
+          AND (
+            a.removed = 1
+            OR COALESCE(m.max_id, 0) <= a.archived_at_message_id
+          )`,
       [societyId, ...chatIds, userId, societyId, ...chatIds]
     )) as [any[], any];
     for (const r of (archRows as any[])) {
-      archived.push(String(r.chat_id));
+      if (Number(r.removed) === 1) removed.push(String(r.chat_id));
+      else archived.push(String(r.chat_id));
     }
-    return res.json({ counts, archived, ...counts });
+    return res.json({ counts, archived, removed, ...counts });
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, societyId, userId, n: chatIds.length }, "POST chat unread error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
@@ -815,6 +820,64 @@ router.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
     return res.json({ ok: true });
   } catch (e: any) {
     logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat unarchive error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// POST /api/v2/chat/:chatId/remove-from-list — rimuove la chat dalla lista per-utente.
+// Solo chat adhoc. Riusa chat_archives col flag removed=1: nessun auto-unarchive,
+// la chat resta fuori dalla lista anche per nuovi messaggi. Per-utente: gli altri
+// membri restano invariati. NON cancella messaggi o adhoc_chat_members.
+router.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "only_adhoc_supported" });
+  }
+  try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
+    // archived_at_message_id non rilevante per removed=1 (la query unread ignora max_id
+    // se removed=1), ma lo settiamo a un valore alto per coerenza con la semantica
+    // "tutti i messaggi correnti considerati visti" se in futuro removed venisse rimesso a 0.
+    const [mx] = (await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS max_id FROM chat_messages WHERE society_id = ? AND chat_id = ?",
+      [societyId, chatId]
+    )) as [any[], any];
+    const maxId = Number(mx[0]?.max_id || 0);
+    await pool.query(
+      `INSERT INTO chat_archives (user_id, society_id, chat_id, archived_at_message_id, removed)
+       VALUES (?, ?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE removed = 1, archived_at_message_id = VALUES(archived_at_message_id), archived_at = CURRENT_TIMESTAMP`,
+      [userId, societyId, chatId, maxId]
+    );
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat remove-from-list error");
+    return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
+  }
+});
+
+// POST /api/v2/chat/:chatId/restore-to-list — annulla il remove-from-list (rimette
+// la chat in lista come non-archiviata). Cancella la riga: lo stato torna pulito.
+router.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser!;
+  const { chatId } = req.params;
+  if (!chatId.startsWith("adhoc_")) {
+    return res.status(400).json({ error: "only_adhoc_supported" });
+  }
+  try {
+    if (!(await _isChatMember(societyId, chatId, userId))) {
+      return res.status(403).json({ error: "forbidden", detail: "not_chat_member" });
+    }
+    await pool.query(
+      "DELETE FROM chat_archives WHERE user_id = ? AND society_id = ? AND chat_id = ? AND removed = 1",
+      [userId, societyId, chatId]
+    );
+    return res.json({ ok: true });
+  } catch (e: any) {
+    logger.error({ err: e?.message, code: e?.code, chatId, societyId, userId }, "POST chat restore-to-list error");
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
