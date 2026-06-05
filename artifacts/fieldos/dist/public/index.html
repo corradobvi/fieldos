@@ -3667,9 +3667,8 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
     <div class="mh"><div class="mt" id="mPlayerTitle">👤 Nuovo giocatore</div><button class="mx" onclick="closeM('mPlayer')">✕</button></div>
     <input type="hidden" id="pId">
     <div id="pPhotoArea" style="display:none;text-align:center;margin-bottom:14px;"></div>
-    <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <!-- Blocchi statistici spostati in #mPlayerStats (apertura da click sul nome in rosa).
+         Il popup matita ora contiene solo modifica dati + foto + indisponibilità. -->
     <div id="pIndispSection" style="display:none;background:linear-gradient(135deg,#fff1f2,#fff);border:1px solid #fecdd3;border-radius:10px;padding:12px;margin-bottom:14px;"></div>
     <!-- Form modifica (edit) — campi completi, solo in modalità edit -->
     <div id="pFullForm" style="display:none;">
@@ -3716,6 +3715,21 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
       <button class="btn" id="btnArchPlayer" onclick="archiviaCurrentPlayer()" style="display:none;background:#fef3c7;color:#b45309;border-color:#fcd34d;">📦 Archivia</button>
       <button class="btn btn-r" id="btnDelPlayer" onclick="deleteCurrentPlayer()" style="display:none;">🗑 Elimina</button>
       <button class="btn btn-g" onclick="closeM('mPlayer')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- Statistiche giocatore — popup aperto dal click sul nome nella rosa.
+     Contiene i 3 blocchi spostati dal popup matita: pAnagStats / pConvStats / pMatchStats.
+     pMatchStats e leva-dependent (advStats+isGK gestiti dentro renderPMatchStats). -->
+<div class="ov" id="mPlayerStats">
+  <div class="modal">
+    <div class="mh"><div class="mt" id="mPlayerStatsTitle">📊 Statistiche giocatore</div><button class="mx" onclick="closeM('mPlayerStats')">✕</button></div>
+    <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-g" style="flex:1;" onclick="closeM('mPlayerStats')">Chiudi</button>
     </div>
   </div>
 </div>
@@ -7771,7 +7785,7 @@ function renderRosa() {
     top.innerHTML = `
       ${playerAv(p, 40, '10px', true)}
       <div style="flex:1;min-width:0;">
-        <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
+        <div class="pc-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" onclick="openPlayerStatsModal(${p.id})" title="Mostra statistiche">${displayName}${frozen ? ' <span class="frozen-badge" title="Giocatore congelato — piano insufficiente">⚠️</span>' : ''}</div>
         ${incompleteBadge}${indispBadge}
         ${p.soprannome ? `<div style="font-size:.71rem;color:var(--text3);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${escapeHtml(p.soprannome)}"</div>` : ''}
         <div class="pc-role">${escapeHtml(p.ruolo || '')}${annoOrBirth ? ' · ' + annoOrBirth : ''}</div>
@@ -7940,6 +7954,28 @@ async function saveMinorPlayer() {
 }
 
 // Player modal — null = new (GDPR form), id = edit (full form)
+// Apre il popup "Statistiche giocatore" (separato dal popup matita "Modifica dati").
+// Riusa as-is i 3 renderer leva-dependent gia esistenti (renderPAnagStats / renderPConvStats /
+// renderPMatchStats) che oggi disegnano dentro i div #pAnagStats / #pConvStats / #pMatchStats
+// — ora spostati nel modal #mPlayerStats. Nessuna modifica alla logica leva-dependent.
+function openPlayerStatsModal(id) {
+  const p = players.find(x => x.id === id);
+  if (!p) return;
+  const titleEl = document.getElementById('mPlayerStatsTitle');
+  if (titleEl) {
+    const _name = p.incomplete
+      ? (p.nome + ' ' + (p.cogn_iniziale || ''))
+      : (p.nome + ' ' + (p.cogn || ''));
+    titleEl.textContent = '📊 ' + _name.trim() + (p.leva ? ' · ' + p.leva : '');
+  }
+  // Render dei 3 blocchi (gli id #pAnagStats / #pConvStats / #pMatchStats vivono ora
+  // dentro #mPlayerStats, ma getElementById trova comunque l'unica istanza).
+  renderPAnagStats(p);
+  renderPConvStats(p);
+  renderPMatchStats(p);
+  openM('mPlayerStats');
+}
+
 function openPlayerModal(id) {
   editingPlayerId = id;
   const fullForm  = document.getElementById('pFullForm');
@@ -7999,9 +8035,8 @@ function openPlayerModal(id) {
     if (_archBtn) _archBtn.style.display = (me && (isAdminLike() || me.role === 'allenatore')) ? 'inline-flex' : 'none';
     if (_archBtn) _archBtn.textContent = p.archiviato ? '↩️ Ripristina' : '📦 Archivia';
     renderPPhotoArea(p);
-    renderPAnagStats(p);
-    renderPConvStats(p);
-    renderPMatchStats(p);
+    // pAnagStats / pConvStats / pMatchStats spostati nel popup #mPlayerStats:
+    // si aprono dal click sul nome del giocatore nella rosa, non dalla matita.
     renderPIndispSection(p);
     // Mostra solo form classico
     if (fullForm)  fullForm.style.display  = 'block';
