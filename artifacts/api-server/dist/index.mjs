@@ -87333,13 +87333,17 @@ async function _resolveChatRecipients(societyId, chatId, senderUserId) {
     if (levaMatch) {
       const leva = levaMatch[1];
       const lc = _levaMatchClause(leva);
+      const uMatch = leva.match(/^U(\d+)/i);
+      const isUnder14 = uMatch ? parseInt(uMatch[1], 10) < 14 : false;
+      const ruoliWhitelist = isUnder14 ? ["dirigente"] : ["dirigente", "mister", "mister_admin", "allenatore"];
+      const ruoliPh = ruoliWhitelist.map(() => "?").join(",");
       const [dirRows] = await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
+            AND ruolo IN (${ruoliPh})
             AND ${lc.sql}
             AND id != ?`,
-        [societyId, ...lc.params, senderUserId]
+        [societyId, ...ruoliWhitelist, ...lc.params, senderUserId]
       );
       let famRows = [];
       try {

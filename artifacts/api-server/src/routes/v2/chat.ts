@@ -348,21 +348,40 @@ export async function _resolveChatRecipients(
       return includedIds;
     }
 
-    // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti+mister della leva (o senza leva/Tutte)
+    // 2) Leva Famiglie chat: 'leva_<X>' → dirigenti (+ staff per leve U14+) della leva
     //    + genitori/nonni di giocatori della leva (via player_guardians).
-    //    'mister' / 'mister_admin' / 'allenatore' inclusi per coerenza con staff_/squadra_/torneo_
-    //    e con getUsersForPush. mister_admin = mister normale (regola "isMister-like").
+    //
+    // Regola età-dipendente:
+    //   - U6-U13 (leva matcha /^U(\d+)/ con n<14) → SOLO dirigenti (chat famiglie pura,
+    //     senza staff tecnico, per design GDPR/separazione ruoli).
+    //   - U14+ o leva con nome non-U<n> (es. 'Juniores', 'Allievi', 'Pulcini',
+    //     'Primi Calci') → include anche allenatore/mister/mister_admin per
+    //     coerenza con staff_/squadra_/torneo_ (push notifications + visibilità
+    //     mister per coordinarsi con famiglie nelle leve over13).
+    //
+    // Note storiche: il resolver originale era SOLO `dirigente` ed escludeva
+    //   mister. Un fix push (f4aa2d7) ha aggiunto mister/allenatore/mister_admin
+    //   per evitare che le push famiglie non arrivassero al mister. Side effect:
+    //   mister U6-U13 vedeva chat famiglie under13, anomalia P1 emersa nel
+    //   test completo 2026-06-04. Questa modifica re-introduce la regola
+    //   età-dipendente preservando il fix push per U14+.
     const levaMatch = chatId.match(/^(?:leva|group)_(.+)$/);
     if (levaMatch) {
       const leva = levaMatch[1];
       const lc = _levaMatchClause(leva);
+      const uMatch = leva.match(/^U(\d+)/i);
+      const isUnder14 = uMatch ? parseInt(uMatch[1], 10) < 14 : false;
+      const ruoliWhitelist = isUnder14
+        ? ['dirigente']
+        : ['dirigente', 'mister', 'mister_admin', 'allenatore'];
+      const ruoliPh = ruoliWhitelist.map(() => '?').join(',');
       const [dirRows] = (await pool.execute(
         `SELECT id FROM users
           WHERE society_id = ? AND stato = 'attivo'
-            AND ruolo IN ('dirigente','mister','mister_admin','allenatore')
+            AND ruolo IN (${ruoliPh})
             AND ${lc.sql}
             AND id != ?`,
-        [societyId, ...lc.params, senderUserId]
+        [societyId, ...ruoliWhitelist, ...lc.params, senderUserId]
       )) as [any[], any];
       let famRows: any[] = [];
       try {
