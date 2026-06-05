@@ -21893,26 +21893,42 @@ function _switchPtdTab(which) {
 function playerMatchStats(playerId, leva) {
   const zero = () => ({pres:0,gol:0,assist:0,minuti:0,gialli:0,rossi:0,golSub:0,cs:0});
   const a = zero(), c = zero(), t = zero();
-  function add(target, s) {
-    if (!s) return;
-    target.pres++;
-    target.gol   += (s.gol || 0);
-    target.assist+= (s.assist || 0);
-    target.minuti+= (s.minuti || 0);
-    target.gialli+= (s.gialli || 0);
-    target.rossi += (s.rossi || 0);
-    target.golSub+= (s.golSub || 0);
-    if (s.cs) target.cs++;
+  // FIX presenze partita: si conta SOLO se il giocatore e' tra i convocati di quella
+  // partita. Prima il +1 scattava ogni volta che esisteva un record stats per il
+  // playerId, ma buildRisultatoStats popola m.stats[] per TUTTA la rosa della leva
+  // (anche con gol=0/assist=0/...), quindi il giocatore non convocato risultava
+  // comunque "presente". Le statistiche puntuali (gol/assist/min/gialli/rossi/
+  // golSub/cs) restano dal record stats e NON sono toccate.
+  function isConv(eventId) {
+    const conv = getConvocazione(eventId);
+    return !!(conv && (conv.playerIds || []).includes(playerId));
+  }
+  function add(target, s, presente) {
+    if (presente) target.pres++;
+    if (s) {
+      target.gol   += (s.gol || 0);
+      target.assist+= (s.assist || 0);
+      target.minuti+= (s.minuti || 0);
+      target.gialli+= (s.gialli || 0);
+      target.rossi += (s.rossi || 0);
+      target.golSub+= (s.golSub || 0);
+      if (s.cs) target.cs++;
+    }
   }
   amichevoli.filter(m => m.leva === leva && m.played).forEach(m =>
-    add(a, (m.stats||[]).find(s => s.playerId === playerId)));
+    add(a, (m.stats||[]).find(s => s.playerId === playerId), isConv('amich_' + m.id)));
   const camp = campionato[leva];
   if (camp) (camp.partite||[]).filter(m => m.played).forEach(m =>
-    add(c, (m.stats||[]).find(s => s.playerId === playerId)));
+    add(c, (m.stats||[]).find(s => s.playerId === playerId), isConv('camp_' + leva + '_' + m.id)));
+  // Torneo: convocazione PER-PARTITA (eventId = 'torneo_<t>_<f>_<m>') OR convocazione
+  // UNIFICATA per tutto il torneo (eventId = tr.id). Nel caso unificato, il giocatore
+  // convocato risulta presente in tutte le partite del torneo → +N presenze.
   tornei.filter(tr => tr.leva === leva).forEach(tr =>
     (tr.fasi||[]).forEach(f =>
-      (f.partite||[]).filter(m => m.played).forEach(m =>
-        add(t, (m.stats||[]).find(s => s.playerId === playerId)))));
+      (f.partite||[]).filter(m => m.played).forEach(m => {
+        const evIdPart = 'torneo_' + tr.id + '_' + f.id + '_' + m.id;
+        add(t, (m.stats||[]).find(s => s.playerId === playerId), isConv(evIdPart) || isConv(tr.id));
+      })));
   return {a, c, t};
 }
 
