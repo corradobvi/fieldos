@@ -715,6 +715,12 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
   if (!chatIds.length) return res.json({ counts, archived, ...counts });
   try {
     const placeholders = chatIds.map(() => "?").join(",");
+    // ADHOC: chat_id 'adhoc_<n>' e' un contatore blob-locale → collisione con messaggi
+    // storici di chat ad hoc omonime preesistenti nella stessa societa' (utente non
+    // membro al tempo). Filtro additivo: per le sole adhoc, conta solo messaggi
+    // creati DOPO la mia membership corrente (adhoc_chat_members.created_at, riflette
+    // la membership attuale grazie al PUT replace-all). Per tutte le altre chat
+    // (staff/leva/squadra/torneo) la condizione e' bypassata (NOT LIKE 'adhoc_%').
     const [unreadRows] = (await pool.query(
       `SELECT m.chat_id, COUNT(*) AS unread
          FROM chat_messages m
@@ -724,8 +730,18 @@ router.post("/chat/unread", requireAuth, async (req, res) => {
           AND m.chat_id IN (${placeholders})
           AND m.autore_id <> ?
           AND m.id > COALESCE(r.last_read_message_id, 0)
+          AND (
+            m.chat_id NOT LIKE 'adhoc_%'
+            OR EXISTS (
+              SELECT 1 FROM adhoc_chat_members am
+               WHERE am.society_id = m.society_id
+                 AND am.chat_id = m.chat_id
+                 AND am.user_id = ?
+                 AND m.created_at >= am.created_at
+            )
+          )
         GROUP BY m.chat_id`,
-      [userId, societyId, ...chatIds, userId]
+      [userId, societyId, ...chatIds, userId, userId]
     )) as [any[], any];
     for (const r of (unreadRows as any[])) {
       counts[String(r.chat_id)] = Number(r.unread || 0);
