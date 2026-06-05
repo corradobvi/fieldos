@@ -95450,12 +95450,13 @@ function render(j) {
       u.ruolo === 'allenatore' || u.ruolo === 'mister' || u.ruolo === 'mister_admin'
     );
     if (!misters.length) {
+      // Mostra l'indicazione "nessun mister" MA NON fare return: la tabella
+      // recipients_detailed sotto deve comparire comunque (utile per ad-hoc e
+      // chat dove nessun mister \xE8 candidato ma vogliamo vedere chi \xE8 membro).
       const e = document.createElement('div');
       e.className = 'empty';
       e.textContent = 'Nessun mister/allenatore tra i candidati a questa chat.';
       card.appendChild(e);
-      root.appendChild(card);
-      return;
     }
 
     misters.forEach(m => {
@@ -95516,7 +95517,11 @@ async function run() {
     return;
   }
   try {
-    const r = await fetch('/api/v2/_diag/chat', { headers: { 'Authorization': 'Bearer ' + tok } });
+    // Propaga la query string del browser (es. ?sender=60) all'endpoint JSON.
+    // Senza, l'override sender della pagina /ui veniva ignorato e il response
+    // cadeva nel fallback "userId del JWT" (badge "tuo JWT" sempre).
+    const qs = (window.location && window.location.search) || '';
+    const r = await fetch('/api/v2/_diag/chat' + qs, { headers: { 'Authorization': 'Bearer ' + tok } });
     const t = await r.text();
     if (!r.ok) {
       status.className = 'status err';
