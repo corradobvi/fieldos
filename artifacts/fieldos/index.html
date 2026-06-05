@@ -13713,6 +13713,34 @@ function _srApplySocietaContext(socId, soc) {
   }
 }
 
+// Helper condiviso: decide se mostrare lo step 1b (selettore leva) o lo step 2
+// (rosa). Stessa logica di srNextStep1, estratta verbatim per riuso da
+// loginConCodice (e altri possibili ingressi genitore-da-codice).
+// PRECONDIZIONI: la societa' deve essere gia' selezionata (leve popolato via
+// restoreState dopo __fieldosSetSocietaKey) e _srApiPlayers gia' caricato.
+function _srGotoLevaOrRoster() {
+  // Leve ATTIVE = variabile globale `leve` (popolata da restoreState dopo
+  // __fieldosSetSocietaKey). Fallback ai player solo se `leve` è vuoto/non
+  // disponibile (società appena caricata, stato non sincronizzato).
+  // Cosi' leve orfane (eliminate ma ancora presenti nei player.levaKey legacy)
+  // NON compaiono nel selettore.
+  const activeLeve = (Array.isArray(leve) && leve.length)
+    ? leve.slice()
+    : [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))];
+  activeLeve.sort();
+  if (activeLeve.length >= 1) {
+    // Step 1b SEMPRE mostrato (anche con 1 sola leva): leva = prima scelta esplicita.
+    renderSrLevaList(activeLeve);
+    srShowStep('1b');
+  } else {
+    // Fallback di sicurezza: 0 leve attive → step 2 senza filtro.
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    srShowStep(2);
+    renderSrRoster();
+  }
+}
+
 async function srNextStep1(){
   const errEl = document.getElementById('srStep1Error');
   const btn   = document.getElementById('srBtnNext1');
@@ -13760,26 +13788,7 @@ async function srNextStep1(){
     await srLoadApiPlayers(v);
     if (btn) { btn.disabled=false; btn.textContent='Avanti →'; }
 
-    // Leve ATTIVE = variabile globale `leve` (popolata da restoreState dopo
-    // __fieldosSetSocietaKey). Fallback ai player solo se `leve` è vuoto/non
-    // disponibile (società appena caricata, stato non sincronizzato).
-    // Cosi' leve orfane (eliminate ma ancora presenti nei player.levaKey legacy)
-    // NON compaiono nel selettore.
-    const activeLeve = (Array.isArray(leve) && leve.length)
-      ? leve.slice()
-      : [...new Set((_srApiPlayers || []).map(p => p.levaKey).filter(Boolean))];
-    activeLeve.sort();
-    if (activeLeve.length >= 1) {
-      // Step 1b SEMPRE mostrato (anche con 1 sola leva): leva = prima scelta esplicita.
-      renderSrLevaList(activeLeve);
-      srShowStep('1b');
-    } else {
-      // Fallback di sicurezza: 0 leve attive → step 2 senza filtro.
-      _srSelectedLeva = '';
-      _srFilteredPlayers = null;
-      srShowStep(2);
-      renderSrRoster();
-    }
+    _srGotoLevaOrRoster();
   } catch(e) {
     console.error('[srNextStep1]', e);
     _srErr('❌ Errore imprevisto. Riprova.');
@@ -13855,20 +13864,24 @@ async function loginConCodice() {
 
     _srApplySocietaContext(found.socId, found.soc);
 
-    // Pre-popola il modal e vai direttamente allo step 2 (selezione figli)
+    // Pre-popola il modal e passa per la stessa logica leva di srNextStep1
+    // (helper _srGotoLevaOrRoster): step 1b se ci sono leve attive, filtro
+    // applicato. Reset _srSelectedLeva/_srFilteredPlayers per evitare residui
+    // di una sessione precedente.
     _selfRegSelectedIds = [];
     _srApiPlayers = [];
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
     const srCod = document.getElementById('srCodice');
     if (srCod) srCod.value = v;
     ['srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => {
       const el = document.getElementById(id); if (el) el.value = '';
     });
-    setTimeout(() => {
+    setTimeout(async () => {
       btn.disabled=false; btn.textContent='Accedi →';
-      srShowStep(2);
-      renderSrRoster();
-      srLoadApiPlayers(v);
-      openM('mSelfReg');
+      openM('mSelfReg');             // apri il modal prima di mostrare lo step
+      await srLoadApiPlayers(v);     // carica i giocatori PRIMA di decidere lo step
+      _srGotoLevaOrRoster();         // helper condiviso → 1b se ci sono leve, altrimenti step 2
     }, 300);
   } catch(e) {
     console.error('[loginConCodice]', e);
@@ -30905,14 +30918,17 @@ async function doRejoinSocieta() {
     }
     _srApplySocietaContext(found.socId, found.soc);
     _selfRegSelectedIds = [];
+    _srSelectedLeva = '';
+    _srFilteredPlayers = null;
+    _srApiPlayers = [];
     const srCod = document.getElementById('srCodice');
     if (srCod) srCod.value = v;
     ['srNome','srCogn','srEmail','srPass','srPass2','srSearch'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     btn.disabled=false; btn.textContent='Entra →';
     hideNoSocietaScreen();
-    srShowStep(2);
-    renderSrRoster();
     openM('mSelfReg');
+    await srLoadApiPlayers(v);   // carica API players prima di decidere lo step
+    _srGotoLevaOrRoster();        // helper condiviso → 1b se ci sono leve, altrimenti step 2
   } catch(e) {
     msg.style.display='block'; msg.style.color='#c0392b'; msg.textContent='❌ Errore imprevisto. Riprova.';
     btn.disabled=false; btn.textContent='Entra →';
