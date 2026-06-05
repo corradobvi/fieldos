@@ -31262,15 +31262,18 @@ async function doRejoinSocieta() {
         return;
       }
       if (r.status === 409) {
-        // 409 = guard esistenti (would_overwrite_real_data / demo_cannot_overwrite_real / would_downgrade_data).
-        // INVARIATO: trattato come risolto (loggato, no retry, banner verde).
-        console.warn('[apiPush] 409 server ha rifiutato la scrittura (protezione dati)', key);
+        // 409 = guard server (would_overwrite_real_data / demo_cannot_overwrite_real /
+        // would_downgrade_data): il server ha dati più recenti/completi del client,
+        // tipicamente all'apertura quando l'hydration locale e' parziale e l'autosave
+        // 1.5s flusha un blob "magro". BENIGNO: nessuna perdita dati, lo stato server
+        // resta intatto. Riusiamo lo stesso reconcile del 412 (pull silenzioso +
+        // applyServerState) invece di mostrare un toast diagnostico all'utente.
+        console.warn('[apiPush] 409', key, '— reconcile via _handleStaleConflict');
         try {
-          const j = await r.clone().json();
-          try { toast && toast('SAVE 409 — ' + ((j && j.error) || 'rejected') + ' [apiPush]'); } catch (_) {}
-        } catch (_) {
-          try { toast && toast('SAVE 409 — rejected [apiPush]'); } catch (_) {}
-        }
+          const j = await r.clone().json().catch(() => null);
+          if (j) console.warn('[apiPush] 409 detail:', j.error);
+        } catch (_) {}
+        _handleStaleConflict(key);
         return;
       }
       // Altri errori (5xx / 4xx generici): retry exponential come prima.
@@ -31718,11 +31721,15 @@ async function doRejoinSocieta() {
         if (j && typeof j.version === 'number') _serverVersion = j.version;
       } catch (_) {}
     } else if (resp.status === 409) {
-      // ── DEBUG TEMPORANEO: 409 in syncToCloud — invariato (resp ritornata raw),
-      // ma aggiungiamo il toast diagnostico per visibilità ──────────────────
+      // 409 in syncToCloud: stesso schema del 412/409 di apiPush. Benigno: guard
+      // server anti-downgrade/overwrite. Log diagnostico in console (no toast UX).
+      // resp viene ritornata raw: caller gateano su resp.ok e mostrano "non salvato"
+      // dove serve. Nessuna chiamata a _handleStaleConflict qui: syncToCloud e' usato
+      // da chiamate gate-su-resp.ok (saveQuickResult/savePtRisultato) che gestiscono
+      // gia' il fallimento al loro livello.
       try {
         const _j409 = await resp.clone().json().catch(function(){ return null; });
-        try { toast && toast('SAVE 409 — ' + ((_j409 && _j409.error) || 'rejected') + ' [syncToCloud]'); } catch(_) {}
+        if (_j409) console.warn('[syncToCloud] 409:', _j409.error);
       } catch(_) {}
     }
     // 409 e altri: invariati → resp ritornata raw, caller decide (oggi gateano su r.ok).
@@ -33484,7 +33491,8 @@ async function subscribePush(userId, societyKey, _isRetry) {
     let sub = await reg.pushManager.getSubscription();
     if (sub && _pushSavedEndpoint === sub.endpoint) {
       console.log('[Push] subscribePush: subscription already saved this session, skip POST');
-      _pushToast('🔔 Notifiche attive', '#16a34a');
+      // Notifiche già attive: nessun toast all'utente (riusa Notification.permission
+      // come unica fonte di verità). Banner mostrato solo quando DISATTIVATE.
       return;
     }
     if (sub) {
@@ -33514,7 +33522,8 @@ async function subscribePush(userId, societyKey, _isRetry) {
     if (r.ok) {
       console.log('[Push] subscribePush: saved to backend ok');
       _pushSavedEndpoint = sub.endpoint;
-      _pushToast('🔔 Notifiche attive', '#16a34a');
+      // Subscription appena salvata: nessun toast all'utente (notifiche attive →
+      // nessun banner). Riusiamo Notification.permission come unica rilevazione.
     } else {
       const errText = await r.text().catch(() => '');
       console.error('[Push] subscribePush: backend save failed', r.status, errText);
