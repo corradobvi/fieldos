@@ -86975,6 +86975,8 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { leva, limit = "50", offset = "0" } = req.query;
   try {
+    const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
+    const off = Math.max(parseInt(offset) || 0, 0);
     const [rows] = await pool.execute(
       `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
               c.urgente, c.created_at,
@@ -86986,8 +86988,8 @@ router18.get("/comunicazioni", requireAuth, async (req, res) => {
        WHERE c.society_id = ?
          ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
        ORDER BY c.created_at DESC
-       LIMIT ? OFFSET ?`,
-      leva ? [userId, societyId, leva, parseInt(limit), parseInt(offset)] : [userId, societyId, parseInt(limit), parseInt(offset)]
+       LIMIT ${lim} OFFSET ${off}`,
+      leva ? [userId, societyId, leva] : [userId, societyId]
     );
     return res.json(rows);
   } catch (e) {

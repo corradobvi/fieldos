@@ -61,11 +61,15 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
   const { leva, limit = "50", offset = "0" } = req.query as Record<string, string>;
 
   try {
-    // FIX P0: la query precedente usava LEFT JOIN + MAX(cr.letto_at) + GROUP BY c.id.
-    // Su MySQL con sql_mode=ONLY_FULL_GROUP_BY (default Railway/5.7.5+) le colonne
-    // c.autore_id/c.tipo/c.titolo/... non-aggregate fuori dal GROUP BY causano errore
-    // 1055 → 500 server_error per ogni chiamante. Sostituito con EXISTS subquery:
-    // stessa semantica (`letto` = 0/1), niente GROUP BY, niente vincoli sql_mode.
+    // FIX P0 (#2 — primo tentativo non risolutivo): la query precedente usava
+    //   LEFT JOIN + MAX(cr.letto_at) + GROUP BY c.id  → ipotizzato ONLY_FULL_GROUP_BY.
+    // Sostituito con EXISTS subquery (niente GROUP BY) MA il 500 persisteva: la
+    // vera causa è `LIMIT ? OFFSET ?` con pool.execute (prepared statements) — bug
+    // noto mysql2/MySQL già documentato in chat.ts:11 ("LIMIT ? ha regressioni").
+    // Fix vero: sanifica limit/offset come int e interpolali direttamente nella
+    // SQL string. Gli altri parametri restano placeholder ? safe.
+    const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
+    const off = Math.max(parseInt(offset) || 0, 0);
     const [rows] = (await pool.execute(
       `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
               c.urgente, c.created_at,
@@ -77,10 +81,10 @@ router.get("/comunicazioni", requireAuth, async (req, res) => {
        WHERE c.society_id = ?
          ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
        ORDER BY c.created_at DESC
-       LIMIT ? OFFSET ?`,
+       LIMIT ${lim} OFFSET ${off}`,
       leva
-        ? [userId, societyId, leva, parseInt(limit), parseInt(offset)]
-        : [userId, societyId, parseInt(limit), parseInt(offset)]
+        ? [userId, societyId, leva]
+        : [userId, societyId]
     )) as [any[], any];
     return res.json(rows);
   } catch (e: any) {
