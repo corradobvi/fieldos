@@ -222,11 +222,18 @@ async function _enrichUser(
 }
 
 // GET /api/v2/_diag/chat
-// Query: ?chatId=<id opzionale>&senderUserId=<id opzionale, default jwt.userId>&societyId=<opzionale>
+// Query: ?chatId=<id opzionale>&senderUserId=<id opzionale, default jwt.userId>
+//         &sender=<alias short di senderUserId>&societyId=<opzionale>
 router.get("/_diag/chat", requireAuth, async (req, res) => {
   const ctx = _gate(req, res); if (!ctx) return;
   const { societyId, userId } = ctx;
-  const senderUserId = Number(req.query.senderUserId) || userId;
+  // Override sender: accetta sia ?sender=<id> (alias breve) sia ?senderUserId=<id>.
+  // Se assente o non valido → fallback al userId del JWT.
+  const senderQRaw = (req.query.sender ?? req.query.senderUserId);
+  const senderQNum = Number(senderQRaw);
+  const senderUserId = Number.isFinite(senderQNum) && senderQNum > 0 ? senderQNum : userId;
+  const senderSource: "query" | "jwt" =
+    (Number.isFinite(senderQNum) && senderQNum > 0) ? "query" : "jwt";
   const explicitChatId = String(req.query.chatId || "").trim();
 
   try {
@@ -245,7 +252,7 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
       )) as [any[], any];
       const row = (sRows as any[])[0] || null;
       if (!row) {
-        senderInfo = { found: false, senderUserId, societyId, note: "Sender non trovato in users per questa società. Probabilmente l'id non appartiene alla società del JWT, o l'utente è stato eliminato." };
+        senderInfo = { found: false, senderUserId, source: senderSource, societyId, note: "Sender non trovato in users per questa società. Probabilmente l'id non appartiene alla società del JWT, o l'utente è stato eliminato." };
       } else {
         const raw = row.leva;
         let leva_interpreted: any;
@@ -283,6 +290,7 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
         } catch (_) { /* tabella opzionale */ }
         senderInfo = {
           found: true,
+          source: senderSource,
           id: row.id, nome: row.nome, cognome: row.cognome, email: row.email,
           ruolo: row.ruolo,
           leva_raw: raw,
@@ -334,6 +342,50 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
         users.push(await _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet));
       }
 
+      // Lista COMPLETA dei destinatari calcolati dal resolver (non filtrati per ruolo).
+      // Per ciascuno: id, nome, cognome, ruolo, has_push_subscription, opted_out_notify_chat, is_member.
+      // Permette di verificare se un account specifico (es. admin id=58) è davvero tra i
+      // destinatari quando un altro utente invia.
+      const recipientsDetailed: any[] = [];
+      if (recipients.length) {
+        // Riusa _enrichUser dove possibile per i candidati in shortlist; per ID restanti
+        // (es. admin/giocatori non nella shortlist) fa una SELECT singola e riutilizza la
+        // stessa pipeline di push readiness + opt-out.
+        const byId = new Map<number, any>(users.map((u: any) => [Number(u.id), u]));
+        const missingIds = recipients.map(Number).filter(id => !byId.has(id));
+        if (missingIds.length) {
+          const ph = missingIds.map(() => "?").join(",");
+          const [extraRows] = (await pool.execute(
+            `SELECT id, nome, cognome, ruolo, leva, stato, email
+               FROM users WHERE society_id = ? AND id IN (${ph})`,
+            [societyId, ...missingIds]
+          )) as [any[], any];
+          for (const u of (extraRows as any[])) {
+            const enriched = await _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet);
+            byId.set(Number(u.id), enriched);
+          }
+        }
+        for (const rid of recipients.map(Number)) {
+          const e = byId.get(rid);
+          if (!e) {
+            // Sicurezza: id presente in recipients ma non in users (es. orfano adhoc) — segnala
+            recipientsDetailed.push({
+              id: rid, nome: null, cognome: null, ruolo: null,
+              has_push_subscription: false, opted_out_notify_chat: false,
+              is_member: memberSet.has(rid),
+              note: "orphan_id_not_in_users",
+            });
+          } else {
+            recipientsDetailed.push({
+              id: e.id, nome: e.nome, cognome: e.cognome, ruolo: e.ruolo,
+              has_push_subscription: e.has_push_subscription,
+              opted_out_notify_chat: e.opted_out_notify_chat,
+              is_member: e.is_member,
+            });
+          }
+        }
+      }
+
       // Hint per la chat: focus sul mister (ruolo allenatore o mister)
       const misters = users.filter(u => u.ruolo === "allenatore" || u.ruolo === "mister" || u.ruolo === "mister_admin");
       const dirigenti = users.filter(u => u.ruolo === "dirigente");
@@ -361,6 +413,7 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
         leva_target: leva,
         recipients_count: recipients.length,
         recipients_ids: recipients,
+        recipients_detailed: recipientsDetailed,
         members_count: members.length,
         members_ids: members,
         users,
@@ -465,12 +518,15 @@ function fullName(u) {
 function renderSender(j) {
   const si = j.sender_info;
   if (!si) return '';
+  const srcLabel = si.source === 'query'
+    ? '<span style="background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;font-size:.72rem;font-weight:700;margin-left:6px;">override ?sender=</span>'
+    : '<span style="background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-size:.72rem;font-weight:700;margin-left:6px;">tuo JWT</span>';
   if (!si.found) {
-    return '<div class="card"><h2>👤 Mittente simulato</h2>'
+    return '<div class="card"><h2>👤 Mittente simulato ' + srcLabel + '</h2>'
       + '<div class="verdict ko"><strong>Sender id=' + escapeHtml(si.senderUserId) + ' NON trovato in users per questa societa\\'.</strong> ' + escapeHtml(si.note || '') + '</div></div>';
   }
   const li = si.leva_interpreted || {};
-  return '<div class="card"><h2>👤 Mittente simulato: ' + escapeHtml(fullName(si)) + '</h2>'
+  return '<div class="card"><h2>👤 Mittente simulato: ' + escapeHtml(fullName(si)) + ' (id=' + si.id + ')' + srcLabel + '</h2>'
     + '<div class="tech">'
     + 'id=' + si.id + ' &middot; email=' + escapeHtml(si.email || '-')
     + ' &middot; ruolo=' + escapeHtml(si.ruolo || '-')
@@ -483,6 +539,47 @@ function renderSender(j) {
     + '<strong>Interpretazione:</strong> <code>' + escapeHtml(li.type || '?') + '</code> &rarr; ' + escapeHtml(li.note || '')
     + (Array.isArray(li.value) ? ('<br><strong>Elementi array:</strong> ' + escapeHtml(JSON.stringify(li.value))) : '')
     + '</div></div>';
+}
+
+// Tabella completa destinatari calcolati dal resolver per una chat.
+function renderRecipientsTable(chat) {
+  const rd = chat.recipients_detailed || [];
+  if (!rd.length) {
+    return '<div class="tech" style="margin-top:8px"><em>Resolver ha restituito 0 destinatari per questa chat.</em></div>';
+  }
+  const rows = rd.map(r => {
+    const name = r.nome || r.cognome
+      ? escapeHtml(((r.nome || '') + ' ' + (r.cognome || '')).trim())
+      : '<em>utente #' + r.id + '</em>';
+    const pushBadge = r.has_push_subscription
+      ? '<span style="color:#065f46">✓ iscritto</span>'
+      : '<span style="color:#991b1b">✗ mancante</span>';
+    const optBadge = r.opted_out_notify_chat
+      ? '<span style="color:#92400e">⚠ opt-out</span>'
+      : '<span style="color:#64748b">no</span>';
+    const note = r.note ? ' &middot; <em>' + escapeHtml(r.note) + '</em>' : '';
+    return '<tr>'
+      + '<td style="padding:4px 8px;font-family:ui-monospace,Menlo,monospace;font-size:.74rem">' + r.id + '</td>'
+      + '<td style="padding:4px 8px;font-size:.82rem">' + name + '</td>'
+      + '<td style="padding:4px 8px;font-size:.74rem;color:#475569">' + escapeHtml(r.ruolo || '-') + '</td>'
+      + '<td style="padding:4px 8px;font-size:.74rem">' + pushBadge + '</td>'
+      + '<td style="padding:4px 8px;font-size:.74rem">' + optBadge + '</td>'
+      + '<td style="padding:4px 8px;font-size:.74rem">' + (r.is_member ? '✓' : '—') + note + '</td>'
+      + '</tr>';
+  }).join('');
+  return '<details style="margin-top:10px"><summary style="cursor:pointer;font-size:.82rem;color:#0f172a;font-weight:600">'
+    + '📋 Lista completa destinatari (' + rd.length + ')</summary>'
+    + '<table style="width:100%;margin-top:6px;border-collapse:collapse;background:#f8fafc;border-radius:6px;overflow:hidden">'
+    + '<thead><tr style="background:#e2e8f0;text-align:left">'
+    + '<th style="padding:4px 8px;font-size:.72rem">ID</th>'
+    + '<th style="padding:4px 8px;font-size:.72rem">Nome</th>'
+    + '<th style="padding:4px 8px;font-size:.72rem">Ruolo</th>'
+    + '<th style="padding:4px 8px;font-size:.72rem">Push</th>'
+    + '<th style="padding:4px 8px;font-size:.72rem">Opt-out chat</th>'
+    + '<th style="padding:4px 8px;font-size:.72rem">Membro</th>'
+    + '</tr></thead><tbody>'
+    + rows
+    + '</tbody></table></details>';
 }
 
 function renderDiscovery(j) {
@@ -561,6 +658,13 @@ function render(j) {
       v.appendChild(t);
       card.appendChild(v);
     });
+
+    // Lista completa destinatari calcolati dal resolver per questa chat
+    // (oltre il filtro mister/allenatore di sopra). Permette di vedere se
+    // l'admin (es. id=58) o altri ruoli risultano davvero tra i destinatari.
+    const detail = document.createElement('div');
+    detail.innerHTML = renderRecipientsTable(chat);
+    card.appendChild(detail);
 
     root.appendChild(card);
   });
