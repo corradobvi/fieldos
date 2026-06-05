@@ -94,15 +94,52 @@ async function _shortlistForChat(societyId: number, chatId: string): Promise<any
   return [];
 }
 
+// Carica la lista leve dal blob society_state.state_json (s.leve = array stringhe).
+// Sorgente AUTOREVOLE lato FE: il mister vede le chat costruite da getChatsForUser
+// usando proprio questa lista (index.html:31210 → restoreState popola `leve`).
+async function _loadLeveFromBlob(societyId: number): Promise<{ source: string; leve: string[] }> {
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  try {
+    const [rows] = (await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    )) as [any[], any];
+    if (rows.length) {
+      const s = JSON.parse(rows[0].state_json as string);
+      if (Array.isArray(s?.leve) && s.leve.length) {
+        return { source: "blob_society_state", leve: s.leve.filter((x: any) => typeof x === "string") };
+      }
+    }
+  } catch (_) { /* fallback */ }
+  return { source: "blob_unavailable", leve: [] };
+}
+
 // Scoperta automatica delle chat candidate per una società.
-//   - staff_<lv>: una per ciascuna leva nella tabella MySQL `leve`
-//   - adhoc_<id>: distinct chat_id da adhoc_chat_members
-async function _discoverChats(societyId: number): Promise<{ staff: string[]; adhoc: string[] }> {
-  const [leveRows] = (await pool.execute(
-    "SELECT nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
-    [societyId]
-  )) as [any[], any];
-  const staff = (leveRows as any[]).map(r => `staff_${r.nome}`);
+//   - staff_<lv>: una per ciascuna leva (preferito: blob society_state.s.leve;
+//     fallback: tabella MySQL `leve`). Il formato `staff_<lv>` deve essere
+//     IDENTICO a quello che _resolveChatRecipients si aspetta: parsing
+//     /^staff_(.+)$/ — quindi `<lv>` e' il nome leva grezzo (può contenere
+//     spazi, en-dash, ecc., come dal blob FE).
+//   - squadra_<lv>: stesso bacino di leve (formato /^squadra_(.+)$/).
+//   - adhoc_<id>: distinct chat_id da adhoc_chat_members.
+async function _discoverChats(societyId: number): Promise<{ staff: string[]; squadra: string[]; adhoc: string[]; leve: string[]; leveSource: string }> {
+  // Sorgente 1: blob (autorevole per il FE, riflette renameLeva e leve correnti)
+  const fromBlob = await _loadLeveFromBlob(societyId);
+  let leveNames: string[] = fromBlob.leve;
+  let leveSource = fromBlob.source;
+  // Sorgente 2 (fallback): tabella MySQL `leve`
+  if (!leveNames.length) {
+    try {
+      const [leveRows] = (await pool.execute(
+        "SELECT nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
+        [societyId]
+      )) as [any[], any];
+      leveNames = (leveRows as any[]).map(r => String(r.nome));
+      leveSource = "mysql_leve_table";
+    } catch (_) { /* nessuna sorgente */ }
+  }
+  const staff   = leveNames.map(n => `staff_${n}`);
+  const squadra = leveNames.map(n => `squadra_${n}`);
   let adhoc: string[] = [];
   try {
     const [adhocRows] = (await pool.execute(
@@ -111,7 +148,7 @@ async function _discoverChats(societyId: number): Promise<{ staff: string[]; adh
     )) as [any[], any];
     adhoc = (adhocRows as any[]).map(r => String(r.chat_id));
   } catch (_) { /* tabella opzionale */ }
-  return { staff, adhoc };
+  return { staff, squadra, adhoc, leve: leveNames, leveSource };
 }
 
 // Per ciascun utente in shortlist, calcola:
@@ -195,13 +232,85 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
   try {
     const stateKey = societyKeyFor(societyId);
 
-    // Lista chat da analizzare
+    // -------- (1) Dump del mittente simulato --------
+    // SELECT della riga utente per senderUserId nella società. Espone leva GREZZA
+    // (stringa esatta dal DB) + interpretazione (null/'Tutte'/plain/JSON array/...),
+    // più push readiness (subscription presente, opt-out notify_chat).
+    let senderInfo: any = null;
+    {
+      const [sRows] = (await pool.execute(
+        `SELECT id, nome, cognome, email, ruolo, leva, stato
+           FROM users WHERE id = ? AND society_id = ? LIMIT 1`,
+        [senderUserId, societyId]
+      )) as [any[], any];
+      const row = (sRows as any[])[0] || null;
+      if (!row) {
+        senderInfo = { found: false, senderUserId, societyId, note: "Sender non trovato in users per questa società. Probabilmente l'id non appartiene alla società del JWT, o l'utente è stato eliminato." };
+      } else {
+        const raw = row.leva;
+        let leva_interpreted: any;
+        if (raw === null || raw === undefined) {
+          leva_interpreted = { type: "null", value: null, note: "leva NULL → coperto da _levaMatchClause come 'no leva = match qualunque target'" };
+        } else if (typeof raw !== "string") {
+          leva_interpreted = { type: typeof raw, value: raw, note: "tipo inatteso per VARCHAR (driver mysql2 dovrebbe restituire stringa)" };
+        } else if (raw === "") {
+          leva_interpreted = { type: "empty_string", value: "", note: "leva vuota → coperto da _levaMatchClause" };
+        } else if (raw === "Tutte" || raw === "tutte") {
+          leva_interpreted = { type: "tutte_keyword", value: raw, note: "alias 'tutte le leve' → coperto da _levaMatchClause" };
+        } else {
+          // Tentativo di JSON.parse: se è array → multi-leva (formato saveUser FE)
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              leva_interpreted = { type: "json_array", value: parsed, note: "multi-leva JSON-stringify dal FE → coperto da _levaMatchClause via JSON_CONTAINS" };
+            } else {
+              leva_interpreted = { type: "json_other", value: parsed, note: "JSON valido ma NON array (anomalia rispetto al formato saveUser)" };
+            }
+          } catch {
+            leva_interpreted = { type: "plain_string", value: raw, note: "stringa semplice (es. 'U11' o 'U11 – Pulcini') → coperto da _levaMatchClause con exact + prefix-extracted" };
+          }
+        }
+        // push readiness del sender
+        const [subRows] = (await pool.execute(
+          "SELECT id, CHAR_LENGTH(subscription) AS sub_size, updated_at FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+          [senderUserId, stateKey]
+        )) as [any[], any];
+        const hasSubscription = (subRows as any[]).length > 0;
+        let optedOutNotifyChat = false;
+        try {
+          const survives = await filterByPref([senderUserId], "notify_chat");
+          optedOutNotifyChat = survives.length === 0;
+        } catch (_) { /* tabella opzionale */ }
+        senderInfo = {
+          found: true,
+          id: row.id, nome: row.nome, cognome: row.cognome, email: row.email,
+          ruolo: row.ruolo,
+          leva_raw: raw,
+          leva_interpreted,
+          stato: row.stato,
+          has_push_subscription: hasSubscription,
+          sub_meta: hasSubscription ? { sub_size: subRows[0].sub_size, updated_at: subRows[0].updated_at } : null,
+          opted_out_notify_chat: optedOutNotifyChat,
+        };
+      }
+    }
+
+    // -------- (2) Scoperta chat: staff_<lv>, squadra_<lv>, adhoc_<id> --------
     let chatIds: string[];
+    let discoveryMeta: any = null;
     if (explicitChatId) {
       chatIds = [explicitChatId];
     } else {
       const d = await _discoverChats(societyId);
-      chatIds = [...d.staff, ...d.adhoc];
+      chatIds = [...d.staff, ...d.squadra, ...d.adhoc];
+      discoveryMeta = {
+        leve_count: d.leve.length,
+        leve_source: d.leveSource,
+        leve_names: d.leve,
+        staff_chat_ids: d.staff,
+        squadra_chat_ids: d.squadra,
+        adhoc_chat_ids: d.adhoc,
+      };
     }
 
     const perChat: any[] = [];
@@ -264,6 +373,8 @@ router.get("/_diag/chat", requireAuth, async (req, res) => {
     return res.json({
       input: { societyId, senderUserId, chatId: explicitChatId || null },
       society_key: stateKey,
+      sender_info: senderInfo,
+      discovery: discoveryMeta,
       discovered_chat_count: chatIds.length,
       per_chat: perChat,
     });
@@ -351,19 +462,54 @@ function fullName(u) {
   return (n || c) ? (n + ' ' + c).trim() : ('utente #' + u.id);
 }
 
+function renderSender(j) {
+  const si = j.sender_info;
+  if (!si) return '';
+  if (!si.found) {
+    return '<div class="card"><h2>👤 Mittente simulato</h2>'
+      + '<div class="verdict ko"><strong>Sender id=' + escapeHtml(si.senderUserId) + ' NON trovato in users per questa societa\\'.</strong> ' + escapeHtml(si.note || '') + '</div></div>';
+  }
+  const li = si.leva_interpreted || {};
+  return '<div class="card"><h2>👤 Mittente simulato: ' + escapeHtml(fullName(si)) + '</h2>'
+    + '<div class="tech">'
+    + 'id=' + si.id + ' &middot; email=' + escapeHtml(si.email || '-')
+    + ' &middot; ruolo=' + escapeHtml(si.ruolo || '-')
+    + ' &middot; stato=' + escapeHtml(si.stato || '-')
+    + ' &middot; push=' + (si.has_push_subscription ? 'iscritto' : 'mancante')
+    + ' &middot; opt_out_chat=' + si.opted_out_notify_chat
+    + '</div>'
+    + '<div class="verdict ' + (si.has_push_subscription && !si.opted_out_notify_chat ? 'ok' : 'warn') + '">'
+    + '<strong>Leva (grezza):</strong> <code>' + escapeHtml(JSON.stringify(si.leva_raw)) + '</code><br>'
+    + '<strong>Interpretazione:</strong> <code>' + escapeHtml(li.type || '?') + '</code> &rarr; ' + escapeHtml(li.note || '')
+    + (Array.isArray(li.value) ? ('<br><strong>Elementi array:</strong> ' + escapeHtml(JSON.stringify(li.value))) : '')
+    + '</div></div>';
+}
+
+function renderDiscovery(j) {
+  const d = j.discovery;
+  if (!d) return '';
+  const lines = [];
+  lines.push('Leve trovate: <strong>' + d.leve_count + '</strong> (fonte: ' + escapeHtml(d.leve_source) + ')');
+  if (d.leve_names && d.leve_names.length) lines.push('Nomi: ' + d.leve_names.map(n => '<code>' + escapeHtml(n) + '</code>').join(', '));
+  lines.push('Chat Staff costruite: ' + d.staff_chat_ids.length + (d.staff_chat_ids.length ? ' (' + d.staff_chat_ids.map(c => '<code>' + escapeHtml(c) + '</code>').join(', ') + ')' : ''));
+  lines.push('Chat Squadra costruite: ' + d.squadra_chat_ids.length + (d.squadra_chat_ids.length ? ' (' + d.squadra_chat_ids.map(c => '<code>' + escapeHtml(c) + '</code>').join(', ') + ')' : ''));
+  lines.push('Chat ad hoc trovate: ' + d.adhoc_chat_ids.length);
+  return '<div class="card"><h2>🔭 Scoperta chat</h2><div class="tech" style="white-space:normal;line-height:1.6">' + lines.join('<br>') + '</div></div>';
+}
+
 function render(j) {
   document.getElementById('raw').textContent = JSON.stringify(j, null, 2);
   const meta = document.getElementById('meta');
   meta.style.display = 'block';
   meta.textContent = 'Societa\\' id: ' + j.input.societyId
-    + ' · sender simulato (tuo JWT): user id ' + j.input.senderUserId
+    + ' · sender simulato: user id ' + j.input.senderUserId
     + ' · chat analizzate: ' + j.discovered_chat_count;
 
   const root = document.getElementById('results');
-  root.innerHTML = '';
+  root.innerHTML = renderSender(j) + renderDiscovery(j);
 
   if (!j.per_chat || !j.per_chat.length) {
-    root.innerHTML = '<div class="empty">Nessuna chat trovata per questa società.</div>';
+    root.innerHTML += '<div class="empty">Nessuna chat trovata per questa società.</div>';
     return;
   }
 

@@ -94982,12 +94982,40 @@ async function _shortlistForChat(societyId, chatId) {
   }
   return [];
 }
+async function _loadLeveFromBlob(societyId) {
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (rows.length) {
+      const s = JSON.parse(rows[0].state_json);
+      if (Array.isArray(s?.leve) && s.leve.length) {
+        return { source: "blob_society_state", leve: s.leve.filter((x) => typeof x === "string") };
+      }
+    }
+  } catch (_) {
+  }
+  return { source: "blob_unavailable", leve: [] };
+}
 async function _discoverChats(societyId) {
-  const [leveRows] = await pool.execute(
-    "SELECT nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
-    [societyId]
-  );
-  const staff = leveRows.map((r) => `staff_${r.nome}`);
+  const fromBlob = await _loadLeveFromBlob(societyId);
+  let leveNames = fromBlob.leve;
+  let leveSource = fromBlob.source;
+  if (!leveNames.length) {
+    try {
+      const [leveRows] = await pool.execute(
+        "SELECT nome FROM leve WHERE society_id = ? ORDER BY ordine, nome",
+        [societyId]
+      );
+      leveNames = leveRows.map((r) => String(r.nome));
+      leveSource = "mysql_leve_table";
+    } catch (_) {
+    }
+  }
+  const staff = leveNames.map((n) => `staff_${n}`);
+  const squadra = leveNames.map((n) => `squadra_${n}`);
   let adhoc = [];
   try {
     const [adhocRows] = await pool.execute(
@@ -94997,7 +95025,7 @@ async function _discoverChats(societyId) {
     adhoc = adhocRows.map((r) => String(r.chat_id));
   } catch (_) {
   }
-  return { staff, adhoc };
+  return { staff, squadra, adhoc, leve: leveNames, leveSource };
 }
 async function _enrichUser(u, societyId, chatId, senderUserId, recipientSet, memberSet) {
   const id = Number(u.id);
@@ -95058,12 +95086,81 @@ router43.get("/_diag/chat", requireAuth, async (req, res) => {
   const explicitChatId = String(req.query.chatId || "").trim();
   try {
     const stateKey = societyKeyFor(societyId);
+    let senderInfo = null;
+    {
+      const [sRows] = await pool.execute(
+        `SELECT id, nome, cognome, email, ruolo, leva, stato
+           FROM users WHERE id = ? AND society_id = ? LIMIT 1`,
+        [senderUserId, societyId]
+      );
+      const row = sRows[0] || null;
+      if (!row) {
+        senderInfo = { found: false, senderUserId, societyId, note: "Sender non trovato in users per questa societ\xE0. Probabilmente l'id non appartiene alla societ\xE0 del JWT, o l'utente \xE8 stato eliminato." };
+      } else {
+        const raw = row.leva;
+        let leva_interpreted;
+        if (raw === null || raw === void 0) {
+          leva_interpreted = { type: "null", value: null, note: "leva NULL \u2192 coperto da _levaMatchClause come 'no leva = match qualunque target'" };
+        } else if (typeof raw !== "string") {
+          leva_interpreted = { type: typeof raw, value: raw, note: "tipo inatteso per VARCHAR (driver mysql2 dovrebbe restituire stringa)" };
+        } else if (raw === "") {
+          leva_interpreted = { type: "empty_string", value: "", note: "leva vuota \u2192 coperto da _levaMatchClause" };
+        } else if (raw === "Tutte" || raw === "tutte") {
+          leva_interpreted = { type: "tutte_keyword", value: raw, note: "alias 'tutte le leve' \u2192 coperto da _levaMatchClause" };
+        } else {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              leva_interpreted = { type: "json_array", value: parsed, note: "multi-leva JSON-stringify dal FE \u2192 coperto da _levaMatchClause via JSON_CONTAINS" };
+            } else {
+              leva_interpreted = { type: "json_other", value: parsed, note: "JSON valido ma NON array (anomalia rispetto al formato saveUser)" };
+            }
+          } catch {
+            leva_interpreted = { type: "plain_string", value: raw, note: "stringa semplice (es. 'U11' o 'U11 \u2013 Pulcini') \u2192 coperto da _levaMatchClause con exact + prefix-extracted" };
+          }
+        }
+        const [subRows] = await pool.execute(
+          "SELECT id, CHAR_LENGTH(subscription) AS sub_size, updated_at FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+          [senderUserId, stateKey]
+        );
+        const hasSubscription = subRows.length > 0;
+        let optedOutNotifyChat = false;
+        try {
+          const survives = await filterByPref([senderUserId], "notify_chat");
+          optedOutNotifyChat = survives.length === 0;
+        } catch (_) {
+        }
+        senderInfo = {
+          found: true,
+          id: row.id,
+          nome: row.nome,
+          cognome: row.cognome,
+          email: row.email,
+          ruolo: row.ruolo,
+          leva_raw: raw,
+          leva_interpreted,
+          stato: row.stato,
+          has_push_subscription: hasSubscription,
+          sub_meta: hasSubscription ? { sub_size: subRows[0].sub_size, updated_at: subRows[0].updated_at } : null,
+          opted_out_notify_chat: optedOutNotifyChat
+        };
+      }
+    }
     let chatIds;
+    let discoveryMeta = null;
     if (explicitChatId) {
       chatIds = [explicitChatId];
     } else {
       const d = await _discoverChats(societyId);
-      chatIds = [...d.staff, ...d.adhoc];
+      chatIds = [...d.staff, ...d.squadra, ...d.adhoc];
+      discoveryMeta = {
+        leve_count: d.leve.length,
+        leve_source: d.leveSource,
+        leve_names: d.leve,
+        staff_chat_ids: d.staff,
+        squadra_chat_ids: d.squadra,
+        adhoc_chat_ids: d.adhoc
+      };
     }
     const perChat = [];
     for (const chatId of chatIds) {
@@ -95113,6 +95210,8 @@ router43.get("/_diag/chat", requireAuth, async (req, res) => {
     return res.json({
       input: { societyId, senderUserId, chatId: explicitChatId || null },
       society_key: stateKey,
+      sender_info: senderInfo,
+      discovery: discoveryMeta,
       discovered_chat_count: chatIds.length,
       per_chat: perChat
     });
@@ -95195,19 +95294,54 @@ function fullName(u) {
   return (n || c) ? (n + ' ' + c).trim() : ('utente #' + u.id);
 }
 
+function renderSender(j) {
+  const si = j.sender_info;
+  if (!si) return '';
+  if (!si.found) {
+    return '<div class="card"><h2>\u{1F464} Mittente simulato</h2>'
+      + '<div class="verdict ko"><strong>Sender id=' + escapeHtml(si.senderUserId) + ' NON trovato in users per questa societa\\'.</strong> ' + escapeHtml(si.note || '') + '</div></div>';
+  }
+  const li = si.leva_interpreted || {};
+  return '<div class="card"><h2>\u{1F464} Mittente simulato: ' + escapeHtml(fullName(si)) + '</h2>'
+    + '<div class="tech">'
+    + 'id=' + si.id + ' &middot; email=' + escapeHtml(si.email || '-')
+    + ' &middot; ruolo=' + escapeHtml(si.ruolo || '-')
+    + ' &middot; stato=' + escapeHtml(si.stato || '-')
+    + ' &middot; push=' + (si.has_push_subscription ? 'iscritto' : 'mancante')
+    + ' &middot; opt_out_chat=' + si.opted_out_notify_chat
+    + '</div>'
+    + '<div class="verdict ' + (si.has_push_subscription && !si.opted_out_notify_chat ? 'ok' : 'warn') + '">'
+    + '<strong>Leva (grezza):</strong> <code>' + escapeHtml(JSON.stringify(si.leva_raw)) + '</code><br>'
+    + '<strong>Interpretazione:</strong> <code>' + escapeHtml(li.type || '?') + '</code> &rarr; ' + escapeHtml(li.note || '')
+    + (Array.isArray(li.value) ? ('<br><strong>Elementi array:</strong> ' + escapeHtml(JSON.stringify(li.value))) : '')
+    + '</div></div>';
+}
+
+function renderDiscovery(j) {
+  const d = j.discovery;
+  if (!d) return '';
+  const lines = [];
+  lines.push('Leve trovate: <strong>' + d.leve_count + '</strong> (fonte: ' + escapeHtml(d.leve_source) + ')');
+  if (d.leve_names && d.leve_names.length) lines.push('Nomi: ' + d.leve_names.map(n => '<code>' + escapeHtml(n) + '</code>').join(', '));
+  lines.push('Chat Staff costruite: ' + d.staff_chat_ids.length + (d.staff_chat_ids.length ? ' (' + d.staff_chat_ids.map(c => '<code>' + escapeHtml(c) + '</code>').join(', ') + ')' : ''));
+  lines.push('Chat Squadra costruite: ' + d.squadra_chat_ids.length + (d.squadra_chat_ids.length ? ' (' + d.squadra_chat_ids.map(c => '<code>' + escapeHtml(c) + '</code>').join(', ') + ')' : ''));
+  lines.push('Chat ad hoc trovate: ' + d.adhoc_chat_ids.length);
+  return '<div class="card"><h2>\u{1F52D} Scoperta chat</h2><div class="tech" style="white-space:normal;line-height:1.6">' + lines.join('<br>') + '</div></div>';
+}
+
 function render(j) {
   document.getElementById('raw').textContent = JSON.stringify(j, null, 2);
   const meta = document.getElementById('meta');
   meta.style.display = 'block';
   meta.textContent = 'Societa\\' id: ' + j.input.societyId
-    + ' \xB7 sender simulato (tuo JWT): user id ' + j.input.senderUserId
+    + ' \xB7 sender simulato: user id ' + j.input.senderUserId
     + ' \xB7 chat analizzate: ' + j.discovered_chat_count;
 
   const root = document.getElementById('results');
-  root.innerHTML = '';
+  root.innerHTML = renderSender(j) + renderDiscovery(j);
 
   if (!j.per_chat || !j.per_chat.length) {
-    root.innerHTML = '<div class="empty">Nessuna chat trovata per questa societ\xE0.</div>';
+    root.innerHTML += '<div class="empty">Nessuna chat trovata per questa societ\xE0.</div>';
     return;
   }
 
