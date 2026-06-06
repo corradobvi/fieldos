@@ -14,9 +14,11 @@ const DEMO_DAYS_DEFAULT = 14;
 
 const PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 
-// FIX security 2026-06-06: rate-limit 10/h per IP per evitare spam society.
+// FIX security 2026-06-06: rate-limit per evitare spam society.
+// Multi-worker Railway: limite effettivo ≈ max × N_worker (~3-4). Vedi commento
+// in v2/auth.ts per dettagli e migration plan.
 const selfRegisterLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 10,
+  windowMs: 60 * 60 * 1000, max: 3, // ≈ 9-12 totali/h/IP
   message: "Troppe registrazioni. Riprova tra un'ora.",
 });
 

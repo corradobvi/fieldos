@@ -9,13 +9,19 @@ const router = Router();
 // FIX security 2026-06-06: rate-limit su endpoint auth pubblici per evitare
 // brute-force e abuse. Test onboarding ha confermato 10 wrong-pass in 2.4s
 // senza alcun limit. Limiter in-memory custom (lib/rate-limit.ts).
+//
+// IMPORTANTE: Railway usa multiple worker (test 2026-06-06 ha mostrato counter
+// oscillante 9/8/7 = ~3 worker che non condividono il bucket in-memory).
+// Quindi il LIMITE EFFETTIVO ≈ max × N_worker. Per ottenere ~10 totali/15min
+// con 3-4 worker, settiamo max=3 (3×4=12 totali ≈ target spec).
+// Migration futura a Redis/MySQL-store eliminerà l'approssimazione.
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 10,
-  keyFn: ipPlusEmailKey, // per-IP + per-email: 10 tentativi/15min/coppia
+  windowMs: 15 * 60 * 1000, max: 3, // ≈ 9-12 totali/15min/coppia (IP|email) con 3-4 worker
+  keyFn: ipPlusEmailKey,
   message: "Troppi tentativi di login. Riprova tra 15 minuti.",
 });
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 10,
+  windowMs: 60 * 60 * 1000, max: 3, // ≈ 9-12 totali/h/IP con 3-4 worker
   message: "Troppe registrazioni. Riprova tra un'ora.",
 });
 

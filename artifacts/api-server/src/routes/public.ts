@@ -4,9 +4,9 @@ import { logger } from "../lib/logger";
 import { rateLimit } from "../lib/rate-limit";
 
 // FIX security 2026-06-06: rate-limit su endpoint pubblici per evitare abuse/spam.
-// 5/h per IP su forgot-password (riduce enumerazione tentativi).
+// Multi-worker Railway: limite effettivo ≈ max × N_worker. Vedi v2/auth.ts.
 const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,
+  windowMs: 60 * 60 * 1000, max: 2, // ≈ 6-8 totali/h/IP
   message: "Troppi tentativi di reset password. Riprova tra un'ora.",
 });
 

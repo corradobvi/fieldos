@@ -78550,7 +78550,8 @@ function ipPlusEmailKey(req) {
 // src/routes/public.ts
 var forgotPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1e3,
-  max: 5,
+  max: 2,
+  // ≈ 6-8 totali/h/IP
   message: "Troppi tentativi di reset password. Riprova tra un'ora."
 });
 var router8 = (0, import_express8.Router)();
@@ -84235,14 +84236,15 @@ var import_express9 = __toESM(require_express2(), 1);
 var router9 = (0, import_express9.Router)();
 var loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1e3,
-  max: 10,
+  max: 3,
+  // ≈ 9-12 totali/15min/coppia (IP|email) con 3-4 worker
   keyFn: ipPlusEmailKey,
-  // per-IP + per-email: 10 tentativi/15min/coppia
   message: "Troppi tentativi di login. Riprova tra 15 minuti."
 });
 var registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1e3,
-  max: 10,
+  max: 3,
+  // ≈ 9-12 totali/h/IP con 3-4 worker
   message: "Troppe registrazioni. Riprova tra un'ora."
 });
 router9.post("/auth/login", loginLimiter, async (req, res) => {
@@ -84735,7 +84737,8 @@ var DEMO_DAYS_DEFAULT = 14;
 var PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 var selfRegisterLimiter = rateLimit({
   windowMs: 60 * 60 * 1e3,
-  max: 10,
+  max: 3,
+  // ≈ 9-12 totali/h/IP
   message: "Troppe registrazioni. Riprova tra un'ora."
 });
 router10.post("/auth/self-register", selfRegisterLimiter, async (req, res) => {
