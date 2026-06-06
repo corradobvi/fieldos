@@ -130,9 +130,14 @@ export async function getUsersForPush(
     if (excludeUserId) { staffQuery += " AND id != ?"; staffParams.push(excludeUserId); }
     if (leva) {
       const lc = _levaMatchClause(leva);
+      // Genitore/nonno aggiunti alla leva-scoped clause (regressione 18933bc):
+      // i guardian via player_guardians (Query 2 sotto) coprono SOLO il flusso
+      // GDPR moderno; i genitori/nonni "legacy" (blob-style, users.leva valorizzato
+      // ma niente player_guardians) restavano fuori → notifiche risultato/evento
+      // non arrivavano. Same _levaMatchClause (exact/prefix/JSON-array/Tutte).
       staffQuery += ` AND (
         ruolo IN ('admin','mister_admin','dirigente')
-        OR (ruolo IN ('allenatore','mister','preparatore_portieri') AND ${lc.sql})
+        OR (ruolo IN ('allenatore','mister','preparatore_portieri','genitore','nonno') AND ${lc.sql})
       )`;
       staffParams.push(...lc.params);
     }

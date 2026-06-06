@@ -23938,14 +23938,23 @@ async function saveResultWithRetry(applyResult, maxRetries) {
       await new Promise(r => setTimeout(r, 150)); // breve attesa per stabilizzare il poll
       continue; // ri-applica sullo stato fresco
     }
-    // 412 dopo maxRetries → fallback: backup locale + ricarica stato fresco (no clobber), NO toast.
-    if (resp && resp.status === 412) {
+    // 412 dopo maxRetries OR 409 (would_downgrade / overwrite_real): SOSPETTI BENIGNI.
+    // Il dato puo' essere gia' nel server (salvato da autosave precedente o altro device):
+    // pulla, riapplica idempotente e verifica. Se applyResult dopo il pull NON cambia
+    // nulla (isNewOrChanged=false), il target e' GIA' su server → ok:true, NO toast.
+    // Solo se il dato target NON e' nello stato pullato → fail vero, caller mostra toast.
+    if (resp && (resp.status === 412 || resp.status === 409)) {
       if (typeof window.__fieldosHandleStaleConflict === 'function') {
         try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
       }
-      return { ok: false, match: last.match, isNewOrChanged: false };
+      let post = null;
+      try { post = applyResult(); } catch (_) {}
+      if (post && post.applied && !post.isNewOrChanged) {
+        return { ok: true, match: post.match, isNewOrChanged: false };
+      }
+      return { ok: false, match: (post && post.match) || last.match, isNewOrChanged: false };
     }
-    // 409 / rete / altri: invariato → fail come oggi (caller mostra il toast onesto).
+    // Rete / 5xx / altri: fail diretto come oggi, caller mostra il toast onesto.
     return { ok: false, match: last.match, isNewOrChanged: false };
   }
   return { ok: false, match: last.match, isNewOrChanged: false };
