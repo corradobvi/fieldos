@@ -8149,68 +8149,77 @@ function deletePlayerPhoto(playerId) {
 }
 
 // Storico convocazioni nell'anagrafica giocatore (sola lettura).
-// Conta solo eventi partita/torneo passati: convocato vs no, e disponibilità data.
+// Mostra le ULTIME 3 convocazioni del giocatore (amichevoli + campionato + tornei),
+// piu' recenti in alto. Un torneo = UNA sola voce.
+//
+// FIX: prima si filtrava solo l'array globale `events`, ma quello NON contiene mai
+// amichevoli/campionato/tornei (vivono in sorgenti dedicate: amichevoli[],
+// campionato[lv].partite[], tornei[]). Risultato: storico sempre vuoto.
+// Ora riusa getAllCompetitiveEventsForLeve([p.leva]) che unifica tutte le sorgenti
+// con gli stessi eventId di playerMatchStats / getConvocazione.
 function renderPConvStats(p) {
   const box = document.getElementById('pConvStats');
   if (!box) return;
   const today = ymd(new Date());
-  // Eventi passati di tipo partita/torneo che includono la leva del giocatore
-  const pastEvents = events.filter(e =>
-    (e.type === 'partita' || e.type === 'torneo') &&
-    (!e.recur || e.recur === 'none') &&
-    e.date < today &&
-    (e.leve || []).includes(p.leva)
-  ).sort((a,b) => (b.date+(b.start||'')).localeCompare(a.date+(a.start||'')));
 
-  if (pastEvents.length === 0) {
+  // Helper: il giocatore e' convocato a questo evento?
+  // Per amichevoli/campionato basta getConvocazione(ev.id). Per il torneo c'e' un
+  // modello DOPPIO: convocazione unificata su t.id, oppure convocazioni per-partita
+  // su 'torneo_<t>_<f>_<m>'. Vale entrambe (il torneo conta come 1 voce se almeno
+  // una delle due include il giocatore).
+  function isPlayerConvForEvent(ev) {
+    const conv = getConvocazione(ev.id);
+    if (conv && (conv.playerIds || []).includes(p.id)) return true;
+    if (ev.type === 'torneo' && ev._matchRef) {
+      const tr = ev._matchRef;
+      return (tr.fasi || []).some(f =>
+        (f.partite || []).some(m => {
+          const evIdPart = 'torneo_' + tr.id + '_' + f.id + '_' + m.id;
+          const cp = getConvocazione(evIdPart);
+          return !!(cp && (cp.playerIds || []).includes(p.id));
+        })
+      );
+    }
+    return false;
+  }
+
+  // Sorgente unificata di tutti gli eventi competitivi della leva (riusa helper esistente).
+  const all = (typeof getAllCompetitiveEventsForLeve === 'function')
+    ? getAllCompetitiveEventsForLeve([p.leva])
+    : [];
+  const recent = all
+    .filter(ev => ev.date && ev.date < today)
+    .filter(ev => isPlayerConvForEvent(ev))
+    .sort((a,b) => (b.date+(b.start||'')).localeCompare(a.date+(a.start||'')))
+    .slice(0, 3);
+
+  if (recent.length === 0) {
     box.innerHTML = `<div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;margin-bottom:6px;">📋 STORICO CONVOCAZIONI</div>
-      <div style="font-size:.78rem;color:var(--text3);">Nessuna partita o torneo passato per la leva ${escapeHtml(p.leva)}.</div>`;
+      <div style="font-size:.78rem;color:var(--text3);">Nessuna convocazione passata per ${escapeHtml(p.nome)}.</div>`;
     box.style.display = 'block';
     return;
   }
 
-  let convCount = 0, nonConvCount = 0;
-  let dispCount = 0, indispCount = 0, noRespCount = 0;
-  const recentRows = [];
-  pastEvents.forEach(ev => {
-    const conv = getConvocazione(ev.id);
-    const wasConv = !!(conv && (conv.playerIds || []).includes(p.id));
-    if (wasConv) convCount++; else nonConvCount++;
+  // Riusa lo stesso markup-riga (data + titolo + badge convocato + disponibilita').
+  const rows = recent.map(ev => {
     const d = getDispon(ev.id, p.id);
     let dispLabel, dispCol;
-    if (!d) { noRespCount++; dispLabel = 'Nessuna risposta'; dispCol = 'var(--text3)'; }
-    else if (d.status === 'disponibile') { dispCount++; dispLabel = 'Disponibile'; dispCol = 'var(--green)'; }
-    else { indispCount++; dispLabel = 'Indisponibile' + (d.motivo ? ' · ' + d.motivo : ''); dispCol = 'var(--red)'; }
-    if (recentRows.length < 6) {
-      recentRows.push({ ev, wasConv, dispLabel, dispCol });
-    }
+    if (!d) { dispLabel = 'Nessuna risposta'; dispCol = 'var(--text3)'; }
+    else if (d.status === 'disponibile') { dispLabel = 'Disponibile'; dispCol = 'var(--green)'; }
+    else { dispLabel = 'Indisponibile' + (d.motivo ? ' · ' + d.motivo : ''); dispCol = 'var(--red)'; }
+    return { ev, dispLabel, dispCol };
   });
-
-  const tot = pastEvents.length;
-  const respPerc = tot ? Math.round(((dispCount + indispCount) / tot) * 100) : 0;
-  const convPerc = tot ? Math.round((convCount / tot) * 100) : 0;
 
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;">📋 STORICO CONVOCAZIONI</div>
-      <div style="margin-left:auto;display:flex;gap:14px;font-size:.72rem;color:var(--text2);flex-wrap:wrap;">
-        <span><strong style="color:var(--cp);font-size:1rem;">${convPerc}%</strong> convocato</span>
-        <span><strong style="color:var(--green);">${convCount}</strong> conv.</span>
-        <span><strong style="color:var(--text3);">${nonConvCount}</strong> non conv.</span>
-        <span><strong>${tot}</strong> tot.</span>
-      </div>
-    </div>
-    <div style="display:flex;gap:14px;font-size:.72rem;color:var(--text2);margin-bottom:10px;flex-wrap:wrap;padding:6px 8px;background:var(--white);border-radius:6px;border:1px dashed var(--border);">
-      <span style="font-weight:700;color:#92400e;">Affidabilità risposte: ${respPerc}%</span>
-      <span><strong style="color:var(--green);">${dispCount}</strong> disp.</span>
-      <span><strong style="color:var(--red);">${indispCount}</strong> indisp.</span>
-      <span><strong style="color:var(--text3);">${noRespCount}</strong> no risp.</span>
+      <div style="margin-left:auto;font-size:.72rem;color:var(--text2);">Ultime ${rows.length} (piu' recenti in alto)</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:4px;">
-      ${recentRows.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:.72rem;">
+      ${rows.map(r => `<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:.72rem;">
         <span style="color:var(--text2);min-width:55px;">${fmtDateShort(r.ev.date)}</span>
         <span style="flex:1;font-weight:600;">${escapeHtml(r.ev.title)}</span>
-        <span class="pill" style="background:${r.wasConv?'#dcfce7':'#f3f4f6'};color:${r.wasConv?'var(--green)':'var(--text3)'};font-size:.66rem;">${r.wasConv?'Convocato':'Non conv.'}</span>
+        <span class="pill" style="background:#dcfce7;color:var(--green);font-size:.66rem;">Convocato</span>
         <span style="color:${r.dispCol};font-size:.68rem;font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.dispLabel)}">${escapeHtml(r.dispLabel)}</span>
       </div>`).join('')}
     </div>
