@@ -24008,6 +24008,13 @@ async function saveQuickResult(tipo, ref, idC, idO) {
     // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
     applyResult();
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
+    // Snapshot del match SUBITO DOPO applyResult, mentre il blob locale e' ancora integro
+    // (cioe' PRIMA del pull 412 dentro saveResultWithRetry che puo' sovrascrivere il blob
+    // server-side e far sparire il match dal lookup successivo _findMatchByRef).
+    // Usato come fallback nel ramo notify se res.match e' null e _findMatchByRef non trova
+    // (caso TORNEO/GIRONE post-pull).
+    const _m0 = _findMatchByRef(tipo, ref);
+    const _matchSnap = _m0 ? { ..._m0 } : null;
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
 
@@ -24049,7 +24056,7 @@ async function saveQuickResult(tipo, ref, idC, idO) {
     //  - res.ok==='conflict'                   → silent (console.warn), niente banner ne notifica.
     //  - altrimenti                            → toast onesto "non salvato", niente notifica.
     if (res.ok === true || matchUpsertOk === true) {
-      _notifyRisultatoToGenitori(tipo, res.match || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
+      _notifyRisultatoToGenitori(tipo, res.match || _matchSnap || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
       toast('✅ Risultato salvato!');
     } else if (res.ok === 'conflict') {
       console.warn('[saveQuickResult] conflict residuo — autosave gestira', { tipo, gc, go });
@@ -24080,11 +24087,14 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       avversario = (match.casa === polis) ? (match.ospite || '') : (match.casa || '');
     } else if (tipo === 'torneo') {
       tipoLabel = 'Torneo';
-      // Recupera il torneo padre per filtro mieSquadre + fallback leva.
-      const t = tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m.id === match.id)));
+      // Guard match=null/undefined: evita TypeError su match.id (inghiottito dall'outer-catch
+      // ~24151) quando il blob locale e' stato sovrascritto dal pull 412.
+      const t = match
+        ? tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m && m.id === match.id)))
+        : null;
       // FIX over-trigger: NON notificare per partite tra ALTRE squadre (Scontri tra avversari).
-      // Se conosciamo il torneo, filtra: il match deve coinvolgere almeno una "mia squadra".
-      if (t && typeof _getMieSquadre === 'function') {
+      // Resta PRIMA del fallback leva (semantica: il filtro torneo-altrui richiede di sapere t+match).
+      if (t && match && typeof _getMieSquadre === 'function') {
         const mie = _getMieSquadre(t);
         if (!mie.includes(match.casa) && !mie.includes(match.ospite)) {
           console.log('[NOTIFY] exit=torneo-altrui mie=', mie, 'casa=', match.casa, 'ospite=', match.ospite);
@@ -24093,8 +24103,12 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
           return;
         }
       }
-      avversario = `${match.casa || ''} vs ${match.ospite || ''}`;
+      avversario = match ? `${match.casa || ''} vs ${match.ospite || ''}` : '';
       if (!leva && t) leva = t.leva;
+      // FIX simmetrico col path campionato (~24078): fallback finale a currentLeva. Senza,
+      // il path torneo cadeva nell'early return 'exit=no-leva' (~24099-24103) ogni volta che
+      // il match veniva da _findMatchByRef post-pull privo di leva e t non veniva trovato.
+      if (!leva) leva = currentLeva;
     }
     if (!leva) {
       console.log('[NOTIFY] exit=no-leva');
@@ -24895,6 +24909,10 @@ async function savePtRisultato() {
     // Save locale + render: invariato. La PUT remota gating con merge-retry su 412.
     applyResult();
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
+    // Snapshot del match SUBITO DOPO applyResult, mentre il blob locale e' ancora integro
+    // (cioe' PRIMA del pull 412 dentro saveResultWithRetry). Stesso pattern di saveQuickResult.
+    const _m0 = _findMatchByRef(tipo, ref);
+    const _matchSnap = _m0 ? { ..._m0 } : null;
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
 
@@ -24934,7 +24952,7 @@ async function savePtRisultato() {
     // Banner unificato 3-stati. La notifica genitori parte UNA SOLA volta nel ramo success
     // (anche se entrambe le scritture — blob + match table — sono andate a buon fine).
     if (res.ok === true || matchUpsertOk === true) {
-      _notifyRisultatoToGenitori(tipo, res.match || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
+      _notifyRisultatoToGenitori(tipo, res.match || _matchSnap || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
       toast('✅ Risultato salvato!');
     } else if (res.ok === 'conflict') {
       console.warn('[savePtRisultato] conflict residuo — autosave gestira', { tipo, gc, go });
