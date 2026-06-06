@@ -7554,7 +7554,14 @@ function _buildMatchBody(opts) {
 }
 
 async function _postMatchUpsert(body) {
-  if (!_matchSyncGate()) return null;
+  // Ritorna SEMPRE un oggetto con campo `ok` boolean esplicito:
+  //   - ok:true   → POST /api/v2/matches risposto r.ok (upsert match riuscito su MySQL).
+  //                 La risposta JSON {id, created} viene spreadata: chi usa upRes.id
+  //                 (es. savePtRisultato per _postStatsUpsert) continua a funzionare.
+  //   - ok:false  → gate skip / HTTP !ok / exception. id/created assenti → i chiamanti
+  //                 che gateano su `upRes.id` (truthy) non entrano nel ramo follow-up.
+  // I chiamanti che IGNORANO il return restano invariati (retrocompatibile).
+  if (!_matchSyncGate()) return { ok: false };
   _matchSyncSkipNext = true; // STEP3 skip-after-save
   try {
     const r = await fetch(API_BASE + '/api/v2/matches', {
@@ -7562,11 +7569,12 @@ async function _postMatchUpsert(body) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify(body)
     });
-    if (!r.ok) { console.log('[match2] POST /matches HTTP', r.status, body.event_key); return null; }
-    return await r.json();
+    if (!r.ok) { console.log('[match2] POST /matches HTTP', r.status, body.event_key); return { ok: false }; }
+    const json = await r.json();
+    return Object.assign({ ok: true }, json || {});
   } catch (e) {
     console.log('[match2] POST /matches err', e && e.message);
-    return null;
+    return { ok: false };
   }
 }
 
@@ -24002,25 +24010,13 @@ async function saveQuickResult(tipo, ref, idC, idO) {
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-    // 3 stati distinti:
-    //  - ok===true     → save confermato server, toast verde + notifica push.
-    //  - ok==='conflict' → 412/409 esauriti ma il dato sara' propagato da autosave/altri
-    //                      device. Nessun toast d'errore, niente push (evitiamo duplicati).
-    //  - ok===false    → vero errore (rete/5xx/match non trovato), toast onesto.
-    if (res.ok === true) {
-      _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
-      toast('✅ Risultato salvato!');
-    } else if (res.ok === 'conflict') {
-      // Silent: il dato e' sotto controllo dell'autosave, nessun allarme all'utente.
-      console.warn('[saveQuickResult] conflict residuo — autosave gestira', { tipo, gc, go });
-    } else {
-      toast('⚠️ Risultato non salvato — riprova');
-    }
 
-    // STEP2 — doppia scrittura MySQL (difensiva, additiva). Upsert solo del match.
-    // AWAITed cosi il flag _savingResult resta attivo finche MySQL ha ricevuto il
-    // nuovo punteggio: un eventuale matchSync schedulato subito dopo leggera il
-    // nuovo valore, non il vecchio.
+    // STEP2 — doppia scrittura MySQL (UNA SOLA invocazione, spostata QUI PRIMA della
+    // valutazione banner). Il match table su MySQL e' la fonte di verita' lato visualizzazione
+    // (MATCH_READ_FROM_MYSQL=true): se l'upsert riesce, il risultato e' persistito anche se
+    // il PUT blob ha dato 412/409. Catturiamo l'esito (matchUpsertOk) per unificare la
+    // decisione banner sotto.
+    let matchUpsertOk = false;
     try {
       const match = _findMatchByRef(tipo, ref);
       if (match) {
@@ -24039,12 +24035,27 @@ async function saveQuickResult(tipo, ref, idC, idO) {
           ek = 'torneo_' + parts[0] + '_' + parts[1] + '_' + parts[2];
         }
         if (ek) {
-          await _postMatchUpsert(_buildMatchBody({
+          const upRes = await _postMatchUpsert(_buildMatchBody({
             tipo, event_key: ek, leva, fase_id, match
           }));
+          matchUpsertOk = !!(upRes && upRes.ok === true);
         }
       }
     } catch(_) {}
+
+    // Banner unificato 3-stati. La notifica genitori parte UNA SOLA volta nel ramo success
+    // (anche se entrambe le scritture — blob + match table — sono andate a buon fine).
+    //  - res.ok===true OR matchUpsertOk===true → considerato salvato: toast verde + notifica.
+    //  - res.ok==='conflict'                   → silent (console.warn), niente banner ne notifica.
+    //  - altrimenti                            → toast onesto "non salvato", niente notifica.
+    if (res.ok === true || matchUpsertOk === true) {
+      _notifyRisultatoToGenitori(tipo, res.match || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
+      toast('✅ Risultato salvato!');
+    } else if (res.ok === 'conflict') {
+      console.warn('[saveQuickResult] conflict residuo — autosave gestira', { tipo, gc, go });
+    } else {
+      toast('⚠️ Risultato non salvato — riprova');
+    }
   } finally {
     _savingResult = false;
   }
@@ -24886,21 +24897,11 @@ async function savePtRisultato() {
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-    // Stesso pattern 3-stati di saveQuickResult.
-    if (res.ok === true) {
-      _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
-      toast('✅ Risultato salvato!');
-    } else if (res.ok === 'conflict') {
-      // Silent: autosave gestira, niente allarme.
-      console.warn('[savePtRisultato] conflict residuo — autosave gestira', { tipo, gc, go });
-    } else {
-      toast('⚠️ Risultato non salvato — riprova');
-    }
 
-    // STEP2 — doppia scrittura MySQL: upsert match POI upsert stats[].
-    // gia await: il finally piu sotto resetta _savingResult solo dopo che MySQL
-    // ha ricevuto il nuovo punteggio, cosi un eventuale matchSync schedulato
-    // immediatamente dopo legge il valore aggiornato, non il vecchio.
+    // STEP2 — doppia scrittura MySQL (UNA SOLA invocazione, spostata QUI PRIMA della
+    // valutazione banner). Upsert match + upsert stats[]. Cattura l'esito match per
+    // unificare la decisione banner (vedi saveQuickResult per la stessa logica).
+    let matchUpsertOk = false;
     try {
       const freshMatch = _findMatchByRef(tipo, ref);
       if (freshMatch) {
@@ -24922,12 +24923,24 @@ async function savePtRisultato() {
           const upRes = await _postMatchUpsert(_buildMatchBody({
             tipo, event_key: ek, leva: _leva, fase_id, match: freshMatch
           }));
+          matchUpsertOk = !!(upRes && upRes.ok === true);
           if (upRes && upRes.id) {
             await _postStatsUpsert(upRes.id, freshMatch.stats || []);
           }
         }
       }
     } catch(_) {}
+
+    // Banner unificato 3-stati. La notifica genitori parte UNA SOLA volta nel ramo success
+    // (anche se entrambe le scritture — blob + match table — sono andate a buon fine).
+    if (res.ok === true || matchUpsertOk === true) {
+      _notifyRisultatoToGenitori(tipo, res.match || _findMatchByRef(tipo, ref), gc, go, _trulyChanged);
+      toast('✅ Risultato salvato!');
+    } else if (res.ok === 'conflict') {
+      console.warn('[savePtRisultato] conflict residuo — autosave gestira', { tipo, gc, go });
+    } else {
+      toast('⚠️ Risultato non salvato — riprova');
+    }
   } finally {
     _savingResult = false;
   }
