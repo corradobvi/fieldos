@@ -119,10 +119,17 @@ router.get("/state/:key", async (req, res) => {
 router.put("/state/:key", requireAuth, async (req, res) => {
   const jwtSocId = req.jwtUser!.societyId;
   const expectedKey = `fieldos_state_soc_${jwtSocId}`;
-  if (req.params.key !== expectedKey) {
+  // Accetta anche la chiave di backup CLOUD scritta da FE _autoBackupCheck (24h) e
+  // backupCloud manuale: pattern 'fieldos_backup_' + expectedKey. Una chiave backup
+  // di un'altra societa' (es. fieldos_backup_fieldos_state_soc_99 con JWT soc=53)
+  // continua a fallire perche' non rientra in nessuno dei due pattern attesi:
+  // l'ownership e' preservata. Vedi index.html:31949 (_BACKUP_CLOUD_KEY) per la
+  // costruzione della chiave lato FE.
+  const expectedBackupKey = `fieldos_backup_${expectedKey}`;
+  if (req.params.key !== expectedKey && req.params.key !== expectedBackupKey) {
     return res.status(403).json({
       error: "forbidden",
-      detail: "state key must match JWT.societyId (expected: " + expectedKey + ")",
+      detail: "state key must match JWT.societyId (expected: " + expectedKey + " or " + expectedBackupKey + ")",
     });
   }
   const { stateJson, isDemo, baseVersion } = req.body as { stateJson?: unknown; isDemo?: unknown; baseVersion?: unknown };
