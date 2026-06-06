@@ -7,9 +7,15 @@ import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
 
-// TODO security: il frontend hardcoda SA_PASS='super123'. Per riapplicare fail-closed
-// (vedi commit 636a494) settare SA_SECRET env su Railway + sostituire SA_PASS lato FE.
-const SA_SECRET = process.env.SA_SECRET ?? "super123";
+// FIX security: fail-closed. Prima del fix c'era fallback hardcoded a "super123"
+// (commit e087e78 reintroduceva il fallback rimosso dal commit 636a494 per sblocco
+// temporaneo SA panel). Test SA panel 2026-06-06 ha verificato che env SA_SECRET
+// è effettivamente settata su Railway (login funziona), quindi il fallback era
+// solo difesa-in-profondità rischiosa: se l'env si fosse persa, l'attaccante con
+// secret triviale avrebbe avuto accesso SA completo.
+// Ora: throw at startup se env mancante → app non parte invece di accettare super123.
+const SA_SECRET = process.env.SA_SECRET;
+if (!SA_SECRET) throw new Error("SA_SECRET env var non configurata — fail-closed startup");
 
 const EXCLUDED_IDS = [99, 99999];
 
