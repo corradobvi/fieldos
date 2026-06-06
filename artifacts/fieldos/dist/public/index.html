@@ -6702,6 +6702,16 @@ function renderProfiloFiglio(el) {
         </div>`).join('')}
     </div>` : '';
 
+  // Dettaglio per competizione (stessa tabella del popup mister, helper condiviso).
+  // Stesso gate showStatsToFamily — se il mister ha disattivato la visibilita' famiglie,
+  // anche questa card resta nascosta. Niente Note Mister, niente Stagioni precedenti:
+  // solo la tabella, coerente con il task.
+  const dettCompHtml = _statsAllowed ? `
+    <div class="stat-cat-card">
+      <div class="stat-cat-hd">⚽ Dettaglio per competizione</div>
+      ${renderCompetizioneTable(p)}
+    </div>` : '';
+
   el.innerHTML = `
     ${chipsHtml}
     <div class="tess-pl-card">
@@ -6716,6 +6726,7 @@ function renderProfiloFiglio(el) {
       </div>
     </div>
     ${statPartiteHtml}
+    ${dettCompHtml}
     ${presBarHtml}
     ${storicoConvHtml}
     ${indispPeriodoHtml}
@@ -12308,6 +12319,44 @@ function statsSchedaSetTab(tab) {
   renderPlayerStatsScheda();
 }
 
+// Helper condiviso: ritorna l'HTML della tabella "Dettaglio per competizione".
+// Usato sia dal popup unificato (#mPlayerStats > card Dettaglio per competizione)
+// sia dalla vista genitore (renderProfiloFiglio > card Dettaglio per competizione).
+// Output byte-identico al markup precedente nel popup.
+// Riusa playerMatchStats / advStats / isGK as-is.
+function renderCompetizioneTable(p) {
+  const ms = playerMatchStats(p.id, p.leva);
+  const tot = {
+    pres:   ms.a.pres   + ms.c.pres   + ms.t.pres,
+    gol:    ms.a.gol    + ms.c.gol    + ms.t.gol,
+    assist: ms.a.assist + ms.c.assist + ms.t.assist,
+    minuti: ms.a.minuti + ms.c.minuti + ms.t.minuti,
+    gialli: ms.a.gialli + ms.c.gialli + ms.t.gialli,
+    rossi:  ms.a.rossi  + ms.c.rossi  + ms.t.rossi,
+    golSub: ms.a.golSub + ms.c.golSub + ms.t.golSub,
+    cs:     ms.a.cs     + ms.c.cs     + ms.t.cs
+  };
+  const showAdv = advStats(p.leva);
+  const showGK  = isGK(p);
+  let html = `<div style="overflow-x:auto;"><table class="tbl" style="font-size:.79rem;">
+        <thead><tr><th></th><th>Amich.</th><th>Camp.</th><th>Torn.</th><th class="tot">TOT</th></tr></thead>
+        <tbody>
+          <tr><td>🏃 Presenze</td><td>${ms.a.pres}</td><td>${ms.c.pres}</td><td>${ms.t.pres}</td><td class="tot">${tot.pres}</td></tr>
+          <tr><td>⚽ Gol</td><td>${ms.a.gol}</td><td>${ms.c.gol}</td><td>${ms.t.gol}</td><td class="tot">${tot.gol}</td></tr>
+          <tr><td>🅰️ Assist</td><td>${ms.a.assist}</td><td>${ms.c.assist}</td><td>${ms.t.assist}</td><td class="tot">${tot.assist}</td></tr>`;
+  if (showAdv) {
+    html += `<tr><td>⏱ Minuti</td><td>${ms.a.minuti}</td><td>${ms.c.minuti}</td><td>${ms.t.minuti}</td><td class="tot">${tot.minuti}</td></tr>
+          <tr><td>🟨 Ammon.</td><td>${ms.a.gialli}</td><td>${ms.c.gialli}</td><td>${ms.t.gialli}</td><td class="tot">${tot.gialli}</td></tr>
+          <tr><td>🟥 Espuls.</td><td>${ms.a.rossi}</td><td>${ms.c.rossi}</td><td>${ms.t.rossi}</td><td class="tot">${tot.rossi}</td></tr>`;
+  }
+  if (showGK) {
+    html += `<tr><td>🥅 Gol sub.</td><td>${ms.a.golSub}</td><td>${ms.c.golSub}</td><td>${ms.t.golSub}</td><td class="tot">${tot.golSub}</td></tr>
+          <tr><td>🧤 Clean sh.</td><td>${ms.a.cs}</td><td>${ms.c.cs}</td><td>${ms.t.cs}</td><td class="tot">${tot.cs}</td></tr>`;
+  }
+  html += `</tbody></table></div>`;
+  return html;
+}
+
 // Render unificato per popup #mPlayerStats. Stile = card a sfondo linear-gradient,
 // header di sezione con emoji + titolo bold maiuscolo (grafica del popup Rosa).
 // Riusa AS-IS: calcStats, playerMatchStats, renderPConvStats (storico ultime 3),
@@ -12358,8 +12407,8 @@ function renderPlayerStatsScheda() {
 
   // (2) TAB Stagione corrente / Stagioni precedenti — riusa statsSchedaSetTab
   html += `<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:14px;">
-    <button type="button" onclick="statsSchedaSetTab('stagione')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'var(--cp)':'transparent'};color:${tabS?'var(--cp)':'var(--text2)'};margin-bottom:-2px;">📊 Stagione corrente</button>
-    <button type="button" onclick="statsSchedaSetTab('precedenti')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'transparent':'var(--cp)'};color:${tabS?'var(--text2)':'var(--cp)'};margin-bottom:-2px;">📁 Stagioni precedenti</button>
+    <button type="button" onclick="statsSchedaSetTab('stagione')" style="flex:1;min-height:44px;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'var(--cp)':'transparent'};color:${tabS?'var(--cp)':'var(--text2)'};margin-bottom:-2px;">📊 Stagione corrente</button>
+    <button type="button" onclick="statsSchedaSetTab('precedenti')" style="flex:1;min-height:44px;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'transparent':'var(--cp)'};color:${tabS?'var(--text2)':'var(--cp)'};margin-bottom:-2px;">📁 Stagioni precedenti</button>
   </div>`;
 
   if (tabS) {
@@ -12391,25 +12440,12 @@ function renderPlayerStatsScheda() {
     });
     html += `</div></div>`;
 
-    // (4) Dettaglio per competizione — tabella AMICH/CAMP/TORNEI con presenze/gol/assist
+    // (4) Dettaglio per competizione — tabella AMICH/CAMP/TORNEI con presenze/gol/assist.
+    // Markup estratto in renderCompetizioneTable(p) e riusato dalla vista genitore
+    // (renderProfiloFiglio). Output byte-identico a prima.
     html += `<div style="${cardM}">
       <div style="${sectHdr}">⚽ Dettaglio per competizione</div>
-      <div style="overflow-x:auto;"><table class="tbl" style="font-size:.79rem;">
-        <thead><tr><th></th><th>Amich.</th><th>Camp.</th><th>Torn.</th><th class="tot">TOT</th></tr></thead>
-        <tbody>
-          <tr><td>🏃 Presenze</td><td>${ms.a.pres}</td><td>${ms.c.pres}</td><td>${ms.t.pres}</td><td class="tot">${tot.pres}</td></tr>
-          <tr><td>⚽ Gol</td><td>${ms.a.gol}</td><td>${ms.c.gol}</td><td>${ms.t.gol}</td><td class="tot">${tot.gol}</td></tr>
-          <tr><td>🅰️ Assist</td><td>${ms.a.assist}</td><td>${ms.c.assist}</td><td>${ms.t.assist}</td><td class="tot">${tot.assist}</td></tr>`;
-    if (showAdv) {
-      html += `<tr><td>⏱ Minuti</td><td>${ms.a.minuti}</td><td>${ms.c.minuti}</td><td>${ms.t.minuti}</td><td class="tot">${tot.minuti}</td></tr>
-          <tr><td>🟨 Ammon.</td><td>${ms.a.gialli}</td><td>${ms.c.gialli}</td><td>${ms.t.gialli}</td><td class="tot">${tot.gialli}</td></tr>
-          <tr><td>🟥 Espuls.</td><td>${ms.a.rossi}</td><td>${ms.c.rossi}</td><td>${ms.t.rossi}</td><td class="tot">${tot.rossi}</td></tr>`;
-    }
-    if (showGK) {
-      html += `<tr><td>🥅 Gol sub.</td><td>${ms.a.golSub}</td><td>${ms.c.golSub}</td><td>${ms.t.golSub}</td><td class="tot">${tot.golSub}</td></tr>
-          <tr><td>🧤 Clean sh.</td><td>${ms.a.cs}</td><td>${ms.c.cs}</td><td>${ms.t.cs}</td><td class="tot">${tot.cs}</td></tr>`;
-    }
-    html += `</tbody></table></div></div>`;
+      ${renderCompetizioneTable(p)}</div>`;
 
     // (5) Presenze allenamenti — bar %
     html += `<div style="${cardN}">
@@ -12429,7 +12465,7 @@ function renderPlayerStatsScheda() {
       const nota = p.noteMister || '';
       html += `<div style="${cardN}">
         <div style="${sectHdr}">📝 Note Mister <span style="text-transform:none;font-weight:400;opacity:.6;font-size:.7rem;letter-spacing:0;">(solo staff)</span></div>
-        <textarea id="scNoteInput" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.83rem;resize:vertical;background:var(--white);box-sizing:border-box;" placeholder="Es. Ottimo nei calci piazzati, lavora sulla fase difensiva, pronto per leva superiore...">${escapeHtml(nota)}</textarea>
+        <textarea id="scNoteInput" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:16px;resize:vertical;background:var(--white);box-sizing:border-box;" placeholder="Es. Ottimo nei calci piazzati, lavora sulla fase difensiva, pronto per leva superiore...">${escapeHtml(nota)}</textarea>
         <button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="savePlayerStatNotes(${p.id})">💾 Salva note</button>
       </div>`;
     }
@@ -12463,10 +12499,10 @@ function renderPlayerStatsScheda() {
       html += `<div style="${cardN}">
         <div style="${sectHdr}">➕ Aggiungi stagione precedente</div>
         <div style="display:grid;grid-template-columns:1fr 56px 56px 60px;gap:6px;align-items:center;">
-          <input class="fi" id="spStagione" placeholder="2023/24" style="font-size:.82rem;padding:6px 8px;">
-          <input class="fi" id="spGol"      type="number" min="0" placeholder="Gol"  style="font-size:.82rem;padding:6px 8px;">
-          <input class="fi" id="spAssist"   type="number" min="0" placeholder="Ass." style="font-size:.82rem;padding:6px 8px;">
-          <input class="fi" id="spPresenze" type="number" min="0" placeholder="Pres." style="font-size:.82rem;padding:6px 8px;">
+          <input class="fi" id="spStagione" placeholder="2023/24" style="font-size:16px;padding:6px 8px;">
+          <input class="fi" id="spGol"      type="number" min="0" placeholder="Gol"  style="font-size:16px;padding:6px 8px;">
+          <input class="fi" id="spAssist"   type="number" min="0" placeholder="Ass." style="font-size:16px;padding:6px 8px;">
+          <input class="fi" id="spPresenze" type="number" min="0" placeholder="Pres." style="font-size:16px;padding:6px 8px;">
         </div>
         <button class="btn btn-p btn-sm" style="margin-top:8px;width:100%;" onclick="addPlayerPrevSeason(${p.id})">➕ Aggiungi stagione</button>
       </div>`;
