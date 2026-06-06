@@ -3,6 +3,7 @@ import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { signJWT, hashPassword } from "../../lib/auth";
 import { sendWelcomeEmails } from "../../lib/email";
+import { rateLimit } from "../../lib/rate-limit";
 import type { PoolConnection } from "mysql2/promise";
 
 const router = Router();
@@ -13,9 +14,15 @@ const DEMO_DAYS_DEFAULT = 14;
 
 const PHONE_IT_REGEX = /^\+39\d{9,10}$/;
 
+// FIX security 2026-06-06: rate-limit 10/h per IP per evitare spam society.
+const selfRegisterLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10,
+  message: "Troppe registrazioni. Riprova tra un'ora.",
+});
+
 // POST /api/v2/auth/self-register
 // Registrazione autonoma: crea società + admin user e restituisce JWT subito.
-router.post("/auth/self-register", async (req, res) => {
+router.post("/auth/self-register", selfRegisterLimiter, async (req, res) => {
   const { nome, cognome, email, password, phone, nomeSocieta, citta,
           marketingConsent, utm_data } =
     req.body as Record<string, any>;

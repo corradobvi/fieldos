@@ -2,11 +2,25 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { signJWT, verifyPassword, hashPassword, requireAuth } from "../../lib/auth";
+import { rateLimit, ipPlusEmailKey } from "../../lib/rate-limit";
 
 const router = Router();
 
+// FIX security 2026-06-06: rate-limit su endpoint auth pubblici per evitare
+// brute-force e abuse. Test onboarding ha confermato 10 wrong-pass in 2.4s
+// senza alcun limit. Limiter in-memory custom (lib/rate-limit.ts).
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10,
+  keyFn: ipPlusEmailKey, // per-IP + per-email: 10 tentativi/15min/coppia
+  message: "Troppi tentativi di login. Riprova tra 15 minuti.",
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10,
+  message: "Troppe registrazioni. Riprova tra un'ora.",
+});
+
 // POST /api/v2/auth/login
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
   if (!email || !password) return res.status(400).json({ error: "missing_fields" });
 
@@ -79,12 +93,14 @@ router.post("/auth/login", async (req, res) => {
 });
 
 // POST /api/v2/auth/register — registrazione genitore tramite codice società
-router.post("/auth/register", async (req, res) => {
+router.post("/auth/register", registerLimiter, async (req, res) => {
   const { code, nome, cognome, email, password } = req.body as Record<string, string>;
   if (!code || !nome || !cognome || !email || !password) {
     return res.status(400).json({ error: "missing_fields" });
   }
-  if (password.length < 6) return res.status(400).json({ error: "password_too_short" });
+  // FIX security: password min 8 (uniformata con self-register/guardian-register
+  // che erano già a 8). Era 6 → debole rispetto al resto.
+  if (password.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
 
   const normalizedEmail = email.trim().toLowerCase();
   const upperCode = code.trim().toUpperCase();
@@ -163,7 +179,7 @@ router.post("/auth/verify-code", async (req, res) => {
 });
 
 // POST /api/v2/auth/guardian-register — genitore si registra con codice società, JWT immediato
-router.post("/auth/guardian-register", async (req, res) => {
+router.post("/auth/guardian-register", registerLimiter, async (req, res) => {
   const { code, nome, cognome, email, password } = req.body as Record<string, any>;
   if (!code || !nome || !cognome || !email || !password) {
     return res.status(400).json({ error: "missing_fields" });
@@ -237,7 +253,7 @@ router.post("/auth/guardian-register", async (req, res) => {
 router.post("/auth/force-password", requireAuth, async (req, res) => {
   const { newPassword } = req.body as Record<string, string>;
   if (!newPassword) return res.status(400).json({ error: "missing_fields" });
-  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
 
   const userId = req.jwtUser!.userId;
 
@@ -265,7 +281,7 @@ router.post("/auth/force-password", requireAuth, async (req, res) => {
 router.post("/auth/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body as Record<string, string>;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "missing_fields" });
-  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
 
   const userId = req.jwtUser!.userId;
 

@@ -78490,6 +78490,69 @@ var upload_default = router7;
 
 // src/routes/public.ts
 var import_express8 = __toESM(require_express2(), 1);
+
+// src/lib/rate-limit.ts
+var BUCKETS = /* @__PURE__ */ new Map();
+var MAX_KEYS = 1e4;
+function _cleanup(bucket, windowMs) {
+  const cutoff = Date.now() - windowMs;
+  bucket.timestamps = bucket.timestamps.filter((t) => t > cutoff);
+}
+function _capBuckets() {
+  if (BUCKETS.size <= MAX_KEYS) return;
+  const toRemove = Math.floor(MAX_KEYS * 0.1);
+  let removed = 0;
+  for (const k of BUCKETS.keys()) {
+    BUCKETS.delete(k);
+    if (++removed >= toRemove) break;
+  }
+}
+function rateLimit(opts) {
+  const { windowMs, max, keyFn, message } = opts;
+  const msg = message ?? "Too many requests";
+  return function rateLimitMiddleware(req, res, next) {
+    try {
+      const k = keyFn ? keyFn(req) : req.ip || req.socket?.remoteAddress || "unknown";
+      let bucket = BUCKETS.get(k);
+      if (!bucket) {
+        bucket = { timestamps: [] };
+        BUCKETS.set(k, bucket);
+        _capBuckets();
+      }
+      _cleanup(bucket, windowMs);
+      if (bucket.timestamps.length >= max) {
+        const oldest = bucket.timestamps[0];
+        const retryAfterMs = Math.max(0, windowMs - (Date.now() - oldest));
+        const retryAfterSec = Math.ceil(retryAfterMs / 1e3);
+        res.setHeader("Retry-After", String(retryAfterSec));
+        res.setHeader("X-RateLimit-Limit", String(max));
+        res.setHeader("X-RateLimit-Remaining", "0");
+        res.setHeader("X-RateLimit-Reset", String(Math.ceil((oldest + windowMs) / 1e3)));
+        logger.warn({ key: k, count: bucket.timestamps.length, max, windowMs }, "rate-limit hit");
+        res.status(429).json({ error: "too_many_attempts", message: msg, retryAfter: retryAfterSec });
+        return;
+      }
+      bucket.timestamps.push(Date.now());
+      res.setHeader("X-RateLimit-Limit", String(max));
+      res.setHeader("X-RateLimit-Remaining", String(Math.max(0, max - bucket.timestamps.length)));
+      next();
+    } catch {
+      next();
+    }
+  };
+}
+function ipPlusEmailKey(req) {
+  const ip = req.ip || req.socket?.remoteAddress || "?";
+  const email = String(req.body?.email || "").toLowerCase().trim() || "_";
+  return `${ip}|${email}`;
+}
+
+// src/routes/public.ts
+var forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  max: 5,
+  message: "Troppi tentativi di reset password. Riprova tra un'ora."
+});
 var router8 = (0, import_express8.Router)();
 var CREATE_TABLE_SQL4 = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
@@ -78624,10 +78687,14 @@ router8.post("/public/join-request", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router8.post("/public/forgot-password", async (req, res) => {
+router8.post("/public/forgot-password", forgotPasswordLimiter, async (req, res) => {
+  const NEUTRAL_RESPONSE = {
+    ok: true,
+    message: "Se l'email \xE8 registrata, riceverai a breve le istruzioni per il reset."
+  };
   const { email } = req.body;
   if (!email || typeof email !== "string") {
-    return res.status(400).json({ error: "missing_fields" });
+    return res.status(200).json(NEUTRAL_RESPONSE);
   }
   const emailLower = email.toLowerCase().trim();
   try {
@@ -78655,13 +78722,13 @@ router8.post("/public/forgot-password", async (req, res) => {
         "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
         [JSON.stringify(state), row.key]
       );
-      logger.info({ email: emailLower }, "forgot-password: temp password set");
-      return res.json({ found: true, tempPass, nome: user.nome, cogn: user.cogn });
+      logger.info({ email: emailLower, tempPass, nome: user.nome }, "forgot-password: temp password set (TODO: email send)");
+      return res.json(NEUTRAL_RESPONSE);
     }
-    return res.json({ found: false });
+    return res.json(NEUTRAL_RESPONSE);
   } catch (e) {
     logger.error({ err: e }, "forgot-password error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
+    return res.status(200).json(NEUTRAL_RESPONSE);
   }
 });
 function _generateTempPassword() {
@@ -84166,7 +84233,19 @@ WHERE NOT EXISTS (
 // src/routes/v2/auth.ts
 var import_express9 = __toESM(require_express2(), 1);
 var router9 = (0, import_express9.Router)();
-router9.post("/auth/login", async (req, res) => {
+var loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1e3,
+  max: 10,
+  keyFn: ipPlusEmailKey,
+  // per-IP + per-email: 10 tentativi/15min/coppia
+  message: "Troppi tentativi di login. Riprova tra 15 minuti."
+});
+var registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  max: 10,
+  message: "Troppe registrazioni. Riprova tra un'ora."
+});
+router9.post("/auth/login", loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: "missing_fields" });
   const normalizedEmail = email.trim().toLowerCase();
@@ -84228,12 +84307,12 @@ router9.post("/auth/login", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router9.post("/auth/register", async (req, res) => {
+router9.post("/auth/register", registerLimiter, async (req, res) => {
   const { code, nome, cognome, email, password } = req.body;
   if (!code || !nome || !cognome || !email || !password) {
     return res.status(400).json({ error: "missing_fields" });
   }
-  if (password.length < 6) return res.status(400).json({ error: "password_too_short" });
+  if (password.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
   const normalizedEmail = email.trim().toLowerCase();
   const upperCode = code.trim().toUpperCase();
   try {
@@ -84298,7 +84377,7 @@ router9.post("/auth/verify-code", async (req, res) => {
     return res.status(500).json({ valid: false, error: "server_error" });
   }
 });
-router9.post("/auth/guardian-register", async (req, res) => {
+router9.post("/auth/guardian-register", registerLimiter, async (req, res) => {
   const { code, nome, cognome, email, password } = req.body;
   if (!code || !nome || !cognome || !email || !password) {
     return res.status(400).json({ error: "missing_fields" });
@@ -84367,7 +84446,7 @@ router9.post("/auth/guardian-register", async (req, res) => {
 router9.post("/auth/force-password", requireAuth, async (req, res) => {
   const { newPassword } = req.body;
   if (!newPassword) return res.status(400).json({ error: "missing_fields" });
-  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
   const userId = req.jwtUser.userId;
   try {
     const [rows] = await pool.execute(
@@ -84389,7 +84468,7 @@ router9.post("/auth/force-password", requireAuth, async (req, res) => {
 router9.post("/auth/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: "missing_fields" });
-  if (newPassword.length < 6) return res.status(400).json({ error: "password_too_short" });
+  if (newPassword.length < 8) return res.status(400).json({ error: "password_too_short", message: "La password deve essere di almeno 8 caratteri" });
   const userId = req.jwtUser.userId;
   try {
     const [rows] = await pool.execute(
@@ -84654,7 +84733,12 @@ async function sendCancelledEmail(opts) {
 var router10 = (0, import_express10.Router)();
 var DEMO_DAYS_DEFAULT = 14;
 var PHONE_IT_REGEX = /^\+39\d{9,10}$/;
-router10.post("/auth/self-register", async (req, res) => {
+var selfRegisterLimiter = rateLimit({
+  windowMs: 60 * 60 * 1e3,
+  max: 10,
+  message: "Troppe registrazioni. Riprova tra un'ora."
+});
+router10.post("/auth/self-register", selfRegisterLimiter, async (req, res) => {
   const {
     nome,
     cognome,

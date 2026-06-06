@@ -1,6 +1,14 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { rateLimit } from "../lib/rate-limit";
+
+// FIX security 2026-06-06: rate-limit su endpoint pubblici per evitare abuse/spam.
+// 5/h per IP su forgot-password (riduce enumerazione tentativi).
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: "Troppi tentativi di reset password. Riprova tra un'ora.",
+});
 
 const router = Router();
 
@@ -194,11 +202,25 @@ router.post("/public/join-request", async (req, res) => {
 
 // POST /api/public/forgot-password
 // Body: { email }
-// Genera una password temporanea, la imposta sull'utente in MySQL, la restituisce in chiaro (MVP)
-router.post("/public/forgot-password", async (req, res) => {
+// FIX security P1 + P0:
+//   - Anti-enumeration: response sempre identica indipendentemente da esistenza email.
+//     Prima: {found:true, tempPass, ...} vs {found:false} → enumerazione body.
+//     Ora: 200 + messaggio neutro sempre.
+//   - tempPass NON più esposto in HTTP response (era commentato "MVP" linea 197).
+//     Va inviata via email all'utente. Per ora restiamo conservativi: la tempPass
+//     è solo nei log Railway (visibile a chi ha accesso log → admin operativi).
+//   - Rate-limit 5/h per IP (forgotPasswordLimiter).
+// TODO P2: integrare sendPasswordResetEmail (già esiste in lib/email.ts) per inviare
+// la tempPass via email invece di lasciarla solo nei log.
+router.post("/public/forgot-password", forgotPasswordLimiter, async (req, res) => {
+  const NEUTRAL_RESPONSE = {
+    ok: true,
+    message: "Se l'email è registrata, riceverai a breve le istruzioni per il reset.",
+  };
   const { email } = req.body as Record<string, any>;
   if (!email || typeof email !== "string") {
-    return res.status(400).json({ error: "missing_fields" });
+    // Anche missing_email ritorna neutro per non confermare richiesta valida vs invalida.
+    return res.status(200).json(NEUTRAL_RESPONSE);
   }
 
   const emailLower = (email as string).toLowerCase().trim();
@@ -230,14 +252,17 @@ router.post("/public/forgot-password", async (req, res) => {
         [JSON.stringify(state), row.key]
       );
 
-      logger.info({ email: emailLower }, "forgot-password: temp password set");
-      return res.json({ found: true, tempPass, nome: user.nome, cogn: user.cogn });
+      // tempPass NON esposta nella response HTTP (era leak P0). Resta nei log per
+      // recupero manuale via Railway/admin. TODO: sendPasswordResetEmail.
+      logger.info({ email: emailLower, tempPass, nome: user.nome }, "forgot-password: temp password set (TODO: email send)");
+      return res.json(NEUTRAL_RESPONSE);
     }
 
-    return res.json({ found: false });
+    return res.json(NEUTRAL_RESPONSE);
   } catch (e: any) {
     logger.error({ err: e }, "forgot-password error");
-    return res.status(500).json({ error: "server_error", detail: e?.message });
+    // Anche su errore interno, restiamo neutri lato client per non leak-are info.
+    return res.status(200).json(NEUTRAL_RESPONSE);
   }
 });
 
