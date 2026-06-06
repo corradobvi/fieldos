@@ -1,0 +1,869 @@
+{
+  "timestamp": "2026-06-06T05:39:21.929Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "24338178",
+  "socId": 75,
+  "counts": {
+    "PASS": 63,
+    "FAIL": 4,
+    "SKIP": 28
+  },
+  "elapsedSec": 23.7,
+  "results": [
+    {
+      "area": "SETUP",
+      "role": "",
+      "name": "Crea società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=75 societyKey=fieldos_state_soc_75"
+    },
+    {
+      "area": "SETUP",
+      "role": "",
+      "name": "Crea utenti + login + claim",
+      "expected": "ok",
+      "got": "admin=155 mister=156 dir=157 gen=158 gio=159",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F2-SUB",
+      "role": "admin",
+      "name": "POST /api/push/subscribe",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "admin",
+      "name": "POST subscribe stesso endpoint (idempotente)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "admin",
+      "name": "GET /api/v2/push/subscriptions (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (no GET list subscriptions)"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "admin",
+      "name": "DELETE /api/push/subscribe (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON ESISTE. Le sub vengono auto-rimosse su 410/404 di webpush."
+    },
+    {
+      "area": "F2-SUB",
+      "role": "mister",
+      "name": "POST /api/push/subscribe",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "mister",
+      "name": "POST subscribe stesso endpoint (idempotente)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "mister",
+      "name": "GET /api/v2/push/subscriptions (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (no GET list subscriptions)"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "mister",
+      "name": "DELETE /api/push/subscribe (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON ESISTE. Le sub vengono auto-rimosse su 410/404 di webpush."
+    },
+    {
+      "area": "F2-SUB",
+      "role": "dirigente",
+      "name": "POST /api/push/subscribe",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "dirigente",
+      "name": "POST subscribe stesso endpoint (idempotente)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "dirigente",
+      "name": "GET /api/v2/push/subscriptions (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (no GET list subscriptions)"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "dirigente",
+      "name": "DELETE /api/push/subscribe (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON ESISTE. Le sub vengono auto-rimosse su 410/404 di webpush."
+    },
+    {
+      "area": "F2-SUB",
+      "role": "genitore",
+      "name": "POST /api/push/subscribe",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "genitore",
+      "name": "POST subscribe stesso endpoint (idempotente)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "genitore",
+      "name": "GET /api/v2/push/subscriptions (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (no GET list subscriptions)"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "genitore",
+      "name": "DELETE /api/push/subscribe (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON ESISTE. Le sub vengono auto-rimosse su 410/404 di webpush."
+    },
+    {
+      "area": "F2-SUB",
+      "role": "giocatore",
+      "name": "POST /api/push/subscribe",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "giocatore",
+      "name": "POST subscribe stesso endpoint (idempotente)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "giocatore",
+      "name": "GET /api/v2/push/subscriptions (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste (no GET list subscriptions)"
+    },
+    {
+      "area": "F2-SUB",
+      "role": "giocatore",
+      "name": "DELETE /api/push/subscribe (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON ESISTE. Le sub vengono auto-rimosse su 410/404 di webpush."
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "GET /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste, vedi /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "Campi attesi (4 chiavi notify_*)",
+      "expected": "all-present",
+      "got": "all-present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "Spec menzionata notify_eventi",
+      "expected": "key",
+      "got": "false",
+      "status": "SKIP",
+      "detail": "Chiave notify_eventi NON esiste; spec sbagliata (esiste notify_reminders)"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "PATCH /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "PATCH non esiste, l'endpoint reale è PUT /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "PUT disabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "GET dopo disabilita tutto",
+      "expected": "all-false",
+      "got": "{\"notify_convocazioni\":false,\"notify_comunicazioni\":false,\"notify_chat\":false,\"notify_reminders\":false}",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "admin",
+      "name": "PUT riabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "GET /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste, vedi /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "Campi attesi (4 chiavi notify_*)",
+      "expected": "all-present",
+      "got": "all-present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "Spec menzionata notify_eventi",
+      "expected": "key",
+      "got": "false",
+      "status": "SKIP",
+      "detail": "Chiave notify_eventi NON esiste; spec sbagliata (esiste notify_reminders)"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "PATCH /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "PATCH non esiste, l'endpoint reale è PUT /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "PUT disabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "GET dopo disabilita tutto",
+      "expected": "all-false",
+      "got": "{\"notify_convocazioni\":false,\"notify_comunicazioni\":false,\"notify_chat\":false,\"notify_reminders\":false}",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "mister",
+      "name": "PUT riabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "GET /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste, vedi /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "Campi attesi (4 chiavi notify_*)",
+      "expected": "all-present",
+      "got": "all-present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "Spec menzionata notify_eventi",
+      "expected": "key",
+      "got": "false",
+      "status": "SKIP",
+      "detail": "Chiave notify_eventi NON esiste; spec sbagliata (esiste notify_reminders)"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "PATCH /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "PATCH non esiste, l'endpoint reale è PUT /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "PUT disabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "GET dopo disabilita tutto",
+      "expected": "all-false",
+      "got": "{\"notify_convocazioni\":false,\"notify_comunicazioni\":false,\"notify_chat\":false,\"notify_reminders\":false}",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "dirigente",
+      "name": "PUT riabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "GET /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste, vedi /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "Campi attesi (4 chiavi notify_*)",
+      "expected": "all-present",
+      "got": "all-present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "Spec menzionata notify_eventi",
+      "expected": "key",
+      "got": "false",
+      "status": "SKIP",
+      "detail": "Chiave notify_eventi NON esiste; spec sbagliata (esiste notify_reminders)"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "PATCH /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "PATCH non esiste, l'endpoint reale è PUT /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "PUT disabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "GET dopo disabilita tutto",
+      "expected": "all-false",
+      "got": "{\"notify_convocazioni\":false,\"notify_comunicazioni\":false,\"notify_chat\":false,\"notify_reminders\":false}",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "genitore",
+      "name": "PUT riabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "GET /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste, vedi /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "GET /users/me/notification-preferences (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"notify_convocazioni\":true,\"notify_comunicazioni\":true,\"notify_chat\":true,\"notify_reminders\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "Campi attesi (4 chiavi notify_*)",
+      "expected": "all-present",
+      "got": "all-present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "Spec menzionata notify_eventi",
+      "expected": "key",
+      "got": "false",
+      "status": "SKIP",
+      "detail": "Chiave notify_eventi NON esiste; spec sbagliata (esiste notify_reminders)"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "PATCH /api/v2/notification-preferences (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "PATCH non esiste, l'endpoint reale è PUT /users/me/notification-preferences"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "PUT disabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "GET dopo disabilita tutto",
+      "expected": "all-false",
+      "got": "{\"notify_convocazioni\":false,\"notify_comunicazioni\":false,\"notify_chat\":false,\"notify_reminders\":false}",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F3-PREF",
+      "role": "giocatore",
+      "name": "PUT riabilita tutto",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "mister_admin sempre incluso (catch-all)",
+      "expected": "incluso",
+      "got": "incluso",
+      "status": "PASS",
+      "detail": "push-sender.ts:134: ruolo IN ('admin','mister_admin','dirigente') catch-all senza leva-match"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "leva=NULL → wildcard (no leva filter)",
+      "expected": "wildcard",
+      "got": "wildcard",
+      "status": "PASS",
+      "detail": "push-sender.ts:131: if (leva) — se null/undefined, no clause leva → tutti staff"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "leva='Tutte' / 'tutte' → wildcard",
+      "expected": "matched",
+      "got": "matched",
+      "status": "PASS",
+      "detail": "_levaMatchClause: OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "leva come JSON array → match via JSON_CONTAINS",
+      "expected": "matched",
+      "got": "matched",
+      "status": "PASS",
+      "detail": "_levaMatchClause: OR (JSON_VALID(leva) AND JSON_CONTAINS(leva, JSON_QUOTE(?)))"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "Dedup user_id con 2 subscription per stessa society",
+      "expected": "1 push per sub",
+      "got": "limitato a 1 sub/società",
+      "status": "FAIL",
+      "detail": "ATTENZIONE: schema UNIQUE(user_id, society_key) → solo 1 subscription per (user, society). Multi-device su stessa società non supportato. Limitazione P2."
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "Dedup userIds duplicati nell'array input",
+      "expected": "dedup",
+      "got": "dedup",
+      "status": "PASS",
+      "detail": "push-sender.ts:164: [...new Set([...staffIds, ...guardianIds])]"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "filterByPref rispetta notify_<key>=0",
+      "expected": "filtrato",
+      "got": "filtrato",
+      "status": "PASS",
+      "detail": "push-sender.ts:31-45: SELECT user_id WHERE pref=0, esclude opt-out"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "Genitore push solo isFirstClaim",
+      "expected": "verificato",
+      "got": "verificato",
+      "status": "PASS",
+      "detail": "minors.ts:205: isFirstClaim = (gCountRows.n ?? 0) === 0; if (isFirstClaim) sendPushToUsers"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "Push leva include staff + genitori della leva",
+      "expected": "verificato",
+      "got": "verificato",
+      "status": "PASS",
+      "detail": "getUsersForPush: staff (admin/mister_admin/dirigente catch-all + allenatore/mister/preparatore con leva-match) UNION DISTINCT guardian dei player nella leva"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "staffOnly: true esclude genitori",
+      "expected": "verificato",
+      "got": "verificato",
+      "status": "PASS",
+      "detail": "push-sender.ts:148: if (!staffOnly && leva) → guardianIds. Usato per nuovo_genitore"
+    },
+    {
+      "area": "F4-LOGICA",
+      "role": "",
+      "name": "Cleanup 410/404 (subscription expired)",
+      "expected": "auto-delete",
+      "got": "auto-delete",
+      "status": "PASS",
+      "detail": "push-sender.ts:97: if (e.statusCode === 410 || 404) DELETE FROM push_subscriptions"
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "GET /api/push/vapid-public (pubblico)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"publicKey\":\"BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8\"}"
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "VAPID public key esposta",
+      "expected": "presente",
+      "got": "yes",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "GET /api/push/debug ESPONE env keys",
+      "expected": "no-leak",
+      "got": "49 env keys names",
+      "status": "FAIL",
+      "detail": "🚨 P2 INFO LEAK: endpoint pubblico ritorna lista completa nomi env vars Railway. Aggiungere requireAuth + role admin."
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "Diag mostra VAPID configurate",
+      "expected": "yes",
+      "got": "pub=true priv=true",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "POST /api/push/send SENZA token",
+      "expected": "401 (atteso)",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "🚨 P0 SECURITY: endpoint senza auth! Chiunque sa (userId, societyKey) invia push fingendosi MyVivaio."
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "GET /api/v2/push/test (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "endpoint non esiste — esiste /api/v2/chat/push-test"
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "POST /api/v2/push/send-test (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "endpoint non esiste"
+    },
+    {
+      "area": "F5-DIAG",
+      "role": "",
+      "name": "GET /api/v2/chat/push-test (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "hasSubscription=true count=1"
+    },
+    {
+      "area": "F6-SEC",
+      "role": "",
+      "name": "POST /api/push/subscribe SENZA token → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "F6-SEC",
+      "role": "",
+      "name": "DELETE /api/push/subscribe SENZA token (spec)",
+      "expected": "401",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE non esiste"
+    },
+    {
+      "area": "F6-SEC",
+      "role": "",
+      "name": "GET /users/me/notification-preferences SENZA token → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "F6-SEC",
+      "role": "",
+      "name": "PUT /users/me/notification-preferences SENZA token → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "F6-SEC",
+      "role": "",
+      "name": "Cross-society subscribe (token soc A, societyKey soc B)",
+      "expected": "403 (atteso)",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "🚨 P1: endpoint /api/push/subscribe NON valida societyKey contro req.jwtUser.societyId. Utente può iscriversi a notifiche di altre società."
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "user giocatore 159",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "user genitore 158",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "user dirigente 157",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "user mister 156",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "player U12 103",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "player U16 104",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "leva U12 58",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "leva U16 59",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "role": "",
+      "name": "SUSPEND società 75",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
