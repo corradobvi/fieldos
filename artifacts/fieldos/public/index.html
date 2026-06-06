@@ -23939,18 +23939,30 @@ async function saveResultWithRetry(applyResult, maxRetries) {
       continue; // ri-applica sullo stato fresco
     }
     // 412 dopo maxRetries OR 409 (would_downgrade / overwrite_real): SOSPETTI BENIGNI.
-    // Il dato puo' essere gia' nel server (salvato da autosave precedente o altro device):
-    // pulla, riapplica idempotente e verifica. Se applyResult dopo il pull NON cambia
-    // nulla (isNewOrChanged=false), il target e' GIA' su server → ok:true, NO toast.
-    // Solo se il dato target NON e' nello stato pullato → fail vero, caller mostra toast.
+    // 3 step: pulla, riapplica, e se serve fai un ULTIMO push (server ora ha baseVersion
+    // fresca dopo il pull). Solo se ANCHE l'ultimo push fallisce → fail vero, caller
+    // mostra il toast. Senza l'ultimo push, isNewOrChanged=true post-pull ritornava
+    // ok:false anche quando l'autosave 1.5s in background poi salvava il dato
+    // (utente vedeva toast "non salvato" mentre il dato compariva dopo refresh).
     if (resp && (resp.status === 412 || resp.status === 409)) {
       if (typeof window.__fieldosHandleStaleConflict === 'function') {
         try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
       }
       let post = null;
       try { post = applyResult(); } catch (_) {}
+      // Caso 1: server gia' a target dopo pull (autosave precedente l'ha gia' pushato).
       if (post && post.applied && !post.isNewOrChanged) {
         return { ok: true, match: post.match, isNewOrChanged: false };
+      }
+      // Caso 2: server NON a target ma applyResult ha portato il blob locale al target.
+      // Tentativo finale di sync (baseVersion ora aggiornata dal pull → non sara' piu' 412).
+      if (post && post.applied) {
+        try {
+          const respFinal = await window.__fieldosSyncToCloud();
+          if (respFinal && respFinal.ok) {
+            return { ok: true, match: post.match, isNewOrChanged: true };
+          }
+        } catch (_) { /* fail-through */ }
       }
       return { ok: false, match: (post && post.match) || last.match, isNewOrChanged: false };
     }
@@ -31775,12 +31787,14 @@ async function doRejoinSocieta() {
       body: JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion })
     });
     if (resp.status === 412) {
-      // STALE: non distruggere il lavoro altrui. Backup locale + pull + ricarica (toast UX onesto).
+      // STALE: non distruggere il lavoro altrui. Backup locale + pull silenzioso.
+      // Silent=true: il toast UX onesto (success/fail) spetta al caller — saveResultWithRetry
+      // gestisce gia' il proprio retry e mostra il toast finale solo se serve.
+      // Senza silent: ad ogni 412 (anche transitorio, atteso durante il retry) compariva
+      // 'Dati cambiati sul server, ricarico…' + '🔄 Stato aggiornato' → spam UX.
       console.warn('[__fieldosSyncToCloud] 412 stale_base_version');
-      // 412 NON è perdita dati per chat (messaggi+letti vivono nel DB). Silenzio il toast
-      // diagnostico; _handleStaleConflict mostrerà il toast UX onesto se serve.
-      _handleStaleConflict(KEY);
-      return resp; // resp.ok=false → caller skippa notifica e mostra "non salvato"
+      _handleStaleConflict(KEY, { silent: true });
+      return resp; // resp.ok=false → caller decide retry o toast
     }
     if (resp.ok) {
       // Aggiorna _serverVersion senza consumare il body (i chiamanti potrebbero rileggerlo).

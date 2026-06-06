@@ -93339,18 +93339,33 @@ var import_express38 = __toESM(require_express2(), 1);
 var router38 = (0, import_express38.Router)();
 async function getGuardiansForLeva(societyId, leva, excludeUserId) {
   try {
-    let q = `SELECT DISTINCT pg.user_id AS id
+    let q1 = `SELECT DISTINCT pg.user_id AS id
              FROM player_guardians pg
              JOIN players p ON p.id = pg.player_id
              JOIN users u ON u.id = pg.user_id
-             WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
-    const params = [societyId, leva];
+             WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'
+               AND u.ruolo IN ('genitore','nonno')`;
+    const p1 = [societyId, leva];
     if (excludeUserId) {
-      q += " AND pg.user_id != ?";
-      params.push(excludeUserId);
+      q1 += " AND pg.user_id != ?";
+      p1.push(excludeUserId);
     }
-    const [rows] = await pool.execute(q, params);
-    return rows.map((r) => r.id);
+    const [r1] = await pool.execute(q1, p1);
+    const lc = _levaMatchClause(leva);
+    let q2 = `SELECT id FROM users
+             WHERE society_id = ? AND stato = 'attivo'
+               AND ruolo IN ('genitore','nonno')
+               AND ${lc.sql}`;
+    const p2 = [societyId, ...lc.params];
+    if (excludeUserId) {
+      q2 += " AND id != ?";
+      p2.push(excludeUserId);
+    }
+    const [r2] = await pool.execute(q2, p2);
+    const ids = /* @__PURE__ */ new Set();
+    for (const r of r1) ids.add(Number(r.id));
+    for (const r of r2) ids.add(Number(r.id));
+    return Array.from(ids);
   } catch (e) {
     logger.warn({ err: e?.message }, "notifiche-risultato: getGuardiansForLeva error");
     return [];
