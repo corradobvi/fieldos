@@ -12164,7 +12164,7 @@ async function uploadPhotoToServer(photoKey, dataBase64) {
   try {
     const resp = await fetch(API_BASE + '/api/upload/photo', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ societyKey, photoKey, dataBase64 })
     });
     if (!resp.ok) return null;
@@ -28895,7 +28895,7 @@ async function doSelfRegister() {
 
     // Sincronizza sul server (legacy blob)
     fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ stateJson: JSON.stringify(initialState) })
     }).catch(() => {});
 
@@ -29212,7 +29212,7 @@ async function _chatDoEscalate(q) {
   try {
     const resp = await fetch(API_BASE + '/api/ai-assist', {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
       body: JSON.stringify({question:q, section, role})
     });
     _chatHideTyping();
@@ -29331,7 +29331,7 @@ function _chatSaveLearned() {
     sa.faqLearnedNextId = faqLearnedNextId;
     localStorage.setItem(SA_KEY, JSON.stringify(sa));
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
-      method:'PUT', headers:{'Content-Type':'application/json'},
+      method:'PUT', headers:{'Content-Type':'application/json','Authorization':'Bearer '+_v2Token},
       body: JSON.stringify({stateJson: JSON.stringify(sa)})
     }).catch(()=>{});
   } catch(e) {}
@@ -29474,7 +29474,7 @@ function saSaveState() {
     // Background sync to server (SA state non contiene immagini, no stripping necessario)
     fetch(API_BASE + '/api/state/' + encodeURIComponent(SA_KEY), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ stateJson: data }),
       keepalive: true
     }).catch(() => {});
@@ -29537,7 +29537,7 @@ async function saForceSyncSociety(id) {
   try {
     const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ stateJson: stripped })
     });
     if (r.ok) {
@@ -31369,7 +31369,7 @@ async function doRejoinSocieta() {
       try {
         r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
           body,
         });
       } catch (_) {
@@ -33724,7 +33724,7 @@ async function sendPushNotification(userId, societyKey, notification) {
   try {
     await fetch('/api/push/send', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ userId, societyKey, notification })
     });
   } catch { /* non-blocking */ }
