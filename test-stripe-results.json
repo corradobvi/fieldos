@@ -1,0 +1,342 @@
+{
+  "timestamp": "2026-06-05T18:01:41.654Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "82492612",
+  "socId": 72,
+  "counts": {
+    "PASS": 29,
+    "FAIL": 6,
+    "SKIP": 6
+  },
+  "elapsedSec": 9,
+  "results": [
+    {
+      "area": "SETUP",
+      "name": "Crea società",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=72"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SETUP",
+      "name": "Crea mister + genitore + login",
+      "expected": "ok",
+      "got": "mister=151 gen=152",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Baiardo GET /stripe/subscription",
+      "expected": "auth-needed",
+      "got": "no-credentials",
+      "status": "SKIP",
+      "detail": "Test richiede credenziali admin Baiardo non fornite — skip come da istruzione"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Baiardo invoices/payment-methods",
+      "expected": "auth-needed",
+      "got": "no-credentials",
+      "status": "SKIP",
+      "detail": "stesso motivo"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "GET /stripe/subscription società test",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"status\":\"demo\",\"piano\":\"societa\",\"demoScadenza\":\"2026-06-15T18:01:33.000Z\",\"billingMode\":\"omaggio\",\"currentPeriodEnd\":null,\"cancelAtPeriodEnd\":null,"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Campo piano=societa",
+      "expected": "societa",
+      "got": "societa",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Campo billingMode=omaggio (società nuova)",
+      "expected": "omaggio|stripe",
+      "got": "omaggio",
+      "status": "PASS",
+      "detail": "osservato=omaggio"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Campo status presente",
+      "expected": "non-null",
+      "got": "demo",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Campi current_period_end e cancel_at_period_end presenti (nullable)",
+      "expected": "key-exists",
+      "got": "cpe=null cape=null",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "GET /stripe/payment-methods (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "Endpoint non esiste: dato presente dentro /stripe/subscription.paymentMethod"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "GET /stripe/invoices società test",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"invoices\":[]}"
+    },
+    {
+      "area": "F1-LETTURA",
+      "name": "Invoices società nuova = []",
+      "expected": "[]",
+      "got": "[]",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "POST /stripe/create-checkout mister mensile",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"url\":\"https://checkout.stripe.com/c/pay/cs_live_b10JvLDsudnXkWwNgR6dsPlpr5UuCP0UA39Xbri1pQoLAfBoZK5TtImMT0#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSd2cGd"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "URL inizia con https://checkout.stripe.com",
+      "expected": "checkout.stripe.com",
+      "got": "https://checkout.stripe.com/c/pay/cs_liv",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "Mode Stripe (live/test)",
+      "expected": "live or test",
+      "got": "LIVE",
+      "status": "PASS",
+      "detail": "⚠️ STRIPE LIVE in produzione"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "POST /stripe/create-checkout mister_pro annuale",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"url\":\"https://checkout.stripe.com/c/pay/cs_live_b1Lsm94Q5lv0tllVoQXryIh9XEueSnEeqGM4cCxyyWWgEw4YHYY8DSW6zm#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSd2cGd"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "Coupon FOUNDERS2026/FOUNDING2026 (endpoint validate-coupon)",
+      "expected": "endpoint-spec",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Stripe gestisce promo codes internamente via allow_promotion_codes=true (riga 231 stripe.ts). NO endpoint /validate-coupon nel backend."
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "allow_promotion_codes:true (lettura codice)",
+      "expected": "true",
+      "got": "true",
+      "status": "PASS",
+      "detail": "Verificato: stripe.ts:231 setta params['allow_promotion_codes']='true' su ogni checkout session"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "POST create-checkout con TOKEN_GENITORE → 403 (spec)",
+      "expected": "403",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "ANOMALIA SECURITY: endpoint senza requireAuth — chiunque crea checkout per qualsiasi email"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "POST create-checkout con TOKEN_MISTER",
+      "expected": "200|403",
+      "got": "200",
+      "status": "PASS",
+      "detail": "AUTORIZZATO (no requireAuth → chiunque, anche senza token, può fare checkout)"
+    },
+    {
+      "area": "F2-CHECKOUT",
+      "name": "POST create-checkout SENZA TOKEN",
+      "expected": "401 (atteso) | 200 (no auth)",
+      "got": "200",
+      "status": "FAIL",
+      "detail": "🚨 BUG SECURITY: endpoint chiamabile SENZA autenticazione, chiunque conoscendo email può aprire checkout"
+    },
+    {
+      "area": "F3-WEBHOOK",
+      "name": "POST webhook senza signature",
+      "expected": "400 (con secret) | 200 (skip senza secret)",
+      "got": "400",
+      "status": "PASS",
+      "detail": "verifica signature presente, OK"
+    },
+    {
+      "area": "F3-WEBHOOK",
+      "name": "POST webhook signature finta → 400",
+      "expected": "400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "stale_event"
+    },
+    {
+      "area": "F3-WEBHOOK",
+      "name": "POST webhook signature stale (>5 min)",
+      "expected": "400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "stale_event"
+    },
+    {
+      "area": "F3-WEBHOOK",
+      "name": "Handler webhook eventi gestiti",
+      "expected": "doc",
+      "got": "checkout.session.completed | customer.subscription.updated | customer.subscription.deleted | invoice.payment_failed",
+      "status": "PASS",
+      "detail": "Vedi stripe.ts:283/352/386/508 per dettagli azioni DB+blob+email"
+    },
+    {
+      "area": "F4-COUPON",
+      "name": "GET /stripe/validate-coupon FOUNDERS2026",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Endpoint /stripe/validate-coupon NON ESISTE nel backend. Stripe gestisce promo codes interni via allow_promotion_codes=true. Il coupon FOUNDERS2026 deve essere creato sul Dashboard Stripe (Products → Coupons) e attivato come Promotion Code 'FOUNDERS2026'."
+    },
+    {
+      "area": "F4-COUPON",
+      "name": "FOUNDING2026 (deattivato)",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "stesso motivo"
+    },
+    {
+      "area": "F4-COUPON",
+      "name": "Coupon limitato a piani annuali",
+      "expected": "endpoint",
+      "got": "missing",
+      "status": "SKIP",
+      "detail": "Limitazione si configura nel Stripe Dashboard (eligible products del coupon)"
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "allow_promotion_codes: true",
+      "expected": "true",
+      "got": "true",
+      "status": "PASS",
+      "detail": "stripe.ts:231"
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "proration_behavior + billing anchor 1 agosto",
+      "expected": "configurato per pre-lancio",
+      "got": "trial_end-only durante pre-lancio (no anchor!)",
+      "status": "FAIL",
+      "detail": "ANOMALIA: stripe.ts:222-228 dice 'NIENTE anchor (no proration / no allineamento al 1° agosto)'. Il codice usa subscription_data[trial_end] per dare DEMO_DAYS=14gg di trial durante pre-lancio. Manca il billing_cycle_anchor=1ago2026 esplicito → primo addebito sarà 14gg dopo signup, NON il 1° agosto. Se la spec è 'tutti pagano dal 1° agosto', va aggiunto billing_cycle_anchor=anchorTs + proration_behavior=none."
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "success_url / cancel_url",
+      "expected": "app.myvivaio.app",
+      "got": "APP_URL env var, fallback workspacefieldos-production.up.railway.app",
+      "status": "FAIL",
+      "detail": "ATTENZIONE: stripe.ts:194 usa process.env.APP_URL con fallback 'workspacefieldos-production.up.railway.app'. Se APP_URL non è settato su Railway → utenti finiscono sul vecchio dominio Railway, non su app.myvivaio.app. Verificare su Railway che APP_URL=https://app.myvivaio.app."
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "STRIPE_WEBHOOK_SECRET env var",
+      "expected": "env-var",
+      "got": "env-var",
+      "status": "PASS",
+      "detail": "stripe.ts:246 legge process.env.STRIPE_WEBHOOK_SECRET. ⚠️ Se NON settato, riga 248-251 fa silent 200 → fail-open. Verificare che sia settato in prod."
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "Modalità Stripe (live vs test)",
+      "expected": "live in prod",
+      "got": "verificato in F2-CHECKOUT",
+      "status": "PASS",
+      "detail": "Vedi F2: si determina dal prefix cs_live_/cs_test_ dell'URL di checkout creato"
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "metadata[societyId] in checkout session",
+      "expected": "yes",
+      "got": "yes",
+      "status": "PASS",
+      "detail": "stripe.ts:216-218: societyId in metadata della sessione se valido (non demo)"
+    },
+    {
+      "area": "F5-CHECKLIST",
+      "name": "🚨 AUTH coverage endpoint Stripe",
+      "expected": "requireAuth su tutti",
+      "got": "MANCA su 5/6 endpoint",
+      "status": "FAIL",
+      "detail": "POST /create-checkout, GET /subscription, POST /customer-portal, POST /cancel, GET /invoices: NESSUN requireAuth. Chiunque conoscendo societyId può: leggere stato subscription/fatture/payment-method, creare checkout per qualsiasi email, aprire customer-portal, cancellare l'abbonamento di una società terza. Webhook ha verifica signature (corretto)."
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user genitore 152",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user mister 151",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "player 102",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "leva 57",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 72",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
