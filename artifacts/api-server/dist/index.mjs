@@ -78068,13 +78068,186 @@ var assist_default = router5;
 
 // src/routes/push.ts
 var import_express6 = __toESM(require_express2(), 1);
+var import_web_push2 = __toESM(require_src2(), 1);
+
+// src/lib/push-sender.ts
 var import_web_push = __toESM(require_src2(), 1);
+
+// src/lib/leva-match.ts
+function _levaPrefixes(leva) {
+  const out = /* @__PURE__ */ new Set([leva]);
+  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
+    const idx = leva.indexOf(sep);
+    if (idx > 0) out.add(leva.substring(0, idx).trim());
+  }
+  return Array.from(out).filter((s) => s.length > 0);
+}
+function _levaMatchClause(leva) {
+  const targets = _levaPrefixes(leva);
+  const inPh = targets.map(() => "?").join(",");
+  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
+  const sql2 = `(
+    leva IN (${inPh})
+    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
+    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
+    OR (JSON_VALID(leva) AND (${jsonOr}))
+  )`;
+  return { sql: sql2, params: [...targets, ...targets, ...targets] };
+}
+
+// src/lib/push-sender.ts
+function societyKeyFor(societyId) {
+  return `fieldos_state_soc_${societyId}`;
+}
+function _initVapid() {
+  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
+  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
+  const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
+  if (!pub || !priv) return false;
+  try {
+    import_web_push.default.setVapidDetails(subj, pub, priv);
+  } catch {
+  }
+  return true;
+}
+async function filterByPref(userIds, prefKey) {
+  if (!userIds.length) return [];
+  try {
+    const placeholders = userIds.map(() => "?").join(",");
+    const [rows] = await pool.execute(
+      `SELECT user_id FROM user_notification_preferences
+       WHERE user_id IN (${placeholders}) AND \`${prefKey}\` = 0`,
+      userIds
+    );
+    const optedOut = new Set(rows.map((r) => r.user_id));
+    return userIds.filter((id) => !optedOut.has(id));
+  } catch {
+    return userIds;
+  }
+}
+async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
+  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
+  const filteredIds = prefKey ? await filterByPref(userIds, prefKey) : userIds;
+  if (!filteredIds.length) return { sent: 0, errors: 0 };
+  let rows = [];
+  try {
+    const placeholders = filteredIds.map(() => "?").join(",");
+    const [r] = await pool.execute(
+      `SELECT user_id, subscription FROM push_subscriptions
+       WHERE user_id IN (${placeholders}) AND society_key = ?`,
+      [...filteredIds, societyKey]
+    );
+    rows = r;
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: DB lookup failed");
+    return { sent: 0, errors: 0 };
+  }
+  if (filteredIds.length) {
+    const subscribed = new Set(rows.map((r) => Number(r.user_id)));
+    const noSub = filteredIds.filter((id) => !subscribed.has(id));
+    if (noSub.length) logger.info({ noSub, societyKey }, "push-sender: no subscription for users");
+  }
+  if (!rows.length) {
+    logger.info({ requested: filteredIds.length, societyKey }, "push-sender: zero subscriptions for any requested user");
+    return { sent: 0, errors: 0 };
+  }
+  const message = JSON.stringify(payload);
+  let sent = 0;
+  let errors = 0;
+  for (const row of rows) {
+    let sub;
+    try {
+      sub = JSON.parse(row.subscription);
+    } catch {
+      errors++;
+      continue;
+    }
+    try {
+      await import_web_push.default.sendNotification(sub, message);
+      sent++;
+    } catch (e) {
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        await pool.execute(
+          "DELETE FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
+          [row.user_id, societyKey]
+        ).catch(() => {
+        });
+      } else {
+        logger.warn({ err: e, userId: row.user_id }, "push-sender: webpush error");
+      }
+      errors++;
+    }
+  }
+  logger.info({ sent, errors, societyKey }, "push-sender: completed");
+  return { sent, errors };
+}
+async function getUsersForPush(societyId, options = {}) {
+  const { leva, excludeUserId, staffOnly } = options;
+  try {
+    let staffQuery = `SELECT id, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'`;
+    const staffParams = [societyId];
+    if (excludeUserId) {
+      staffQuery += " AND id != ?";
+      staffParams.push(excludeUserId);
+    }
+    if (leva) {
+      const lc = _levaMatchClause(leva);
+      staffQuery += ` AND (
+        ruolo IN ('admin','mister_admin','dirigente')
+        OR (ruolo IN ('allenatore','mister','preparatore_portieri') AND ${lc.sql})
+      )`;
+      staffParams.push(...lc.params);
+    }
+    const [staffRows] = await pool.execute(staffQuery, staffParams);
+    const staffIds = staffRows.map((r) => Number(r.id));
+    const staffDetail = staffRows.map((r) => ({
+      user_id: Number(r.id),
+      ruolo: r.ruolo,
+      leva_stored: r.leva
+    }));
+    let guardianIds = [];
+    if (!staffOnly && leva) {
+      try {
+        let gQuery = `SELECT DISTINCT pg.user_id AS id
+          FROM player_guardians pg
+          JOIN players p ON p.id = pg.player_id
+          JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
+        const gParams = [societyId, leva];
+        if (excludeUserId) {
+          gQuery += " AND pg.user_id != ?";
+          gParams.push(excludeUserId);
+        }
+        const [gRows] = await pool.execute(gQuery, gParams);
+        guardianIds = gRows.map((r) => Number(r.id));
+      } catch {
+      }
+    }
+    const allIds = [.../* @__PURE__ */ new Set([...staffIds, ...guardianIds])];
+    logger.info({
+      societyId,
+      leva_target: leva ?? null,
+      excludeUserId: excludeUserId ?? null,
+      staffOnly: !!staffOnly,
+      staff: staffDetail,
+      guardianCount: guardianIds.length,
+      total: allIds.length
+    }, "push-sender: getUsersForPush resolved");
+    return allIds;
+  } catch (e) {
+    logger.warn({ err: e }, "push-sender: getUsersForPush error");
+    return [];
+  }
+}
+
+// src/routes/push.ts
+var STAFF_WRITE_ROLES_PUSH = ["admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri"];
 var router6 = (0, import_express6.Router)();
 var VAPID_PUBLIC = process.env["VAPID_PUBLIC_KEY"] ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
 var VAPID_PRIVATE = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
 var VAPID_SUBJECT = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  import_web_push.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+  import_web_push2.default.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 }
 var CREATE_SUBS_TABLE = `
   CREATE TABLE IF NOT EXISTS \`push_subscriptions\` (
@@ -78103,10 +78276,16 @@ router6.get("/push/vapid-public", (_req, res) => {
 });
 router6.post("/push/subscribe", requireAuth, async (req, res) => {
   const userId = req.jwtUser.userId;
+  const jwtSocId = req.jwtUser.societyId;
   const { societyKey, subscription } = req.body;
   if (typeof societyKey !== "string" || !societyKey || !subscription) {
     logger.warn({ userId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
     return res.status(400).json({ error: "missing_fields" });
+  }
+  const expectedKey = societyKeyFor(jwtSocId);
+  if (societyKey !== expectedKey) {
+    logger.warn({ userId, jwtSocId, societyKey, expectedKey }, "push subscribe: societyKey mismatch");
+    return res.status(403).json({ error: "forbidden", detail: "societyKey mismatch with JWT" });
   }
   try {
     await ensureTable();
@@ -78123,7 +78302,7 @@ router6.post("/push/subscribe", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router6.post("/push/send", async (req, res) => {
+router6.post("/push/send", requireAuth, requireRole(...STAFF_WRITE_ROLES_PUSH), async (req, res) => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return res.status(503).json({ error: "push_not_configured" });
   }
@@ -78149,7 +78328,7 @@ router6.post("/push/send", async (req, res) => {
         continue;
       }
       try {
-        await import_web_push.default.sendNotification(sub, payload);
+        await import_web_push2.default.sendNotification(sub, payload);
         sent++;
       } catch (e) {
         if (e.statusCode === 410 || e.statusCode === 404) {
@@ -78170,7 +78349,7 @@ router6.post("/push/send", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router6.get("/push/debug", async (_req, res) => {
+router6.get("/push/debug", requireAuth, requireRole("admin", "mister_admin"), async (_req, res) => {
   const allEnvKeys = Object.keys(process.env).sort();
   const vapidEnvKeys = allEnvKeys.filter((k) => k.toUpperCase().includes("VAPID"));
   const railwayKeys = allEnvKeys.filter((k) => k.startsWith("RAILWAY_"));
@@ -84782,178 +84961,6 @@ var import_express14 = __toESM(require_express2(), 1);
 
 // src/routes/v2/minors.ts
 var import_express13 = __toESM(require_express2(), 1);
-
-// src/lib/push-sender.ts
-var import_web_push2 = __toESM(require_src2(), 1);
-
-// src/lib/leva-match.ts
-function _levaPrefixes(leva) {
-  const out = /* @__PURE__ */ new Set([leva]);
-  for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
-    const idx = leva.indexOf(sep);
-    if (idx > 0) out.add(leva.substring(0, idx).trim());
-  }
-  return Array.from(out).filter((s) => s.length > 0);
-}
-function _levaMatchClause(leva) {
-  const targets = _levaPrefixes(leva);
-  const inPh = targets.map(() => "?").join(",");
-  const jsonOr = targets.map(() => "JSON_CONTAINS(leva, JSON_QUOTE(?))").join(" OR ");
-  const sql2 = `(
-    leva IN (${inPh})
-    OR SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(leva, ' \u2013 ', 1), ' - ', 1), ' \u2014 ', 1) IN (${inPh})
-    OR leva IS NULL OR leva = '' OR leva = 'Tutte' OR leva = 'tutte'
-    OR (JSON_VALID(leva) AND (${jsonOr}))
-  )`;
-  return { sql: sql2, params: [...targets, ...targets, ...targets] };
-}
-
-// src/lib/push-sender.ts
-function societyKeyFor(societyId) {
-  return `fieldos_state_soc_${societyId}`;
-}
-function _initVapid() {
-  const pub = process.env["VAPID_PUBLIC_KEY"] ?? "BLtLtdvuscq-1UdvumGdZHtv67YzoNxg1Lydz5Sv_zcet6B3lBi8b25lGxWLyzN4M_TSkVuOOG6kVy1kkg3Lcm8";
-  const priv = process.env["VAPID_PRIVATE_KEY"] ?? "WpDkZogamff-74e9rw4OrrCfPEh-_WGwjaYBClk0rIA";
-  const subj = process.env["VAPID_SUBJECT"] ?? "mailto:admin@myvivaio.app";
-  if (!pub || !priv) return false;
-  try {
-    import_web_push2.default.setVapidDetails(subj, pub, priv);
-  } catch {
-  }
-  return true;
-}
-async function filterByPref(userIds, prefKey) {
-  if (!userIds.length) return [];
-  try {
-    const placeholders = userIds.map(() => "?").join(",");
-    const [rows] = await pool.execute(
-      `SELECT user_id FROM user_notification_preferences
-       WHERE user_id IN (${placeholders}) AND \`${prefKey}\` = 0`,
-      userIds
-    );
-    const optedOut = new Set(rows.map((r) => r.user_id));
-    return userIds.filter((id) => !optedOut.has(id));
-  } catch {
-    return userIds;
-  }
-}
-async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
-  if (!userIds.length || !_initVapid()) return { sent: 0, errors: 0 };
-  const filteredIds = prefKey ? await filterByPref(userIds, prefKey) : userIds;
-  if (!filteredIds.length) return { sent: 0, errors: 0 };
-  let rows = [];
-  try {
-    const placeholders = filteredIds.map(() => "?").join(",");
-    const [r] = await pool.execute(
-      `SELECT user_id, subscription FROM push_subscriptions
-       WHERE user_id IN (${placeholders}) AND society_key = ?`,
-      [...filteredIds, societyKey]
-    );
-    rows = r;
-  } catch (e) {
-    logger.warn({ err: e }, "push-sender: DB lookup failed");
-    return { sent: 0, errors: 0 };
-  }
-  if (filteredIds.length) {
-    const subscribed = new Set(rows.map((r) => Number(r.user_id)));
-    const noSub = filteredIds.filter((id) => !subscribed.has(id));
-    if (noSub.length) logger.info({ noSub, societyKey }, "push-sender: no subscription for users");
-  }
-  if (!rows.length) {
-    logger.info({ requested: filteredIds.length, societyKey }, "push-sender: zero subscriptions for any requested user");
-    return { sent: 0, errors: 0 };
-  }
-  const message = JSON.stringify(payload);
-  let sent = 0;
-  let errors = 0;
-  for (const row of rows) {
-    let sub;
-    try {
-      sub = JSON.parse(row.subscription);
-    } catch {
-      errors++;
-      continue;
-    }
-    try {
-      await import_web_push2.default.sendNotification(sub, message);
-      sent++;
-    } catch (e) {
-      if (e.statusCode === 410 || e.statusCode === 404) {
-        await pool.execute(
-          "DELETE FROM push_subscriptions WHERE user_id = ? AND society_key = ?",
-          [row.user_id, societyKey]
-        ).catch(() => {
-        });
-      } else {
-        logger.warn({ err: e, userId: row.user_id }, "push-sender: webpush error");
-      }
-      errors++;
-    }
-  }
-  logger.info({ sent, errors, societyKey }, "push-sender: completed");
-  return { sent, errors };
-}
-async function getUsersForPush(societyId, options = {}) {
-  const { leva, excludeUserId, staffOnly } = options;
-  try {
-    let staffQuery = `SELECT id, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'`;
-    const staffParams = [societyId];
-    if (excludeUserId) {
-      staffQuery += " AND id != ?";
-      staffParams.push(excludeUserId);
-    }
-    if (leva) {
-      const lc = _levaMatchClause(leva);
-      staffQuery += ` AND (
-        ruolo IN ('admin','mister_admin','dirigente')
-        OR (ruolo IN ('allenatore','mister','preparatore_portieri') AND ${lc.sql})
-      )`;
-      staffParams.push(...lc.params);
-    }
-    const [staffRows] = await pool.execute(staffQuery, staffParams);
-    const staffIds = staffRows.map((r) => Number(r.id));
-    const staffDetail = staffRows.map((r) => ({
-      user_id: Number(r.id),
-      ruolo: r.ruolo,
-      leva_stored: r.leva
-    }));
-    let guardianIds = [];
-    if (!staffOnly && leva) {
-      try {
-        let gQuery = `SELECT DISTINCT pg.user_id AS id
-          FROM player_guardians pg
-          JOIN players p ON p.id = pg.player_id
-          JOIN users u ON u.id = pg.user_id
-          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
-        const gParams = [societyId, leva];
-        if (excludeUserId) {
-          gQuery += " AND pg.user_id != ?";
-          gParams.push(excludeUserId);
-        }
-        const [gRows] = await pool.execute(gQuery, gParams);
-        guardianIds = gRows.map((r) => Number(r.id));
-      } catch {
-      }
-    }
-    const allIds = [.../* @__PURE__ */ new Set([...staffIds, ...guardianIds])];
-    logger.info({
-      societyId,
-      leva_target: leva ?? null,
-      excludeUserId: excludeUserId ?? null,
-      staffOnly: !!staffOnly,
-      staff: staffDetail,
-      guardianCount: guardianIds.length,
-      total: allIds.length
-    }, "push-sender: getUsersForPush resolved");
-    return allIds;
-  } catch (e) {
-    logger.warn({ err: e }, "push-sender: getUsersForPush error");
-    return [];
-  }
-}
-
-// src/routes/v2/minors.ts
 var router13 = (0, import_express13.Router)();
 var STAFF_ROLES = ["admin", "allenatore", "mister", "dirigente"];
 var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];

@@ -2,7 +2,13 @@ import { Router } from "express";
 import webpush from "web-push";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireRole } from "../lib/auth";
+import { societyKeyFor } from "../lib/push-sender";
+
+// FIX security: prima del fix, /push/send e /push/debug erano pubblici
+// (no requireAuth) e /push/subscribe non validava societyKey contro JWT.
+// Vedi test-push-report.md (commit precedente) per dettagli.
+const STAFF_WRITE_ROLES_PUSH = ["admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri"];
 
 const router = Router();
 
@@ -53,6 +59,7 @@ router.get("/push/vapid-public", (_req, res) => {
 // (endpoint push-remap per ripulire le subscription storiche con id blob).
 router.post("/push/subscribe", requireAuth, async (req, res) => {
   const userId = req.jwtUser!.userId;
+  const jwtSocId = req.jwtUser!.societyId;
   const { societyKey, subscription } = req.body as {
     societyKey?: unknown;
     subscription?: unknown;
@@ -61,6 +68,15 @@ router.post("/push/subscribe", requireAuth, async (req, res) => {
   if (typeof societyKey !== "string" || !societyKey || !subscription) {
     logger.warn({ userId, societyKey: typeof societyKey, hasSubscription: !!subscription }, "push subscribe: missing_fields");
     return res.status(400).json({ error: "missing_fields" });
+  }
+
+  // FIX P1: ownership check. Prima del fix, un utente di società A poteva
+  // iscriversi a notifiche di società B passando una societyKey arbitraria,
+  // ricevendo push destinate ad altri (privacy leak).
+  const expectedKey = societyKeyFor(jwtSocId);
+  if (societyKey !== expectedKey) {
+    logger.warn({ userId, jwtSocId, societyKey, expectedKey }, "push subscribe: societyKey mismatch");
+    return res.status(403).json({ error: "forbidden", detail: "societyKey mismatch with JWT" });
   }
 
   try {
@@ -80,7 +96,12 @@ router.post("/push/subscribe", requireAuth, async (req, res) => {
 });
 
 // POST /api/push/send — send a push notification to a user
-router.post("/push/send", async (req, res) => {
+// FIX P0: prima del fix accessibile senza auth. Chiunque sa (userId, societyKey)
+// poteva inviare push fingendosi server MyVivaio → phishing facile.
+// Ora richiede staff role (admin/mister_admin/allenatore/mister/dirigente/
+// preparatore_portieri). Per uso operativo/SuperAdmin, considerare in futuro
+// se restringere ulteriormente a admin/mister_admin solamente.
+router.post("/push/send", requireAuth, requireRole(...STAFF_WRITE_ROLES_PUSH), async (req, res) => {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return res.status(503).json({ error: "push_not_configured" });
   }
@@ -134,8 +155,11 @@ router.post("/push/send", async (req, res) => {
   }
 });
 
-// GET /api/push/debug — diagnostica senza auth
-router.get("/push/debug", async (_req, res) => {
+// GET /api/push/debug — diagnostica (admin/mister_admin only).
+// FIX P2: prima del fix esposto pubblicamente; ritorna nomi env vars,
+// VAPID config, table columns, recent subscriptions → info-leak per
+// fingerprinting Railway. Ora richiede admin/mister_admin via JWT.
+router.get("/push/debug", requireAuth, requireRole("admin", "mister_admin"), async (_req, res) => {
   const allEnvKeys = Object.keys(process.env).sort();
   const vapidEnvKeys = allEnvKeys.filter(k => k.toUpperCase().includes("VAPID"));
   const railwayKeys  = allEnvKeys.filter(k => k.startsWith("RAILWAY_"));
