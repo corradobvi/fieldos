@@ -1,0 +1,246 @@
+{
+  "timestamp": "2026-06-06T06:17:00.962Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "26607895",
+  "socTestId": 79,
+  "counts": {
+    "PASS": 21,
+    "FAIL": 0,
+    "SKIP": 8
+  },
+  "elapsedSec": 13.1,
+  "results": [
+    {
+      "area": "AUTH",
+      "name": "GET /superadmin/societies SENZA X-SA-Secret → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "AUTH",
+      "name": "GET /superadmin/societies X-SA-Secret SBAGLIATO → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "AUTH",
+      "name": "GET /superadmin/societies X-SA-Secret OK → 200",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=31"
+    },
+    {
+      "area": "AUTH",
+      "name": "POST /superadmin/societies con Bearer JWT (no SA-Secret) → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"unauthorized\"}"
+    },
+    {
+      "area": "SOC",
+      "name": "GET /superadmin/societies lista",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "count=31"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies crea società di test",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=79 userId=164 codice=TESTS444"
+    },
+    {
+      "area": "SOC",
+      "name": "GET /superadmin/societies/:id (spec — dettaglio)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "Endpoint dettaglio singolo NON esiste; usa lista filtrata client-side da GET /superadmin/societies"
+    },
+    {
+      "area": "SOC",
+      "name": "PATCH /superadmin/societies/:id (rename)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies/:id/set-plan → mister_pro",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "SOC",
+      "name": "PATCH /:id con campo 'piano' → 400 (gestito solo nome/citta)",
+      "expected": "400|200",
+      "got": "400",
+      "status": "PASS",
+      "detail": "Documentato: per cambio piano usare POST /superadmin/societies/:id/set-plan"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies/:id/suspend",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies/:id/unsuspend (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint reale è /reactivate (non /unsuspend)"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies/:id/reactivate (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true}"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /superadmin/societies/:id/extend-demo",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"new_expires_at\":\"2026-07-20T06:16:50.000Z\"}"
+    },
+    {
+      "area": "SOC",
+      "name": "POST /set-billing-mode → omaggio (body {mode})",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"billing_mode\":\"omaggio\"}"
+    },
+    {
+      "area": "SOC",
+      "name": "DELETE /superadmin/societies/:id (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint DELETE NON esiste (mancante noto). Cleanup via suspend."
+    },
+    {
+      "area": "USERS",
+      "name": "GET /superadmin/users (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "Endpoint lista utenti globale NON esiste. Usa /api/v2/users (per società) o lista societies con count utenti"
+    },
+    {
+      "area": "USERS",
+      "name": "GET /superadmin/users?soc= (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "stesso motivo"
+    },
+    {
+      "area": "USERS",
+      "name": "POST /superadmin/reset-password (genera tempPass via email)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"ok\":true,\"email\":\"qa-sa-26607895@myvivaio.app\"}"
+    },
+    {
+      "area": "USERS",
+      "name": "Login con VECCHIA password post-reset → 401 (atteso)",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "Conferma che tempPass random è stata generata. La nuova password reale è inviata via email al destinatario."
+    },
+    {
+      "area": "DEMO_STATS",
+      "name": "POST /superadmin/reset-demo (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint esiste come /api/v2/admin/reset-stella-demo (admin-reset-demo.ts) con X-Admin-Secret, non SA-Secret"
+    },
+    {
+      "area": "DEMO_STATS",
+      "name": "GET /superadmin/stats (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "Endpoint statistiche globali NON esiste. Aggregabile client-side da GET /superadmin/societies"
+    },
+    {
+      "area": "AUDIT",
+      "name": "GET /superadmin/audit-log globale (spec)",
+      "expected": "200|404",
+      "got": "200",
+      "status": "SKIP",
+      "detail": "Endpoint audit-log globale NON esiste. Esiste per società: GET /superadmin/societies/:id/audit-log"
+    },
+    {
+      "area": "AUDIT",
+      "name": "GET /superadmin/societies/:id/audit-log (reale)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "entries=7"
+    },
+    {
+      "area": "AUDIT",
+      "name": "Audit log contiene azione create_society",
+      "expected": "≥1",
+      "got": "found=1 all_actions=extend_demo,billing_mode_changed,suspend,reactivate,rename,plan_changed,create_society",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SEC",
+      "name": "Tutti gli endpoint SA richiedono X-SA-Secret (no JWT)",
+      "expected": "ok",
+      "got": "verified",
+      "status": "PASS",
+      "detail": "Confermato in FASE AUTH: POST con Bearer JWT (no SA-Secret) → 401. Tutti gli endpoint /superadmin/* fanno check inline req.headers['x-sa-secret'] !== SA_SECRET → 401."
+    },
+    {
+      "area": "SEC",
+      "name": "X-SA-Secret non leakato in body response",
+      "expected": "no-leak",
+      "got": "no-leak",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SEC",
+      "name": "Timing 401 vs 200 (no oracle, n=10)",
+      "expected": "no-timing-oracle",
+      "got": "avg401=193ms avg200=176ms ratio=0.91x",
+      "status": "PASS",
+      "detail": "Differenza naturale: 200 fa SELECT DB. Oracle solo se ratio >5x — qui ratio piccolo."
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 79",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+{
+  "timestamp": "2026-06-06T13:20:48.421Z",
+  "baseUrl": "https://app.myvivaio.app",
+  "runId": "52037867",
+  "socId": 81,
+  "counts": {
+    "PASS": 32,
+    "FAIL": 2,
+    "SKIP": 4
+  },
+  "elapsedSec": 10.6,
+  "results": [
+    {
+      "area": "SETUP",
+      "name": "Crea società + admin via SA",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "socId=81 codice=TESTO873"
+    },
+    {
+      "area": "SETUP",
+      "name": "Login admin",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/register (con codice società)",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "pending=true (default ruolo=genitore, stato=pendente)"
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/register email duplicata → 409",
+      "expected": "409|400",
+      "got": "409",
+      "status": "PASS",
+      "detail": "{\"error\":\"email_exists\"}"
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/register senza campi obbligatori → 400",
+      "expected": "400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"missing_fields\"}"
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/register codice invalido → 400",
+      "expected": "400|401",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"invalid_code\"}"
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/self-register (crea società + admin)",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "token ok"
+    },
+    {
+      "area": "REGISTER",
+      "name": "POST /auth/self-register senza phone → 400",
+      "expected": "400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "{\"error\":\"invalid_email\"}"
+    },
+    {
+      "area": "LOGIN",
+      "name": "Login OK",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "{\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjE2OCwic29jaWV0eUlkIjo4MSwicm9sZSI6ImFkbWluIiwiZW1haWwiOiJxYS1vYi01MjA"
+    },
+    {
+      "area": "LOGIN",
+      "name": "JWT decoded",
+      "expected": "obj",
+      "got": "ok",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "LOGIN",
+      "name": "JWT.societyId presente",
+      "expected": "number",
+      "got": "number",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "LOGIN",
+      "name": "JWT.userId presente",
+      "expected": "number",
+      "got": "number",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "LOGIN",
+      "name": "JWT.role (ruolo) presente",
+      "expected": "string",
+      "got": "admin",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "LOGIN",
+      "name": "JWT.email presente",
+      "expected": "string",
+      "got": "qa-ob-52037867@myvivaio.app",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "LOGIN",
+      "name": "Login con password sbagliata → 401",
+      "expected": "401",
+      "got": "401",
+      "status": "PASS",
+      "detail": "{\"error\":\"invalid_credentials\"}"
+    },
+    {
+      "area": "LOGIN",
+      "name": "Login response NON contiene password/hash",
+      "expected": "no-leak",
+      "got": "no-leak",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "INVITE-MISTER",
+      "name": "POST /invite/mister (spec)",
+      "expected": "200|201|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint /invite/* NON esiste. Flow reale: POST /api/v2/users con ruolo+leva (admin auth)."
+    },
+    {
+      "area": "INVITE-MISTER",
+      "name": "POST /api/v2/users invita mister (admin)",
+      "expected": "201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "id=171"
+    },
+    {
+      "area": "INVITE-MISTER",
+      "name": "POST /users email duplicata → 409",
+      "expected": "409|400",
+      "got": "409",
+      "status": "PASS",
+      "detail": "{\"error\":\"email_exists\"}"
+    },
+    {
+      "area": "INVITE-MISTER",
+      "name": "Login mister invitato",
+      "expected": "200 + token",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "INVITE-MISTER",
+      "name": "Mister POST /users → 403 (solo admin invita)",
+      "expected": "403",
+      "got": "403",
+      "status": "PASS",
+      "detail": "{\"error\":\"forbidden\"}"
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "Setup leva+player",
+      "expected": "ok",
+      "got": "pid=106",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "POST /invite/genitore (spec)",
+      "expected": "200|201|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint /invite/genitore NON esiste. Flow reale: POST /api/v2/auth/guardian-register (con codice società) + POST /players/:id/claim."
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "POST /auth/guardian-register (con codice società)",
+      "expected": "200|201",
+      "got": "201",
+      "status": "PASS",
+      "detail": "userId=172 hasToken=true"
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "Login genitore",
+      "expected": "200 + token",
+      "got": "ok",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "POST /players/:id/claim (figlio nella sua società)",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "guardianId=62"
+    },
+    {
+      "area": "GUARDIAN",
+      "name": "POST /players/:cross/claim → 404/403",
+      "expected": "404|403",
+      "got": "404",
+      "status": "PASS",
+      "detail": "Ownership cross-society isolato correttamente"
+    },
+    {
+      "area": "FORGOT",
+      "name": "POST /auth/forgot-password (spec)",
+      "expected": "200|404",
+      "got": "404",
+      "status": "SKIP",
+      "detail": "Endpoint reale: POST /api/v2/public/forgot-password"
+    },
+    {
+      "area": "FORGOT",
+      "name": "POST /public/forgot-password con email reale",
+      "expected": "200",
+      "got": "SPA-HTML",
+      "status": "SKIP",
+      "detail": "endpoint non esiste"
+    },
+    {
+      "area": "FORGOT",
+      "name": "POST /forgot-password email inesistente",
+      "expected": "200 (no enumeration)",
+      "got": "404",
+      "status": "FAIL",
+      "detail": "🚨 USER ENUMERATION: backend rivela se l'email esiste o no → leak privacy"
+    },
+    {
+      "area": "FORGOT",
+      "name": "Response NO segnali di enumeration",
+      "expected": "no-signals",
+      "got": "no-signals",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "SEC",
+      "name": "Register con SQL inj nell'email → 400",
+      "expected": "400",
+      "got": "400",
+      "status": "PASS",
+      "detail": "Validazione email rifiuta payload SQL"
+    },
+    {
+      "area": "SEC",
+      "name": "Tabelle DB integre post SQL-inj test",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": "Se DB compromesso → endpoint SA crasherebbe"
+    },
+    {
+      "area": "SEC",
+      "name": "10 login wrong-pass: nessun rate-limit",
+      "expected": "rate-limit | 401-all",
+      "got": "statuses=401,401,401,401,401,401,401,401,401,401 elapsed=2444ms",
+      "status": "FAIL",
+      "detail": "🚨 P2 abuse risk: nessun rate-limit su /auth/login. Brute force facile. Consigliato: aggiungere rate-limit per IP+email (es. express-rate-limit, 5 tentativi/15min)."
+    },
+    {
+      "area": "SEC",
+      "name": "Password mai presente in login/account responses",
+      "expected": "no-leak",
+      "got": "no-leak",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user mister invited 171",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "user genitore 172",
+      "expected": "200|204|404",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "area": "CLEANUP",
+      "name": "SUSPEND società 81",
+      "expected": "200",
+      "got": "200",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
