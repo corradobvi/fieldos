@@ -23908,20 +23908,54 @@ function _buildApplyResult(tipo, ref, target) {
     return { applied: true, match, isNewOrChanged };
   };
 }
+// Final-check helper: prima di dichiarare fallimento, fai un PULL fresco e confronta
+// se il server ha gia' il target. Restituisce { onServer: bool, match }.
+// Usato da saveResultWithRetry prima di OGNI return ok:false → elimina i falsi positivi
+// dovuti a race autosave/altri device che hanno gia' pushato il dato corretto.
+// applyResult e' idempotente: ri-eseguito su stato pullato, se restituisce
+// applied && !isNewOrChanged → il blob server e' GIA' al target.
+async function _serverHasTargetAlready(applyResult) {
+  try {
+    if (typeof window.__fieldosPullAndApply === 'function') {
+      await window.__fieldosPullAndApply();
+    } else if (typeof window.__fieldosHandleStaleConflict === 'function') {
+      try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
+    }
+  } catch (_) { /* pull non riuscito → conservativo, fail */ }
+  let post = null;
+  try { post = applyResult(); } catch (_) {}
+  const onServer = !!(post && post.applied && !post.isNewOrChanged);
+  return { onServer, match: post && post.match };
+}
+
 // Salvataggio robusto con merge-retry sui conflitti 412.
 // Strategia: applyResult → sync → se 412 → pull silenzioso → re-applyResult sullo stato fresco → re-sync.
 // Su success: { ok:true, match, isNewOrChanged }. Su fallimento: { ok:false, match:last } (no toast qui:
 // è il caller a mostrare il toast onesto "non salvato — riprova").
+// FAILSAFE finale: prima di tornare ok:false su qualunque path (412 dopo maxRetries / 409 /
+// rete / 5xx / match non trovato), invoca _serverHasTargetAlready. Se il server e' a target
+// (l'autosave o un altro device ci ha gia' pensato) → ok:true. Solo in caso di vera divergenza
+// torna ok:false e il caller mostra il toast onesto.
 async function saveResultWithRetry(applyResult, maxRetries) {
   const _maxRetries = (typeof maxRetries === 'number') ? maxRetries : 3;
   let attempt = 0;
   let last = { applied: false, match: null, isNewOrChanged: false };
+  // Helper interno: ultimo controllo server-side prima di restituire ok:false.
+  // Se onServer=true, costruiamo un return ok:true; altrimenti il caller riceve ok:false.
+  const _failsafe = async (fallbackMatch) => {
+    const fc = await _serverHasTargetAlready(applyResult);
+    if (fc.onServer) {
+      return { ok: true, match: fc.match || fallbackMatch, isNewOrChanged: false };
+    }
+    return { ok: false, match: fc.match || fallbackMatch, isNewOrChanged: false };
+  };
   while (attempt <= _maxRetries) {
     last = applyResult();
     if (!last.applied) {
-      // Match sparito dallo stato fresco (es. partita eliminata da un altro device): rinuncia onestamente
-      console.warn('[saveResultWithRetry] match non trovato nello stato corrente; abort');
-      return { ok: false, match: null, isNewOrChanged: false };
+      // Match sparito dallo stato fresco (es. partita eliminata da un altro device).
+      // Failsafe: il dato POTREBBE essere salvato altrove sotto un altro ref → pull e ricontrolla.
+      console.warn('[saveResultWithRetry] match non trovato nello stato corrente; failsafe');
+      return await _failsafe(null);
     }
     // Senza sync esposta: nessun gating possibile → comportamento legacy (success ottimistico)
     if (typeof window.__fieldosSyncToCloud !== 'function') {
@@ -23940,10 +23974,7 @@ async function saveResultWithRetry(applyResult, maxRetries) {
     }
     // 412 dopo maxRetries OR 409 (would_downgrade / overwrite_real): SOSPETTI BENIGNI.
     // 3 step: pulla, riapplica, e se serve fai un ULTIMO push (server ora ha baseVersion
-    // fresca dopo il pull). Solo se ANCHE l'ultimo push fallisce → fail vero, caller
-    // mostra il toast. Senza l'ultimo push, isNewOrChanged=true post-pull ritornava
-    // ok:false anche quando l'autosave 1.5s in background poi salvava il dato
-    // (utente vedeva toast "non salvato" mentre il dato compariva dopo refresh).
+    // fresca dopo il pull). Solo se ANCHE l'ultimo push fallisce → failsafe finale.
     if (resp && (resp.status === 412 || resp.status === 409)) {
       if (typeof window.__fieldosHandleStaleConflict === 'function') {
         try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
@@ -23964,12 +23995,13 @@ async function saveResultWithRetry(applyResult, maxRetries) {
           }
         } catch (_) { /* fail-through */ }
       }
-      return { ok: false, match: (post && post.match) || last.match, isNewOrChanged: false };
+      return await _failsafe((post && post.match) || last.match);
     }
-    // Rete / 5xx / altri: fail diretto come oggi, caller mostra il toast onesto.
-    return { ok: false, match: last.match, isNewOrChanged: false };
+    // Rete / 5xx / altri: failsafe finale prima del fail (autosave/altri device potrebbero
+    // aver gia' pushato il target → toast falso evitato).
+    return await _failsafe(last.match);
   }
-  return { ok: false, match: last.match, isNewOrChanged: false };
+  return await _failsafe(last.match);
 }
 
 // Salva un risultato rapido (solo punteggio, senza statistiche giocatori)
