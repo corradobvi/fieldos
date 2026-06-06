@@ -27634,7 +27634,9 @@ async function _acLoadSub() {
     return;
   }
   try {
-    const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + socId);
+    const res = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + socId, {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
     _acSubData = res.ok ? await res.json() : null;
   } catch(e) { _acSubData = null; }
   if (loadEl) loadEl.style.display = 'none';
@@ -27807,7 +27809,7 @@ async function acDoCheckout(piano) {
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({
         piano,
         intervallo,
@@ -27850,7 +27852,7 @@ async function acOpenCustomerPortal(evt) {
   try {
     const res = await fetch(API_BASE + '/api/v2/stripe/customer-portal', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ societyId: socId }),
     });
     const data = await res.json();
@@ -27904,7 +27906,7 @@ async function acCancelConfirmed() {
   try {
     const res = await fetch(API_BASE + '/api/v2/stripe/cancel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ societyId: socId, motivo, dettaglio }),
     });
     const data = await res.json();
@@ -27986,7 +27988,9 @@ async function _acLoadInvoices() {
     return;
   }
   try {
-    const res = await fetch(API_BASE + '/api/v2/stripe/invoices?societyId=' + socId);
+    const res = await fetch(API_BASE + '/api/v2/stripe/invoices?societyId=' + socId, {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
     const data = res.ok ? await res.json() : null;
     if (invLoading) invLoading.style.display = 'none';
     if (!data?.invoices?.length) { if (invEmpty) invEmpty.style.display = ''; return; }
@@ -28409,7 +28413,7 @@ async function doStripeCheckout(piano) {
   try {
     const resp = await fetch(API_BASE + '/api/v2/stripe/create-checkout', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({
         piano,
         intervallo: _subIntervallo,
@@ -29381,7 +29385,9 @@ async function _syncSubscriptionStatus() {
   if ([0, DEMO_SOC_ID, DEMO_STELLA_ID].includes(currentSocietaId)) return;
   if (me.role !== 'admin' && me.role !== 'mister_admin') return;
   try {
-    const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId);
+    const resp = await fetch(API_BASE + '/api/v2/stripe/subscription?societyId=' + currentSocietaId, {
+      headers: { 'Authorization': 'Bearer ' + _v2Token }
+    });
     if (!resp.ok) return;
     const data = await resp.json();
     if (!data.piano) return;
@@ -29565,7 +29571,7 @@ async function saForceSyncAll() {
     try {
       const r = await fetch(API_BASE + '/api/state/' + encodeURIComponent(key), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
         body: JSON.stringify({ stateJson: stripped })
       });
       if (r.ok) { _syncStatus[soc.id] = 'ok'; ok++; }
@@ -30203,7 +30209,7 @@ function saEliminaDefinitivo(id) {
   // Elimina dati dal DB (non c'è endpoint DELETE, sovrascriviamo con stringa vuota segnalando is_demo)
   fetch(API_BASE + '/api/state/' + encodeURIComponent(stateKey), {
     method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token},
     body: JSON.stringify({ stateJson: '{}', isDemo: true })
   }).catch(()=>{});
   localStorage.removeItem(stateKey);
@@ -30619,7 +30625,7 @@ async function saFinishCreate() {
   // Carica blob sul server (login da qualsiasi device)
   fetch(API_BASE + '/api/state/fieldos_state_soc_' + socId, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
     body: JSON.stringify({ stateJson })
   }).catch(() => {});
 
@@ -30801,7 +30807,7 @@ async function saSaveEditFull() {
       // Persist to server
       try {
         await fetch(API_BASE + '/api/state/' + encodeURIComponent(stKey), {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
           body: JSON.stringify({ stateJson: stJson })
         });
       } catch(_) {}
@@ -31855,7 +31861,7 @@ async function doRejoinSocieta() {
     const stripped = data.replace(/"data:image\/[^"]{1,30};base64,[^"]+"/g, '""');
     const resp = await fetch(API_BASE + '/api/state/' + encodeURIComponent(KEY), {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
       body: JSON.stringify({ stateJson: stripped, baseVersion: _serverVersion })
     });
     if (resp.status === 412) {
