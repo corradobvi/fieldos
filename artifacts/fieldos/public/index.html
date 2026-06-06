@@ -24050,6 +24050,8 @@ async function saveQuickResult(tipo, ref, idC, idO) {
       }
     } catch(_) {}
 
+    // ── DIAG TEMPORANEO — DA RIMUOVERE ─────────────────────────────────────
+    try { alert('[DIAG saveQuick] res.ok=' + JSON.stringify(res && res.ok) + ' matchUpsertOk=' + matchUpsertOk + ' tipo=' + tipo + ' currentLeva=' + JSON.stringify(typeof currentLeva!=='undefined'?currentLeva:'UNDEF')); } catch(_) {}
     // Banner unificato 3-stati. La notifica genitori parte UNA SOLA volta nel ramo success
     // (anche se entrambe le scritture — blob + match table — sono andate a buon fine).
     //  - res.ok===true OR matchUpsertOk===true → considerato salvato: toast verde + notifica.
@@ -24073,6 +24075,14 @@ async function saveQuickResult(tipo, ref, idC, idO) {
 // Il caller deve passare true SOLO quando il risultato è nuovo o è cambiato.
 function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
   console.log('[NOTIFY] enter leva=', match && match.leva, 'triggerWebpush=', !!triggerWebpush, 'matchId=', match && match.id, 'tipo=', tipo);
+  // ── DIAG TEMPORANEO — variabili accumulate per gli alert ─────────────────
+  // DA RIMUOVERE dopo diagnosi runtime sul flow torneo.
+  let _diagMatchPresente = !!match;
+  let _diagCasa = match && match.casa;
+  let _diagOspite = match && match.ospite;
+  let _diagTFound = false;
+  let _diagMie = 'n/a';
+  const _diagCurrentLeva = () => (typeof currentLeva !== 'undefined' ? currentLeva : 'UNDEF');
   try {
     let leva = match && match.leva;
     let avversario = '';
@@ -24092,14 +24102,16 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
       const t = match
         ? tornei.find(x => (x.fasi || []).some(f => (f.partite || []).some(m => m && m.id === match.id)))
         : null;
+      _diagTFound = !!t;
+      _diagMie = (typeof _getMieSquadre === 'function' && t) ? _getMieSquadre(t) : 'n/a';
       // FIX over-trigger: NON notificare per partite tra ALTRE squadre (Scontri tra avversari).
       // Resta PRIMA del fallback leva (semantica: il filtro torneo-altrui richiede di sapere t+match).
       if (t && match && typeof _getMieSquadre === 'function') {
         const mie = _getMieSquadre(t);
         if (!mie.includes(match.casa) && !mie.includes(match.ospite)) {
           console.log('[NOTIFY] exit=torneo-altrui mie=', mie, 'casa=', match.casa, 'ospite=', match.ospite);
-          // ── DEBUG TEMPORANEO ─────────────────────────────────────────────
-          try { toast && toast('NOTIFY exit=torneo-altrui'); } catch(_) {}
+          // ── DIAG TEMPORANEO — DA RIMUOVERE ─────────────────────────────
+          try { alert('[DIAG notify] EXIT=torneo-altrui matchPresente='+_diagMatchPresente+' casa='+_diagCasa+' ospite='+_diagOspite+' tFound='+_diagTFound+' mie='+JSON.stringify(_diagMie)+' leva='+JSON.stringify(leva)+' currentLeva='+JSON.stringify(_diagCurrentLeva())); } catch(_) {}
           return;
         }
       }
@@ -24112,8 +24124,8 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
     }
     if (!leva) {
       console.log('[NOTIFY] exit=no-leva');
-      // ── DEBUG TEMPORANEO ────────────────────────────────────────────────
-      try { toast && toast('NOTIFY exit=no-leva'); } catch(_) {}
+      // ── DIAG TEMPORANEO — DA RIMUOVERE ──────────────────────────────────
+      try { alert('[DIAG notify] EXIT=no-leva matchPresente='+_diagMatchPresente+' casa='+_diagCasa+' ospite='+_diagOspite+' tFound='+_diagTFound+' mie='+JSON.stringify(_diagMie)+' leva='+JSON.stringify(leva)+' currentLeva='+JSON.stringify(_diagCurrentLeva())); } catch(_) {}
       return;
     }
     const score = `${gc}–${go}`;
@@ -24145,18 +24157,32 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
     if (triggerWebpush && typeof _v2Token !== 'undefined' && _v2Token) {
       try {
         console.log('[NOTIFY] webpush POST start leva=', leva);
+        // ── DIAG TEMPORANEO — DA RIMUOVERE ─────────────────────────────────
+        try { alert('[DIAG notify] POST-INVIO leva='+JSON.stringify(leva)+' avversario='+JSON.stringify(avversario)); } catch(_) {}
         fetch(API_BASE + '/api/v2/notifiche/risultato-partita', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
           body: JSON.stringify({ leva, title, body })
         }).then(function(resp){
           console.log('[NOTIFY] webpush status=', resp.status);
+          // ── DIAG TEMPORANEO — leggi body e mostra ──────────────────────
+          try {
+            resp.clone().text().then(function(b){
+              try { alert('[DIAG notify] POST-RESP status='+resp.status+' body='+String(b||'').slice(0,200)); } catch(_) {}
+            }).catch(function(){
+              try { alert('[DIAG notify] POST-RESP status='+resp.status+' body=<read-fail>'); } catch(_) {}
+            });
+          } catch(_) {}
         }).catch(function(err){
           console.log('[NOTIFY] webpush ERROR', err);
+          // ── DIAG TEMPORANEO — DA RIMUOVERE ──────────────────────────────
+          try { alert('[DIAG notify] FETCH-CATCH ' + (err && err.message)); } catch(_) {}
           /* non bloccante */
         });
       } catch(e) {
         console.log('[NOTIFY] webpush throw', e);
+        // ── DIAG TEMPORANEO — DA RIMUOVERE ───────────────────────────────
+        try { alert('[DIAG notify] WEBPUSH-THROW ' + (e && e.message)); } catch(_) {}
         /* non bloccante */
       }
     } else {
@@ -24164,6 +24190,8 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
     }
   } catch(e) {
     console.log('[NOTIFY] exit=outer-catch', e);
+    // ── DIAG TEMPORANEO — DA RIMUOVERE ─────────────────────────────────────
+    try { alert('[DIAG notify] CATCH ' + (e && e.message)); } catch(_) {}
     /* non bloccante */
   }
 }
