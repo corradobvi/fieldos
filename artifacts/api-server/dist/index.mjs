@@ -77459,161 +77459,6 @@ var logger = (0, import_pino.default)({
   } : {}
 });
 
-// src/routes/state.ts
-var router2 = (0, import_express2.Router)();
-var CREATE_TABLE_SQL = `
-  CREATE TABLE IF NOT EXISTS \`society_state\` (
-    \`key\`      VARCHAR(255) PRIMARY KEY,
-    state_json  LONGTEXT NOT NULL,
-    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
-    version     BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )
-`;
-var _versionColumnReady = false;
-async function ensureVersionColumn() {
-  if (_versionColumnReady) return;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'society_state' AND COLUMN_NAME = 'version'`
-    );
-    if (!rows.length) {
-      try {
-        await pool.execute(
-          "ALTER TABLE `society_state` ADD COLUMN `version` BIGINT UNSIGNED NOT NULL DEFAULT 0"
-        );
-        logger.info({}, "society_state.version column added");
-      } catch (e) {
-        if (e?.errno !== 1060 && e?.code !== "ER_DUP_FIELDNAME") throw e;
-      }
-    }
-    _versionColumnReady = true;
-  } catch (e) {
-    logger.warn({ err: e }, "ensureVersionColumn failed (non-blocking, will retry next request)");
-  }
-}
-var MIN_STATE_BYTES = 200;
-function wouldDowngrade(newJson, existingJson) {
-  try {
-    const n = JSON.parse(newJson);
-    const e = JSON.parse(existingJson);
-    const existingPlayers = Array.isArray(e.players) ? e.players.length : 0;
-    const newPlayers = Array.isArray(n.players) ? n.players.length : 0;
-    const existingUsers = Array.isArray(e.USERS_DB) ? e.USERS_DB.length : 0;
-    const newUsers = Array.isArray(n.USERS_DB) ? n.USERS_DB.length : 0;
-    const existingHasRealData = existingPlayers > 0 || existingUsers > 6 || typeof e.nextUserId === "number" && e.nextUserId > 7;
-    const newIsEmpty = newPlayers === 0 && newUsers <= 6 && (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
-    if (existingHasRealData && newIsEmpty) return true;
-    const PLAYER_LOSS_THRESHOLD = 3;
-    if (existingPlayers >= 5 && newPlayers < existingPlayers - PLAYER_LOSS_THRESHOLD) {
-      console.warn(`[state] downgrade parziale players: existing=${existingPlayers} new=${newPlayers}`);
-      return true;
-    }
-    if (existingUsers > 6 && newUsers < existingUsers - 2) {
-      console.warn(`[state] downgrade parziale users: existing=${existingUsers} new=${newUsers}`);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-router2.get("/state/:key", async (req, res) => {
-  try {
-    await pool.execute(CREATE_TABLE_SQL);
-    await ensureVersionColumn();
-    const [rows] = await pool.execute(
-      "SELECT state_json, is_demo, version FROM `society_state` WHERE `key` = ?",
-      [req.params.key]
-    );
-    if (!rows.length) return res.status(404).json({ error: "not found" });
-    return res.json({
-      key: req.params.key,
-      stateJson: rows[0].state_json,
-      isDemo: rows[0].is_demo === 1,
-      version: Number(rows[0].version)
-    });
-  } catch (e) {
-    logger.error({ err: e }, "state GET failed");
-    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
-  }
-});
-router2.put("/state/:key", async (req, res) => {
-  const { stateJson, isDemo, baseVersion } = req.body;
-  if (typeof stateJson !== "string") {
-    return res.status(400).json({ error: "stateJson must be a string" });
-  }
-  const isDemoWrite = isDemo === true;
-  const isDemoVal = isDemoWrite ? 1 : 0;
-  try {
-    await pool.execute(CREATE_TABLE_SQL);
-    await ensureVersionColumn();
-    const [existing] = await pool.execute(
-      "SELECT state_json, LENGTH(state_json) as sz, is_demo, version FROM `society_state` WHERE `key` = ?",
-      [req.params.key]
-    );
-    if (existing.length) {
-      const existingSz = Number(existing[0].sz);
-      const existingIsReal = existing[0].is_demo === 0;
-      const serverVersion = Number(existing[0].version);
-      if (typeof baseVersion === "number" && baseVersion !== serverVersion) {
-        logger.warn({ key: req.params.key, baseVersion, serverVersion }, "PUT rejected: stale base version");
-        return res.status(412).json({
-          error: "stale_base_version",
-          detail: "Il client si basa su una versione vecchia. Pull e ri-applica.",
-          server_version: serverVersion
-        });
-      }
-      if (stateJson.length < MIN_STATE_BYTES && existingSz >= MIN_STATE_BYTES) {
-        logger.warn(
-          { key: req.params.key, newSize: stateJson.length, existingSize: existingSz },
-          "PUT rejected: near-empty would overwrite real data"
-        );
-        return res.status(409).json({
-          error: "would_overwrite_real_data",
-          detail: "Il nuovo stato \xE8 troppo piccolo per sovrascrivere dati esistenti."
-        });
-      }
-      if (isDemoWrite && existingIsReal) {
-        logger.warn({ key: req.params.key }, "PUT rejected: demo write on real-data row");
-        return res.status(409).json({
-          error: "demo_cannot_overwrite_real",
-          detail: "Dati demo non possono sovrascrivere dati reali."
-        });
-      }
-      if (!isDemoWrite && existingIsReal && wouldDowngrade(stateJson, existing[0].state_json)) {
-        logger.warn({ key: req.params.key }, "PUT rejected: would downgrade data");
-        return res.status(409).json({
-          error: "would_downgrade_data",
-          detail: "Il nuovo stato ha meno dati di quelli esistenti. Operazione annullata."
-        });
-      }
-    }
-    await pool.execute(
-      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`, \`version\`) VALUES (?, ?, ?, 1)
-       ON DUPLICATE KEY UPDATE
-         \`state_json\` = ?,
-         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?),
-         \`version\`    = \`version\` + 1`,
-      [req.params.key, stateJson, isDemoVal, stateJson, isDemoVal]
-    );
-    const [after] = await pool.execute(
-      "SELECT version FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [req.params.key]
-    );
-    const newVersion = after.length ? Number(after[0].version) : void 0;
-    return res.json({ key: req.params.key, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), version: newVersion });
-  } catch (e) {
-    logger.error({ err: e }, "state PUT failed");
-    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
-  }
-});
-var state_default = router2;
-
-// src/routes/login.ts
-var import_express3 = __toESM(require_express2(), 1);
-
 // src/lib/auth.ts
 import { createHmac, pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 var JWT_SECRET = process.env.JWT_SECRET;
@@ -77700,7 +77545,168 @@ function requireRole(...roles) {
   };
 }
 
+// src/routes/state.ts
+var router2 = (0, import_express2.Router)();
+var CREATE_TABLE_SQL = `
+  CREATE TABLE IF NOT EXISTS \`society_state\` (
+    \`key\`      VARCHAR(255) PRIMARY KEY,
+    state_json  LONGTEXT NOT NULL,
+    is_demo     TINYINT(1) NOT NULL DEFAULT 0,
+    version     BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  )
+`;
+var _versionColumnReady = false;
+async function ensureVersionColumn() {
+  if (_versionColumnReady) return;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'society_state' AND COLUMN_NAME = 'version'`
+    );
+    if (!rows.length) {
+      try {
+        await pool.execute(
+          "ALTER TABLE `society_state` ADD COLUMN `version` BIGINT UNSIGNED NOT NULL DEFAULT 0"
+        );
+        logger.info({}, "society_state.version column added");
+      } catch (e) {
+        if (e?.errno !== 1060 && e?.code !== "ER_DUP_FIELDNAME") throw e;
+      }
+    }
+    _versionColumnReady = true;
+  } catch (e) {
+    logger.warn({ err: e }, "ensureVersionColumn failed (non-blocking, will retry next request)");
+  }
+}
+var MIN_STATE_BYTES = 200;
+function wouldDowngrade(newJson, existingJson) {
+  try {
+    const n = JSON.parse(newJson);
+    const e = JSON.parse(existingJson);
+    const existingPlayers = Array.isArray(e.players) ? e.players.length : 0;
+    const newPlayers = Array.isArray(n.players) ? n.players.length : 0;
+    const existingUsers = Array.isArray(e.USERS_DB) ? e.USERS_DB.length : 0;
+    const newUsers = Array.isArray(n.USERS_DB) ? n.USERS_DB.length : 0;
+    const existingHasRealData = existingPlayers > 0 || existingUsers > 6 || typeof e.nextUserId === "number" && e.nextUserId > 7;
+    const newIsEmpty = newPlayers === 0 && newUsers <= 6 && (typeof n.nextUserId !== "number" || n.nextUserId <= 7);
+    if (existingHasRealData && newIsEmpty) return true;
+    const PLAYER_LOSS_THRESHOLD = 3;
+    if (existingPlayers >= 5 && newPlayers < existingPlayers - PLAYER_LOSS_THRESHOLD) {
+      console.warn(`[state] downgrade parziale players: existing=${existingPlayers} new=${newPlayers}`);
+      return true;
+    }
+    if (existingUsers > 6 && newUsers < existingUsers - 2) {
+      console.warn(`[state] downgrade parziale users: existing=${existingUsers} new=${newUsers}`);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+router2.get("/state/:key", async (req, res) => {
+  try {
+    await pool.execute(CREATE_TABLE_SQL);
+    await ensureVersionColumn();
+    const [rows] = await pool.execute(
+      "SELECT state_json, is_demo, version FROM `society_state` WHERE `key` = ?",
+      [req.params.key]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not found" });
+    return res.json({
+      key: req.params.key,
+      stateJson: rows[0].state_json,
+      isDemo: rows[0].is_demo === 1,
+      version: Number(rows[0].version)
+    });
+  } catch (e) {
+    logger.error({ err: e }, "state GET failed");
+    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
+  }
+});
+router2.put("/state/:key", requireAuth, async (req, res) => {
+  const jwtSocId = req.jwtUser.societyId;
+  const expectedKey = `fieldos_state_soc_${jwtSocId}`;
+  if (req.params.key !== expectedKey) {
+    return res.status(403).json({
+      error: "forbidden",
+      detail: "state key must match JWT.societyId (expected: " + expectedKey + ")"
+    });
+  }
+  const { stateJson, isDemo, baseVersion } = req.body;
+  if (typeof stateJson !== "string") {
+    return res.status(400).json({ error: "stateJson must be a string" });
+  }
+  const isDemoWrite = isDemo === true;
+  const isDemoVal = isDemoWrite ? 1 : 0;
+  try {
+    await pool.execute(CREATE_TABLE_SQL);
+    await ensureVersionColumn();
+    const [existing] = await pool.execute(
+      "SELECT state_json, LENGTH(state_json) as sz, is_demo, version FROM `society_state` WHERE `key` = ?",
+      [req.params.key]
+    );
+    if (existing.length) {
+      const existingSz = Number(existing[0].sz);
+      const existingIsReal = existing[0].is_demo === 0;
+      const serverVersion = Number(existing[0].version);
+      if (typeof baseVersion === "number" && baseVersion !== serverVersion) {
+        logger.warn({ key: req.params.key, baseVersion, serverVersion }, "PUT rejected: stale base version");
+        return res.status(412).json({
+          error: "stale_base_version",
+          detail: "Il client si basa su una versione vecchia. Pull e ri-applica.",
+          server_version: serverVersion
+        });
+      }
+      if (stateJson.length < MIN_STATE_BYTES && existingSz >= MIN_STATE_BYTES) {
+        logger.warn(
+          { key: req.params.key, newSize: stateJson.length, existingSize: existingSz },
+          "PUT rejected: near-empty would overwrite real data"
+        );
+        return res.status(409).json({
+          error: "would_overwrite_real_data",
+          detail: "Il nuovo stato \xE8 troppo piccolo per sovrascrivere dati esistenti."
+        });
+      }
+      if (isDemoWrite && existingIsReal) {
+        logger.warn({ key: req.params.key }, "PUT rejected: demo write on real-data row");
+        return res.status(409).json({
+          error: "demo_cannot_overwrite_real",
+          detail: "Dati demo non possono sovrascrivere dati reali."
+        });
+      }
+      if (!isDemoWrite && existingIsReal && wouldDowngrade(stateJson, existing[0].state_json)) {
+        logger.warn({ key: req.params.key }, "PUT rejected: would downgrade data");
+        return res.status(409).json({
+          error: "would_downgrade_data",
+          detail: "Il nuovo stato ha meno dati di quelli esistenti. Operazione annullata."
+        });
+      }
+    }
+    await pool.execute(
+      `INSERT INTO \`society_state\` (\`key\`, \`state_json\`, \`is_demo\`, \`version\`) VALUES (?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE
+         \`state_json\` = ?,
+         \`is_demo\`    = IF(\`is_demo\` = 0, 0, ?),
+         \`version\`    = \`version\` + 1`,
+      [req.params.key, stateJson, isDemoVal, stateJson, isDemoVal]
+    );
+    const [after] = await pool.execute(
+      "SELECT version FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [req.params.key]
+    );
+    const newVersion = after.length ? Number(after[0].version) : void 0;
+    return res.json({ key: req.params.key, updatedAt: (/* @__PURE__ */ new Date()).toISOString(), version: newVersion });
+  } catch (e) {
+    logger.error({ err: e }, "state PUT failed");
+    return res.status(500).json({ error: e?.sqlMessage ?? e?.code ?? "db_error" });
+  }
+});
+var state_default = router2;
+
 // src/routes/login.ts
+var import_express3 = __toESM(require_express2(), 1);
 var router3 = (0, import_express3.Router)();
 var CREATE_TABLE_SQL2 = `
   CREATE TABLE IF NOT EXISTS \`society_state\` (
@@ -78022,7 +78028,7 @@ var SYSTEM_PROMPT = `Sei l'assistente di MyVivaio, piattaforma italiana di gesti
 Rispondi in italiano semplice e diretto, massimo 3-4 frasi.
 Conosci tutte le funzioni dell'app: rosa giocatori, presenze, convocazioni, comunicazioni, chat interna, campionati, tornei, amichevoli, calendario, quote, documenti, impostazioni.
 Non inventare funzioni che non esistono. Se non sai rispondere, dillo chiaramente.`;
-router5.post("/ai-assist", async (req, res) => {
+router5.post("/ai-assist", requireAuth, async (req, res) => {
   const { question, section, role } = req.body;
   if (typeof question !== "string" || !question.trim()) {
     return res.status(400).json({ error: "missing_question" });
@@ -78420,7 +78426,7 @@ async function ensureTable2() {
   await pool.execute(CREATE_TABLE);
   _tableReady = true;
 }
-router7.post("/upload/photo", async (req, res) => {
+router7.post("/upload/photo", requireAuth, async (req, res) => {
   const { societyKey, photoKey, dataBase64 } = req.body;
   if (!societyKey || !photoKey || !dataBase64) {
     return res.status(400).json({ error: "missing_fields" });
@@ -78468,7 +78474,7 @@ router7.get("/photo/:societyKey/:photoKey", async (req, res) => {
     return res.status(500).send("Server error");
   }
 });
-router7.delete("/upload/photo/:societyKey/:photoKey", async (req, res) => {
+router7.delete("/upload/photo/:societyKey/:photoKey", requireAuth, async (req, res) => {
   try {
     await ensureTable2();
     await pool.execute(

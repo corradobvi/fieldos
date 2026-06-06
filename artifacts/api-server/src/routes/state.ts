@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
@@ -107,7 +108,23 @@ router.get("/state/:key", async (req, res) => {
 });
 
 // PUT /state/:key — upsert state blob
-router.put("/state/:key", async (req, res) => {
+// FIX security audit-globale: prima del fix accessibile senza auth → chiunque sa
+// la key (formato pubblico fieldos_state_soc_<id>, id sequenziale 1-99) poteva
+// sovrascrivere il blob principale di qualsiasi società. I guard interni
+// (size/demo/downgrade) mitigavano errori ma non un attaccante mirato che
+// inviava uno stateJson grande e malevolo.
+// Ora: requireAuth + ownership check key === fieldos_state_soc_${jwt.societyId}.
+// SA blob (fieldos_sa_v1, fieldos_demo_*) è scritto solo via endpoint dedicati
+// con X-SA-Secret/X-Admin-Secret (admin-reset-demo.ts), non via questo handler.
+router.put("/state/:key", requireAuth, async (req, res) => {
+  const jwtSocId = req.jwtUser!.societyId;
+  const expectedKey = `fieldos_state_soc_${jwtSocId}`;
+  if (req.params.key !== expectedKey) {
+    return res.status(403).json({
+      error: "forbidden",
+      detail: "state key must match JWT.societyId (expected: " + expectedKey + ")",
+    });
+  }
   const { stateJson, isDemo, baseVersion } = req.body as { stateJson?: unknown; isDemo?: unknown; baseVersion?: unknown };
   if (typeof stateJson !== "string") {
     return res.status(400).json({ error: "stateJson must be a string" });

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
@@ -26,7 +27,14 @@ async function ensureTable() {
 // POST /api/upload/photo
 // Body: { societyKey, photoKey, dataBase64 }
 // Returns: { ok: true, url: "/api/photo/{societyKey}/{photoKey}" }
-router.post("/upload/photo", async (req, res) => {
+// FIX security audit-globale: prima del fix accessibile senza auth → chiunque
+// poteva caricare foto (max 2MB) consumando spazio DB MEDIUMBLOB e/o pulire
+// foto di altre società (DELETE). Aggiunto requireAuth. Ownership su societyKey
+// NON applicato qui perché il formato `society_key` di photo_uploads è una
+// stringa arbitraria del FE, non sempre derivabile da JWT.societyId (es. demo).
+// Va considerato come miglioria futura (P2): mappare society_key → societyId
+// per ownership check stretto.
+router.post("/upload/photo", requireAuth, async (req, res) => {
   const { societyKey, photoKey, dataBase64 } = req.body as Record<string, string>;
 
   if (!societyKey || !photoKey || !dataBase64) {
@@ -85,7 +93,9 @@ router.get("/photo/:societyKey/:photoKey", async (req, res) => {
 });
 
 // DELETE /api/upload/photo/:societyKey/:photoKey (pulizia opzionale)
-router.delete("/upload/photo/:societyKey/:photoKey", async (req, res) => {
+// FIX security audit-globale: requireAuth aggiunto. Ownership non applicato
+// (stesso motivo del POST: formato society_key non sempre derivabile da JWT).
+router.delete("/upload/photo/:societyKey/:photoKey", requireAuth, async (req, res) => {
   try {
     await ensureTable();
     await pool.execute(

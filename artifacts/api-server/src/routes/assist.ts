@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logger } from "../lib/logger";
+import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
@@ -10,7 +11,10 @@ Conosci tutte le funzioni dell'app: rosa giocatori, presenze, convocazioni, comu
 Non inventare funzioni che non esistono. Se non sai rispondere, dillo chiaramente.`;
 
 // POST /api/ai-assist — risposta AI per domande non coperte dalle FAQ
-router.post("/ai-assist", async (req, res) => {
+// FIX security audit-globale: prima del fix accessibile senza auth → spam/abuse
+// risk + costo Anthropic API illimitato. requireAuth limita ad utenti loggati.
+// Non aggiunto rate-limiting per-user (P2 raccomandato, fuori scope).
+router.post("/ai-assist", requireAuth, async (req, res) => {
   const { question, section, role } = req.body as {
     question?: unknown;
     section?: unknown;
