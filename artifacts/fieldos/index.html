@@ -3719,18 +3719,17 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
   </div>
 </div>
 
-<!-- Statistiche giocatore — popup aperto dal click sul nome nella rosa.
-     Contiene i 3 blocchi spostati dal popup matita: pAnagStats / pConvStats / pMatchStats.
-     pMatchStats e leva-dependent (advStats+isGK gestiti dentro renderPMatchStats). -->
+<!-- Statistiche giocatore — popup UNIFICATO (Rosa->nome E Statistiche->nome usano questo).
+     Body popolato dinamicamente da renderPlayerStatsScheda(): tab Stagione/Precedenti,
+     KPI, dettaglio competizione, allenamenti, storico convocazioni (#pConvStats),
+     Note Mister (solo staff), stagioni precedenti add/remove. -->
 <div class="ov" id="mPlayerStats">
-  <div class="modal">
-    <div class="mh"><div class="mt" id="mPlayerStatsTitle">📊 Statistiche giocatore</div><button class="mx" onclick="closeM('mPlayerStats')">✕</button></div>
-    <div id="pAnagStats" style="display:none;background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div id="pMatchStats" style="display:none;background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>
-    <div style="display:flex;gap:8px;margin-top:4px;">
-      <button class="btn btn-g" style="flex:1;" onclick="closeM('mPlayerStats')">Chiudi</button>
+  <div class="modal" style="max-width:540px;padding:0;overflow:hidden;">
+    <div class="mh" style="padding:14px 18px 0;margin-bottom:0;">
+      <div class="mt" id="mPlayerStatsTitle">📊 Statistiche giocatore</div>
+      <button class="mx" onclick="closeM('mPlayerStats')">✕</button>
     </div>
+    <div id="mPlayerStatsBody" style="overflow-y:auto;max-height:84vh;padding:14px 16px 16px;"></div>
   </div>
 </div>
 
@@ -4034,16 +4033,9 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
   </div>
 </div>
 
-<!-- Scheda statistiche giocatore -->
-<div class="ov" id="mStatScheda">
-  <div class="modal" style="max-width:540px;padding:0;overflow:hidden;">
-    <div class="mh" style="padding:14px 18px 0;margin-bottom:0;">
-      <div class="mt" id="mStatSchedaTitle">📊 Scheda giocatore</div>
-      <button class="mx" onclick="closeM('mStatScheda')">✕</button>
-    </div>
-    <div id="mStatSchedaBody" style="overflow-y:auto;max-height:84vh;"></div>
-  </div>
-</div>
+<!-- mStatScheda RIMOSSO: unificato in #mPlayerStats. Il vecchio openPlayerStatsScheda
+     ora e' un alias di openPlayerStatsModal (entrambi aprono il popup unificato). -->
+
 
 <!-- Nuovo / modifica evento -->
 <div class="ov" id="mEvento">
@@ -7954,25 +7946,14 @@ async function saveMinorPlayer() {
 }
 
 // Player modal — null = new (GDPR form), id = edit (full form)
-// Apre il popup "Statistiche giocatore" (separato dal popup matita "Modifica dati").
-// Riusa as-is i 3 renderer leva-dependent gia esistenti (renderPAnagStats / renderPConvStats /
-// renderPMatchStats) che oggi disegnano dentro i div #pAnagStats / #pConvStats / #pMatchStats
-// — ora spostati nel modal #mPlayerStats. Nessuna modifica alla logica leva-dependent.
+// Apre il popup UNIFICATO "Statistiche giocatore" — usato sia dal click sul nome
+// in Rosa, sia dal click sul nome in Statistiche (vecchio openPlayerStatsScheda,
+// ora alias). Setta lo stato del renderer (_statsSchedaPlayerId + tab default
+// 'stagione') e delega tutto a renderPlayerStatsScheda() che disegna nel body.
 function openPlayerStatsModal(id) {
-  const p = players.find(x => x.id === id);
-  if (!p) return;
-  const titleEl = document.getElementById('mPlayerStatsTitle');
-  if (titleEl) {
-    const _name = p.incomplete
-      ? (p.nome + ' ' + (p.cogn_iniziale || ''))
-      : (p.nome + ' ' + (p.cogn || ''));
-    titleEl.textContent = '📊 ' + _name.trim() + (p.leva ? ' · ' + p.leva : '');
-  }
-  // Render dei 3 blocchi (gli id #pAnagStats / #pConvStats / #pMatchStats vivono ora
-  // dentro #mPlayerStats, ma getElementById trova comunque l'unica istanza).
-  renderPAnagStats(p);
-  renderPConvStats(p);
-  renderPMatchStats(p);
+  _statsSchedaPlayerId = id;
+  _currentStatsSchedaTab = 'stagione';
+  renderPlayerStatsScheda();
   openM('mPlayerStats');
 }
 
@@ -12318,23 +12299,34 @@ function renderStats() {
 let _statsSchedaPlayerId = null;
 let _currentStatsSchedaTab = 'stagione';
 
-function openPlayerStatsScheda(playerId) {
-  _statsSchedaPlayerId = playerId;
-  _currentStatsSchedaTab = 'stagione';
-  renderPlayerStatsScheda();
-  openM('mStatScheda');
-}
+// Alias del vecchio entry point della sezione Statistiche (marcatori table).
+// Entrambi i click (nome in Rosa, nome in Statistiche) ora aprono lo stesso popup.
+function openPlayerStatsScheda(playerId) { openPlayerStatsModal(playerId); }
 
 function statsSchedaSetTab(tab) {
   _currentStatsSchedaTab = tab;
   renderPlayerStatsScheda();
 }
 
+// Render unificato per popup #mPlayerStats. Stile = card a sfondo linear-gradient,
+// header di sezione con emoji + titolo bold maiuscolo (grafica del popup Rosa).
+// Riusa AS-IS: calcStats, playerMatchStats, renderPConvStats (storico ultime 3),
+// savePlayerStatNotes, addPlayerPrevSeason, removePlayerPrevSeason, statsSchedaSetTab.
+// Note Mister/stagioni precedenti gating identico: canEditNotes = staff.
 function renderPlayerStatsScheda() {
-  const el = document.getElementById('mStatSchedaBody');
-  if (!el) return;
+  const body = document.getElementById('mPlayerStatsBody');
+  if (!body) return;
   const p = players.find(x => x.id === _statsSchedaPlayerId);
-  if (!p) { el.innerHTML = '<div style="padding:16px;color:var(--text2);">Giocatore non trovato.</div>'; return; }
+  if (!p) { body.innerHTML = '<div style="padding:16px;color:var(--text2);">Giocatore non trovato.</div>'; return; }
+
+  // Aggiorna titolo del modal (vive nel mh)
+  const titleEl = document.getElementById('mPlayerStatsTitle');
+  if (titleEl) {
+    const _name = p.incomplete
+      ? (p.nome + ' ' + (p.cogn_iniziale || ''))
+      : (p.nome + ' ' + (p.cogn || ''));
+    titleEl.textContent = '📊 ' + _name.trim() + (p.leva ? ' · ' + p.leva : '');
+  }
 
   const s   = calcStats(p);
   const ms  = playerMatchStats(p.id, p.leva);
@@ -12355,41 +12347,23 @@ function renderPlayerStatsScheda() {
   const pcPar   = s.parTot ? Math.round(s.parPres / s.parTot * 100) : 0;
   const pcParC  = pcPar >= 80 ? 'var(--green)' : pcPar >= 60 ? 'var(--gold)' : 'var(--red)';
   const canEditNotes = me && (isAdminLike() || me.role === 'allenatore' || me.role === 'dirigente');
-  const rc = ruoloColor(p.ruolo);
   const tabS = _currentStatsSchedaTab === 'stagione';
+
+  // Stili card riusabili (grafica del popup Rosa)
+  const sectHdr = `font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;font-weight:900;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;`;
+  const cardN   = `background:linear-gradient(135deg,var(--cl),#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;`;
+  const cardM   = `background:linear-gradient(135deg,#e8f9f1,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;`;
+
   let html = '';
 
-  // Breadcrumb / back strip
-  html += `<div style="background:var(--bg);padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
-    <button class="btn btn-g btn-sm" onclick="closeM('mStatScheda')" style="font-size:.75rem;">← Indietro</button>
-    <span style="font-size:.78rem;color:var(--text3);">📊 Statistiche · ${escapeHtml(p.leva)}</span>
-  </div>`;
-
-  // Player header
-  html += `<div style="padding:15px 18px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
-    ${playerAv(p, 60, '50%', false)}
-    <div style="flex:1;min-width:0;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:900;line-height:1.1;">${escapeHtml(p.nome + ' ' + p.cogn)}</div>
-      ${p.soprannome ? `<div style="font-size:.78rem;color:var(--text3);font-style:italic;margin-top:1px;">"${escapeHtml(p.soprannome)}"</div>` : ''}
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:5px;">
-        <span class="pill" style="background:${rc}22;color:${rc};font-size:.7rem;">${escapeHtml(p.ruolo)}</span>
-        <span class="pill" style="font-size:.7rem;">#${p.num}</span>
-        <span class="pill" style="font-size:.7rem;">${escapeHtml(p.leva)}</span>
-        ${p.anno ? `<span class="pill" style="font-size:.7rem;">Cl. ${p.anno}</span>` : ''}
-      </div>
-    </div>
-  </div>`;
-
-  // Tabs
-  html += `<div style="display:flex;border-bottom:2px solid var(--border);">
+  // (2) TAB Stagione corrente / Stagioni precedenti — riusa statsSchedaSetTab
+  html += `<div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:14px;">
     <button type="button" onclick="statsSchedaSetTab('stagione')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'var(--cp)':'transparent'};color:${tabS?'var(--cp)':'var(--text2)'};margin-bottom:-2px;">📊 Stagione corrente</button>
     <button type="button" onclick="statsSchedaSetTab('precedenti')" style="flex:1;padding:11px 10px;font-size:.83rem;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:2px solid ${tabS?'transparent':'var(--cp)'};color:${tabS?'var(--text2)':'var(--cp)'};margin-bottom:-2px;">📁 Stagioni precedenti</button>
   </div>`;
 
-  html += `<div style="padding:14px 16px 20px;">`;
-
   if (tabS) {
-    // Stat boxes grid
+    // (3) Card riepilogo KPI — Gol, Assist, Presenze, % Allenamenti (+ extra leva/GK)
     const boxes = [
       {lbl:'⚽ Gol',      val:tot.gol,    c:'var(--cp)'},
       {lbl:'🅰️ Assist',   val:tot.assist, c:'var(--cp)'},
@@ -12406,66 +12380,74 @@ function renderPlayerStatsScheda() {
       boxes.push({lbl:'🥅 Gol sub.', val:tot.golSub, c:'var(--text)'});
       boxes.push({lbl:'🧤 Clean sh.',val:tot.cs,     c:'var(--green)'});
     }
-    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px;margin-bottom:13px;">`;
+    html += `<div style="${cardN}">
+      <div style="${sectHdr}">📊 Riepilogo</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:7px;">`;
     boxes.forEach(b => {
-      html += `<div style="background:var(--bg);border-radius:9px;padding:10px 8px;text-align:center;">
+      html += `<div style="background:var(--white);border:1px solid var(--border);border-radius:9px;padding:10px 8px;text-align:center;">
         <div style="font-size:1.2rem;font-weight:900;color:${b.c};font-family:'Barlow Condensed',sans-serif;">${b.val}</div>
         <div style="font-size:.67rem;color:var(--text3);margin-top:2px;">${b.lbl}</div>
       </div>`;
     });
-    html += `</div>`;
+    html += `</div></div>`;
 
-    // Per-competition breakdown
-    html += `<div style="background:var(--bg);border-radius:9px;padding:11px;margin-bottom:12px;">
-      <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">Dettaglio per competizione</div>
+    // (4) Dettaglio per competizione — tabella AMICH/CAMP/TORNEI con presenze/gol/assist
+    html += `<div style="${cardM}">
+      <div style="${sectHdr}">⚽ Dettaglio per competizione</div>
       <div style="overflow-x:auto;"><table class="tbl" style="font-size:.79rem;">
-        <thead><tr><th></th><th>Amich.</th><th>Camp.</th><th>Torn.</th></tr></thead>
+        <thead><tr><th></th><th>Amich.</th><th>Camp.</th><th>Torn.</th><th class="tot">TOT</th></tr></thead>
         <tbody>
-          <tr><td>⚽ Gol</td><td>${ms.a.gol}</td><td>${ms.c.gol}</td><td>${ms.t.gol}</td></tr>
-          <tr><td>🅰️ Assist</td><td>${ms.a.assist}</td><td>${ms.c.assist}</td><td>${ms.t.assist}</td></tr>
-          <tr><td>🏃 Presenze</td><td>${ms.a.pres}</td><td>${ms.c.pres}</td><td>${ms.t.pres}</td></tr>`;
+          <tr><td>🏃 Presenze</td><td>${ms.a.pres}</td><td>${ms.c.pres}</td><td>${ms.t.pres}</td><td class="tot">${tot.pres}</td></tr>
+          <tr><td>⚽ Gol</td><td>${ms.a.gol}</td><td>${ms.c.gol}</td><td>${ms.t.gol}</td><td class="tot">${tot.gol}</td></tr>
+          <tr><td>🅰️ Assist</td><td>${ms.a.assist}</td><td>${ms.c.assist}</td><td>${ms.t.assist}</td><td class="tot">${tot.assist}</td></tr>`;
     if (showAdv) {
-      html += `<tr><td>⏱ Minuti</td><td>${ms.a.minuti}</td><td>${ms.c.minuti}</td><td>${ms.t.minuti}</td></tr>
-          <tr><td>🟨 Ammon.</td><td>${ms.a.gialli}</td><td>${ms.c.gialli}</td><td>${ms.t.gialli}</td></tr>
-          <tr><td>🟥 Espuls.</td><td>${ms.a.rossi}</td><td>${ms.c.rossi}</td><td>${ms.t.rossi}</td></tr>`;
+      html += `<tr><td>⏱ Minuti</td><td>${ms.a.minuti}</td><td>${ms.c.minuti}</td><td>${ms.t.minuti}</td><td class="tot">${tot.minuti}</td></tr>
+          <tr><td>🟨 Ammon.</td><td>${ms.a.gialli}</td><td>${ms.c.gialli}</td><td>${ms.t.gialli}</td><td class="tot">${tot.gialli}</td></tr>
+          <tr><td>🟥 Espuls.</td><td>${ms.a.rossi}</td><td>${ms.c.rossi}</td><td>${ms.t.rossi}</td><td class="tot">${tot.rossi}</td></tr>`;
     }
     if (showGK) {
-      html += `<tr><td>🥅 Gol sub.</td><td>${ms.a.golSub}</td><td>${ms.c.golSub}</td><td>${ms.t.golSub}</td></tr>
-          <tr><td>🧤 Clean sh.</td><td>${ms.a.cs}</td><td>${ms.c.cs}</td><td>${ms.t.cs}</td></tr>`;
+      html += `<tr><td>🥅 Gol sub.</td><td>${ms.a.golSub}</td><td>${ms.c.golSub}</td><td>${ms.t.golSub}</td><td class="tot">${tot.golSub}</td></tr>
+          <tr><td>🧤 Clean sh.</td><td>${ms.a.cs}</td><td>${ms.c.cs}</td><td>${ms.t.cs}</td><td class="tot">${tot.cs}</td></tr>`;
     }
     html += `</tbody></table></div></div>`;
 
-    // Training attendance bar
-    html += `<div style="background:var(--bg);border-radius:9px;padding:11px;margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <div style="font-size:.8rem;font-weight:700;">📅 Presenze allenamenti</div>
-        <div style="font-size:.83rem;font-weight:800;color:${pcAllC};">${pcAll}% <span style="font-size:.72rem;font-weight:400;color:var(--text2);">(${s.allPres}P · ${s.allAss}A · ${s.allGiust}G / ${s.allTot})</span></div>
+    // (5) Presenze allenamenti — bar %
+    html += `<div style="${cardN}">
+      <div style="${sectHdr}">📅 Presenze allenamenti</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:.78rem;color:var(--text2);">Frequenza alla rosa</div>
+        <div style="font-size:.92rem;font-weight:800;color:${pcAllC};">${pcAll}% <span style="font-size:.72rem;font-weight:400;color:var(--text2);">(${s.allPres}P · ${s.allAss}A · ${s.allGiust}G / ${s.allTot})</span></div>
       </div>
       <div class="bar"><div class="bar-f" style="width:${pcAll}%;background:${pcAllC};"></div></div>
     </div>`;
 
-    // Note Mister (staff only)
+    // (6) Storico convocazioni — placeholder per renderPConvStats (popolato dopo)
+    html += `<div id="pConvStats" style="display:none;background:linear-gradient(135deg,#fef4e4,#fff);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;"></div>`;
+
+    // (7) Note Mister — solo staff
     if (canEditNotes) {
       const nota = p.noteMister || '';
-      html += `<div style="background:var(--bg);border-radius:9px;padding:11px;">
-        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">📝 Note Mister <span style="text-transform:none;font-weight:400;opacity:.6;">(visibili solo allo staff)</span></div>
+      html += `<div style="${cardN}">
+        <div style="${sectHdr}">📝 Note Mister <span style="text-transform:none;font-weight:400;opacity:.6;font-size:.7rem;letter-spacing:0;">(solo staff)</span></div>
         <textarea id="scNoteInput" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:.83rem;resize:vertical;background:var(--white);box-sizing:border-box;" placeholder="Es. Ottimo nei calci piazzati, lavora sulla fase difensiva, pronto per leva superiore...">${escapeHtml(nota)}</textarea>
         <button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="savePlayerStatNotes(${p.id})">💾 Salva note</button>
       </div>`;
     }
   } else {
-    // Stagioni precedenti
+    // Tab Stagioni precedenti — markup invariato (riusa addPlayerPrevSeason / removePlayerPrevSeason)
     const stagPrec = Array.isArray(p.stagioniPrec) ? p.stagioniPrec : [];
     if (!stagPrec.length) {
-      html += `<div style="text-align:center;padding:30px 16px;">
+      html += `<div style="${cardN}text-align:center;padding:30px 16px;">
         <div style="font-size:2.2rem;margin-bottom:8px;">🌱</div>
         <div style="font-weight:700;font-size:.95rem;">Prima stagione con la squadra</div>
         <div style="font-size:.82rem;color:var(--text2);margin-top:4px;">Non ci sono statistiche di stagioni precedenti.</div>
       </div>`;
     } else {
-      html += `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">`;
+      html += `<div style="${cardN}">
+        <div style="${sectHdr}">📁 Stagioni precedenti</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">`;
       stagPrec.forEach((st, idx) => {
-        html += `<div style="background:var(--bg);border-radius:9px;padding:11px;display:flex;align-items:center;gap:10px;">
+        html += `<div style="background:var(--white);border:1px solid var(--border);border-radius:9px;padding:11px;display:flex;align-items:center;gap:10px;">
           <div style="font-weight:800;font-size:.88rem;min-width:72px;">📅 ${escapeHtml(st.stagione||'—')}</div>
           <div style="display:flex;gap:16px;flex:1;">
             <div style="text-align:center;"><div style="font-size:1.05rem;font-weight:900;color:var(--cp);">${st.gol||0}</div><div style="font-size:.68rem;color:var(--text3);">Gol</div></div>
@@ -12475,11 +12457,11 @@ function renderPlayerStatsScheda() {
           ${canEditNotes ? `<button class="btn btn-r btn-sm" style="flex-shrink:0;" onclick="removePlayerPrevSeason(${p.id},${idx})">🗑</button>` : ''}
         </div>`;
       });
-      html += `</div>`;
+      html += `</div></div>`;
     }
     if (canEditNotes) {
-      html += `<div style="background:var(--bg);border-radius:9px;padding:11px;">
-        <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:7px;">➕ Aggiungi stagione precedente</div>
+      html += `<div style="${cardN}">
+        <div style="${sectHdr}">➕ Aggiungi stagione precedente</div>
         <div style="display:grid;grid-template-columns:1fr 56px 56px 60px;gap:6px;align-items:center;">
           <input class="fi" id="spStagione" placeholder="2023/24" style="font-size:.82rem;padding:6px 8px;">
           <input class="fi" id="spGol"      type="number" min="0" placeholder="Gol"  style="font-size:.82rem;padding:6px 8px;">
@@ -12491,8 +12473,18 @@ function renderPlayerStatsScheda() {
     }
   }
 
-  html += `</div>`;
-  el.innerHTML = html;
+  // Footer chiudi
+  html += `<div style="display:flex;gap:8px;">
+    <button class="btn btn-g" style="flex:1;" onclick="closeM('mPlayerStats')">Chiudi</button>
+  </div>`;
+
+  body.innerHTML = html;
+
+  // (6) Storico convocazioni — riuso AS-IS di renderPConvStats (cerca #pConvStats,
+  // ora nel popup unificato). Solo in tab Stagione corrente.
+  if (tabS && typeof renderPConvStats === 'function') {
+    renderPConvStats(p);
+  }
 }
 
 function savePlayerStatNotes(playerId) {
