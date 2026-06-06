@@ -23940,10 +23940,10 @@ async function saveResultWithRetry(applyResult, maxRetries) {
     }
     // 412 dopo maxRetries OR 409 (would_downgrade / overwrite_real): SOSPETTI BENIGNI.
     // 3 step: pulla, riapplica, e se serve fai un ULTIMO push (server ora ha baseVersion
-    // fresca dopo il pull). Solo se ANCHE l'ultimo push fallisce → fail vero, caller
-    // mostra il toast. Senza l'ultimo push, isNewOrChanged=true post-pull ritornava
-    // ok:false anche quando l'autosave 1.5s in background poi salvava il dato
-    // (utente vedeva toast "non salvato" mentre il dato compariva dopo refresh).
+    // fresca dopo il pull). Se l'ultimo push fallisce → NON e' un vero errore: l'autosave
+    // 1.5s in background o un altro device salvera' a brevissimo. Ritorniamo ok:'conflict'
+    // (terzo stato distinto da true/false): il caller NON mostrera' toast d'errore,
+    // evitando il falso positivo "Risultato non salvato" mentre il dato compare dopo refresh.
     if (resp && (resp.status === 412 || resp.status === 409)) {
       if (typeof window.__fieldosHandleStaleConflict === 'function') {
         try { await window.__fieldosHandleStaleConflict({ silent: true }); } catch (_) {}
@@ -23964,9 +23964,10 @@ async function saveResultWithRetry(applyResult, maxRetries) {
           }
         } catch (_) { /* fail-through */ }
       }
-      return { ok: false, match: (post && post.match) || last.match, isNewOrChanged: false };
+      // Conflict residuo: il dato sara' propagato dall'autosave/altri device. NO toast d'errore.
+      return { ok: 'conflict', match: (post && post.match) || last.match, isNewOrChanged: false };
     }
-    // Rete / 5xx / altri: fail diretto come oggi, caller mostra il toast onesto.
+    // Rete / 5xx / altri: fail diretto (vero errore), caller mostra il toast onesto.
     return { ok: false, match: last.match, isNewOrChanged: false };
   }
   return { ok: false, match: last.match, isNewOrChanged: false };
@@ -24001,9 +24002,17 @@ async function saveQuickResult(tipo, ref, idC, idO) {
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=saveQuickResult saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-    if (res.ok) {
+    // 3 stati distinti:
+    //  - ok===true     → save confermato server, toast verde + notifica push.
+    //  - ok==='conflict' → 412/409 esauriti ma il dato sara' propagato da autosave/altri
+    //                      device. Nessun toast d'errore, niente push (evitiamo duplicati).
+    //  - ok===false    → vero errore (rete/5xx/match non trovato), toast onesto.
+    if (res.ok === true) {
       _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
       toast('✅ Risultato salvato!');
+    } else if (res.ok === 'conflict') {
+      // Silent: il dato e' sotto controllo dell'autosave, nessun allarme all'utente.
+      console.warn('[saveQuickResult] conflict residuo — autosave gestira', { tipo, gc, go });
     } else {
       toast('⚠️ Risultato non salvato — riprova');
     }
@@ -24877,9 +24886,13 @@ async function savePtRisultato() {
     window.__fieldosSaveState(); renderGestComp(); renderPartite(); renderCal();
     const res = await saveResultWithRetry(applyResult);
     console.log('[NOTIFY] caller=savePtRisultato saveOk=', res.ok, 'isNewOrChanged=', res.isNewOrChanged, 'trulyChanged=', _trulyChanged);
-    if (res.ok) {
+    // Stesso pattern 3-stati di saveQuickResult.
+    if (res.ok === true) {
       _notifyRisultatoToGenitori(tipo, res.match, gc, go, _trulyChanged);
       toast('✅ Risultato salvato!');
+    } else if (res.ok === 'conflict') {
+      // Silent: autosave gestira, niente allarme.
+      console.warn('[savePtRisultato] conflict residuo — autosave gestira', { tipo, gc, go });
     } else {
       toast('⚠️ Risultato non salvato — riprova');
     }
