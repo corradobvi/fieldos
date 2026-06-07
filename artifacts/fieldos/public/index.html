@@ -24107,28 +24107,12 @@ function _notifyRisultatoToGenitori(tipo, match, gc, go, triggerWebpush) {
     const score = `${gc}–${go}`;
     const title = `⚽ Risultato ${tipoLabel} (${leva}): ${score}`;
     const body = avversario ? `vs ${avversario}` : '';
-    const ids = recipientsForGenitoriOfLeva(leva);
-    console.log('[NOTIFY] dest=', ids.length, ids);
-    // ── DEBUG TEMPORANEO: leva risolta + numero destinatari ────────────────
-    try { toast && toast("NOTIFY leva='" + String(leva) + "' dest=" + ids.length); } catch(_) {}
-    if (ids.length) {
-      ids.forEach(uid => {
-        console.log('[NOTIFY] inapp+ uid=', uid);
-        pushNotifica(uid, { type: 'risultato_partita', title, body });
-      });
-      if (typeof refreshNotificheBadge === 'function') refreshNotificheBadge();
-      // FIX B — propaga notifiche[] al server subito. pushNotifica muta solo
-      // in-memory; senza saveState esplicito le entry restano locali e possono
-      // essere sovrascritte da un successivo applyServerState (polling 30s,
-      // fallback 412). __fieldosSaveState manda lo snapshot via apiPush (coda
-      // + retry 412).
-      if (typeof window.__fieldosSaveState === 'function') {
-        console.log('[NOTIFY] saveState after inapp+ (propaga notifiche[])');
-        window.__fieldosSaveState();
-      }
-    } else {
-      console.log('[NOTIFY] exit=dest-zero (nessuna pushNotifica in-app)');
-    }
+    // Cablaggio resolver unico (commit precedente a609fae + questo commit):
+    // la card in-app e la push web vengono ora SCRITTE entrambe dal BE
+    // (notifiche-risultato.ts → resolveRecipients + sendPushToUsers + addNotificaToBlob).
+    // Prima questo blocco faceva: recipientsForGenitoriOfLeva FE + pushNotifica
+    // loop + refreshNotificheBadge + __fieldosSaveState per propagare notifiche[].
+    // Rimosso tutto: il fetch BE qui sotto fa già il lavoro completo.
     // Webpush nativo — solo quando risultato è nuovo/cambiato. Lista destinatari risolta server-side.
     if (triggerWebpush && typeof _v2Token !== 'undefined' && _v2Token) {
       try {

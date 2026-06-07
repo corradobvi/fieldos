@@ -3,6 +3,7 @@ import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
 import { resolveRecipients } from "../../lib/recipient-resolver";
+import { addNotificaToBlob } from "./minors";
 
 const router = Router();
 
@@ -44,6 +45,16 @@ router.post(
         body: String(body || ""),
         tag: `risultato-${leva}`,
       });
+
+      // Card in-app per i destinatari (sostituisce la pushNotifica FE rimossa).
+      // Stesso shape che scriveva il FE: { type:'risultato_partita', title, body }
+      // con eventId/convocazioneId/quoteKey/docKey null (default di addNotificaToBlob).
+      // Stesso pattern usato in presenze.ts notify-coaches.
+      addNotificaToBlob(societyId, ids, {
+        type: "risultato_partita",
+        title: String(title),
+        body: String(body || ""),
+      }).catch(() => { /* non-bloccante, gia' loggato dentro l'helper */ });
 
       return res.json({ ok: true, recipients: ids.length, sent: result.sent, errors: result.errors });
     } catch (e: any) {

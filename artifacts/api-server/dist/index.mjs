@@ -93661,6 +93661,12 @@ router38.post(
         body: String(body || ""),
         tag: `risultato-${leva}`
       });
+      addNotificaToBlob(societyId, ids, {
+        type: "risultato_partita",
+        title: String(title),
+        body: String(body || "")
+      }).catch(() => {
+      });
       return res.json({ ok: true, recipients: ids.length, sent: result.sent, errors: result.errors });
     } catch (e) {
       logger.error({ err: e?.message }, "POST notifiche/risultato-partita error");
