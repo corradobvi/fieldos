@@ -85051,1877 +85051,15 @@ router12.delete("/leve/:id", requireAuth, requireRole("admin"), async (req, res)
 var leve_default = router12;
 
 // src/routes/v2/players.ts
-var import_express14 = __toESM(require_express2(), 1);
+var import_express15 = __toESM(require_express2(), 1);
 
 // src/routes/v2/minors.ts
-var import_express13 = __toESM(require_express2(), 1);
-var router13 = (0, import_express13.Router)();
-var STAFF_ROLES = ["admin", "allenatore", "mister", "dirigente"];
-var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
-router13.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const { firstName, lastNameInitial, levaKey, shirtNumber } = req.body;
-  if (!firstName?.trim()) return res.status(400).json({ error: "firstName_required" });
-  const initial = lastNameInitial?.trim() ?? "";
-  if (!initial || initial.length > 10 || !initial.includes(".")) {
-    return res.status(400).json({ error: "lastNameInitial_invalid", detail: "Must contain a dot, max 10 chars (e.g. 'B.' or 'B.V.')" });
-  }
-  if (!levaKey?.trim()) return res.status(400).json({ error: "levaKey_required" });
-  try {
-    const [existingCheck] = await pool.execute(
-      `SELECT id, nome, cognome_iniziale FROM players
-       WHERE society_id = ? AND LOWER(nome) = LOWER(?) AND LOWER(cognome_iniziale) = LOWER(?)
-       LIMIT 1`,
-      [societyId, firstName.trim(), initial]
-    );
-    if (existingCheck.length > 0) {
-      const ex = existingCheck[0];
-      logger.warn({ societyId, firstName, lastNameInitial: initial, existingId: ex.id }, "[minor] Possibile duplicato");
-    }
-    const [result] = await pool.execute(
-      `INSERT INTO players
-         (society_id, nome, cognome, cognome_iniziale, numero, leva, incomplete,
-          parental_consent_given_by, parental_consent_at)
-       VALUES (?, ?, '', ?, ?, ?, 1, NULL, NULL)`,
-      [societyId, firstName.trim(), initial, shirtNumber != null ? Number(shirtNumber) : null, levaKey.trim()]
-    );
-    logger.info({ playerId: result.insertId, societyId, userId, leva: levaKey }, "minor player created");
-    return res.status(201).json({
-      player: {
-        id: result.insertId,
-        firstName: firstName.trim(),
-        lastNameInitial: initial,
-        levaKey: levaKey.trim(),
-        shirtNumber: shirtNumber != null ? Number(shirtNumber) : null,
-        incomplete: true
-      }
-    });
-  } catch (e) {
-    logger.error({ err: e }, "POST players/minor error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players/public-incomplete", async (req, res) => {
-  const code = req.query.code?.trim().toUpperCase();
-  if (!code) return res.status(400).json({ error: "code_required" });
-  try {
-    let [socRows] = await pool.execute(
-      "SELECT id FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
-      [code]
-    );
-    if (!socRows.length) {
-      const [blobRows] = await pool.execute(
-        `SELECT \`key\`, state_json FROM society_state
-         WHERE \`key\` LIKE 'fieldos_state_soc_%' AND \`key\` NOT LIKE 'fieldos_demo%'`
-      );
-      for (const row of blobRows) {
-        let state;
-        try {
-          state = JSON.parse(row.state_json);
-        } catch {
-          continue;
-        }
-        const rowCode = String(state?.codiceSocieta || "").trim().toUpperCase();
-        if (!rowCode || rowCode !== code) continue;
-        const m = String(row.key).match(/fieldos_state_soc_(\d+)$/);
-        const blobSocId = m ? parseInt(m[1], 10) : 0;
-        if (!blobSocId) continue;
-        const [check] = await pool.execute(
-          "SELECT id FROM societies WHERE id = ? AND stato = 'attiva' LIMIT 1",
-          [blobSocId]
-        );
-        if (check.length) {
-          socRows = check;
-          break;
-        }
-      }
-    }
-    if (!socRows.length) return res.status(404).json({ error: "society_not_found" });
-    const societyId = socRows[0].id;
-    const levaKey = req.query.levaKey;
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome AS firstName, p.cognome_iniziale AS lastNameInitial,
-              p.numero AS shirtNumber, p.leva AS levaKey, p.incomplete,
-              p.cognome AS _cognome, p.birth_date AS _birthDate,
-              COUNT(pg.id) AS guardiansCount
-       FROM players p
-       LEFT JOIN player_guardians pg ON pg.player_id = p.id
-       WHERE p.society_id = ? AND p.cognome_iniziale IS NOT NULL
-         ${levaKey ? "AND p.leva = ?" : ""}
-       GROUP BY p.id ORDER BY p.nome`,
-      levaKey ? [societyId, levaKey] : [societyId]
-    );
-    return res.json(rows.map((r) => ({
-      id: r.id,
-      firstName: r.firstName,
-      lastNameInitial: r.lastNameInitial,
-      shirtNumber: r.shirtNumber,
-      levaKey: r.levaKey,
-      incomplete: !!r.incomplete,
-      needsCompletion: !!r.incomplete || !r._cognome || !r._birthDate,
-      guardiansCount: Number(r.guardiansCount)
-    })));
-  } catch (e) {
-    logger.error({ err: e }, "GET players/public-incomplete error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players/incomplete", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const levaKey = req.query.levaKey;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT p.id,
-              p.nome            AS firstName,
-              p.cognome_iniziale AS lastNameInitial,
-              p.numero          AS shirtNumber,
-              p.leva            AS levaKey,
-              p.incomplete,
-              COUNT(pg.id)      AS guardiansCount
-       FROM players p
-       LEFT JOIN player_guardians pg ON pg.player_id = p.id
-       WHERE p.society_id = ?
-         AND p.cognome_iniziale IS NOT NULL
-         ${levaKey ? "AND p.leva = ?" : ""}
-       GROUP BY p.id
-       ORDER BY p.nome`,
-      levaKey ? [societyId, levaKey] : [societyId]
-    );
-    return res.json(rows.map((r) => ({
-      id: r.id,
-      firstName: r.firstName,
-      lastNameInitial: r.lastNameInitial,
-      shirtNumber: r.shirtNumber,
-      levaKey: r.levaKey,
-      incomplete: !!r.incomplete,
-      guardiansCount: Number(r.guardiansCount)
-    })));
-  } catch (e) {
-    logger.error({ err: e }, "GET players/incomplete error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.post("/players/:id/claim", requireAuth, async (req, res) => {
-  const { userId, societyId } = req.jwtUser;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  const { role, consent, lastNameFull, birthDate } = req.body;
-  if (!VALID_GUARDIAN_ROLES.includes(role)) {
-    return res.status(400).json({ error: "invalid_role", valid: VALID_GUARDIAN_ROLES });
-  }
-  if (consent !== true) return res.status(400).json({ error: "consent_required" });
-  try {
-    const [players] = await pool.execute(
-      "SELECT id, nome, cognome, cognome_iniziale, leva, incomplete, birth_date, society_id FROM players WHERE id = ? AND society_id = ?",
-      [playerId, societyId]
-    );
-    if (!players.length) return res.status(404).json({ error: "player_not_found" });
-    const player = players[0];
-    const [existing] = await pool.execute(
-      "SELECT id FROM player_guardians WHERE player_id = ? AND user_id = ?",
-      [playerId, userId]
-    );
-    if (existing.length) return res.status(409).json({ error: "already_associated" });
-    const [gCountRows] = await pool.execute(
-      "SELECT COUNT(*) AS n FROM player_guardians WHERE player_id = ?",
-      [playerId]
-    );
-    const isFirstClaim = (gCountRows[0].n ?? 0) === 0;
-    const needsCompletion = !!player.incomplete || !player.cognome || !player.birth_date;
-    if (needsCompletion) {
-      if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required" });
-      if (!birthDate) return res.status(400).json({ error: "birthDate_required" });
-      await pool.execute(
-        "UPDATE players SET cognome = ?, birth_date = ?, incomplete = 0 WHERE id = ?",
-        [lastNameFull.trim(), birthDate, playerId]
-      );
-      logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
-    }
-    const [ins] = await pool.execute(
-      `INSERT INTO player_guardians (player_id, user_id, role, consent_given, consent_at)
-       VALUES (?, ?, ?, 1, NOW())`,
-      [playerId, userId, role]
-    );
-    await pool.execute(
-      "INSERT IGNORE INTO user_players (user_id, player_id) VALUES (?, ?)",
-      [userId, playerId]
-    ).catch(() => {
-    });
-    try {
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId, staffOnly: true });
-      if (targetIds && targetIds.length) {
-        let guardianFullName = "";
-        try {
-          const [u] = await pool.execute(
-            "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
-            [userId]
-          );
-          if (u.length) guardianFullName = `${u[0].nome || ""} ${u[0].cognome || ""}`.trim();
-        } catch {
-        }
-        const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}`.trim();
-        addNotificaToBlob(societyId, targetIds, {
-          type: "nuovo_genitore",
-          title: `\u2705 Nuovo genitore: ${guardianFullName || "genitore"}`,
-          body: `Figli: ${childFullName}`
-        }).catch(() => {
-        });
-        if (isFirstClaim) {
-          sendPushToUsers(targetIds, societyKeyFor(societyId), {
-            title: "\u{1F468}\u200D\u{1F467} Nuovo genitore collegato",
-            body: `${childFullName}: ${guardianFullName || "un genitore"} si \xE8 registrato.`,
-            tag: `player-guardian-${playerId}`
-          }).catch(() => {
-          });
-        }
-      }
-    } catch (_) {
-    }
-    await syncPlayerFromMysqlToBlob(societyId, playerId).catch(() => {
-    });
-    await syncGuardianToBlob(societyId, userId).catch(() => {
-    });
-    return res.json({
-      ok: true,
-      guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true }
-    });
-  } catch (e) {
-    logger.error({ err: e }, "POST players/:id/claim error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
-  const { userId, societyId } = req.jwtUser;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  const { lastNameFull, birthDate } = req.body;
-  const newLastName = typeof lastNameFull === "string" ? lastNameFull.trim() : null;
-  const newBirth = typeof birthDate === "string" && birthDate.trim() ? birthDate.trim() : null;
-  if (!newLastName && !newBirth) return res.status(400).json({ error: "no_fields_to_update" });
-  try {
-    const [g] = await pool.execute(
-      `SELECT pg.id FROM player_guardians pg
-       INNER JOIN players p ON p.id = pg.player_id
-       WHERE pg.player_id = ? AND pg.user_id = ? AND p.society_id = ?
-       LIMIT 1`,
-      [playerId, userId, societyId]
-    );
-    if (!g.length) return res.status(403).json({ error: "not_a_guardian" });
-    const updates = [];
-    const params = [];
-    if (newLastName) {
-      updates.push("cognome = ?");
-      params.push(newLastName);
-    }
-    if (newBirth) {
-      updates.push("birth_date = ?");
-      params.push(newBirth);
-    }
-    updates.push("incomplete = CASE WHEN cognome <> '' AND birth_date IS NOT NULL THEN 0 ELSE incomplete END");
-    params.push(playerId);
-    await pool.execute(
-      `UPDATE players SET ${updates.join(", ")} WHERE id = ?`,
-      params
-    );
-    logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
-    await syncPlayerFromMysqlToBlob(societyId, playerId);
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "PATCH players/:id/personal-data error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players/rosa-sync", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, p.leva, p.numero, p.incomplete,
-              p.approval_status, p.birth_date,
-              (SELECT COUNT(*) FROM player_guardians WHERE player_id = p.id) AS guardiansCount
-       FROM players p WHERE p.society_id = ?
-       ORDER BY p.id`,
-      [societyId]
-    );
-    return res.json({ players: rows });
-  } catch (e) {
-    logger.error({ err: e }, "GET players/rosa-sync error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId: requesterId } = req.jwtUser;
-  const playerId = parseInt(req.params.id, 10);
-  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
-  logger.info({ requesterId, playerId, societyId }, "[GDPR] guardians list accessed");
-  try {
-    const [playerRows] = await pool.execute(
-      "SELECT id FROM players WHERE id = ? AND society_id = ?",
-      [playerId, societyId]
-    );
-    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
-    const [rows] = await pool.execute(
-      `SELECT pg.id, pg.user_id AS userId, pg.role,
-              pg.consent_given AS consentGiven, pg.consent_at AS consentAt,
-              pg.created_at AS createdAt,
-              u.nome, u.cognome, u.email
-       FROM player_guardians pg
-       JOIN users u ON u.id = pg.user_id
-       WHERE pg.player_id = ?
-       ORDER BY pg.created_at`,
-      [playerId]
-    );
-    return res.json(rows.map((r) => ({
-      id: r.id,
-      userId: r.userId,
-      userName: `${r.nome} ${r.cognome}`,
-      email: r.email,
-      role: r.role,
-      consentGiven: !!r.consentGiven,
-      consentAt: r.consentAt,
-      createdAt: r.createdAt
-    })));
-  } catch (e) {
-    logger.error({ err: e }, "GET players/:id/guardians error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router13.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
-  const { societyId, userId: requesterId } = req.jwtUser;
-  const playerId = parseInt(req.params.playerId, 10);
-  const guardianId = parseInt(req.params.guardianId, 10);
-  if (isNaN(playerId) || isNaN(guardianId)) return res.status(400).json({ error: "invalid_ids" });
-  try {
-    const [playerRows] = await pool.execute(
-      "SELECT id FROM players WHERE id = ? AND society_id = ?",
-      [playerId, societyId]
-    );
-    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
-    const [guardianRows] = await pool.execute(
-      "SELECT id, user_id FROM player_guardians WHERE id = ? AND player_id = ?",
-      [guardianId, playerId]
-    );
-    if (!guardianRows.length) return res.status(404).json({ error: "guardian_not_found" });
-    const guardianUserId = guardianRows[0].user_id;
-    await pool.execute("DELETE FROM player_guardians WHERE id = ?", [guardianId]);
-    await pool.execute(
-      "DELETE FROM user_players WHERE user_id = ? AND player_id = ?",
-      [guardianUserId, playerId]
-    ).catch(() => {
-    });
-    logger.info({ requesterId, guardianId, guardianUserId, playerId, societyId }, "[GDPR] guardian unlinked by staff");
-    try {
-      const [residui] = await pool.execute(
-        `SELECT COUNT(*) AS n FROM player_guardians pg
-         INNER JOIN players p ON p.id = pg.player_id
-         WHERE pg.user_id = ? AND p.society_id = ?`,
-        [guardianUserId, societyId]
-      );
-      const hasOtherChildren = Number(residui[0].n) > 0;
-      if (hasOtherChildren) {
-        await syncGuardianToBlob(societyId, guardianUserId).catch(() => {
-        });
-      } else {
-        await removeGuardianFromBlob(societyId, guardianUserId).catch(() => {
-        });
-      }
-    } catch (_) {
-    }
-    try {
-      const [playerInfo] = await pool.execute(
-        "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
-        [playerId]
-      );
-      const pName = playerInfo[0] ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ""}`.trim() : "un giocatore";
-      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
-        title: "\u274C Tutore sganciato",
-        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la societ\xE0 per chiarimenti.`,
-        tag: `guardian-removed-${playerId}-${guardianUserId}`
-      }).catch(() => {
-      });
-    } catch (_) {
-    }
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE players/:playerId/guardians/:guardianId error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-async function syncPlayerFromMysqlToBlob(societyId, playerId) {
-  if (!societyId || !playerId) return;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, cognome_iniziale, birth_date, incomplete, approval_status, numero, leva
-       FROM players WHERE id = ? AND society_id = ? LIMIT 1`,
-      [playerId, societyId]
-    );
-    if (!rows.length) return;
-    const m = rows[0];
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [blobRows] = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey]
-    );
-    if (!blobRows.length) return;
-    let state;
-    try {
-      state = JSON.parse(blobRows[0].state_json);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(state.players)) return;
-    const idx = state.players.findIndex((p) => p && p.id === playerId);
-    if (idx < 0) return;
-    const blobPlayer = state.players[idx];
-    if (m.cognome != null) blobPlayer.cogn = m.cognome;
-    if (m.cognome_iniziale != null) blobPlayer.cogn_iniziale = m.cognome_iniziale;
-    if (m.birth_date != null) blobPlayer.birth_date = m.birth_date;
-    blobPlayer.incomplete = m.incomplete === 1;
-    if (m.approval_status != null) blobPlayer.approval_status = m.approval_status;
-    state.players[idx] = blobPlayer;
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey]
-    );
-  } catch (e) {
-    logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
-  }
-}
-async function addNotificaToBlob(societyId, userIds, notifica) {
-  if (!societyId || !userIds.length) return;
-  try {
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [rows] = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey]
-    );
-    if (!rows.length) return;
-    let state;
-    try {
-      state = JSON.parse(rows[0].state_json);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(state.notifiche)) state.notifiche = [];
-    const baseTs = Date.now();
-    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
-    for (const uid of userIds) {
-      state.notifiche.push({
-        id: `${baseId}_${uid}`,
-        userId: Number(uid),
-        type: notifica.type,
-        title: notifica.title,
-        body: notifica.body,
-        eventId: notifica.eventId ?? null,
-        convocazioneId: notifica.convocazioneId ?? null,
-        quoteKey: null,
-        docKey: null,
-        ts: baseTs,
-        read: false
-      });
-    }
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey]
-    );
-  } catch (e) {
-    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
-  }
-}
-async function syncGuardianToBlob(societyId, userId) {
-  if (!societyId || !userId) return;
-  try {
-    const [userRows] = await pool.execute(
-      "SELECT id, email, ruolo, nome, cognome, leva, stato FROM users WHERE id = ? AND society_id = ? LIMIT 1",
-      [userId, societyId]
-    );
-    if (!userRows.length) return;
-    const u = userRows[0];
-    const [childRows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, pg.role
-       FROM player_guardians pg
-       INNER JOIN players p ON p.id = pg.player_id
-       WHERE pg.user_id = ? AND p.society_id = ?`,
-      [userId, societyId]
-    );
-    const figli = [];
-    const figliIds = [];
-    let titoloFamiliare = null;
-    for (const c of childRows) {
-      const cogn = c.cognome || c.cognome_iniziale || "";
-      figli.push(`${c.nome} ${cogn}`.trim());
-      figliIds.push(Number(c.id));
-      if (!titoloFamiliare) titoloFamiliare = c.role;
-    }
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [blobRows] = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey]
-    );
-    if (!blobRows.length) return;
-    let state;
-    try {
-      state = JSON.parse(blobRows[0].state_json);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(state.USERS_DB)) state.USERS_DB = [];
-    const guardianEntry = {
-      id: Number(u.id),
-      email: u.email,
-      role: u.ruolo,
-      nome: u.nome || "",
-      cogn: u.cognome || "",
-      leva: u.leva || null,
-      stato: u.stato || "attivo",
-      figli,
-      figliIds,
-      titoloFamiliare,
-      _isV2: true
-    };
-    const idx = state.USERS_DB.findIndex((x) => x && Number(x.id) === Number(u.id));
-    if (idx < 0) {
-      state.USERS_DB.push(guardianEntry);
-    } else {
-      state.USERS_DB[idx] = { ...state.USERS_DB[idx], ...guardianEntry };
-    }
-    const maxId = state.USERS_DB.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
-    state.nextUserId = Math.max(Number(state.nextUserId) || 1, maxId + 1);
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey]
-    );
-  } catch (e) {
-    logger.error({ err: e?.message, societyId, userId }, "syncGuardianToBlob failed");
-  }
-}
-async function removeGuardianFromBlob(societyId, userId) {
-  if (!societyId || !userId) return;
-  try {
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [blobRows] = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey]
-    );
-    if (!blobRows.length) return;
-    let state;
-    try {
-      state = JSON.parse(blobRows[0].state_json);
-    } catch {
-      return;
-    }
-    if (!Array.isArray(state.USERS_DB)) return;
-    const before = state.USERS_DB.length;
-    state.USERS_DB = state.USERS_DB.filter((x) => !x || Number(x.id) !== Number(userId));
-    if (state.USERS_DB.length === before) return;
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey]
-    );
-  } catch (e) {
-    logger.error({ err: e?.message, societyId, userId }, "removeGuardianFromBlob failed");
-  }
-}
-var minors_default = router13;
-
-// src/routes/v2/players.ts
-var router14 = (0, import_express14.Router)();
-var ADMIN_ROLES = ["admin", "allenatore", "mister", "dirigente"];
-var STAFF_READ_ROLES = /* @__PURE__ */ new Set([
-  "admin",
-  "mister_admin",
-  "allenatore",
-  "mister",
-  "dirigente",
-  "preparatore_portieri"
-]);
-var PIANO_NORM = { gratuito: "mister", base: "mister_pro", premium: "societa" };
-var PLAYER_LIMITS = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
-async function getSocietyPlayerLimit(societyId) {
-  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
-  const raw = rows[0]?.piano || "demo";
-  const norm = PIANO_NORM[raw] || raw;
-  return PLAYER_LIMITS[norm] ?? 25;
-}
-router14.get("/players/pending-parental-consent", requireAuth, async (req, res) => {
-  const { userId, role } = req.jwtUser;
-  if (role !== "genitore") return res.json({ players: [] });
-  try {
-    const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
-    const [rows] = await pool.execute(
-      `SELECT p.id, p.nome, p.cognome, p.anno_nascita
-       FROM players p
-       JOIN user_players up ON up.player_id = p.id
-       WHERE up.user_id = ?
-         AND p.anno_nascita IS NOT NULL
-         AND (? - p.anno_nascita) < 18
-         AND p.parental_consent_at IS NULL`,
-      [userId, currentYear]
-    );
-    return res.json({ players: rows });
-  } catch (e) {
-    logger.error({ err: e }, "GET pending-parental-consent error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.get("/players", requireAuth, async (req, res) => {
-  const { societyId, userId, role } = req.jwtUser;
-  const leva = req.query.leva;
-  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
-              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
-              p.note, p.foto_url, p.created_at,
-              p.parental_consent_given_by, p.parental_consent_at`;
-  try {
-    let rows;
-    if (STAFF_READ_ROLES.has(role)) {
-      [rows] = await pool.execute(
-        `${baseSelect}
-         FROM players p
-         WHERE p.society_id = ?
-           ${leva ? "AND p.leva = ?" : ""}
-         ORDER BY p.cognome, p.nome`,
-        leva ? [societyId, leva] : [societyId]
-      );
-    } else if (role === "genitore" || role === "nonno") {
-      [rows] = await pool.execute(
-        `${baseSelect}
-         FROM players p
-         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
-         WHERE p.society_id = ?
-           ${leva ? "AND p.leva = ?" : ""}
-         ORDER BY p.cognome, p.nome`,
-        leva ? [userId, societyId, leva] : [userId, societyId]
-      );
-    } else if (role === "giocatore") {
-      [rows] = await pool.execute(
-        `${baseSelect}
-         FROM players p
-         JOIN users u
-           ON u.id = ? AND u.society_id = p.society_id
-          AND u.nome = p.nome AND u.cognome = p.cognome
-         WHERE p.society_id = ?
-           ${leva ? "AND p.leva = ?" : ""}
-         ORDER BY p.cognome, p.nome`,
-        leva ? [userId, societyId, leva] : [userId, societyId]
-      );
-    } else {
-      return res.status(403).json({ error: "forbidden" });
-    }
-    return res.json(rows);
-  } catch (e) {
-    logger.error({ err: e }, "GET players error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.get("/players/:id", requireAuth, async (req, res) => {
-  const { societyId, userId, role } = req.jwtUser;
-  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
-              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
-              p.note, p.foto_url, p.created_at,
-              p.parental_consent_given_by, p.parental_consent_at`;
-  try {
-    let rows;
-    if (STAFF_READ_ROLES.has(role)) {
-      [rows] = await pool.execute(
-        `${baseSelect} FROM players p WHERE p.id = ? AND p.society_id = ?`,
-        [req.params.id, societyId]
-      );
-    } else if (role === "genitore" || role === "nonno") {
-      [rows] = await pool.execute(
-        `${baseSelect}
-         FROM players p
-         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
-         WHERE p.id = ? AND p.society_id = ?`,
-        [userId, req.params.id, societyId]
-      );
-    } else if (role === "giocatore") {
-      [rows] = await pool.execute(
-        `${baseSelect}
-         FROM players p
-         JOIN users u
-           ON u.id = ? AND u.society_id = p.society_id
-          AND u.nome = p.nome AND u.cognome = p.cognome
-         WHERE p.id = ? AND p.society_id = ?`,
-        [userId, req.params.id, societyId]
-      );
-    } else {
-      return res.status(403).json({ error: "forbidden" });
-    }
-    if (!rows.length) return res.status(404).json({ error: "not_found" });
-    return res.json(rows[0]);
-  } catch (e) {
-    logger.error({ err: e }, "GET player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    nome,
-    cognome,
-    soprannome,
-    numero,
-    ruoloCampo,
-    annoNascita,
-    leva,
-    telefonoGenitore,
-    emailGenitore,
-    note
-  } = req.body;
-  if (!nome?.trim() || !cognome?.trim()) {
-    return res.status(400).json({ error: "nome_cognome_required" });
-  }
-  try {
-    const maxGioc = await getSocietyPlayerLimit(societyId);
-    if (isFinite(maxGioc) && leva) {
-      const [cnt] = await pool.execute(
-        "SELECT COUNT(*) as n FROM players WHERE society_id = ? AND leva = ?",
-        [societyId, leva]
-      );
-      if (cnt[0].n >= maxGioc) {
-        return res.status(403).json({ error: "plan_limit_reached", limitType: "giocatoriPerLeva", current: cnt[0].n, max: maxGioc });
-      }
-    }
-    const [result] = await pool.execute(
-      `INSERT INTO players
-        (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
-         leva, telefono_genitore, email_genitore, note,
-         parental_consent_given_by, parental_consent_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
-      [
-        societyId,
-        nome.trim(),
-        cognome.trim(),
-        soprannome ?? null,
-        numero ?? null,
-        ruoloCampo ?? null,
-        annoNascita ?? null,
-        leva ?? null,
-        telefonoGenitore ?? null,
-        emailGenitore ?? null,
-        note ?? null
-      ]
-    );
-    return res.status(201).json({ id: result.insertId });
-  } catch (e) {
-    logger.error({ err: e }, "POST player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    nome,
-    cognome,
-    soprannome,
-    numero,
-    ruoloCampo,
-    annoNascita,
-    leva,
-    telefonoGenitore,
-    emailGenitore,
-    note,
-    fotoUrl
-  } = req.body;
-  try {
-    const [result] = await pool.execute(
-      `UPDATE players SET
-        nome              = COALESCE(?, nome),
-        cognome           = COALESCE(?, cognome),
-        soprannome        = COALESCE(?, soprannome),
-        numero            = COALESCE(?, numero),
-        ruolo_campo       = COALESCE(?, ruolo_campo),
-        anno_nascita      = COALESCE(?, anno_nascita),
-        leva              = COALESCE(?, leva),
-        telefono_genitore = COALESCE(?, telefono_genitore),
-        email_genitore    = COALESCE(?, email_genitore),
-        note              = COALESCE(?, note),
-        foto_url          = COALESCE(?, foto_url),
-        incomplete        = CASE WHEN COALESCE(?, cognome) <> '' AND COALESCE(?, cognome) IS NOT NULL THEN 0 ELSE incomplete END
-       WHERE id = ? AND society_id = ?`,
-      [
-        nome ?? null,
-        cognome ?? null,
-        soprannome ?? null,
-        numero ?? null,
-        ruoloCampo ?? null,
-        annoNascita ?? null,
-        leva ?? null,
-        telefonoGenitore ?? null,
-        emailGenitore ?? null,
-        note ?? null,
-        fotoUrl ?? null,
-        cognome ?? null,
-        cognome ?? null,
-        // ← duplica per CASE
-        req.params.id,
-        societyId
-      ]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    try {
-      const [guardianRows] = await pool.execute(
-        "SELECT user_id FROM player_guardians WHERE player_id = ?",
-        [req.params.id]
-      );
-      for (const g of guardianRows) {
-        await syncGuardianToBlob(societyId, g.user_id).catch(() => {
-        });
-      }
-    } catch (_) {
-    }
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "PUT player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router14.delete("/players/:id", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [result] = await pool.execute(
-      "DELETE FROM players WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE player error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var players_default = router14;
-
-// src/routes/v2/users.ts
-var import_express15 = __toESM(require_express2(), 1);
-var router15 = (0, import_express15.Router)();
-var PIANO_NORM_U = { gratuito: "mister", base: "mister_pro", premium: "societa" };
-var COLLAB_LIMITS = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
-var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin"]);
-async function getCollabLimit(societyId) {
-  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
-  const raw = rows[0]?.piano || "demo";
-  const norm = PIANO_NORM_U[raw] || raw;
-  return COLLAB_LIMITS[norm] ?? 0;
-}
-router15.get("/users/roles", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      "SELECT id, ruolo FROM users WHERE society_id = ?",
-      [societyId]
-    );
-    return res.json({
-      roles: rows.map((r) => ({ id: r.id, ruolo: r.ruolo }))
-    });
-  } catch (e) {
-    logger.error({ err: e }, "GET users/roles error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.get("/users/id-email-map", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      "SELECT id, email FROM users WHERE society_id = ?",
-      [societyId]
-    );
-    return res.json(
-      rows.map((r) => ({ id: r.id, email: r.email }))
-    );
-  } catch (e) {
-    logger.error({ err: e }, "GET users/id-email-map error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, is_account_owner, created_at
-       FROM users WHERE society_id = ? ORDER BY cognome, nome`,
-      [societyId]
-    );
-    return res.json(rows.map((u) => ({
-      ...u,
-      figli: u.figli ? JSON.parse(u.figli) : [],
-      tempPassword: u.temp_password === 1,
-      isAccountOwner: u.is_account_owner === 1,
-      permissions: u.permissions ? typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions : null
-    })));
-  } catch (e) {
-    logger.error({ err: e }, "GET users error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { nome, cognome, email, password, ruolo, leva, figli, phone, permissions } = req.body;
-  if (!nome || !cognome || !email || !password || !ruolo) {
-    return res.status(400).json({ error: "missing_fields" });
-  }
-  const normalizedEmail = email.trim().toLowerCase();
-  const hash = hashPassword(password);
-  try {
-    if (COLLAB_ROLES.has(ruolo)) {
-      const maxCollab = await getCollabLimit(societyId);
-      if (isFinite(maxCollab)) {
-        const [cnt] = await pool.execute(
-          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
-          [societyId]
-        );
-        if (cnt[0].n >= maxCollab) {
-          return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
-        }
-      }
-    }
-    const [existing] = await pool.execute(
-      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
-      [normalizedEmail, societyId]
-    );
-    if (existing.length) return res.status(409).json({ error: "email_exists" });
-    const [result] = await pool.execute(
-      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, phone, permissions, temp_password)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
-      [
-        societyId,
-        nome.trim(),
-        cognome.trim(),
-        normalizedEmail,
-        hash,
-        ruolo,
-        leva ?? null,
-        figli ? JSON.stringify(figli) : null,
-        phone ?? null,
-        permissions ? JSON.stringify(permissions) : null
-      ]
-    );
-    return res.status(201).json({ id: result.insertId });
-  } catch (e) {
-    logger.error({ err: e }, "POST user error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { nome, cognome, email, password, ruolo, leva, stato, figli, phone, permissions } = req.body;
-  try {
-    if (ruolo && COLLAB_ROLES.has(ruolo)) {
-      const [curRows] = await pool.execute(
-        "SELECT ruolo FROM users WHERE id = ? AND society_id = ?",
-        [req.params.id, societyId]
-      );
-      const currentRuolo = curRows[0]?.ruolo;
-      if (currentRuolo && !COLLAB_ROLES.has(currentRuolo)) {
-        const maxCollab = await getCollabLimit(societyId);
-        if (isFinite(maxCollab)) {
-          const [cnt] = await pool.execute(
-            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
-            [societyId, req.params.id]
-          );
-          if (cnt[0].n >= maxCollab) {
-            return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
-          }
-        }
-      }
-    }
-    const updates = [];
-    const params = [];
-    if (nome) {
-      updates.push("nome = ?");
-      params.push(nome.trim());
-    }
-    if (cognome) {
-      updates.push("cognome = ?");
-      params.push(cognome.trim());
-    }
-    if (email) {
-      updates.push("email = ?");
-      params.push(email.trim().toLowerCase());
-    }
-    if (ruolo) {
-      updates.push("ruolo = ?");
-      params.push(ruolo);
-    }
-    if (leva !== void 0) {
-      updates.push("leva = ?");
-      params.push(leva ?? null);
-    }
-    if (stato) {
-      updates.push("stato = ?");
-      params.push(stato);
-    }
-    if (figli !== void 0) {
-      updates.push("figli = ?");
-      params.push(figli ? JSON.stringify(figli) : null);
-    }
-    if (phone !== void 0) {
-      updates.push("phone = ?");
-      params.push(phone ?? null);
-    }
-    if (permissions !== void 0) {
-      updates.push("permissions = ?");
-      params.push(permissions ? JSON.stringify(permissions) : null);
-    }
-    if (password) {
-      updates.push("password_hash = ?");
-      updates.push("temp_password = TRUE");
-      params.push(hashPassword(password));
-    }
-    if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
-    params.push(req.params.id, societyId);
-    const [result] = await pool.execute(
-      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
-      params
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "PUT user error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var PATCH_RUOLO_WHITELIST = /* @__PURE__ */ new Set([
-  "admin",
-  "allenatore",
-  "mister",
-  "dirigente",
-  "preparatore_portieri",
-  "mister_admin",
-  "genitore",
-  "nonno",
-  "giocatore",
-  "pendente"
-]);
-router15.patch("/users/:id", requireAuth, async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const { ruolo, leva, stato } = req.body;
-  try {
-    const [meRows] = await pool.execute(
-      "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
-      [userId, societyId]
-    );
-    const callerRuolo = meRows[0]?.ruolo;
-    if (callerRuolo !== "admin" && callerRuolo !== "mister_admin") {
-      return res.status(403).json({ error: "forbidden", detail: "Solo admin possono aggiornare il ruolo di altri utenti." });
-    }
-  } catch (e) {
-    logger.error({ err: e }, "PATCH user \u2014 gating query error");
-    return res.status(500).json({ error: "server_error" });
-  }
-  if (ruolo !== void 0 && (typeof ruolo !== "string" || !PATCH_RUOLO_WHITELIST.has(ruolo))) {
-    return res.status(400).json({ error: "invalid_ruolo", allowed: [...PATCH_RUOLO_WHITELIST] });
-  }
-  const updates = [];
-  const params = [];
-  if (ruolo !== void 0) {
-    updates.push("ruolo = ?");
-    params.push(ruolo);
-  }
-  if (leva !== void 0) {
-    updates.push("leva = ?");
-    params.push(leva ?? null);
-  }
-  if (stato !== void 0) {
-    updates.push("stato = ?");
-    params.push(String(stato));
-  }
-  if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
-  try {
-    params.push(req.params.id, societyId);
-    const [result] = await pool.execute(
-      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
-      params
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true, updated: result.affectedRows });
-  } catch (e) {
-    logger.error({ err: e }, "PATCH user error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  if (String(userId) === req.params.id) return res.status(400).json({ error: "cannot_delete_self" });
-  try {
-    const [result] = await pool.execute(
-      "DELETE FROM users WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE user error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.get("/users/pending", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      "SELECT id, nome, cognome, email, created_at FROM users WHERE society_id = ? AND stato = 'pendente' ORDER BY created_at DESC",
-      [societyId]
-    );
-    return res.json(rows);
-  } catch (e) {
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router15.post("/users/:id/approve", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { ruolo, leva, figli } = req.body;
-  try {
-    const [result] = await pool.execute(
-      `UPDATE users SET stato = 'attivo', ruolo = COALESCE(?, ruolo),
-        leva = COALESCE(?, leva), figli = COALESCE(?, figli)
-       WHERE id = ? AND society_id = ? AND stato = 'pendente'`,
-      [ruolo ?? null, leva ?? null, figli ? JSON.stringify(figli) : null, req.params.id, societyId]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var users_default = router15;
-
-// src/routes/v2/events.ts
-var import_express16 = __toESM(require_express2(), 1);
-import { randomUUID } from "crypto";
-var router16 = (0, import_express16.Router)();
-var WRITE_ROLES = ["admin", "allenatore", "mister", "dirigente", "mister_admin"];
-function addDays(d, n) {
-  const r = new Date(d);
-  r.setUTCDate(r.getUTCDate() + n);
-  return r;
-}
-function ymd(d) {
-  return d.toISOString().slice(0, 10);
-}
-function parseDate(s) {
-  const [y, m, dd] = s.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, dd));
-}
-function todayStr() {
-  return ymd(/* @__PURE__ */ new Date());
-}
-function expandRecurrences(ev, da, a) {
-  const evStart = parseDate(ev.data_inizio);
-  const evEnd = ev.fino_al ? parseDate(ev.fino_al) : parseDate(a);
-  const rangeS = parseDate(da) > evStart ? parseDate(da) : new Date(evStart);
-  const rangeE = parseDate(a) < evEnd ? parseDate(a) : new Date(evEnd);
-  if (rangeS > rangeE) return [];
-  const freq = ev.freq || "none";
-  const result = [];
-  if (freq === "daily") {
-    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
-      result.push(ymd(cur));
-    return result;
-  }
-  if (freq === "weekly") {
-    const days = (ev.giorni || "").split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
-    if (!days.length) return [];
-    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
-      if (days.includes(cur.getUTCDay())) result.push(ymd(cur));
-    return result;
-  }
-  if (freq === "monthly") {
-    const targetDay = evStart.getUTCDate();
-    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
-      if (cur.getUTCDate() === targetDay) result.push(ymd(cur));
-    return result;
-  }
-  return [];
-}
-async function fetchLeveForEvents(ids) {
-  if (!ids.length) return {};
-  const ph = ids.map(() => "?").join(",");
-  const [rows] = await pool.execute(
-    `SELECT el.event_id, l.id, l.nome
-     FROM event_leve el JOIN leve l ON l.id = el.leva_id
-     WHERE el.event_id IN (${ph})`,
-    ids
-  );
-  const map = {};
-  for (const r of rows) {
-    if (!map[r.event_id]) map[r.event_id] = [];
-    map[r.event_id].push({ id: r.id, nome: r.nome });
-  }
-  return map;
-}
-async function fetchAllenamentiForEvents(ids) {
-  if (!ids.length) return {};
-  const ph = ids.map(() => "?").join(",");
-  const [rows] = await pool.execute(
-    `SELECT a.event_id, a.id AS allenamento_id,
-            a.titolo AS allenamento_titolo, a.obiettivo AS allenamento_obiettivo,
-            a.durata_totale_minuti AS allenamento_durata_totale_minuti,
-            a.visibilita_genitori AS allenamento_visibilita_genitori,
-            (SELECT COUNT(*) FROM allenamento_sessioni s WHERE s.allenamento_id = a.id) AS allenamento_num_sessioni
-     FROM allenamenti a WHERE a.event_id IN (${ph})`,
-    ids
-  );
-  const map = {};
-  for (const r of rows) map[r.event_id] = r;
-  return map;
-}
-async function insertLeveForEvent(conn, eventId, leve) {
-  for (const levaId of leve) {
-    await conn.execute(
-      "INSERT IGNORE INTO event_leve (event_id, leva_id) VALUES (?, ?)",
-      [eventId, parseInt(levaId)]
-    );
-  }
-}
-router16.get("/events", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    leva_id,
-    tipi,
-    da = todayStr(),
-    a = ymd(addDays(/* @__PURE__ */ new Date(), 90)),
-    expand_recurrences = "true",
-    month,
-    year: year2,
-    leva
-    // retrocompat
-  } = req.query;
-  const doExpand = expand_recurrences !== "false";
-  try {
-    const conds = ["e.society_id = ?"];
-    const params = [societyId];
-    if (tipi) {
-      const arr = tipi.split(",").map((t) => t.trim()).filter(Boolean);
-      if (arr.length) {
-        conds.push(`e.tipo IN (${arr.map(() => "?").join(",")})`);
-        params.push(...arr);
-      }
-    }
-    if (month && year2) {
-      conds.push("MONTH(e.data_inizio) = ? AND YEAR(e.data_inizio) = ?");
-      params.push(parseInt(month), parseInt(year2));
-    } else {
-      conds.push(
-        "((e.ricorrente = 0 AND e.data_inizio BETWEEN ? AND ?) OR (e.ricorrente = 1 AND e.data_inizio <= ? AND (e.fino_al IS NULL OR e.fino_al >= ?)))"
-      );
-      params.push(da, a, a, da);
-    }
-    if (leva_id) {
-      conds.push("EXISTS (SELECT 1 FROM event_leve el WHERE el.event_id = e.id AND el.leva_id = ?)");
-      params.push(parseInt(leva_id));
-    } else if (leva) {
-      conds.push("(e.leva = ? OR e.leva IS NULL)");
-      params.push(leva);
-    }
-    const [rows] = await pool.execute(
-      `SELECT e.id, e.tipo, e.titolo, e.luogo,
-              e.data_inizio, e.ora_inizio, e.ora_fine,
-              e.note, e.ricorrente, e.freq, e.giorni, e.fino_al,
-              e.recur_group_id, e.created_at
-       FROM events e WHERE ${conds.join(" AND ")}
-       ORDER BY e.data_inizio, e.ora_inizio`,
-      params
-    );
-    if (!rows.length) return res.json([]);
-    const eventIds = rows.map((r) => r.id);
-    const leveMap = await fetchLeveForEvents(eventIds);
-    const allMap = await fetchAllenamentiForEvents(eventIds);
-    const occurrences = [];
-    for (const ev of rows) {
-      const leve = leveMap[ev.id] || [];
-      const allInfo = allMap[ev.id] || null;
-      const allenamento_id = allInfo?.allenamento_id ?? null;
-      const allenamentoFields = {
-        allenamento_id,
-        allenamento_titolo: allInfo?.allenamento_titolo ?? null,
-        allenamento_obiettivo: allInfo?.allenamento_obiettivo ?? null,
-        allenamento_durata_totale_minuti: allInfo?.allenamento_durata_totale_minuti ?? null,
-        allenamento_num_sessioni: allInfo?.allenamento_num_sessioni ?? 0,
-        allenamento_visibilita_genitori: allInfo ? !!allInfo.allenamento_visibilita_genitori : false
-      };
-      if (ev.ricorrente && doExpand && !month) {
-        const dates = expandRecurrences(
-          { data_inizio: ev.data_inizio, fino_al: ev.fino_al, freq: ev.freq, giorni: ev.giorni },
-          da,
-          a
-        );
-        for (const d of dates) {
-          occurrences.push({
-            event_id: ev.id,
-            recur_group_id: ev.recur_group_id,
-            tipo: ev.tipo,
-            titolo: ev.titolo,
-            leve,
-            data: d,
-            ora_inizio: ev.ora_inizio,
-            ora_fine: ev.ora_fine,
-            luogo: ev.luogo,
-            note: ev.note,
-            is_recurring_occurrence: true,
-            ...allenamentoFields
-          });
-        }
-      } else {
-        occurrences.push({
-          event_id: ev.id,
-          recur_group_id: ev.recur_group_id,
-          tipo: ev.tipo,
-          titolo: ev.titolo,
-          leve,
-          data: ev.data_inizio,
-          ora_inizio: ev.ora_inizio,
-          ora_fine: ev.ora_fine,
-          luogo: ev.luogo,
-          note: ev.note,
-          is_recurring_occurrence: false,
-          ...allenamentoFields
-        });
-      }
-    }
-    occurrences.sort(
-      (a2, b) => a2.data < b.data ? -1 : a2.data > b.data ? 1 : (a2.ora_inizio || "").localeCompare(b.ora_inizio || "")
-    );
-    return res.json(occurrences);
-  } catch (e) {
-    logger.error({ err: e }, "GET events error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router16.get("/events/:id", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [rows] = await pool.execute(
-      "SELECT * FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!rows.length) return res.status(404).json({ error: "not_found" });
-    const ev = rows[0];
-    const leveMap = await fetchLeveForEvents([ev.id]);
-    return res.json({ ...ev, leve: leveMap[ev.id] || [] });
-  } catch (e) {
-    logger.error({ err: e }, "GET events/:id error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router16.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const {
-    tipo,
-    titolo,
-    leve = [],
-    luogo,
-    dataInizio,
-    oraInizio,
-    oraFine,
-    note,
-    ricorrente = false,
-    freq,
-    giorni,
-    finoAl
-  } = req.body;
-  if (!tipo || !titolo) return res.status(400).json({ error: "tipo_titolo_required" });
-  if (!Array.isArray(leve)) return res.status(400).json({ error: "leve_must_be_array" });
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    if (ricorrente && finoAl && freq) {
-      const recurGroupId = randomUUID();
-      const dates = expandRecurrences(
-        { data_inizio: dataInizio, fino_al: finoAl, freq, giorni: giorni ?? null },
-        dataInizio,
-        finoAl
-      );
-      if (!dates.length) {
-        await conn.rollback();
-        conn.release();
-        return res.status(400).json({ error: "nessuna_occorrenza_nel_range" });
-      }
-      const ids = [];
-      for (const d of dates) {
-        const [r] = await conn.execute(
-          `INSERT INTO events
-             (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
-              note, ricorrente, freq, giorni, fino_al, recur_group_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
-          [
-            societyId,
-            tipo,
-            titolo,
-            luogo ?? null,
-            d,
-            oraInizio ?? null,
-            oraFine ?? null,
-            note ?? null,
-            freq,
-            giorni ?? null,
-            finoAl,
-            recurGroupId
-          ]
-        );
-        ids.push(r.insertId);
-      }
-      for (const eid of ids) await insertLeveForEvent(conn, eid, leve);
-      await conn.commit();
-      return res.status(201).json({
-        recur_group_id: recurGroupId,
-        total_created: ids.length,
-        first_event_id: ids[0]
-      });
-    } else {
-      const recurGroupId = ricorrente ? randomUUID() : null;
-      const [r] = await conn.execute(
-        `INSERT INTO events
-           (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
-            note, ricorrente, freq, giorni, fino_al, recur_group_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          societyId,
-          tipo,
-          titolo,
-          luogo ?? null,
-          dataInizio ?? null,
-          oraInizio ?? null,
-          oraFine ?? null,
-          note ?? null,
-          ricorrente ? 1 : 0,
-          freq ?? null,
-          giorni ?? null,
-          finoAl ?? null,
-          recurGroupId
-        ]
-      );
-      const eventId = r.insertId;
-      await insertLeveForEvent(conn, eventId, leve);
-      await conn.commit();
-      const [rows] = await pool.execute(
-        "SELECT * FROM events WHERE id = ?",
-        [eventId]
-      );
-      const leveMap = await fetchLeveForEvents([eventId]);
-      return res.status(201).json({ ...rows[0], leve: leveMap[eventId] || [] });
-    }
-  } catch (e) {
-    await conn.rollback();
-    logger.error({ err: e }, "POST event error");
-    return res.status(500).json({ error: "server_error" });
-  } finally {
-    conn.release();
-  }
-});
-router16.put("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const conn = await pool.getConnection();
-  try {
-    const [evRows] = await conn.execute(
-      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!evRows.length || !evRows[0].recur_group_id) {
-      conn.release();
-      return res.status(404).json({ error: "serie_non_trovata" });
-    }
-    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
-    await conn.beginTransaction();
-    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
-    const upd = [];
-    const params = [];
-    if (tipo !== void 0) {
-      upd.push("tipo = ?");
-      params.push(tipo);
-    }
-    if (titolo !== void 0) {
-      upd.push("titolo = ?");
-      params.push(titolo);
-    }
-    if (luogo !== void 0) {
-      upd.push("luogo = ?");
-      params.push(luogo ?? null);
-    }
-    if (oraInizio !== void 0) {
-      upd.push("ora_inizio = ?");
-      params.push(oraInizio ?? null);
-    }
-    if (oraFine !== void 0) {
-      upd.push("ora_fine = ?");
-      params.push(oraFine ?? null);
-    }
-    if (note !== void 0) {
-      upd.push("note = ?");
-      params.push(note ?? null);
-    }
-    if (freq !== void 0) {
-      upd.push("freq = ?");
-      params.push(freq ?? null);
-    }
-    if (giorni !== void 0) {
-      upd.push("giorni = ?");
-      params.push(giorni ?? null);
-    }
-    if (finoAl !== void 0) {
-      upd.push("fino_al = ?");
-      params.push(finoAl ?? null);
-    }
-    if (upd.length) {
-      params.push(groupId, fromDate, societyId);
-      await conn.execute(
-        `UPDATE events SET ${upd.join(", ")}
-         WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?`,
-        params
-      );
-    }
-    if (Array.isArray(leve)) {
-      const [futureEvs] = await conn.execute(
-        "SELECT id FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
-        [groupId, fromDate, societyId]
-      );
-      for (const ev of futureEvs) {
-        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
-        await insertLeveForEvent(conn, ev.id, leve);
-      }
-    }
-    await conn.commit();
-    return res.json({ ok: true });
-  } catch (e) {
-    await conn.rollback();
-    logger.error({ err: e }, "PUT events/:id/series/from-here error");
-    return res.status(500).json({ error: "server_error" });
-  } finally {
-    conn.release();
-  }
-});
-router16.put("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const conn = await pool.getConnection();
-  try {
-    const [evRows] = await conn.execute(
-      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!evRows.length || !evRows[0].recur_group_id) {
-      conn.release();
-      return res.status(404).json({ error: "serie_non_trovata" });
-    }
-    const groupId = evRows[0].recur_group_id;
-    await conn.beginTransaction();
-    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
-    const upd = [];
-    const params = [];
-    if (tipo !== void 0) {
-      upd.push("tipo = ?");
-      params.push(tipo);
-    }
-    if (titolo !== void 0) {
-      upd.push("titolo = ?");
-      params.push(titolo);
-    }
-    if (luogo !== void 0) {
-      upd.push("luogo = ?");
-      params.push(luogo ?? null);
-    }
-    if (oraInizio !== void 0) {
-      upd.push("ora_inizio = ?");
-      params.push(oraInizio ?? null);
-    }
-    if (oraFine !== void 0) {
-      upd.push("ora_fine = ?");
-      params.push(oraFine ?? null);
-    }
-    if (note !== void 0) {
-      upd.push("note = ?");
-      params.push(note ?? null);
-    }
-    if (freq !== void 0) {
-      upd.push("freq = ?");
-      params.push(freq ?? null);
-    }
-    if (giorni !== void 0) {
-      upd.push("giorni = ?");
-      params.push(giorni ?? null);
-    }
-    if (finoAl !== void 0) {
-      upd.push("fino_al = ?");
-      params.push(finoAl ?? null);
-    }
-    if (upd.length) {
-      params.push(groupId, societyId);
-      await conn.execute(
-        `UPDATE events SET ${upd.join(", ")}
-         WHERE recur_group_id = ? AND society_id = ?`,
-        params
-      );
-    }
-    if (Array.isArray(leve)) {
-      const [allEvs] = await conn.execute(
-        "SELECT id FROM events WHERE recur_group_id = ? AND society_id = ?",
-        [groupId, societyId]
-      );
-      for (const ev of allEvs) {
-        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
-        await insertLeveForEvent(conn, ev.id, leve);
-      }
-    }
-    await conn.commit();
-    return res.json({ ok: true });
-  } catch (e) {
-    await conn.rollback();
-    logger.error({ err: e }, "PUT events/:id/series error");
-    return res.status(500).json({ error: "server_error" });
-  } finally {
-    conn.release();
-  }
-});
-router16.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-    const {
-      tipo,
-      titolo,
-      leve,
-      luogo,
-      dataInizio,
-      oraInizio,
-      oraFine,
-      note,
-      ricorrente,
-      freq,
-      giorni,
-      finoAl
-    } = req.body;
-    const upd = [];
-    const params = [];
-    if (tipo !== void 0) {
-      upd.push("tipo = ?");
-      params.push(tipo);
-    }
-    if (titolo !== void 0) {
-      upd.push("titolo = ?");
-      params.push(titolo);
-    }
-    if (luogo !== void 0) {
-      upd.push("luogo = ?");
-      params.push(luogo ?? null);
-    }
-    if (dataInizio !== void 0) {
-      upd.push("data_inizio = ?");
-      params.push(dataInizio ?? null);
-    }
-    if (oraInizio !== void 0) {
-      upd.push("ora_inizio = ?");
-      params.push(oraInizio ?? null);
-    }
-    if (oraFine !== void 0) {
-      upd.push("ora_fine = ?");
-      params.push(oraFine ?? null);
-    }
-    if (note !== void 0) {
-      upd.push("note = ?");
-      params.push(note ?? null);
-    }
-    if (ricorrente !== void 0) {
-      upd.push("ricorrente = ?");
-      params.push(ricorrente ? 1 : 0);
-    }
-    if (freq !== void 0) {
-      upd.push("freq = ?");
-      params.push(freq ?? null);
-    }
-    if (giorni !== void 0) {
-      upd.push("giorni = ?");
-      params.push(giorni ?? null);
-    }
-    if (finoAl !== void 0) {
-      upd.push("fino_al = ?");
-      params.push(finoAl ?? null);
-    }
-    if (upd.length) {
-      params.push(req.params.id, societyId);
-      const [r] = await conn.execute(
-        `UPDATE events SET ${upd.join(", ")} WHERE id = ? AND society_id = ?`,
-        params
-      );
-      if (!r.affectedRows) {
-        await conn.rollback();
-        conn.release();
-        return res.status(404).json({ error: "not_found" });
-      }
-    }
-    if (Array.isArray(leve)) {
-      await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [req.params.id]);
-      await insertLeveForEvent(conn, parseInt(req.params.id), leve);
-    }
-    await conn.commit();
-    return res.json({ ok: true });
-  } catch (e) {
-    await conn.rollback();
-    logger.error({ err: e }, "PUT event error");
-    return res.status(500).json({ error: "server_error" });
-  } finally {
-    conn.release();
-  }
-});
-router16.delete("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [evRows] = await pool.execute(
-      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!evRows.length || !evRows[0].recur_group_id)
-      return res.status(404).json({ error: "serie_non_trovata" });
-    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
-    const [r] = await pool.execute(
-      "DELETE FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
-      [groupId, fromDate, societyId]
-    );
-    return res.json({ ok: true, deleted: r.affectedRows });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE events/:id/series/from-here error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router16.delete("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [evRows] = await pool.execute(
-      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!evRows.length || !evRows[0].recur_group_id)
-      return res.status(404).json({ error: "serie_non_trovata" });
-    const groupId = evRows[0].recur_group_id;
-    const [r] = await pool.execute(
-      "DELETE FROM events WHERE recur_group_id = ? AND society_id = ?",
-      [groupId, societyId]
-    );
-    return res.json({ ok: true, deleted: r.affectedRows });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE events/:id/series error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router16.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [r] = await pool.execute(
-      "DELETE FROM events WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "DELETE event error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var events_default = router16;
-
-// src/routes/v2/presenze.ts
-var import_express18 = __toESM(require_express2(), 1);
-
-// src/lib/permissions.ts
-function requirePermission(key) {
-  return async (req, res, next) => {
-    if (!req.jwtUser) {
-      res.status(401).json({ error: "unauthorized" });
-      return;
-    }
-    if (req.jwtUser.role === "admin" || req.jwtUser.role === "mister_admin") {
-      next();
-      return;
-    }
-    try {
-      const [rows] = await pool.execute(
-        "SELECT permissions FROM users WHERE id = ? LIMIT 1",
-        [req.jwtUser.userId]
-      );
-      if (!rows.length) {
-        next();
-        return;
-      }
-      if (rows[0].permissions === null || rows[0].permissions === void 0) {
-        next();
-        return;
-      }
-      let perms = {};
-      try {
-        perms = typeof rows[0].permissions === "string" ? JSON.parse(rows[0].permissions) : rows[0].permissions;
-      } catch {
-      }
-      if (perms[key] === true) {
-        next();
-        return;
-      }
-      res.status(403).json({ error: "permission_denied", permission: key });
-    } catch (e) {
-      res.status(500).json({ error: "server_error" });
-    }
-  };
-}
-
-// src/lib/leva-guard.ts
-function _norm(s) {
-  if (s == null) return "";
-  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
-}
-async function getUserLeve(userId, societyId, role) {
-  if (role === "admin" || role === "mister_admin") return null;
-  if (role === "genitore" || role === "nonno") {
-    const [rows] = await pool.execute(
-      `SELECT DISTINCT p.leva
-         FROM user_players up
-         JOIN players p ON p.id = up.player_id
-        WHERE up.user_id = ? AND p.society_id = ? AND p.leva IS NOT NULL AND p.leva <> ''`,
-      [userId, societyId]
-    );
-    return new Set(rows.map((r) => _norm(r.leva)));
-  }
-  if (role === "allenatore" || role === "mister" || role === "dirigente" || role === "preparatore_portieri") {
-    const [rows] = await pool.execute(
-      "SELECT leva FROM users WHERE id = ? AND society_id = ? LIMIT 1",
-      [userId, societyId]
-    );
-    if (!rows.length || rows[0].leva == null || rows[0].leva === "") return /* @__PURE__ */ new Set();
-    const leva = String(rows[0].leva);
-    if (leva.trim().toLowerCase() === "tutte") return null;
-    return /* @__PURE__ */ new Set([_norm(leva)]);
-  }
-  return /* @__PURE__ */ new Set();
-}
-function requireLeva(levaResolver) {
-  return async (req, res, next) => {
-    if (!req.jwtUser) {
-      res.status(401).json({ error: "unauthorized" });
-      return;
-    }
-    try {
-      const { userId, societyId, role } = req.jwtUser;
-      const allowed = await getUserLeve(userId, societyId, role);
-      if (allowed === null) {
-        next();
-        return;
-      }
-      const leva = await Promise.resolve(levaResolver(req));
-      if (!leva) {
-        res.status(400).json({ error: "leva_required" });
-        return;
-      }
-      const lvNorm = _norm(leva);
-      if (!allowed.has(lvNorm)) {
-        res.status(403).json({ error: "leva_forbidden", leva });
-        return;
-      }
-      next();
-    } catch (e) {
-      res.status(500).json({ error: "server_error" });
-    }
-  };
-}
+var import_express14 = __toESM(require_express2(), 1);
 
 // src/routes/v2/chat.ts
-var import_express17 = __toESM(require_express2(), 1);
-var router17 = (0, import_express17.Router)();
-router17.get("/chat/push-test", requireAuth, async (req, res) => {
+var import_express13 = __toESM(require_express2(), 1);
+var router13 = (0, import_express13.Router)();
+router13.get("/chat/push-test", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   try {
     const societyKey = societyKeyFor(societyId);
@@ -86953,7 +85091,7 @@ router17.get("/chat/push-test", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router17.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
+router13.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query;
@@ -87036,7 +85174,7 @@ async function _loadPollDetails(societyId, pollId, viewerId) {
     myOptionIds
   };
 }
-router17.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
+router13.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87058,7 +85196,7 @@ router17.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { question, options } = req.body;
@@ -87105,7 +85243,7 @@ router17.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router17.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
+router13.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const pollId = parseInt(req.params.pollId);
   const { optionId } = req.body;
@@ -87361,7 +85499,7 @@ function _chatPushTitle(chatId, chatNameHint) {
   if (chatId.startsWith("adhoc_")) return "\u{1F4AC} Chat";
   return "\u{1F4AC} Chat";
 }
-router17.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { testo, fotoUrl, chatName } = req.body;
@@ -87440,7 +85578,7 @@ router17.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/:chatId/read", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/read", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87464,7 +85602,7 @@ router17.post("/chat/:chatId/read", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/unread", requireAuth, async (req, res) => {
+router13.post("/chat/unread", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const body = req.body;
   const raw = Array.isArray(body?.chatIds) ? body.chatIds : [];
@@ -87536,7 +85674,7 @@ router17.post("/chat/unread", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87560,7 +85698,7 @@ router17.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87577,7 +85715,7 @@ router17.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87604,7 +85742,7 @@ router17.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) =>
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
+router13.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87624,7 +85762,7 @@ router17.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => 
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router17.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
+router13.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87703,7 +85841,7 @@ router17.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-var chat_default = router17;
+var chat_default = router13;
 
 // src/lib/recipient-resolver.ts
 function _isUnder14(leva) {
@@ -87902,6 +86040,1874 @@ async function resolveRecipients(eventType, ctx) {
   }
   if (sender > 0) out.delete(sender);
   return Array.from(out);
+}
+
+// src/routes/v2/minors.ts
+var router14 = (0, import_express14.Router)();
+var STAFF_ROLES = ["admin", "allenatore", "mister", "dirigente"];
+var VALID_GUARDIAN_ROLES = ["mamma", "papa", "nonno", "nonna", "tutore_legale"];
+router14.post("/players/minor", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { firstName, lastNameInitial, levaKey, shirtNumber } = req.body;
+  if (!firstName?.trim()) return res.status(400).json({ error: "firstName_required" });
+  const initial = lastNameInitial?.trim() ?? "";
+  if (!initial || initial.length > 10 || !initial.includes(".")) {
+    return res.status(400).json({ error: "lastNameInitial_invalid", detail: "Must contain a dot, max 10 chars (e.g. 'B.' or 'B.V.')" });
+  }
+  if (!levaKey?.trim()) return res.status(400).json({ error: "levaKey_required" });
+  try {
+    const [existingCheck] = await pool.execute(
+      `SELECT id, nome, cognome_iniziale FROM players
+       WHERE society_id = ? AND LOWER(nome) = LOWER(?) AND LOWER(cognome_iniziale) = LOWER(?)
+       LIMIT 1`,
+      [societyId, firstName.trim(), initial]
+    );
+    if (existingCheck.length > 0) {
+      const ex = existingCheck[0];
+      logger.warn({ societyId, firstName, lastNameInitial: initial, existingId: ex.id }, "[minor] Possibile duplicato");
+    }
+    const [result] = await pool.execute(
+      `INSERT INTO players
+         (society_id, nome, cognome, cognome_iniziale, numero, leva, incomplete,
+          parental_consent_given_by, parental_consent_at)
+       VALUES (?, ?, '', ?, ?, ?, 1, NULL, NULL)`,
+      [societyId, firstName.trim(), initial, shirtNumber != null ? Number(shirtNumber) : null, levaKey.trim()]
+    );
+    logger.info({ playerId: result.insertId, societyId, userId, leva: levaKey }, "minor player created");
+    return res.status(201).json({
+      player: {
+        id: result.insertId,
+        firstName: firstName.trim(),
+        lastNameInitial: initial,
+        levaKey: levaKey.trim(),
+        shirtNumber: shirtNumber != null ? Number(shirtNumber) : null,
+        incomplete: true
+      }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/minor error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/public-incomplete", async (req, res) => {
+  const code = req.query.code?.trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: "code_required" });
+  try {
+    let [socRows] = await pool.execute(
+      "SELECT id FROM societies WHERE UPPER(codice) = ? AND stato = 'attiva' LIMIT 1",
+      [code]
+    );
+    if (!socRows.length) {
+      const [blobRows] = await pool.execute(
+        `SELECT \`key\`, state_json FROM society_state
+         WHERE \`key\` LIKE 'fieldos_state_soc_%' AND \`key\` NOT LIKE 'fieldos_demo%'`
+      );
+      for (const row of blobRows) {
+        let state;
+        try {
+          state = JSON.parse(row.state_json);
+        } catch {
+          continue;
+        }
+        const rowCode = String(state?.codiceSocieta || "").trim().toUpperCase();
+        if (!rowCode || rowCode !== code) continue;
+        const m = String(row.key).match(/fieldos_state_soc_(\d+)$/);
+        const blobSocId = m ? parseInt(m[1], 10) : 0;
+        if (!blobSocId) continue;
+        const [check] = await pool.execute(
+          "SELECT id FROM societies WHERE id = ? AND stato = 'attiva' LIMIT 1",
+          [blobSocId]
+        );
+        if (check.length) {
+          socRows = check;
+          break;
+        }
+      }
+    }
+    if (!socRows.length) return res.status(404).json({ error: "society_not_found" });
+    const societyId = socRows[0].id;
+    const levaKey = req.query.levaKey;
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome AS firstName, p.cognome_iniziale AS lastNameInitial,
+              p.numero AS shirtNumber, p.leva AS levaKey, p.incomplete,
+              p.cognome AS _cognome, p.birth_date AS _birthDate,
+              COUNT(pg.id) AS guardiansCount
+       FROM players p
+       LEFT JOIN player_guardians pg ON pg.player_id = p.id
+       WHERE p.society_id = ? AND p.cognome_iniziale IS NOT NULL
+         ${levaKey ? "AND p.leva = ?" : ""}
+       GROUP BY p.id ORDER BY p.nome`,
+      levaKey ? [societyId, levaKey] : [societyId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastNameInitial: r.lastNameInitial,
+      shirtNumber: r.shirtNumber,
+      levaKey: r.levaKey,
+      incomplete: !!r.incomplete,
+      needsCompletion: !!r.incomplete || !r._cognome || !r._birthDate,
+      guardiansCount: Number(r.guardiansCount)
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/public-incomplete error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/incomplete", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const levaKey = req.query.levaKey;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id,
+              p.nome            AS firstName,
+              p.cognome_iniziale AS lastNameInitial,
+              p.numero          AS shirtNumber,
+              p.leva            AS levaKey,
+              p.incomplete,
+              COUNT(pg.id)      AS guardiansCount
+       FROM players p
+       LEFT JOIN player_guardians pg ON pg.player_id = p.id
+       WHERE p.society_id = ?
+         AND p.cognome_iniziale IS NOT NULL
+         ${levaKey ? "AND p.leva = ?" : ""}
+       GROUP BY p.id
+       ORDER BY p.nome`,
+      levaKey ? [societyId, levaKey] : [societyId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      firstName: r.firstName,
+      lastNameInitial: r.lastNameInitial,
+      shirtNumber: r.shirtNumber,
+      levaKey: r.levaKey,
+      incomplete: !!r.incomplete,
+      guardiansCount: Number(r.guardiansCount)
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/incomplete error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.post("/players/:id/claim", requireAuth, async (req, res) => {
+  const { userId, societyId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  const { role, consent, lastNameFull, birthDate } = req.body;
+  if (!VALID_GUARDIAN_ROLES.includes(role)) {
+    return res.status(400).json({ error: "invalid_role", valid: VALID_GUARDIAN_ROLES });
+  }
+  if (consent !== true) return res.status(400).json({ error: "consent_required" });
+  try {
+    const [players] = await pool.execute(
+      "SELECT id, nome, cognome, cognome_iniziale, leva, incomplete, birth_date, society_id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!players.length) return res.status(404).json({ error: "player_not_found" });
+    const player = players[0];
+    const [existing] = await pool.execute(
+      "SELECT id FROM player_guardians WHERE player_id = ? AND user_id = ?",
+      [playerId, userId]
+    );
+    if (existing.length) return res.status(409).json({ error: "already_associated" });
+    const [gCountRows] = await pool.execute(
+      "SELECT COUNT(*) AS n FROM player_guardians WHERE player_id = ?",
+      [playerId]
+    );
+    const isFirstClaim = (gCountRows[0].n ?? 0) === 0;
+    const needsCompletion = !!player.incomplete || !player.cognome || !player.birth_date;
+    if (needsCompletion) {
+      if (!lastNameFull?.trim()) return res.status(400).json({ error: "lastNameFull_required" });
+      if (!birthDate) return res.status(400).json({ error: "birthDate_required" });
+      await pool.execute(
+        "UPDATE players SET cognome = ?, birth_date = ?, incomplete = 0 WHERE id = ?",
+        [lastNameFull.trim(), birthDate, playerId]
+      );
+      logger.info({ playerId, userId, societyId }, "[GDPR] player completed by guardian");
+    }
+    const [ins] = await pool.execute(
+      `INSERT INTO player_guardians (player_id, user_id, role, consent_given, consent_at)
+       VALUES (?, ?, ?, 1, NOW())`,
+      [playerId, userId, role]
+    );
+    await pool.execute(
+      "INSERT IGNORE INTO user_players (user_id, player_id) VALUES (?, ?)",
+      [userId, playerId]
+    ).catch(() => {
+    });
+    try {
+      const targetIds = await resolveRecipients("claim", {
+        societyId,
+        leva: player.leva,
+        senderUserId: userId
+      });
+      if (targetIds && targetIds.length) {
+        let guardianFullName = "";
+        try {
+          const [u] = await pool.execute(
+            "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+            [userId]
+          );
+          if (u.length) guardianFullName = `${u[0].nome || ""} ${u[0].cognome || ""}`.trim();
+        } catch {
+        }
+        const childFullName = `${player.nome} ${lastNameFull?.trim() || player.cognome_iniziale || ""}`.trim();
+        addNotificaToBlob(societyId, targetIds, {
+          type: "nuovo_genitore",
+          title: `\u2705 Nuovo genitore: ${guardianFullName || "genitore"}`,
+          body: `Figli: ${childFullName}`
+        }).catch(() => {
+        });
+        if (isFirstClaim) {
+          sendPushToUsers(targetIds, societyKeyFor(societyId), {
+            title: "\u{1F468}\u200D\u{1F467} Nuovo genitore collegato",
+            body: `${childFullName}: ${guardianFullName || "un genitore"} si \xE8 registrato.`,
+            tag: `player-guardian-${playerId}`
+          }).catch(() => {
+          });
+        }
+      }
+    } catch (_) {
+    }
+    await syncPlayerFromMysqlToBlob(societyId, playerId).catch(() => {
+    });
+    await syncGuardianToBlob(societyId, userId).catch(() => {
+    });
+    return res.json({
+      ok: true,
+      guardian: { id: ins.insertId, playerId, userId, role, consentGiven: true }
+    });
+  } catch (e) {
+    logger.error({ err: e }, "POST players/:id/claim error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.patch("/players/:id/personal-data", requireAuth, async (req, res) => {
+  const { userId, societyId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  const { lastNameFull, birthDate } = req.body;
+  const newLastName = typeof lastNameFull === "string" ? lastNameFull.trim() : null;
+  const newBirth = typeof birthDate === "string" && birthDate.trim() ? birthDate.trim() : null;
+  if (!newLastName && !newBirth) return res.status(400).json({ error: "no_fields_to_update" });
+  try {
+    const [g] = await pool.execute(
+      `SELECT pg.id FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.player_id = ? AND pg.user_id = ? AND p.society_id = ?
+       LIMIT 1`,
+      [playerId, userId, societyId]
+    );
+    if (!g.length) return res.status(403).json({ error: "not_a_guardian" });
+    const updates = [];
+    const params = [];
+    if (newLastName) {
+      updates.push("cognome = ?");
+      params.push(newLastName);
+    }
+    if (newBirth) {
+      updates.push("birth_date = ?");
+      params.push(newBirth);
+    }
+    updates.push("incomplete = CASE WHEN cognome <> '' AND birth_date IS NOT NULL THEN 0 ELSE incomplete END");
+    params.push(playerId);
+    await pool.execute(
+      `UPDATE players SET ${updates.join(", ")} WHERE id = ?`,
+      params
+    );
+    logger.info({ playerId, userId, societyId, lastNameFull: !!newLastName, birthDate: !!newBirth }, "[GDPR] player personal data updated by guardian");
+    await syncPlayerFromMysqlToBlob(societyId, playerId);
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PATCH players/:id/personal-data error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/rosa-sync", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, p.leva, p.numero, p.incomplete,
+              p.approval_status, p.birth_date,
+              (SELECT COUNT(*) FROM player_guardians WHERE player_id = p.id) AS guardiansCount
+       FROM players p WHERE p.society_id = ?
+       ORDER BY p.id`,
+      [societyId]
+    );
+    return res.json({ players: rows });
+  } catch (e) {
+    logger.error({ err: e }, "GET players/rosa-sync error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.get("/players/:id/guardians", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId: requesterId } = req.jwtUser;
+  const playerId = parseInt(req.params.id, 10);
+  if (isNaN(playerId)) return res.status(400).json({ error: "invalid_player_id" });
+  logger.info({ requesterId, playerId, societyId }, "[GDPR] guardians list accessed");
+  try {
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const [rows] = await pool.execute(
+      `SELECT pg.id, pg.user_id AS userId, pg.role,
+              pg.consent_given AS consentGiven, pg.consent_at AS consentAt,
+              pg.created_at AS createdAt,
+              u.nome, u.cognome, u.email
+       FROM player_guardians pg
+       JOIN users u ON u.id = pg.user_id
+       WHERE pg.player_id = ?
+       ORDER BY pg.created_at`,
+      [playerId]
+    );
+    return res.json(rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      userName: `${r.nome} ${r.cognome}`,
+      email: r.email,
+      role: r.role,
+      consentGiven: !!r.consentGiven,
+      consentAt: r.consentAt,
+      createdAt: r.createdAt
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET players/:id/guardians error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRole(...STAFF_ROLES), async (req, res) => {
+  const { societyId, userId: requesterId } = req.jwtUser;
+  const playerId = parseInt(req.params.playerId, 10);
+  const guardianId = parseInt(req.params.guardianId, 10);
+  if (isNaN(playerId) || isNaN(guardianId)) return res.status(400).json({ error: "invalid_ids" });
+  try {
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      [playerId, societyId]
+    );
+    if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const [guardianRows] = await pool.execute(
+      "SELECT id, user_id FROM player_guardians WHERE id = ? AND player_id = ?",
+      [guardianId, playerId]
+    );
+    if (!guardianRows.length) return res.status(404).json({ error: "guardian_not_found" });
+    const guardianUserId = guardianRows[0].user_id;
+    await pool.execute("DELETE FROM player_guardians WHERE id = ?", [guardianId]);
+    await pool.execute(
+      "DELETE FROM user_players WHERE user_id = ? AND player_id = ?",
+      [guardianUserId, playerId]
+    ).catch(() => {
+    });
+    logger.info({ requesterId, guardianId, guardianUserId, playerId, societyId }, "[GDPR] guardian unlinked by staff");
+    try {
+      const [residui] = await pool.execute(
+        `SELECT COUNT(*) AS n FROM player_guardians pg
+         INNER JOIN players p ON p.id = pg.player_id
+         WHERE pg.user_id = ? AND p.society_id = ?`,
+        [guardianUserId, societyId]
+      );
+      const hasOtherChildren = Number(residui[0].n) > 0;
+      if (hasOtherChildren) {
+        await syncGuardianToBlob(societyId, guardianUserId).catch(() => {
+        });
+      } else {
+        await removeGuardianFromBlob(societyId, guardianUserId).catch(() => {
+        });
+      }
+    } catch (_) {
+    }
+    try {
+      const [playerInfo] = await pool.execute(
+        "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
+        [playerId]
+      );
+      const pName = playerInfo[0] ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ""}`.trim() : "un giocatore";
+      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
+        title: "\u274C Tutore sganciato",
+        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la societ\xE0 per chiarimenti.`,
+        tag: `guardian-removed-${playerId}-${guardianUserId}`
+      }).catch(() => {
+      });
+    } catch (_) {
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE players/:playerId/guardians/:guardianId error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+async function syncPlayerFromMysqlToBlob(societyId, playerId) {
+  if (!societyId || !playerId) return;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, cognome_iniziale, birth_date, incomplete, approval_status, numero, leva
+       FROM players WHERE id = ? AND society_id = ? LIMIT 1`,
+      [playerId, societyId]
+    );
+    if (!rows.length) return;
+    const m = rows[0];
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.players)) return;
+    const idx = state.players.findIndex((p) => p && p.id === playerId);
+    if (idx < 0) return;
+    const blobPlayer = state.players[idx];
+    if (m.cognome != null) blobPlayer.cogn = m.cognome;
+    if (m.cognome_iniziale != null) blobPlayer.cogn_iniziale = m.cognome_iniziale;
+    if (m.birth_date != null) blobPlayer.birth_date = m.birth_date;
+    blobPlayer.incomplete = m.incomplete === 1;
+    if (m.approval_status != null) blobPlayer.approval_status = m.approval_status;
+    state.players[idx] = blobPlayer;
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, playerId }, "syncPlayerFromMysqlToBlob failed");
+  }
+}
+async function addNotificaToBlob(societyId, userIds, notifica) {
+  if (!societyId || !userIds.length) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [rows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!rows.length) return;
+    let state;
+    try {
+      state = JSON.parse(rows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.notifiche)) state.notifiche = [];
+    const baseTs = Date.now();
+    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+    for (const uid of userIds) {
+      state.notifiche.push({
+        id: `${baseId}_${uid}`,
+        userId: Number(uid),
+        type: notifica.type,
+        title: notifica.title,
+        body: notifica.body,
+        eventId: notifica.eventId ?? null,
+        convocazioneId: notifica.convocazioneId ?? null,
+        quoteKey: null,
+        docKey: null,
+        ts: baseTs,
+        read: false
+      });
+    }
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
+  }
+}
+async function syncGuardianToBlob(societyId, userId) {
+  if (!societyId || !userId) return;
+  try {
+    const [userRows] = await pool.execute(
+      "SELECT id, email, ruolo, nome, cognome, leva, stato FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    if (!userRows.length) return;
+    const u = userRows[0];
+    const [childRows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.cognome_iniziale, pg.role
+       FROM player_guardians pg
+       INNER JOIN players p ON p.id = pg.player_id
+       WHERE pg.user_id = ? AND p.society_id = ?`,
+      [userId, societyId]
+    );
+    const figli = [];
+    const figliIds = [];
+    let titoloFamiliare = null;
+    for (const c of childRows) {
+      const cogn = c.cognome || c.cognome_iniziale || "";
+      figli.push(`${c.nome} ${cogn}`.trim());
+      figliIds.push(Number(c.id));
+      if (!titoloFamiliare) titoloFamiliare = c.role;
+    }
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.USERS_DB)) state.USERS_DB = [];
+    const guardianEntry = {
+      id: Number(u.id),
+      email: u.email,
+      role: u.ruolo,
+      nome: u.nome || "",
+      cogn: u.cognome || "",
+      leva: u.leva || null,
+      stato: u.stato || "attivo",
+      figli,
+      figliIds,
+      titoloFamiliare,
+      _isV2: true
+    };
+    const idx = state.USERS_DB.findIndex((x) => x && Number(x.id) === Number(u.id));
+    if (idx < 0) {
+      state.USERS_DB.push(guardianEntry);
+    } else {
+      state.USERS_DB[idx] = { ...state.USERS_DB[idx], ...guardianEntry };
+    }
+    const maxId = state.USERS_DB.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0);
+    state.nextUserId = Math.max(Number(state.nextUserId) || 1, maxId + 1);
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userId }, "syncGuardianToBlob failed");
+  }
+}
+async function removeGuardianFromBlob(societyId, userId) {
+  if (!societyId || !userId) return;
+  try {
+    const stateKey = `fieldos_state_soc_${societyId}`;
+    const [blobRows] = await pool.execute(
+      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
+      [stateKey]
+    );
+    if (!blobRows.length) return;
+    let state;
+    try {
+      state = JSON.parse(blobRows[0].state_json);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(state.USERS_DB)) return;
+    const before = state.USERS_DB.length;
+    state.USERS_DB = state.USERS_DB.filter((x) => !x || Number(x.id) !== Number(userId));
+    if (state.USERS_DB.length === before) return;
+    await pool.execute(
+      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
+      [JSON.stringify(state), stateKey]
+    );
+  } catch (e) {
+    logger.error({ err: e?.message, societyId, userId }, "removeGuardianFromBlob failed");
+  }
+}
+var minors_default = router14;
+
+// src/routes/v2/players.ts
+var router15 = (0, import_express15.Router)();
+var ADMIN_ROLES = ["admin", "allenatore", "mister", "dirigente"];
+var STAFF_READ_ROLES = /* @__PURE__ */ new Set([
+  "admin",
+  "mister_admin",
+  "allenatore",
+  "mister",
+  "dirigente",
+  "preparatore_portieri"
+]);
+var PIANO_NORM = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+var PLAYER_LIMITS = { mister: 25, mister_pro: Infinity, societa: Infinity, demo: Infinity };
+async function getSocietyPlayerLimit(societyId) {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM[raw] || raw;
+  return PLAYER_LIMITS[norm] ?? 25;
+}
+router15.get("/players/pending-parental-consent", requireAuth, async (req, res) => {
+  const { userId, role } = req.jwtUser;
+  if (role !== "genitore") return res.json({ players: [] });
+  try {
+    const currentYear = (/* @__PURE__ */ new Date()).getFullYear();
+    const [rows] = await pool.execute(
+      `SELECT p.id, p.nome, p.cognome, p.anno_nascita
+       FROM players p
+       JOIN user_players up ON up.player_id = p.id
+       WHERE up.user_id = ?
+         AND p.anno_nascita IS NOT NULL
+         AND (? - p.anno_nascita) < 18
+         AND p.parental_consent_at IS NULL`,
+      [userId, currentYear]
+    );
+    return res.json({ players: rows });
+  } catch (e) {
+    logger.error({ err: e }, "GET pending-parental-consent error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.get("/players", requireAuth, async (req, res) => {
+  const { societyId, userId, role } = req.jwtUser;
+  const leva = req.query.leva;
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at`;
+  try {
+    let rows;
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [societyId, leva] : [societyId]
+      );
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      );
+    } else if (role === "giocatore") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.society_id = ?
+           ${leva ? "AND p.leva = ?" : ""}
+         ORDER BY p.cognome, p.nome`,
+        leva ? [userId, societyId, leva] : [userId, societyId]
+      );
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET players error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.get("/players/:id", requireAuth, async (req, res) => {
+  const { societyId, userId, role } = req.jwtUser;
+  const baseSelect = `SELECT p.id, p.nome, p.cognome, p.soprannome, p.numero, p.ruolo_campo,
+              p.anno_nascita, p.leva, p.telefono_genitore, p.email_genitore,
+              p.note, p.foto_url, p.created_at,
+              p.parental_consent_given_by, p.parental_consent_at`;
+  try {
+    let rows;
+    if (STAFF_READ_ROLES.has(role)) {
+      [rows] = await pool.execute(
+        `${baseSelect} FROM players p WHERE p.id = ? AND p.society_id = ?`,
+        [req.params.id, societyId]
+      );
+    } else if (role === "genitore" || role === "nonno") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN player_guardians pg ON pg.player_id = p.id AND pg.user_id = ?
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      );
+    } else if (role === "giocatore") {
+      [rows] = await pool.execute(
+        `${baseSelect}
+         FROM players p
+         JOIN users u
+           ON u.id = ? AND u.society_id = p.society_id
+          AND u.nome = p.nome AND u.cognome = p.cognome
+         WHERE p.id = ? AND p.society_id = ?`,
+        [userId, req.params.id, societyId]
+      );
+    } else {
+      return res.status(403).json({ error: "forbidden" });
+    }
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    return res.json(rows[0]);
+  } catch (e) {
+    logger.error({ err: e }, "GET player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.post("/players", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note
+  } = req.body;
+  if (!nome?.trim() || !cognome?.trim()) {
+    return res.status(400).json({ error: "nome_cognome_required" });
+  }
+  try {
+    const maxGioc = await getSocietyPlayerLimit(societyId);
+    if (isFinite(maxGioc) && leva) {
+      const [cnt] = await pool.execute(
+        "SELECT COUNT(*) as n FROM players WHERE society_id = ? AND leva = ?",
+        [societyId, leva]
+      );
+      if (cnt[0].n >= maxGioc) {
+        return res.status(403).json({ error: "plan_limit_reached", limitType: "giocatoriPerLeva", current: cnt[0].n, max: maxGioc });
+      }
+    }
+    const [result] = await pool.execute(
+      `INSERT INTO players
+        (society_id, nome, cognome, soprannome, numero, ruolo_campo, anno_nascita,
+         leva, telefono_genitore, email_genitore, note,
+         parental_consent_given_by, parental_consent_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
+      [
+        societyId,
+        nome.trim(),
+        cognome.trim(),
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.put("/players/:id", requireAuth, requireRole(...ADMIN_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    nome,
+    cognome,
+    soprannome,
+    numero,
+    ruoloCampo,
+    annoNascita,
+    leva,
+    telefonoGenitore,
+    emailGenitore,
+    note,
+    fotoUrl
+  } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE players SET
+        nome              = COALESCE(?, nome),
+        cognome           = COALESCE(?, cognome),
+        soprannome        = COALESCE(?, soprannome),
+        numero            = COALESCE(?, numero),
+        ruolo_campo       = COALESCE(?, ruolo_campo),
+        anno_nascita      = COALESCE(?, anno_nascita),
+        leva              = COALESCE(?, leva),
+        telefono_genitore = COALESCE(?, telefono_genitore),
+        email_genitore    = COALESCE(?, email_genitore),
+        note              = COALESCE(?, note),
+        foto_url          = COALESCE(?, foto_url),
+        incomplete        = CASE WHEN COALESCE(?, cognome) <> '' AND COALESCE(?, cognome) IS NOT NULL THEN 0 ELSE incomplete END
+       WHERE id = ? AND society_id = ?`,
+      [
+        nome ?? null,
+        cognome ?? null,
+        soprannome ?? null,
+        numero ?? null,
+        ruoloCampo ?? null,
+        annoNascita ?? null,
+        leva ?? null,
+        telefonoGenitore ?? null,
+        emailGenitore ?? null,
+        note ?? null,
+        fotoUrl ?? null,
+        cognome ?? null,
+        cognome ?? null,
+        // ← duplica per CASE
+        req.params.id,
+        societyId
+      ]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    try {
+      const [guardianRows] = await pool.execute(
+        "SELECT user_id FROM player_guardians WHERE player_id = ?",
+        [req.params.id]
+      );
+      for (const g of guardianRows) {
+        await syncGuardianToBlob(societyId, g.user_id).catch(() => {
+        });
+      }
+    } catch (_) {
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router15.delete("/players/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM players WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE player error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var players_default = router15;
+
+// src/routes/v2/users.ts
+var import_express16 = __toESM(require_express2(), 1);
+var router16 = (0, import_express16.Router)();
+var PIANO_NORM_U = { gratuito: "mister", base: "mister_pro", premium: "societa" };
+var COLLAB_LIMITS = { mister: 0, mister_pro: 6, societa: Infinity, demo: Infinity };
+var COLLAB_ROLES = /* @__PURE__ */ new Set(["allenatore", "mister", "dirigente", "preparatore_portieri", "mister_admin"]);
+async function getCollabLimit(societyId) {
+  const [rows] = await pool.execute("SELECT piano FROM societies WHERE id = ?", [societyId]);
+  const raw = rows[0]?.piano || "demo";
+  const norm = PIANO_NORM_U[raw] || raw;
+  return COLLAB_LIMITS[norm] ?? 0;
+}
+router16.get("/users/roles", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, ruolo FROM users WHERE society_id = ?",
+      [societyId]
+    );
+    return res.json({
+      roles: rows.map((r) => ({ id: r.id, ruolo: r.ruolo }))
+    });
+  } catch (e) {
+    logger.error({ err: e }, "GET users/roles error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.get("/users/id-email-map", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, email FROM users WHERE society_id = ?",
+      [societyId]
+    );
+    return res.json(
+      rows.map((r) => ({ id: r.id, email: r.email }))
+    );
+  } catch (e) {
+    logger.error({ err: e }, "GET users/id-email-map error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, cognome, email, ruolo, leva, stato, temp_password, figli, phone, permissions, is_account_owner, created_at
+       FROM users WHERE society_id = ? ORDER BY cognome, nome`,
+      [societyId]
+    );
+    return res.json(rows.map((u) => ({
+      ...u,
+      figli: u.figli ? JSON.parse(u.figli) : [],
+      tempPassword: u.temp_password === 1,
+      isAccountOwner: u.is_account_owner === 1,
+      permissions: u.permissions ? typeof u.permissions === "string" ? JSON.parse(u.permissions) : u.permissions : null
+    })));
+  } catch (e) {
+    logger.error({ err: e }, "GET users error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, cognome, email, password, ruolo, leva, figli, phone, permissions } = req.body;
+  if (!nome || !cognome || !email || !password || !ruolo) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const hash = hashPassword(password);
+  try {
+    if (COLLAB_ROLES.has(ruolo)) {
+      const maxCollab = await getCollabLimit(societyId);
+      if (isFinite(maxCollab)) {
+        const [cnt] = await pool.execute(
+          `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso'`,
+          [societyId]
+        );
+        if (cnt[0].n >= maxCollab) {
+          return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
+        }
+      }
+    }
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE LOWER(email) = ? AND society_id = ?",
+      [normalizedEmail, societyId]
+    );
+    if (existing.length) return res.status(409).json({ error: "email_exists" });
+    const [result] = await pool.execute(
+      `INSERT INTO users (society_id, nome, cognome, email, password_hash, ruolo, leva, figli, phone, permissions, temp_password)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      [
+        societyId,
+        nome.trim(),
+        cognome.trim(),
+        normalizedEmail,
+        hash,
+        ruolo,
+        leva ?? null,
+        figli ? JSON.stringify(figli) : null,
+        phone ?? null,
+        permissions ? JSON.stringify(permissions) : null
+      ]
+    );
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { nome, cognome, email, password, ruolo, leva, stato, figli, phone, permissions } = req.body;
+  try {
+    if (ruolo && COLLAB_ROLES.has(ruolo)) {
+      const [curRows] = await pool.execute(
+        "SELECT ruolo FROM users WHERE id = ? AND society_id = ?",
+        [req.params.id, societyId]
+      );
+      const currentRuolo = curRows[0]?.ruolo;
+      if (currentRuolo && !COLLAB_ROLES.has(currentRuolo)) {
+        const maxCollab = await getCollabLimit(societyId);
+        if (isFinite(maxCollab)) {
+          const [cnt] = await pool.execute(
+            `SELECT COUNT(*) as n FROM users WHERE society_id = ? AND ruolo IN ('allenatore','mister','dirigente','preparatore_portieri','mister_admin') AND stato != 'sospeso' AND id != ?`,
+            [societyId, req.params.id]
+          );
+          if (cnt[0].n >= maxCollab) {
+            return res.status(403).json({ error: "plan_limit_reached", limitType: "collaboratori", current: cnt[0].n, max: maxCollab });
+          }
+        }
+      }
+    }
+    const updates = [];
+    const params = [];
+    if (nome) {
+      updates.push("nome = ?");
+      params.push(nome.trim());
+    }
+    if (cognome) {
+      updates.push("cognome = ?");
+      params.push(cognome.trim());
+    }
+    if (email) {
+      updates.push("email = ?");
+      params.push(email.trim().toLowerCase());
+    }
+    if (ruolo) {
+      updates.push("ruolo = ?");
+      params.push(ruolo);
+    }
+    if (leva !== void 0) {
+      updates.push("leva = ?");
+      params.push(leva ?? null);
+    }
+    if (stato) {
+      updates.push("stato = ?");
+      params.push(stato);
+    }
+    if (figli !== void 0) {
+      updates.push("figli = ?");
+      params.push(figli ? JSON.stringify(figli) : null);
+    }
+    if (phone !== void 0) {
+      updates.push("phone = ?");
+      params.push(phone ?? null);
+    }
+    if (permissions !== void 0) {
+      updates.push("permissions = ?");
+      params.push(permissions ? JSON.stringify(permissions) : null);
+    }
+    if (password) {
+      updates.push("password_hash = ?");
+      updates.push("temp_password = TRUE");
+      params.push(hashPassword(password));
+    }
+    if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
+    params.push(req.params.id, societyId);
+    const [result] = await pool.execute(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
+      params
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "PUT user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var PATCH_RUOLO_WHITELIST = /* @__PURE__ */ new Set([
+  "admin",
+  "allenatore",
+  "mister",
+  "dirigente",
+  "preparatore_portieri",
+  "mister_admin",
+  "genitore",
+  "nonno",
+  "giocatore",
+  "pendente"
+]);
+router16.patch("/users/:id", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { ruolo, leva, stato } = req.body;
+  try {
+    const [meRows] = await pool.execute(
+      "SELECT ruolo FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    const callerRuolo = meRows[0]?.ruolo;
+    if (callerRuolo !== "admin" && callerRuolo !== "mister_admin") {
+      return res.status(403).json({ error: "forbidden", detail: "Solo admin possono aggiornare il ruolo di altri utenti." });
+    }
+  } catch (e) {
+    logger.error({ err: e }, "PATCH user \u2014 gating query error");
+    return res.status(500).json({ error: "server_error" });
+  }
+  if (ruolo !== void 0 && (typeof ruolo !== "string" || !PATCH_RUOLO_WHITELIST.has(ruolo))) {
+    return res.status(400).json({ error: "invalid_ruolo", allowed: [...PATCH_RUOLO_WHITELIST] });
+  }
+  const updates = [];
+  const params = [];
+  if (ruolo !== void 0) {
+    updates.push("ruolo = ?");
+    params.push(ruolo);
+  }
+  if (leva !== void 0) {
+    updates.push("leva = ?");
+    params.push(leva ?? null);
+  }
+  if (stato !== void 0) {
+    updates.push("stato = ?");
+    params.push(String(stato));
+  }
+  if (!updates.length) return res.status(400).json({ error: "nothing_to_update" });
+  try {
+    params.push(req.params.id, societyId);
+    const [result] = await pool.execute(
+      `UPDATE users SET ${updates.join(", ")} WHERE id = ? AND society_id = ?`,
+      params
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true, updated: result.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "PATCH user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  if (String(userId) === req.params.id) return res.status(400).json({ error: "cannot_delete_self" });
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM users WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE user error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.get("/users/pending", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, nome, cognome, email, created_at FROM users WHERE society_id = ? AND stato = 'pendente' ORDER BY created_at DESC",
+      [societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router16.post("/users/:id/approve", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { ruolo, leva, figli } = req.body;
+  try {
+    const [result] = await pool.execute(
+      `UPDATE users SET stato = 'attivo', ruolo = COALESCE(?, ruolo),
+        leva = COALESCE(?, leva), figli = COALESCE(?, figli)
+       WHERE id = ? AND society_id = ? AND stato = 'pendente'`,
+      [ruolo ?? null, leva ?? null, figli ? JSON.stringify(figli) : null, req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var users_default = router16;
+
+// src/routes/v2/events.ts
+var import_express17 = __toESM(require_express2(), 1);
+import { randomUUID } from "crypto";
+var router17 = (0, import_express17.Router)();
+var WRITE_ROLES = ["admin", "allenatore", "mister", "dirigente", "mister_admin"];
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setUTCDate(r.getUTCDate() + n);
+  return r;
+}
+function ymd(d) {
+  return d.toISOString().slice(0, 10);
+}
+function parseDate(s) {
+  const [y, m, dd] = s.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, dd));
+}
+function todayStr() {
+  return ymd(/* @__PURE__ */ new Date());
+}
+function expandRecurrences(ev, da, a) {
+  const evStart = parseDate(ev.data_inizio);
+  const evEnd = ev.fino_al ? parseDate(ev.fino_al) : parseDate(a);
+  const rangeS = parseDate(da) > evStart ? parseDate(da) : new Date(evStart);
+  const rangeE = parseDate(a) < evEnd ? parseDate(a) : new Date(evEnd);
+  if (rangeS > rangeE) return [];
+  const freq = ev.freq || "none";
+  const result = [];
+  if (freq === "daily") {
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      result.push(ymd(cur));
+    return result;
+  }
+  if (freq === "weekly") {
+    const days = (ev.giorni || "").split(",").map((s) => parseInt(s.trim())).filter((n) => !isNaN(n) && n >= 0 && n <= 6);
+    if (!days.length) return [];
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      if (days.includes(cur.getUTCDay())) result.push(ymd(cur));
+    return result;
+  }
+  if (freq === "monthly") {
+    const targetDay = evStart.getUTCDate();
+    for (let cur = new Date(rangeS); cur <= rangeE; cur = addDays(cur, 1))
+      if (cur.getUTCDate() === targetDay) result.push(ymd(cur));
+    return result;
+  }
+  return [];
+}
+async function fetchLeveForEvents(ids) {
+  if (!ids.length) return {};
+  const ph = ids.map(() => "?").join(",");
+  const [rows] = await pool.execute(
+    `SELECT el.event_id, l.id, l.nome
+     FROM event_leve el JOIN leve l ON l.id = el.leva_id
+     WHERE el.event_id IN (${ph})`,
+    ids
+  );
+  const map = {};
+  for (const r of rows) {
+    if (!map[r.event_id]) map[r.event_id] = [];
+    map[r.event_id].push({ id: r.id, nome: r.nome });
+  }
+  return map;
+}
+async function fetchAllenamentiForEvents(ids) {
+  if (!ids.length) return {};
+  const ph = ids.map(() => "?").join(",");
+  const [rows] = await pool.execute(
+    `SELECT a.event_id, a.id AS allenamento_id,
+            a.titolo AS allenamento_titolo, a.obiettivo AS allenamento_obiettivo,
+            a.durata_totale_minuti AS allenamento_durata_totale_minuti,
+            a.visibilita_genitori AS allenamento_visibilita_genitori,
+            (SELECT COUNT(*) FROM allenamento_sessioni s WHERE s.allenamento_id = a.id) AS allenamento_num_sessioni
+     FROM allenamenti a WHERE a.event_id IN (${ph})`,
+    ids
+  );
+  const map = {};
+  for (const r of rows) map[r.event_id] = r;
+  return map;
+}
+async function insertLeveForEvent(conn, eventId, leve) {
+  for (const levaId of leve) {
+    await conn.execute(
+      "INSERT IGNORE INTO event_leve (event_id, leva_id) VALUES (?, ?)",
+      [eventId, parseInt(levaId)]
+    );
+  }
+}
+router17.get("/events", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    leva_id,
+    tipi,
+    da = todayStr(),
+    a = ymd(addDays(/* @__PURE__ */ new Date(), 90)),
+    expand_recurrences = "true",
+    month,
+    year: year2,
+    leva
+    // retrocompat
+  } = req.query;
+  const doExpand = expand_recurrences !== "false";
+  try {
+    const conds = ["e.society_id = ?"];
+    const params = [societyId];
+    if (tipi) {
+      const arr = tipi.split(",").map((t) => t.trim()).filter(Boolean);
+      if (arr.length) {
+        conds.push(`e.tipo IN (${arr.map(() => "?").join(",")})`);
+        params.push(...arr);
+      }
+    }
+    if (month && year2) {
+      conds.push("MONTH(e.data_inizio) = ? AND YEAR(e.data_inizio) = ?");
+      params.push(parseInt(month), parseInt(year2));
+    } else {
+      conds.push(
+        "((e.ricorrente = 0 AND e.data_inizio BETWEEN ? AND ?) OR (e.ricorrente = 1 AND e.data_inizio <= ? AND (e.fino_al IS NULL OR e.fino_al >= ?)))"
+      );
+      params.push(da, a, a, da);
+    }
+    if (leva_id) {
+      conds.push("EXISTS (SELECT 1 FROM event_leve el WHERE el.event_id = e.id AND el.leva_id = ?)");
+      params.push(parseInt(leva_id));
+    } else if (leva) {
+      conds.push("(e.leva = ? OR e.leva IS NULL)");
+      params.push(leva);
+    }
+    const [rows] = await pool.execute(
+      `SELECT e.id, e.tipo, e.titolo, e.luogo,
+              e.data_inizio, e.ora_inizio, e.ora_fine,
+              e.note, e.ricorrente, e.freq, e.giorni, e.fino_al,
+              e.recur_group_id, e.created_at
+       FROM events e WHERE ${conds.join(" AND ")}
+       ORDER BY e.data_inizio, e.ora_inizio`,
+      params
+    );
+    if (!rows.length) return res.json([]);
+    const eventIds = rows.map((r) => r.id);
+    const leveMap = await fetchLeveForEvents(eventIds);
+    const allMap = await fetchAllenamentiForEvents(eventIds);
+    const occurrences = [];
+    for (const ev of rows) {
+      const leve = leveMap[ev.id] || [];
+      const allInfo = allMap[ev.id] || null;
+      const allenamento_id = allInfo?.allenamento_id ?? null;
+      const allenamentoFields = {
+        allenamento_id,
+        allenamento_titolo: allInfo?.allenamento_titolo ?? null,
+        allenamento_obiettivo: allInfo?.allenamento_obiettivo ?? null,
+        allenamento_durata_totale_minuti: allInfo?.allenamento_durata_totale_minuti ?? null,
+        allenamento_num_sessioni: allInfo?.allenamento_num_sessioni ?? 0,
+        allenamento_visibilita_genitori: allInfo ? !!allInfo.allenamento_visibilita_genitori : false
+      };
+      if (ev.ricorrente && doExpand && !month) {
+        const dates = expandRecurrences(
+          { data_inizio: ev.data_inizio, fino_al: ev.fino_al, freq: ev.freq, giorni: ev.giorni },
+          da,
+          a
+        );
+        for (const d of dates) {
+          occurrences.push({
+            event_id: ev.id,
+            recur_group_id: ev.recur_group_id,
+            tipo: ev.tipo,
+            titolo: ev.titolo,
+            leve,
+            data: d,
+            ora_inizio: ev.ora_inizio,
+            ora_fine: ev.ora_fine,
+            luogo: ev.luogo,
+            note: ev.note,
+            is_recurring_occurrence: true,
+            ...allenamentoFields
+          });
+        }
+      } else {
+        occurrences.push({
+          event_id: ev.id,
+          recur_group_id: ev.recur_group_id,
+          tipo: ev.tipo,
+          titolo: ev.titolo,
+          leve,
+          data: ev.data_inizio,
+          ora_inizio: ev.ora_inizio,
+          ora_fine: ev.ora_fine,
+          luogo: ev.luogo,
+          note: ev.note,
+          is_recurring_occurrence: false,
+          ...allenamentoFields
+        });
+      }
+    }
+    occurrences.sort(
+      (a2, b) => a2.data < b.data ? -1 : a2.data > b.data ? 1 : (a2.ora_inizio || "").localeCompare(b.ora_inizio || "")
+    );
+    return res.json(occurrences);
+  } catch (e) {
+    logger.error({ err: e }, "GET events error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router17.get("/events/:id", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "not_found" });
+    const ev = rows[0];
+    const leveMap = await fetchLeveForEvents([ev.id]);
+    return res.json({ ...ev, leve: leveMap[ev.id] || [] });
+  } catch (e) {
+    logger.error({ err: e }, "GET events/:id error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router17.post("/events", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const {
+    tipo,
+    titolo,
+    leve = [],
+    luogo,
+    dataInizio,
+    oraInizio,
+    oraFine,
+    note,
+    ricorrente = false,
+    freq,
+    giorni,
+    finoAl
+  } = req.body;
+  if (!tipo || !titolo) return res.status(400).json({ error: "tipo_titolo_required" });
+  if (!Array.isArray(leve)) return res.status(400).json({ error: "leve_must_be_array" });
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    if (ricorrente && finoAl && freq) {
+      const recurGroupId = randomUUID();
+      const dates = expandRecurrences(
+        { data_inizio: dataInizio, fino_al: finoAl, freq, giorni: giorni ?? null },
+        dataInizio,
+        finoAl
+      );
+      if (!dates.length) {
+        await conn.rollback();
+        conn.release();
+        return res.status(400).json({ error: "nessuna_occorrenza_nel_range" });
+      }
+      const ids = [];
+      for (const d of dates) {
+        const [r] = await conn.execute(
+          `INSERT INTO events
+             (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
+              note, ricorrente, freq, giorni, fino_al, recur_group_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+          [
+            societyId,
+            tipo,
+            titolo,
+            luogo ?? null,
+            d,
+            oraInizio ?? null,
+            oraFine ?? null,
+            note ?? null,
+            freq,
+            giorni ?? null,
+            finoAl,
+            recurGroupId
+          ]
+        );
+        ids.push(r.insertId);
+      }
+      for (const eid of ids) await insertLeveForEvent(conn, eid, leve);
+      await conn.commit();
+      return res.status(201).json({
+        recur_group_id: recurGroupId,
+        total_created: ids.length,
+        first_event_id: ids[0]
+      });
+    } else {
+      const recurGroupId = ricorrente ? randomUUID() : null;
+      const [r] = await conn.execute(
+        `INSERT INTO events
+           (society_id, tipo, titolo, luogo, data_inizio, ora_inizio, ora_fine,
+            note, ricorrente, freq, giorni, fino_al, recur_group_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          societyId,
+          tipo,
+          titolo,
+          luogo ?? null,
+          dataInizio ?? null,
+          oraInizio ?? null,
+          oraFine ?? null,
+          note ?? null,
+          ricorrente ? 1 : 0,
+          freq ?? null,
+          giorni ?? null,
+          finoAl ?? null,
+          recurGroupId
+        ]
+      );
+      const eventId = r.insertId;
+      await insertLeveForEvent(conn, eventId, leve);
+      await conn.commit();
+      const [rows] = await pool.execute(
+        "SELECT * FROM events WHERE id = ?",
+        [eventId]
+      );
+      const leveMap = await fetchLeveForEvents([eventId]);
+      return res.status(201).json({ ...rows[0], leve: leveMap[eventId] || [] });
+    }
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "POST event error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router17.put("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const conn = await pool.getConnection();
+  try {
+    const [evRows] = await conn.execute(
+      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id) {
+      conn.release();
+      return res.status(404).json({ error: "serie_non_trovata" });
+    }
+    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
+    await conn.beginTransaction();
+    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(groupId, fromDate, societyId);
+      await conn.execute(
+        `UPDATE events SET ${upd.join(", ")}
+         WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?`,
+        params
+      );
+    }
+    if (Array.isArray(leve)) {
+      const [futureEvs] = await conn.execute(
+        "SELECT id FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
+        [groupId, fromDate, societyId]
+      );
+      for (const ev of futureEvs) {
+        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
+        await insertLeveForEvent(conn, ev.id, leve);
+      }
+    }
+    await conn.commit();
+    return res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "PUT events/:id/series/from-here error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router17.put("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const conn = await pool.getConnection();
+  try {
+    const [evRows] = await conn.execute(
+      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id) {
+      conn.release();
+      return res.status(404).json({ error: "serie_non_trovata" });
+    }
+    const groupId = evRows[0].recur_group_id;
+    await conn.beginTransaction();
+    const { tipo, titolo, leve, luogo, oraInizio, oraFine, note, freq, giorni, finoAl } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(groupId, societyId);
+      await conn.execute(
+        `UPDATE events SET ${upd.join(", ")}
+         WHERE recur_group_id = ? AND society_id = ?`,
+        params
+      );
+    }
+    if (Array.isArray(leve)) {
+      const [allEvs] = await conn.execute(
+        "SELECT id FROM events WHERE recur_group_id = ? AND society_id = ?",
+        [groupId, societyId]
+      );
+      for (const ev of allEvs) {
+        await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [ev.id]);
+        await insertLeveForEvent(conn, ev.id, leve);
+      }
+    }
+    await conn.commit();
+    return res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "PUT events/:id/series error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router17.put("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const {
+      tipo,
+      titolo,
+      leve,
+      luogo,
+      dataInizio,
+      oraInizio,
+      oraFine,
+      note,
+      ricorrente,
+      freq,
+      giorni,
+      finoAl
+    } = req.body;
+    const upd = [];
+    const params = [];
+    if (tipo !== void 0) {
+      upd.push("tipo = ?");
+      params.push(tipo);
+    }
+    if (titolo !== void 0) {
+      upd.push("titolo = ?");
+      params.push(titolo);
+    }
+    if (luogo !== void 0) {
+      upd.push("luogo = ?");
+      params.push(luogo ?? null);
+    }
+    if (dataInizio !== void 0) {
+      upd.push("data_inizio = ?");
+      params.push(dataInizio ?? null);
+    }
+    if (oraInizio !== void 0) {
+      upd.push("ora_inizio = ?");
+      params.push(oraInizio ?? null);
+    }
+    if (oraFine !== void 0) {
+      upd.push("ora_fine = ?");
+      params.push(oraFine ?? null);
+    }
+    if (note !== void 0) {
+      upd.push("note = ?");
+      params.push(note ?? null);
+    }
+    if (ricorrente !== void 0) {
+      upd.push("ricorrente = ?");
+      params.push(ricorrente ? 1 : 0);
+    }
+    if (freq !== void 0) {
+      upd.push("freq = ?");
+      params.push(freq ?? null);
+    }
+    if (giorni !== void 0) {
+      upd.push("giorni = ?");
+      params.push(giorni ?? null);
+    }
+    if (finoAl !== void 0) {
+      upd.push("fino_al = ?");
+      params.push(finoAl ?? null);
+    }
+    if (upd.length) {
+      params.push(req.params.id, societyId);
+      const [r] = await conn.execute(
+        `UPDATE events SET ${upd.join(", ")} WHERE id = ? AND society_id = ?`,
+        params
+      );
+      if (!r.affectedRows) {
+        await conn.rollback();
+        conn.release();
+        return res.status(404).json({ error: "not_found" });
+      }
+    }
+    if (Array.isArray(leve)) {
+      await conn.execute("DELETE FROM event_leve WHERE event_id = ?", [req.params.id]);
+      await insertLeveForEvent(conn, parseInt(req.params.id), leve);
+    }
+    await conn.commit();
+    return res.json({ ok: true });
+  } catch (e) {
+    await conn.rollback();
+    logger.error({ err: e }, "PUT event error");
+    return res.status(500).json({ error: "server_error" });
+  } finally {
+    conn.release();
+  }
+});
+router17.delete("/events/:id/series/from-here", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [evRows] = await pool.execute(
+      "SELECT recur_group_id, data_inizio FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id)
+      return res.status(404).json({ error: "serie_non_trovata" });
+    const { recur_group_id: groupId, data_inizio: fromDate } = evRows[0];
+    const [r] = await pool.execute(
+      "DELETE FROM events WHERE recur_group_id = ? AND data_inizio >= ? AND society_id = ?",
+      [groupId, fromDate, societyId]
+    );
+    return res.json({ ok: true, deleted: r.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE events/:id/series/from-here error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router17.delete("/events/:id/series", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [evRows] = await pool.execute(
+      "SELECT recur_group_id FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!evRows.length || !evRows[0].recur_group_id)
+      return res.status(404).json({ error: "serie_non_trovata" });
+    const groupId = evRows[0].recur_group_id;
+    const [r] = await pool.execute(
+      "DELETE FROM events WHERE recur_group_id = ? AND society_id = ?",
+      [groupId, societyId]
+    );
+    return res.json({ ok: true, deleted: r.affectedRows });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE events/:id/series error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router17.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [r] = await pool.execute(
+      "DELETE FROM events WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!r.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "DELETE event error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var events_default = router17;
+
+// src/routes/v2/presenze.ts
+var import_express18 = __toESM(require_express2(), 1);
+
+// src/lib/permissions.ts
+function requirePermission(key) {
+  return async (req, res, next) => {
+    if (!req.jwtUser) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    if (req.jwtUser.role === "admin" || req.jwtUser.role === "mister_admin") {
+      next();
+      return;
+    }
+    try {
+      const [rows] = await pool.execute(
+        "SELECT permissions FROM users WHERE id = ? LIMIT 1",
+        [req.jwtUser.userId]
+      );
+      if (!rows.length) {
+        next();
+        return;
+      }
+      if (rows[0].permissions === null || rows[0].permissions === void 0) {
+        next();
+        return;
+      }
+      let perms = {};
+      try {
+        perms = typeof rows[0].permissions === "string" ? JSON.parse(rows[0].permissions) : rows[0].permissions;
+      } catch {
+      }
+      if (perms[key] === true) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: "permission_denied", permission: key });
+    } catch (e) {
+      res.status(500).json({ error: "server_error" });
+    }
+  };
+}
+
+// src/lib/leva-guard.ts
+function _norm(s) {
+  if (s == null) return "";
+  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+}
+async function getUserLeve(userId, societyId, role) {
+  if (role === "admin" || role === "mister_admin") return null;
+  if (role === "genitore" || role === "nonno") {
+    const [rows] = await pool.execute(
+      `SELECT DISTINCT p.leva
+         FROM user_players up
+         JOIN players p ON p.id = up.player_id
+        WHERE up.user_id = ? AND p.society_id = ? AND p.leva IS NOT NULL AND p.leva <> ''`,
+      [userId, societyId]
+    );
+    return new Set(rows.map((r) => _norm(r.leva)));
+  }
+  if (role === "allenatore" || role === "mister" || role === "dirigente" || role === "preparatore_portieri") {
+    const [rows] = await pool.execute(
+      "SELECT leva FROM users WHERE id = ? AND society_id = ? LIMIT 1",
+      [userId, societyId]
+    );
+    if (!rows.length || rows[0].leva == null || rows[0].leva === "") return /* @__PURE__ */ new Set();
+    const leva = String(rows[0].leva);
+    if (leva.trim().toLowerCase() === "tutte") return null;
+    return /* @__PURE__ */ new Set([_norm(leva)]);
+  }
+  return /* @__PURE__ */ new Set();
+}
+function requireLeva(levaResolver) {
+  return async (req, res, next) => {
+    if (!req.jwtUser) {
+      res.status(401).json({ error: "unauthorized" });
+      return;
+    }
+    try {
+      const { userId, societyId, role } = req.jwtUser;
+      const allowed = await getUserLeve(userId, societyId, role);
+      if (allowed === null) {
+        next();
+        return;
+      }
+      const leva = await Promise.resolve(levaResolver(req));
+      if (!leva) {
+        res.status(400).json({ error: "leva_required" });
+        return;
+      }
+      const lvNorm = _norm(leva);
+      if (!allowed.has(lvNorm)) {
+        res.status(403).json({ error: "leva_forbidden", leva });
+        return;
+      }
+      next();
+    } catch (e) {
+      res.status(500).json({ error: "server_error" });
+    }
+  };
 }
 
 // src/routes/v2/presenze.ts

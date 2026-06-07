@@ -2,7 +2,8 @@ import { Router } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
-import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
+import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
+import { resolveRecipients } from "../../lib/recipient-resolver";
 
 const router = Router();
 
@@ -232,8 +233,17 @@ router.post("/players/:id/claim", requireAuth, async (req, res) => {
 
     // Card blob SEMPRE (anche claim successivi); push browser SOLO al primo claim per evitare spam
     try {
-      // Per "nuovo genitore" notificare SOLO staff (admin/mister/allenatori/dirigenti), NON altri genitori
-      const targetIds = await getUsersForPush(societyId, { leva: player.leva, excludeUserId: userId, staffOnly: true });
+      // CABLAGGIO RESOLVER UNICO (commit cablatura claim): destinatari risolti via
+      // resolveRecipients('claim', { societyId, leva, senderUserId }). Lo scope
+      // 'claim' = staffLeva + societa (admin/mister_admin sempre, + staff della
+      // leva del giocatore). Sender escluso. Differenza vs vecchio getUsersForPush
+      // staffOnly: prima il dirigente era catch-all su TUTTE le leve; ora viene
+      // incluso SOLO se assegnato alla leva del giocatore (matrice del task).
+      const targetIds = await resolveRecipients("claim", {
+        societyId,
+        leva: player.leva,
+        senderUserId: userId,
+      });
       if (targetIds && targetIds.length) {
         let guardianFullName = '';
         try {
