@@ -85885,27 +85885,21 @@ async function _famiglieLeva(societyId, leva) {
   const ids = /* @__PURE__ */ new Set();
   try {
     try {
-      const [r1] = await pool.execute(
+      const lc = _levaMatchClause(leva);
+      const sqlOnPLeva = lc.sql.replace(/\bleva\b/g, "p.leva");
+      const [rows] = await pool.execute(
         `SELECT DISTINCT pg.user_id AS id
            FROM player_guardians pg
            JOIN players p ON p.id = pg.player_id
            JOIN users u ON u.id = pg.user_id
-          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'
-            AND u.ruolo IN ('genitore','nonno')`,
-        [societyId, leva]
+          WHERE p.society_id = ? AND u.stato = 'attivo'
+            AND u.ruolo IN ('genitore','nonno')
+            AND ${sqlOnPLeva}`,
+        [societyId, ...lc.params]
       );
-      for (const r of r1) ids.add(Number(r.id));
+      for (const r of rows) ids.add(Number(r.id));
     } catch (_) {
     }
-    const lc = _levaMatchClause(leva);
-    const [r2] = await pool.execute(
-      `SELECT id FROM users
-        WHERE society_id = ? AND stato = 'attivo'
-          AND ruolo IN ('genitore','nonno')
-          AND ${lc.sql}`,
-      [societyId, ...lc.params]
-    );
-    for (const r of r2) ids.add(Number(r.id));
     if (!_isUnder14(leva)) {
       try {
         const [r3] = await pool.execute(

@@ -92,38 +92,47 @@ async function _staffLeva(societyId: number, leva: string): Promise<number[]> {
   }
 }
 
-// Famiglie leva: genitori + nonni della leva via UNION dei 2 path standard
-// (player_guardians GDPR-moderno + users.leva legacy con _levaMatchClause).
+// Famiglie leva: genitori + nonni della leva via player_guardians (fonte canonica).
 // Se leva U14+ aggiunge anche utenti ruolo 'giocatore' della leva (auto-membri
 // per chat squadra U14+, coerente con la regola eta delle chat).
+//
+// FIX bug "30 genitori leva=NULL in risultato U11" (post-diagnosi bdc5c59):
+// - PATH 2 (users.leva legacy per ruoli genitore/nonno) RIMOSSO. users.leva
+//   per genitori/nonni e' un campo non-canonico (spesso NULL), e
+//   _levaMatchClause include "leva IS NULL" come catch-all: il fallback
+//   raccoglieva tutti i genitori della societa', non solo i guardian reali
+//   della leva. La fonte unica e' ora player_guardians (flusso /claim GDPR
+//   moderno) — chi non e' agganciato lì semplicemente non riceve la push,
+//   come da semantica del modello.
+// - PATH 1 (player_guardians) ora usa _levaMatchClause su p.leva al posto di
+//   exact match: "U11" aggancia player "U11 - Pulcini", JSON multi-leva,
+//   prefix-stored, ecc. (stesso pattern usato in _staffLeva).
 async function _famiglieLeva(societyId: number, leva: string): Promise<number[]> {
   if (!leva) return [];
   const ids = new Set<number>();
   try {
-    // PATH 1: player_guardians (flusso /claim GDPR moderno).
+    // PATH UNICO: player_guardians con _levaMatchClause applicato a p.leva.
+    //
+    // _levaMatchClause genera SQL con "leva" come identificatore non qualificato.
+    // Nella nostra query c'e' ambiguita' (sia players.leva sia users.leva sono
+    // in scope), quindi sostituisco testualmente "leva" → "p.leva" per puntare
+    // alla leva del giocatore. La sostituzione e' sicura: l'helper produce
+    // identificatori semplici, niente alias annidati.
     try {
-      const [r1] = (await pool.execute(
+      const lc = _levaMatchClause(leva);
+      const sqlOnPLeva = lc.sql.replace(/\bleva\b/g, "p.leva");
+      const [rows] = (await pool.execute(
         `SELECT DISTINCT pg.user_id AS id
            FROM player_guardians pg
            JOIN players p ON p.id = pg.player_id
            JOIN users u ON u.id = pg.user_id
-          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'
-            AND u.ruolo IN ('genitore','nonno')`,
-        [societyId, leva]
+          WHERE p.society_id = ? AND u.stato = 'attivo'
+            AND u.ruolo IN ('genitore','nonno')
+            AND ${sqlOnPLeva}`,
+        [societyId, ...lc.params]
       )) as [any[], any];
-      for (const r of (r1 as any[])) ids.add(Number(r.id));
-    } catch (_) { /* player_guardians puo' non esistere */ }
-
-    // PATH 2: legacy users.leva con _levaMatchClause (multi-leva/prefix/Tutte).
-    const lc = _levaMatchClause(leva);
-    const [r2] = (await pool.execute(
-      `SELECT id FROM users
-        WHERE society_id = ? AND stato = 'attivo'
-          AND ruolo IN ('genitore','nonno')
-          AND ${lc.sql}`,
-      [societyId, ...lc.params]
-    )) as [any[], any];
-    for (const r of (r2 as any[])) ids.add(Number(r.id));
+      for (const r of (rows as any[])) ids.add(Number(r.id));
+    } catch (_) { /* player_guardians puo' non esistere (schema legacy) */ }
 
     // U14+ → aggiungi giocatori della leva (chat squadra U14+ li include).
     if (!_isUnder14(leva)) {
