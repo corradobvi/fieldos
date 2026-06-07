@@ -78188,64 +78188,6 @@ async function sendPushToUsers(userIds, societyKey, payload, prefKey) {
   logger.info({ sent, errors, societyKey }, "push-sender: completed");
   return { sent, errors };
 }
-async function getUsersForPush(societyId, options = {}) {
-  const { leva, excludeUserId, staffOnly } = options;
-  try {
-    let staffQuery = `SELECT id, ruolo, leva FROM users WHERE society_id = ? AND stato = 'attivo'`;
-    const staffParams = [societyId];
-    if (excludeUserId) {
-      staffQuery += " AND id != ?";
-      staffParams.push(excludeUserId);
-    }
-    if (leva) {
-      const lc = _levaMatchClause(leva);
-      staffQuery += ` AND (
-        ruolo IN ('admin','mister_admin','dirigente')
-        OR (ruolo IN ('allenatore','mister','preparatore_portieri','genitore','nonno') AND ${lc.sql})
-      )`;
-      staffParams.push(...lc.params);
-    }
-    const [staffRows] = await pool.execute(staffQuery, staffParams);
-    const staffIds = staffRows.map((r) => Number(r.id));
-    const staffDetail = staffRows.map((r) => ({
-      user_id: Number(r.id),
-      ruolo: r.ruolo,
-      leva_stored: r.leva
-    }));
-    let guardianIds = [];
-    if (!staffOnly && leva) {
-      try {
-        let gQuery = `SELECT DISTINCT pg.user_id AS id
-          FROM player_guardians pg
-          JOIN players p ON p.id = pg.player_id
-          JOIN users u ON u.id = pg.user_id
-          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'`;
-        const gParams = [societyId, leva];
-        if (excludeUserId) {
-          gQuery += " AND pg.user_id != ?";
-          gParams.push(excludeUserId);
-        }
-        const [gRows] = await pool.execute(gQuery, gParams);
-        guardianIds = gRows.map((r) => Number(r.id));
-      } catch {
-      }
-    }
-    const allIds = [.../* @__PURE__ */ new Set([...staffIds, ...guardianIds])];
-    logger.info({
-      societyId,
-      leva_target: leva ?? null,
-      excludeUserId: excludeUserId ?? null,
-      staffOnly: !!staffOnly,
-      staff: staffDetail,
-      guardianCount: guardianIds.length,
-      total: allIds.length
-    }, "push-sender: getUsersForPush resolved");
-    return allIds;
-  } catch (e) {
-    logger.warn({ err: e }, "push-sender: getUsersForPush error");
-    return [];
-  }
-}
 
 // src/routes/push.ts
 var STAFF_WRITE_ROLES_PUSH = ["admin", "mister_admin", "allenatore", "mister", "dirigente", "preparatore_portieri"];
@@ -88141,7 +88083,11 @@ router19.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", 
     );
     const _pushTitle = urgente ? `\u{1F6A8} URGENTE: ${titolo || "Comunicazione"}` : `\u{1F4E2} ${titolo || "Nuova comunicazione"}`;
     const _pushBody = (titolo ? testo : testo).slice(0, 100);
-    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
+    resolveRecipients("comunicazione", {
+      societyId,
+      leva: leva ?? null,
+      senderUserId: userId
+    }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
       title: _pushTitle,
       body: _pushBody,
       url: "/comunicazioni",

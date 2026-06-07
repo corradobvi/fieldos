@@ -5,7 +5,8 @@ import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
 import { getUserLeve } from "../../lib/leva-guard";
-import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
+import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
+import { resolveRecipients } from "../../lib/recipient-resolver";
 
 const router = Router();
 
@@ -106,12 +107,31 @@ router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "m
        bacheca ?? "generale", leva ?? null, urgente ? 1 : 0]
     )) as [any, any];
 
-    // Push notification — fire-and-forget, non blocca la risposta
+    // Push notification — fire-and-forget, non blocca la risposta.
+    //
+    // CABLAGGIO RESOLVER UNICO (commit cablatura comunicazione): destinatari
+    // risolti via resolveRecipients('comunicazione', { societyId, leva, senderUserId }).
+    // Lo scope 'comunicazione' = famiglieLeva + staffLeva (matrice).
+    // Differenza vs vecchio getUsersForPush: il dirigente riceve la comunicazione
+    // SOLO se assegnato alla leva del messaggio (prima era catch-all su tutte
+    // le leve via admin/mister_admin/dirigente). Sender escluso dal resolver.
+    // Per le comunicazioni "societa-wide" (leva null), resolveRecipients ritorna
+    // [] perche' gli scope staffLeva/famiglieLeva richiedono leva valorizzata;
+    // _checkComLevaScope (riga 20-56) gia' impone che il sender sia wildcard
+    // per pubblicare societa-wide → manteniamo la semantica attuale: niente
+    // push per le societa-wide (era cosi' anche con getUsersForPush quando
+    // leva era null? in realta' include admin/mister_admin/dirigente come
+    // catch-all; questa e' una piccola regressione voluta: niente push per
+    // pubblicazioni societa-wide finche' non aggiungiamo un evento dedicato).
     const _pushTitle = urgente
       ? `🚨 URGENTE: ${titolo || 'Comunicazione'}`
       : `📢 ${titolo || 'Nuova comunicazione'}`;
     const _pushBody = (titolo ? testo : testo).slice(0, 100);
-    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId })
+    resolveRecipients("comunicazione", {
+      societyId,
+      leva: leva ?? null,
+      senderUserId: userId,
+    })
       .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
         title: _pushTitle,
         body:  _pushBody,
