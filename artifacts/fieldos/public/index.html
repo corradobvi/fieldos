@@ -21358,10 +21358,13 @@ function saveEvento(){
         if (!r.ok) { toast('⛔ Errore aggiornamento evento'); return; }
         toast('✅ Evento aggiornato');
         if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
-          const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
-          const _pidsE = new Set();
-          USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
-          _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+          // Matrice EVENT_AUDIENCE: niente notifica per UPDATE allenamento.
+          if (!_isTrainType) {
+            const _tlE = { partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+            const _pidsE = new Set();
+            USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
+            _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+          }
         }
         _loadCalEvents();
       }).catch(function() { toast('⛔ Errore di rete'); });
@@ -21370,10 +21373,13 @@ function saveEvento(){
       Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
       toast('✅ Evento aggiornato');
       if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
-        const _tlE = { allenamento:'✏️ Allenamento modificato', allenamento_portieri:'✏️ Allenamento portieri modificato', partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
-        const _pidsE = new Set();
-        USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
-        _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+        // Matrice EVENT_AUDIENCE: niente notifica per UPDATE allenamento.
+        if (!_isTrainType) {
+          const _tlE = { partita:'✏️ Partita aggiornata', torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+          const _pidsE = new Set();
+          USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
+          _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
+        }
       }
       closeM('mEvento');
       renderCal();
@@ -21385,8 +21391,9 @@ function saveEvento(){
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
     const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
     // Notifica ai genitori/nonni delle leve coinvolte (ottimistica, prima della risposta API)
-    (function(){
-      const _tl = { allenamento:'🏃 Allenamento aggiunto', allenamento_portieri:'🧤 Allenamento portieri', partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
+    // Matrice EVENT_AUDIENCE: niente notifica per CREATE allenamento.
+    if (!_isTrainType) (function(){
+      const _tl = { partita:'⚽ Nuova partita programmata', torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
       const _pids = new Set();
       USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pids.add(u.id); });
       _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
@@ -21406,6 +21413,21 @@ function saveEvento(){
   closeM('mEvento');
   renderCal();
 }
+// CABLAGGIO RESOLVER (evento 9 allenamento_eliminato): UNA fetch BE per
+// eliminazione allenamento (singolo o serie). Niente notifiche su CREATE/UPDATE
+// allenamento (matrice). Scope BE = famiglieLeva + staffLeva (sender escluso).
+async function _notifyAllenamentoEliminato(leve, title, body) {
+  try {
+    const token = localStorage.getItem('fieldos_token');
+    if (!token || !Array.isArray(leve) || !leve.length || !title) return;
+    await fetch(API_BASE + '/api/v2/allenamenti/notifica-eliminazione', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ leve, title, body: body || '' })
+    });
+  } catch (_) { /* silent: il toast UX e' gia' stato mostrato dal caller */ }
+}
+function _isAllenType(t) { return t === 'allenamento' || t === 'allenamento_portieri'; }
 function deleteCurrentEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
@@ -21428,9 +21450,13 @@ function deleteCurrentEvento(){
   const _evSnap = { leve: Array.isArray(ev.leve)?ev.leve.slice():[], title: ev.title, date: ev.date, start: ev.start, luogo: ev.luogo, type: ev.type };
   function _notifyDelSingle() {
     const _tlD = { allenamento:'❌ Allenamento annullato', allenamento_portieri:'❌ Allenamento portieri annullato', partita:'❌ Partita annullata', torneo:'❌ Torneo annullato', altro:'❌ Evento annullato' };
+    const _title = _tlD[_evSnap.type] || '❌ Evento annullato';
+    const _body  = (_evSnap.title ? _evSnap.title+'\n' : '')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:'');
+    // Allenamento eliminato → cablato su resolver unico (famiglieLeva + staffLeva BE).
+    if (_isAllenType(_evSnap.type)) { _notifyAllenamentoEliminato(_evSnap.leve, _title, _body); return; }
     const _pidsD = new Set();
     USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
-    _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlD[_evSnap.type]||'❌ Evento annullato'), body: (_evSnap.title ? _evSnap.title+'\n' : '')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:''), eventId: null }); });
+    _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:_title, body:_body, eventId: null }); });
   }
   if (ev._fromApi) {
     closeM('mEvento');
@@ -21472,6 +21498,8 @@ function applyDeleteChoice() {
       _t = _tlT[_evSnap.type]||'❌ Serie di eventi annullata';
       _b = count + ' event' + (count===1?'o':'i') + (_evSnap.title?' · '+_evSnap.title:'');
     }
+    // Allenamento eliminato (singolo/futuri/serie) → UNA fetch BE (mai una per occorrenza).
+    if (_isAllenType(_evSnap.type)) { _notifyAllenamentoEliminato(_evSnap.leve, _t, _b); return; }
     const _pidsD = new Set();
     USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
     _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title: _t, body: _b, eventId: null }); });
