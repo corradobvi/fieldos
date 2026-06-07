@@ -20485,27 +20485,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router48;
+    module.exports = Router49;
     module.exports.Route = Route;
-    function Router48(options) {
-      if (!(this instanceof Router48)) {
-        return new Router48(options);
+    function Router49(options) {
+      if (!(this instanceof Router49)) {
+        return new Router49(options);
       }
       const opts = options || {};
-      function router48(req, res, next) {
-        router48.handle(req, res, next);
+      function router49(req, res, next) {
+        router49.handle(req, res, next);
       }
-      Object.setPrototypeOf(router48, this);
-      router48.caseSensitive = opts.caseSensitive;
-      router48.mergeParams = opts.mergeParams;
-      router48.params = {};
-      router48.strict = opts.strict;
-      router48.stack = [];
-      return router48;
+      Object.setPrototypeOf(router49, this);
+      router49.caseSensitive = opts.caseSensitive;
+      router49.mergeParams = opts.mergeParams;
+      router49.params = {};
+      router49.strict = opts.strict;
+      router49.stack = [];
+      return router49;
     }
-    Router48.prototype = function() {
+    Router49.prototype = function() {
     };
-    Router48.prototype.param = function param(name, fn) {
+    Router49.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20525,7 +20525,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router48.prototype.handle = function handle(req, res, callback) {
+    Router49.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20652,7 +20652,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router48.prototype.use = function use(handler) {
+    Router49.prototype.use = function use(handler) {
       let offset = 0;
       let path4 = "/";
       if (typeof handler !== "function") {
@@ -20685,7 +20685,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router48.prototype.route = function route(path4) {
+    Router49.prototype.route = function route(path4) {
       const route2 = new Route(path4);
       const layer = new Layer(path4, {
         sensitive: this.caseSensitive,
@@ -20700,7 +20700,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router48.prototype[method] = function(path4) {
+      Router49.prototype[method] = function(path4) {
         const route = this.route(path4);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20883,13 +20883,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once2 = require_once();
-    var Router48 = require_router();
+    var Router49 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router48 = null;
+      var router49 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20898,13 +20898,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router48 === null) {
-            router48 = new Router48({
+          if (router49 === null) {
+            router49 = new Router49({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router48;
+          return router49;
         }
       });
     };
@@ -20975,15 +20975,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router48 = this.router;
+      var router49 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router48.use(path4, fn2);
+          return router49.use(path4, fn2);
         }
         debug(".use app under %s", path4);
         fn2.mountpath = path4;
         fn2.parent = this;
-        router48.use(path4, function mounted_app(req, res, next) {
+        router49.use(path4, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23510,7 +23510,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router48 = require_router();
+    var Router49 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23532,8 +23532,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router48.Route;
-    exports.Router = Router48;
+    exports.Route = Router49.Route;
+    exports.Router = Router49;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -67161,14 +67161,14 @@ var require_multer = __commonJS({
 });
 
 // src/app.ts
-var import_express48 = __toESM(require_express2(), 1);
+var import_express49 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path3 from "path";
 import { existsSync } from "node:fs";
 
 // src/routes/index.ts
-var import_express47 = __toESM(require_express2(), 1);
+var import_express48 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -78697,7 +78697,7 @@ function _generateTempPassword() {
 var public_default = router8;
 
 // src/routes/v2/index.ts
-var import_express46 = __toESM(require_express2(), 1);
+var import_express47 = __toESM(require_express2(), 1);
 
 // src/routes/v2/schema.ts
 var SCHEMA_SQL = `
@@ -88354,10 +88354,69 @@ router21.post(
 );
 var documenti_default = router21;
 
-// src/routes/v2/migrate.ts
+// src/routes/v2/convocazioni.ts
 var import_express22 = __toESM(require_express2(), 1);
 var router22 = (0, import_express22.Router)();
-router22.post("/migrate", requireAuth, requireRole("admin"), async (req, res) => {
+router22.post(
+  "/convocazioni/notifica",
+  requireAuth,
+  requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"),
+  async (req, res) => {
+    const { societyId, userId } = req.jwtUser;
+    const body = req.body;
+    if (!Array.isArray(body?.convocazioni) || !body.convocazioni.length) {
+      return res.status(400).json({ error: "convocazioni_required", detail: "body.convocazioni deve essere un array non vuoto" });
+    }
+    const items = [];
+    for (const raw of body.convocazioni) {
+      const pid = Number(raw?.playerId);
+      const title = String(raw?.title || "").slice(0, 200);
+      const bodyTxt = String(raw?.body || "").slice(0, 500);
+      const eventId = raw?.eventId ?? null;
+      const convocazioneId = raw?.convocazioneId ?? null;
+      if (!Number.isFinite(pid) || pid <= 0 || !title.trim()) continue;
+      items.push({ playerId: pid, title, body: bodyTxt, eventId, convocazioneId });
+      if (items.length >= 200) break;
+    }
+    if (!items.length) return res.json({ ok: true, notificati: 0 });
+    let notificati = 0;
+    for (const c of items) {
+      try {
+        const ids = await resolveRecipients("convocazione", {
+          societyId,
+          convocatiPlayerIds: [c.playerId],
+          senderUserId: userId
+        });
+        if (!ids.length) continue;
+        sendPushToUsers(ids, societyKeyFor(societyId), {
+          title: c.title,
+          body: c.body,
+          tag: "convocazione"
+        }, "notify_convocazioni").catch(
+          (e) => logger.warn({ err: e?.message, playerId: c.playerId }, "convocazioni/notifica: push error")
+        );
+        addNotificaToBlob(societyId, ids, {
+          type: "convocazione",
+          title: c.title,
+          body: c.body,
+          eventId: c.eventId,
+          convocazioneId: c.convocazioneId
+        }).catch(() => {
+        });
+        notificati++;
+      } catch (e) {
+        logger.warn({ err: e?.message, playerId: c.playerId }, "convocazioni/notifica: item failed");
+      }
+    }
+    return res.json({ ok: true, notificati });
+  }
+);
+var convocazioni_default = router22;
+
+// src/routes/v2/migrate.ts
+var import_express23 = __toESM(require_express2(), 1);
+var router23 = (0, import_express23.Router)();
+router23.post("/migrate", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   const blob = req.body;
   if (!blob || typeof blob !== "object") {
@@ -88593,12 +88652,12 @@ router22.post("/migrate", requireAuth, requireRole("admin"), async (req, res) =>
     conn.release();
   }
 });
-var migrate_default = router22;
+var migrate_default = router23;
 
 // src/routes/v2/stripe.ts
-var import_express23 = __toESM(require_express2(), 1);
+var import_express24 = __toESM(require_express2(), 1);
 import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
-var router23 = (0, import_express23.Router)();
+var router24 = (0, import_express24.Router)();
 var STRIPE_API = "https://api.stripe.com/v1";
 var PRICE_ENV = {
   mister: { mensile: "STRIPE_PRICE_MISTER_MENSILE", annuale: "STRIPE_PRICE_MISTER_ANNUALE" },
@@ -88697,7 +88756,7 @@ async function stripeGet(path4) {
   return data;
 }
 var DEMO_SOC_IDS = /* @__PURE__ */ new Set([0, 99, 99999]);
-router23.post("/stripe/create-checkout", requireAuth, async (req, res) => {
+router24.post("/stripe/create-checkout", requireAuth, async (req, res) => {
   const jwtSocId = req.jwtUser.societyId;
   const jwtEmail = req.jwtUser.email;
   const { piano, intervallo, societyId: rawSocietyId, email: bodyEmail } = req.body;
@@ -88801,7 +88860,7 @@ router23.post("/stripe/create-checkout", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router23.post("/stripe/webhook", async (req, res) => {
+router24.post("/stripe/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -89136,7 +89195,7 @@ router23.post("/stripe/webhook", async (req, res) => {
   }
   return res.sendStatus(200);
 });
-router23.get("/stripe/subscription", requireAuth, async (req, res) => {
+router24.get("/stripe/subscription", requireAuth, async (req, res) => {
   const societyId = req.jwtUser.societyId;
   try {
     const [rows] = await pool.execute(
@@ -89190,7 +89249,7 @@ router23.get("/stripe/subscription", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router23.post("/stripe/customer-portal", requireAuth, async (req, res) => {
+router24.post("/stripe/customer-portal", requireAuth, async (req, res) => {
   const jwtSocId = req.jwtUser.societyId;
   const { societyId: bodySocId } = req.body;
   if (bodySocId != null && Number(bodySocId) !== jwtSocId) {
@@ -89216,7 +89275,7 @@ router23.post("/stripe/customer-portal", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router23.post("/stripe/cancel", requireAuth, async (req, res) => {
+router24.post("/stripe/cancel", requireAuth, async (req, res) => {
   const jwtSocId = req.jwtUser.societyId;
   const { societyId: bodySocId, motivo, dettaglio } = req.body;
   if (bodySocId != null && Number(bodySocId) !== jwtSocId) {
@@ -89244,7 +89303,7 @@ router23.post("/stripe/cancel", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "stripe_error", detail: e?.message });
   }
 });
-router23.get("/stripe/invoices", requireAuth, async (req, res) => {
+router24.get("/stripe/invoices", requireAuth, async (req, res) => {
   const societyId = req.jwtUser.societyId;
   try {
     const [rows] = await pool.execute(
@@ -89270,11 +89329,11 @@ router23.get("/stripe/invoices", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var stripe_default = router23;
+var stripe_default = router24;
 
 // src/routes/v2/demo-wa.ts
-var import_express24 = __toESM(require_express2(), 1);
-var router24 = (0, import_express24.Router)();
+var import_express25 = __toESM(require_express2(), 1);
+var router25 = (0, import_express25.Router)();
 function requireAdminSecret(req, res, next) {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) {
@@ -89288,7 +89347,7 @@ function requireAdminSecret(req, res, next) {
   }
   next();
 }
-router24.get("/demo-wa/status", requireAuth, async (req, res) => {
+router25.get("/demo-wa/status", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -89301,7 +89360,7 @@ router24.get("/demo-wa/status", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/demo-wa/clicked", requireAuth, async (req, res) => {
+router25.post("/demo-wa/clicked", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await pool.execute(
@@ -89315,7 +89374,7 @@ router24.post("/demo-wa/clicked", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
+router25.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
   const filter = req.query.filter;
   let statusClause = "status IN ('pending','clicked')";
   if (filter === "pending") statusClause = "status = 'pending'";
@@ -89344,7 +89403,7 @@ router24.get("/admin/demo-wa-pending", requireAdminSecret, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, res) => {
+router25.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, res) => {
   try {
     await pool.execute(
       "UPDATE demo_whatsapp_contact SET status='sent_manual', manual_added_at=NOW(), updated_at=NOW() WHERE id = ?",
@@ -89355,7 +89414,7 @@ router24.post("/admin/demo-wa/:id/mark-sent", requireAdminSecret, async (req, re
     return res.status(500).json({ error: "server_error" });
   }
 });
-router24.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res) => {
+router25.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res) => {
   try {
     await pool.execute(
       "UPDATE demo_whatsapp_contact SET status='completed', updated_at=NOW() WHERE id = ?",
@@ -89366,11 +89425,11 @@ router24.post("/admin/demo-wa/:id/complete", requireAdminSecret, async (req, res
     return res.status(500).json({ error: "server_error" });
   }
 });
-var demo_wa_default = router24;
+var demo_wa_default = router25;
 
 // src/routes/v2/superadmin.ts
-var import_express25 = __toESM(require_express2(), 1);
-var router25 = (0, import_express25.Router)();
+var import_express26 = __toESM(require_express2(), 1);
+var router26 = (0, import_express26.Router)();
 var SA_SECRET = process.env.SA_SECRET;
 if (!SA_SECRET) throw new Error("SA_SECRET env var non configurata \u2014 fail-closed startup");
 var EXCLUDED_IDS = [99, 99999];
@@ -89393,7 +89452,7 @@ function _generateTempPassword2() {
   }
   return chars.join("");
 }
-router25.post("/superadmin/societies", async (req, res) => {
+router26.post("/superadmin/societies", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const { nome, citta, piano, adminNome, adminCogn, adminEmail, adminPass } = req.body;
   if (!nome?.trim() || !adminNome?.trim() || !adminCogn?.trim() || !adminEmail?.trim() || !adminPass) {
@@ -89454,7 +89513,7 @@ router25.post("/superadmin/societies", async (req, res) => {
     if (conn) conn.release();
   }
 });
-router25.get("/superadmin/societies", async (req, res) => {
+router26.get("/superadmin/societies", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -89488,7 +89547,7 @@ router25.get("/superadmin/societies", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.post("/superadmin/reset-password", async (req, res) => {
+router26.post("/superadmin/reset-password", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -89539,7 +89598,7 @@ async function getSocietyAdmin(societyId) {
   );
   return rows[0] ?? null;
 }
-router25.post("/superadmin/societies/:id/suspend", async (req, res) => {
+router26.post("/superadmin/societies/:id/suspend", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89565,7 +89624,7 @@ router25.post("/superadmin/societies/:id/suspend", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.post("/superadmin/societies/:id/reactivate", async (req, res) => {
+router26.post("/superadmin/societies/:id/reactivate", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89590,7 +89649,7 @@ router25.post("/superadmin/societies/:id/reactivate", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
+router26.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89627,7 +89686,7 @@ router25.post("/superadmin/societies/:id/extend-demo", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.patch("/superadmin/societies/:id", async (req, res) => {
+router26.patch("/superadmin/societies/:id", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89661,7 +89720,7 @@ router25.patch("/superadmin/societies/:id", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.post("/superadmin/societies/:id/set-plan", async (req, res) => {
+router26.post("/superadmin/societies/:id/set-plan", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89701,7 +89760,7 @@ router25.post("/superadmin/societies/:id/set-plan", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
+router26.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89755,7 +89814,7 @@ router25.post("/superadmin/societies/:id/set-billing-mode", async (req, res) => 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router25.get("/superadmin/societies/:id/audit-log", async (req, res) => {
+router26.get("/superadmin/societies/:id/audit-log", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET) return res.status(401).json({ error: "unauthorized" });
   const societyId = parseInt(req.params.id);
   if (isNaN(societyId)) return res.status(400).json({ error: "invalid_id" });
@@ -89776,12 +89835,12 @@ router25.get("/superadmin/societies/:id/audit-log", async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var superadmin_default = router25;
+var superadmin_default = router26;
 
 // src/routes/v2/account.ts
-var import_express26 = __toESM(require_express2(), 1);
-var router26 = (0, import_express26.Router)();
-router26.get("/account/consents", requireAuth, async (req, res) => {
+var import_express27 = __toESM(require_express2(), 1);
+var router27 = (0, import_express27.Router)();
+router27.get("/account/consents", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -89801,7 +89860,7 @@ router26.get("/account/consents", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router26.post("/account/accept-privacy", requireAuth, async (req, res) => {
+router27.post("/account/accept-privacy", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await pool.execute(
@@ -89815,7 +89874,7 @@ router26.post("/account/accept-privacy", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router26.post("/account/accept-parental-consent/:playerId", requireAuth, async (req, res) => {
+router27.post("/account/accept-parental-consent/:playerId", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   if (role !== "genitore") return res.status(403).json({ error: "forbidden" });
   const playerId = parseInt(String(req.params.playerId));
@@ -89847,7 +89906,7 @@ router26.post("/account/accept-parental-consent/:playerId", requireAuth, async (
     return res.status(500).json({ error: "server_error" });
   }
 });
-router26.put("/account/marketing-consent", requireAuth, async (req, res) => {
+router27.put("/account/marketing-consent", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   const { consent } = req.body;
   if (typeof consent !== "boolean") {
@@ -89880,11 +89939,11 @@ router26.put("/account/marketing-consent", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var account_default = router26;
+var account_default = router27;
 
 // src/routes/v2/notification-preferences.ts
-var import_express27 = __toESM(require_express2(), 1);
-var router27 = (0, import_express27.Router)();
+var import_express28 = __toESM(require_express2(), 1);
+var router28 = (0, import_express28.Router)();
 var VALID_KEYS = ["notify_convocazioni", "notify_comunicazioni", "notify_chat", "notify_reminders"];
 async function ensureRow(userId) {
   await pool.execute(
@@ -89892,7 +89951,7 @@ async function ensureRow(userId) {
     [userId]
   );
 }
-router27.get("/users/me/notification-preferences", requireAuth, async (req, res) => {
+router28.get("/users/me/notification-preferences", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   try {
     await ensureRow(userId);
@@ -89916,7 +89975,7 @@ router27.get("/users/me/notification-preferences", requireAuth, async (req, res)
     return res.status(500).json({ error: "server_error" });
   }
 });
-router27.put("/users/me/notification-preferences", requireAuth, async (req, res) => {
+router28.put("/users/me/notification-preferences", requireAuth, async (req, res) => {
   const { userId } = req.jwtUser;
   const body = req.body;
   const updates = {};
@@ -89942,10 +90001,10 @@ router27.put("/users/me/notification-preferences", requireAuth, async (req, res)
     return res.status(500).json({ error: "server_error" });
   }
 });
-var notification_preferences_default = router27;
+var notification_preferences_default = router28;
 
 // src/routes/v2/allenamenti.ts
-var import_express28 = __toESM(require_express2(), 1);
+var import_express29 = __toESM(require_express2(), 1);
 var import_multer = __toESM(require_multer(), 1);
 import { randomUUID as randomUUID2 } from "crypto";
 import path from "path";
@@ -89973,7 +90032,7 @@ async function _levaFromAllenamentoId(req) {
   );
   return rows.length && rows[0].nome ? String(rows[0].nome) : null;
 }
-var router28 = (0, import_express28.Router)();
+var router29 = (0, import_express29.Router)();
 var CATEGORIE_VALIDE = /* @__PURE__ */ new Set([
   "riscaldamento",
   "tecnica_individuale",
@@ -90064,7 +90123,7 @@ async function snapshotDaLibreria(conn, sessioneLibreriaId, userId) {
   if (s.mister_id !== userId && s.visibilita !== "pubblica" && !s.ufficiale_myvivaio) return null;
   return s;
 }
-router28.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
+router29.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const {
     ambito = "personale",
@@ -90132,7 +90191,7 @@ router28.get("/allenamenti/sessioni-libreria", requireAuth, async (req, res) => 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.post("/allenamenti/sessioni-libreria", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router29.post("/allenamenti/sessioni-libreria", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { titolo, descrizione, durata_minuti, categoria, eta_leva, tag, visibilita = "privata", note } = req.body;
   if (!titolo || typeof titolo !== "string" || titolo.length < 3 || titolo.length > 200)
@@ -90181,7 +90240,7 @@ router28.post("/allenamenti/sessioni-libreria", requireAuth, requireRole(...STAF
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router29.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId } = req.jwtUser;
   const { id } = req.params;
   try {
@@ -90247,7 +90306,7 @@ router28.patch("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(..
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router29.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId } = req.jwtUser;
   const { id } = req.params;
   try {
@@ -90272,7 +90331,7 @@ router28.delete("/allenamenti/sessioni-libreria/:id", requireAuth, requireRole(.
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.get("/allenamenti", requireAuth, async (req, res) => {
+router29.get("/allenamenti", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   const isGenitore = RUOLI_GENITORE.has(role);
   const { leva_id, da, a, limit = "30", offset = "0", event_id } = req.query;
@@ -90339,7 +90398,7 @@ router28.get("/allenamenti", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.get("/allenamenti/:id", requireAuth, async (req, res) => {
+router29.get("/allenamenti/:id", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   const isGenitore = RUOLI_GENITORE.has(role);
   const { id } = req.params;
@@ -90386,7 +90445,7 @@ router28.get("/allenamenti/:id", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.post("/allenamenti", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
+router29.post("/allenamenti", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromLevaIdInBody), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { leva_id, titolo, obiettivo, data, visibilita_genitori = false, note_testo, sessioni = [], event_id } = req.body;
   if (!leva_id || !titolo)
@@ -90474,7 +90533,7 @@ router28.post("/allenamenti", requireAuth, requireRole(...STAFF_WRITE_ROLES), re
     conn.release();
   }
 });
-router28.patch("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.patch("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   logger.info({ body: req.body, id }, "PATCH allenamenti body");
@@ -90537,7 +90596,7 @@ router28.patch("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.delete("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.delete("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   try {
@@ -90552,7 +90611,7 @@ router28.delete("/allenamenti/:id", requireAuth, requireRole(...STAFF_WRITE_ROLE
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.post("/allenamenti/:id/sessioni/riordina", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.post("/allenamenti/:id/sessioni/riordina", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id } = req.params;
   const { ordini } = req.body;
@@ -90585,7 +90644,7 @@ router28.post("/allenamenti/:id/sessioni/riordina", requireAuth, requireRole(...
     conn.release();
   }
 });
-router28.post("/allenamenti/:id/sessioni", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.post("/allenamenti/:id/sessioni", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { userId, societyId } = req.jwtUser;
   const { id } = req.params;
   const { sessione_libreria_id, titolo, descrizione, durata_minuti, categoria, tag, ordine, note_snapshot } = req.body;
@@ -90672,7 +90731,7 @@ router28.post("/allenamenti/:id/sessioni", requireAuth, requireRole(...STAFF_WRI
     conn.release();
   }
 });
-router28.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id, sessioneId } = req.params;
   const conn = await pool.getConnection();
@@ -90749,7 +90808,7 @@ router28.patch("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole
     conn.release();
   }
 });
-router28.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
+router29.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), requireLeva(_levaFromAllenamentoId), async (req, res) => {
   const { societyId } = req.jwtUser;
   const { id, sessioneId } = req.params;
   const conn = await pool.getConnection();
@@ -90778,7 +90837,7 @@ router28.delete("/allenamenti/:id/sessioni/:sessioneId", requireAuth, requireRol
     conn.release();
   }
 });
-router28.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res) => {
+router29.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   const isGenitore = RUOLI_GENITORE.has(role);
   const { id } = req.params;
@@ -90808,7 +90867,7 @@ router28.get("/allenamenti/note-vocali/:id/audio", requireAuth, async (req, res)
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.delete("/allenamenti/note-vocali/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
+router29.delete("/allenamenti/note-vocali/:id", requireAuth, requireRole(...STAFF_WRITE_ROLES), requirePermission("modifica_piano_allenamento"), async (req, res) => {
   const { userId, societyId, role } = req.jwtUser;
   const isAdmin = role === "admin" || role === "mister_admin";
   const { id } = req.params;
@@ -90837,7 +90896,7 @@ router28.delete("/allenamenti/note-vocali/:id", requireAuth, requireRole(...STAF
     return res.status(500).json({ error: "server_error" });
   }
 });
-router28.post(
+router29.post(
   "/allenamenti/:id/note-vocali",
   requireAuth,
   requireRole(...STAFF_WRITE_ROLES),
@@ -90887,10 +90946,10 @@ router28.post(
     }
   }
 );
-var allenamenti_default = router28;
+var allenamenti_default = router29;
 
 // src/routes/v2/ai-allenamenti.ts
-var import_express29 = __toESM(require_express2(), 1);
+var import_express30 = __toESM(require_express2(), 1);
 
 // src/lib/ai-claude.ts
 var API_URL = "https://api.anthropic.com/v1/messages";
@@ -91118,7 +91177,7 @@ async function getBudgetInfo(userId, societaId) {
 
 // src/routes/v2/ai-allenamenti.ts
 import { randomUUID as randomUUID4 } from "crypto";
-var router29 = (0, import_express29.Router)();
+var router30 = (0, import_express30.Router)();
 var CATEGORIE_IT = {
   riscaldamento: "Riscaldamento",
   tecnica_individuale: "Tecnica individuale",
@@ -91176,7 +91235,7 @@ Usa elenchi puntati quando appropriato. Scrivi in italiano.`;
 function isAdminLike(role) {
   return role === "admin" || role === "mister_admin";
 }
-router29.get("/ai/budget", requireAuth, async (req, res) => {
+router30.get("/ai/budget", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   try {
     const info = await getBudgetInfo(user.userId, user.societyId);
@@ -91186,7 +91245,7 @@ router29.get("/ai/budget", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router29.get("/ai/allowlist", requireAuth, async (req, res) => {
+router30.get("/ai/allowlist", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   if (!isAdminLike(user.role)) {
     return res.status(403).json({ error: "forbidden" });
@@ -91210,7 +91269,7 @@ router29.get("/ai/allowlist", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router29.post("/ai/allowlist", requireAuth, async (req, res) => {
+router30.post("/ai/allowlist", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   if (!isAdminLike(user.role)) {
     return res.status(403).json({ error: "forbidden" });
@@ -91248,7 +91307,7 @@ router29.post("/ai/allowlist", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router29.post("/ai/spunto-rapido", requireAuth, async (req, res) => {
+router30.post("/ai/spunto-rapido", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const { domanda, eta_leva, categoria } = req.body;
   if (!domanda || typeof domanda !== "string" || domanda.trim().length < 5) {
@@ -91305,7 +91364,7 @@ router29.post("/ai/spunto-rapido", requireAuth, async (req, res) => {
     budget_rimasto: budget.budgetRimasto - result.tokenTotale
   });
 });
-router29.post("/ai/sessione-singola", requireAuth, async (req, res) => {
+router30.post("/ai/sessione-singola", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const { categoria, eta_leva, durata_minuti, obiettivi, salva_in_libreria } = req.body;
   const CATEGORIE_VALIDE2 = ["riscaldamento", "tecnica_individuale", "tattica", "possesso_palla", "finalizzazione", "atletica_fisico", "portieri"];
@@ -91422,7 +91481,7 @@ router29.post("/ai/sessione-singola", requireAuth, async (req, res) => {
     budget_rimasto: budget.budgetRimasto - result.tokenTotale
   });
 });
-router29.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
+router30.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const {
     eta_leva,
@@ -91598,12 +91657,12 @@ router29.post("/ai/allenamento-completo", requireAuth, async (req, res) => {
     budget_rimasto: budget.budgetRimasto - result.tokenTotale
   });
 });
-var ai_allenamenti_default = router29;
+var ai_allenamenti_default = router30;
 
 // src/routes/v2/ai-tornei.ts
-var import_express30 = __toESM(require_express2(), 1);
+var import_express31 = __toESM(require_express2(), 1);
 var import_multer2 = __toESM(require_multer(), 1);
-var router30 = (0, import_express30.Router)();
+var router31 = (0, import_express31.Router)();
 var upload = (0, import_multer2.default)({
   storage: import_multer2.default.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }
@@ -91637,7 +91696,7 @@ Restituisci SOLO il seguente oggetto JSON (senza markdown, senza testo aggiuntiv
 
 Per le squadre usa i nomi esattamente come appaiono nel PDF, in maiuscolo.
 Se un campo non \xE8 identificabile usa null. Non aggiungere campi extra.`;
-router30.post(
+router31.post(
   "/ai/import-torneo-pdf",
   requireAuth,
   (req, res, next) => {
@@ -91772,13 +91831,13 @@ router30.post(
     return res.json({ ok: true, data: torneoData });
   }
 );
-var ai_tornei_default = router30;
+var ai_tornei_default = router31;
 
 // src/routes/v2/utm-stats.ts
-var import_express31 = __toESM(require_express2(), 1);
-var router31 = (0, import_express31.Router)();
+var import_express32 = __toESM(require_express2(), 1);
+var router32 = (0, import_express32.Router)();
 var SA_SECRET2 = process.env.SA_SECRET ?? "super123";
-router31.get("/admin/utm-stats", async (req, res) => {
+router32.get("/admin/utm-stats", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET2) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -91844,10 +91903,10 @@ function _maskEmail(email) {
   if (!domain) return email[0] + "***";
   return local[0] + "***@" + domain;
 }
-var utm_stats_default = router31;
+var utm_stats_default = router32;
 
 // src/routes/v2/admin-reset-demo.ts
-var import_express32 = __toESM(require_express2(), 1);
+var import_express33 = __toESM(require_express2(), 1);
 
 // src/lib/stella-demo-seed.ts
 function buildStellaDemoState() {
@@ -92456,9 +92515,9 @@ function buildStellaDemoState() {
 }
 
 // src/routes/v2/admin-reset-demo.ts
-var router32 = (0, import_express32.Router)();
+var router33 = (0, import_express33.Router)();
 var DEMO_KEY = "fieldos_demo_stella_v1";
-router32.post("/admin/reset-stella-demo", async (req, res) => {
+router33.post("/admin/reset-stella-demo", async (req, res) => {
   const secret = req.headers["x-admin-secret"];
   const adminSecret = process.env.ADMIN_RESET_SECRET;
   if (!adminSecret || secret !== adminSecret) {
@@ -92495,13 +92554,13 @@ router32.post("/admin/reset-stella-demo", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
-var admin_reset_demo_default = router32;
+var admin_reset_demo_default = router33;
 
 // src/routes/v2/admin-populate-sessioni.ts
-var import_express33 = __toESM(require_express2(), 1);
+var import_express34 = __toESM(require_express2(), 1);
 import path2 from "path";
 import fs2 from "fs";
-var router33 = (0, import_express33.Router)();
+var router34 = (0, import_express34.Router)();
 function checkAuth(req, res) {
   const secret = req.headers["x-admin-secret"];
   const saSecret = process.env.ADMIN_RESET_SECRET;
@@ -92511,7 +92570,7 @@ function checkAuth(req, res) {
   }
   return true;
 }
-router33.post("/_admin/migrate-grafica-url", async (req, res) => {
+router34.post("/_admin/migrate-grafica-url", async (req, res) => {
   if (!checkAuth(req, res)) return;
   try {
     const [cols] = await pool.execute(
@@ -92528,7 +92587,7 @@ router33.post("/_admin/migrate-grafica-url", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
-router33.post("/_admin/populate-grafica-url", async (req, res) => {
+router34.post("/_admin/populate-grafica-url", async (req, res) => {
   if (!checkAuth(req, res)) return;
   try {
     const manifestPath = path2.join(
@@ -92565,13 +92624,13 @@ router33.post("/_admin/populate-grafica-url", async (req, res) => {
     return res.status(500).json({ error: e?.message ?? "server_error" });
   }
 });
-var admin_populate_sessioni_default = router33;
+var admin_populate_sessioni_default = router34;
 
 // src/routes/v2/select-plan.ts
-var import_express34 = __toESM(require_express2(), 1);
-var router34 = (0, import_express34.Router)();
+var import_express35 = __toESM(require_express2(), 1);
+var router35 = (0, import_express35.Router)();
 var VALID_PIANI = /* @__PURE__ */ new Set(["mister", "mister_pro", "societa"]);
-router34.post("/societies/select-plan", requireAuth, async (req, res) => {
+router35.post("/societies/select-plan", requireAuth, async (req, res) => {
   const user = req.jwtUser;
   const { plan } = req.body || {};
   if (!plan || !VALID_PIANI.has(plan)) {
@@ -92603,11 +92662,11 @@ router34.post("/societies/select-plan", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var select_plan_default = router34;
+var select_plan_default = router35;
 
 // src/routes/v2/admin-genitore-debug.ts
-var import_express35 = __toESM(require_express2(), 1);
-var router35 = (0, import_express35.Router)();
+var import_express36 = __toESM(require_express2(), 1);
+var router36 = (0, import_express36.Router)();
 function checkAuth2(req, res) {
   const secret = req.headers["x-sa-secret"];
   const saSecret = process.env.SA_SECRET ?? "super123";
@@ -92617,7 +92676,7 @@ function checkAuth2(req, res) {
   }
   return true;
 }
-router35.get("/superadmin/_diag/genitore-debug", async (req, res) => {
+router36.get("/superadmin/_diag/genitore-debug", async (req, res) => {
   if (!checkAuth2(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || "38"));
   try {
@@ -92772,11 +92831,11 @@ router35.get("/superadmin/_diag/genitore-debug", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-var admin_genitore_debug_default = router35;
+var admin_genitore_debug_default = router36;
 
 // src/routes/v2/admin-push-debug.ts
-var import_express36 = __toESM(require_express2(), 1);
-var router36 = (0, import_express36.Router)();
+var import_express37 = __toESM(require_express2(), 1);
+var router37 = (0, import_express37.Router)();
 function _diagLevaPrefixes(leva) {
   const out = /* @__PURE__ */ new Set([leva]);
   for (const sep of [" \u2013 ", " - ", " \u2014 "]) {
@@ -92806,7 +92865,7 @@ function checkAuth3(req, res) {
   }
   return true;
 }
-router36.get("/superadmin/_diag/push", async (req, res) => {
+router37.get("/superadmin/_diag/push", async (req, res) => {
   if (!checkAuth3(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || "38"));
   try {
@@ -92838,7 +92897,7 @@ router36.get("/superadmin/_diag/push", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router36.get("/superadmin/_diag/push-remap", async (req, res) => {
+router37.get("/superadmin/_diag/push-remap", async (req, res) => {
   if (!checkAuth3(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || ""));
   const dryRun = String(req.query.dryRun ?? "1") !== "0";
@@ -92982,7 +93041,7 @@ router36.get("/superadmin/_diag/push-remap", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router36.get("/superadmin/_diag/chat-recipients", async (req, res) => {
+router37.get("/superadmin/_diag/chat-recipients", async (req, res) => {
   if (!checkAuth3(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || ""));
   const chatId = String(req.query.chatId || "").trim();
@@ -93099,11 +93158,11 @@ router36.get("/superadmin/_diag/chat-recipients", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-var admin_push_debug_default = router36;
+var admin_push_debug_default = router37;
 
 // src/routes/v2/admin-cleanup-preview.ts
-var import_express37 = __toESM(require_express2(), 1);
-var router37 = (0, import_express37.Router)();
+var import_express38 = __toESM(require_express2(), 1);
+var router38 = (0, import_express38.Router)();
 function checkAuth4(req, res) {
   const secret = req.headers["x-sa-secret"];
   const saSecret = process.env.SA_SECRET ?? "super123";
@@ -93113,7 +93172,7 @@ function checkAuth4(req, res) {
   }
   return true;
 }
-router37.get("/superadmin/_diag/cleanup-preview", async (req, res) => {
+router38.get("/superadmin/_diag/cleanup-preview", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const ids = String(req.query.societyIds || "").split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isFinite(n));
   if (!ids.length) return res.status(400).json({ error: "societyIds required (csv)" });
@@ -93170,7 +93229,7 @@ router37.get("/superadmin/_diag/cleanup-preview", async (req, res) => {
   }
   return res.json({ preview: out });
 });
-router37.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
+router38.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const { societyIds, confirm } = req.body;
   if (confirm !== "DELETE-CONFIRMED") return res.status(400).json({ error: "confirm_required", expected: "DELETE-CONFIRMED" });
@@ -93268,7 +93327,7 @@ router37.post("/superadmin/_diag/cleanup-execute", async (req, res) => {
     remaining_societies: remaining
   });
 });
-router37.post("/superadmin/_diag/repair-guardians", async (req, res) => {
+router38.post("/superadmin/_diag/repair-guardians", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || req.body?.societyId || ""), 10);
   if (!societyId || !Number.isFinite(societyId)) {
@@ -93305,7 +93364,7 @@ router37.post("/superadmin/_diag/repair-guardians", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router37.post("/superadmin/_diag/repair-players", async (req, res) => {
+router38.post("/superadmin/_diag/repair-players", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || req.body?.societyId || ""), 10);
   if (!societyId || !Number.isFinite(societyId)) {
@@ -93419,7 +93478,7 @@ router37.post("/superadmin/_diag/repair-players", async (req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router37.get("/superadmin/_diag/duplicate-players-preview", async (req, res) => {
+router38.get("/superadmin/_diag/duplicate-players-preview", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const societyId = parseInt(String(req.query.societyId || ""), 10);
   if (!societyId) return res.status(400).json({ error: "societyId required" });
@@ -93495,7 +93554,7 @@ router37.get("/superadmin/_diag/duplicate-players-preview", async (req, res) => 
     return res.status(500).json({ error: e?.message });
   }
 });
-router37.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => {
+router38.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => {
   if (!checkAuth4(req, res)) return;
   const { societyId, playerIds, confirm } = req.body;
   if (confirm !== "DELETE-DUPLICATES") return res.status(400).json({ error: "confirm_required", expected: "DELETE-DUPLICATES" });
@@ -93570,11 +93629,11 @@ router37.post("/superadmin/_diag/delete-duplicate-players", async (req, res) => 
   }
   return res.json(result);
 });
-var admin_cleanup_preview_default = router37;
+var admin_cleanup_preview_default = router38;
 
 // src/routes/v2/admin-backfill-roles.ts
-var import_express38 = __toESM(require_express2(), 1);
-var router38 = (0, import_express38.Router)();
+var import_express39 = __toESM(require_express2(), 1);
+var router39 = (0, import_express39.Router)();
 var RUOLO_WHITELIST = /* @__PURE__ */ new Set([
   "admin",
   "allenatore",
@@ -93596,7 +93655,7 @@ function checkAuth5(req, res) {
   }
   return true;
 }
-router38.post("/superadmin/_backfill-roles", async (req, res) => {
+router39.post("/superadmin/_backfill-roles", async (req, res) => {
   if (!checkAuth5(req, res)) return;
   const societyId = Number(req.body && req.body.societyId || 0);
   const apply = req.body?.apply === true;
@@ -93712,12 +93771,12 @@ router38.post("/superadmin/_backfill-roles", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.sqlMessage || e?.message?.slice(0, 200) });
   }
 });
-var admin_backfill_roles_default = router38;
+var admin_backfill_roles_default = router39;
 
 // src/routes/v2/notifiche-risultato.ts
-var import_express39 = __toESM(require_express2(), 1);
-var router39 = (0, import_express39.Router)();
-router39.post(
+var import_express40 = __toESM(require_express2(), 1);
+var router40 = (0, import_express40.Router)();
+router40.post(
   "/notifiche/risultato-partita",
   requireAuth,
   requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"),
@@ -93753,11 +93812,11 @@ router39.post(
     }
   }
 );
-var notifiche_risultato_default = router39;
+var notifiche_risultato_default = router40;
 
 // src/routes/v2/migrate-polis.ts
-var import_express40 = __toESM(require_express2(), 1);
-var router40 = (0, import_express40.Router)();
+var import_express41 = __toESM(require_express2(), 1);
+var router41 = (0, import_express41.Router)();
 var SA_SECRET3 = process.env.SA_SECRET ?? "super123";
 var POLIS_BLOB_KEY = "fieldos_state_v1";
 var POLIS_CODICE = "POLIS18";
@@ -93775,7 +93834,7 @@ function _passwordHandling(rawPass) {
   if (typeof rawPass !== "string") return "default_changeme_temp";
   return _looksLikeValidHash(rawPass) ? "keep_hash" : "will_hash";
 }
-router40.post("/superadmin/migrate-polis-users", async (req, res) => {
+router41.post("/superadmin/migrate-polis-users", async (req, res) => {
   if (req.headers["x-sa-secret"] !== SA_SECRET3) {
     return res.status(401).json({ error: "unauthorized" });
   }
@@ -93952,11 +94011,11 @@ router40.post("/superadmin/migrate-polis-users", async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var migrate_polis_default = router40;
+var migrate_polis_default = router41;
 
 // src/routes/v2/matches.ts
-var import_express41 = __toESM(require_express2(), 1);
-var router41 = (0, import_express41.Router)();
+var import_express42 = __toESM(require_express2(), 1);
+var router42 = (0, import_express42.Router)();
 var WRITE_ROLES2 = ["admin", "allenatore", "mister", "dirigente"];
 var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
 function _levaFromBody(req) {
@@ -94002,7 +94061,7 @@ function rejectDemo(req, res) {
   }
   return false;
 }
-router41.get("/matches", requireAuth, async (req, res) => {
+router42.get("/matches", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   const tipo = req.query.tipo || void 0;
   const leva = req.query.leva || void 0;
@@ -94074,7 +94133,7 @@ router41.get("/matches", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.get("/tornei", requireAuth, async (req, res) => {
+router42.get("/tornei", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [tornei] = await pool.execute(
@@ -94109,7 +94168,7 @@ router41.get("/tornei", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
+router42.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const b = req.body || {};
@@ -94174,7 +94233,7 @@ router41.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), requireLeva
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
+router42.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -94243,7 +94302,7 @@ router41.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
+router42.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const t = req.body || {};
@@ -94351,7 +94410,7 @@ router41.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(
     conn.release();
   }
 });
-router41.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
+router42.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const matchId = Number(req.params.matchId);
@@ -94370,7 +94429,7 @@ router41.delete("/matches/:matchId", requireAuth, requireRole(...WRITE_ROLES2), 
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromEventKey), async (req, res) => {
+router42.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromEventKey), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const event_key = String(req.params.eventKey || "");
@@ -94387,7 +94446,7 @@ router41.delete("/matches/by-event-key/:eventKey", requireAuth, requireRole(...W
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromTorneoId), async (req, res) => {
+router42.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromTorneoId), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const id = String(req.params.id || "");
@@ -94404,7 +94463,7 @@ router41.delete("/tornei/:id", requireAuth, requireRole(...WRITE_ROLES2), requir
     return res.status(500).json({ error: "server_error" });
   }
 });
-router41.get("/campionato/settings", requireAuth, async (req, res) => {
+router42.get("/campionato/settings", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
@@ -94428,7 +94487,7 @@ function _normYmdSrv(v) {
   const s = String(v);
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
-router41.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
+router42.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromBody), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const b = req.body || {};
@@ -94469,7 +94528,7 @@ router41.post("/campionato/settings", requireAuth, requireRole(...WRITE_ROLES2),
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router41.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromQuery), async (req, res) => {
+router42.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromQuery), async (req, res) => {
   if (rejectDemo(req, res)) return;
   const { societyId } = req.jwtUser;
   const leva = req.query.leva || "";
@@ -94500,11 +94559,11 @@ router41.delete("/campionato", requireAuth, requireRole(...WRITE_ROLES2), requir
     conn.release();
   }
 });
-var matches_default = router41;
+var matches_default = router42;
 
 // src/routes/v2/stats.ts
-var import_express42 = __toESM(require_express2(), 1);
-var router42 = (0, import_express42.Router)();
+var import_express43 = __toESM(require_express2(), 1);
+var router43 = (0, import_express43.Router)();
 var STAFF_READ_ROLES2 = /* @__PURE__ */ new Set([
   "admin",
   "mister_admin",
@@ -94583,7 +94642,7 @@ var AGG_SELECT = `
   FROM match_stats ms
   JOIN matches m ON m.id = ms.match_id
 `;
-router42.get("/stats/player/:playerId", requireAuth, async (req, res) => {
+router43.get("/stats/player/:playerId", requireAuth, async (req, res) => {
   const { societyId, userId, role } = req.jwtUser;
   const playerId = Number(req.params.playerId);
   if (!Number.isFinite(playerId) || playerId <= 0) {
@@ -94631,7 +94690,7 @@ router42.get("/stats/player/:playerId", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router42.get("/stats/leva", requireAuth, async (req, res) => {
+router43.get("/stats/leva", requireAuth, async (req, res) => {
   const { societyId, role } = req.jwtUser;
   if (!STAFF_READ_ROLES2.has(role)) {
     return res.status(403).json({ error: "forbidden" });
@@ -94679,11 +94738,11 @@ router42.get("/stats/leva", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-var stats_default = router42;
+var stats_default = router43;
 
 // src/routes/v2/admin-backfill-matches.ts
-var import_express43 = __toESM(require_express2(), 1);
-var router43 = (0, import_express43.Router)();
+var import_express44 = __toESM(require_express2(), 1);
+var router44 = (0, import_express44.Router)();
 var DEMO_SOC_ID = 99;
 var DEMO_STELLA_ID = 99999;
 var DEMO_SOC_IDS3 = /* @__PURE__ */ new Set([0, DEMO_SOC_ID, DEMO_STELLA_ID]);
@@ -94752,7 +94811,7 @@ function ekTorneo(tId, fId, mId) {
 function ekAmich(mId) {
   return `amich_${mId}`;
 }
-router43.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) => {
+router44.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res) => {
   const requested = parseInt(String(req.params.societaId), 10);
   if (!Number.isFinite(requested) || requested <= 0) {
     return res.status(400).json({ error: "invalid_societa_id" });
@@ -95404,11 +95463,11 @@ router43.post("/admin/backfill-matches/:societaId", requireAuth, async (req, res
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var admin_backfill_matches_default = router43;
+var admin_backfill_matches_default = router44;
 
 // src/routes/v2/admin-chat-diag.ts
-var import_express44 = __toESM(require_express2(), 1);
-var router44 = (0, import_express44.Router)();
+var import_express45 = __toESM(require_express2(), 1);
+var router45 = (0, import_express45.Router)();
 function _gate(req, res) {
   const j = req.jwtUser;
   if (j.role !== "admin" && j.role !== "mister_admin") {
@@ -95564,7 +95623,7 @@ async function _enrichUser(u, societyId, chatId, senderUserId, recipientSet, mem
     reason
   };
 }
-router44.get("/_diag/chat", requireAuth, async (req, res) => {
+router45.get("/_diag/chat", requireAuth, async (req, res) => {
   const ctx = _gate(req, res);
   if (!ctx) return;
   const { societyId, userId } = ctx;
@@ -95753,7 +95812,7 @@ router44.get("/_diag/chat", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router44.get("/_diag/chat/ui", (_req, res) => {
+router45.get("/_diag/chat/ui", (_req, res) => {
   res.type("html").send(`<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><title>Diagnosi notifiche chat</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -96039,11 +96098,11 @@ if (document.readyState === 'loading') {
 </script>
 </body></html>`);
 });
-var admin_chat_diag_default = router44;
+var admin_chat_diag_default = router45;
 
 // src/routes/v2/notifiche-resolve-test.ts
-var import_express45 = __toESM(require_express2(), 1);
-var router45 = (0, import_express45.Router)();
+var import_express46 = __toESM(require_express2(), 1);
+var router46 = (0, import_express46.Router)();
 function _gate2(req, res) {
   const j = req.jwtUser;
   if (j.role !== "admin" && j.role !== "mister_admin") {
@@ -96056,7 +96115,7 @@ function _csv(v) {
   if (!v) return [];
   return String(v).split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => Number.isFinite(n) && n > 0);
 }
-router45.get("/notifiche/_resolve-test", requireAuth, async (req, res) => {
+router46.get("/notifiche/_resolve-test", requireAuth, async (req, res) => {
   const ctx0 = _gate2(req, res);
   if (!ctx0) return;
   const { societyId, userId } = ctx0;
@@ -96107,10 +96166,10 @@ router45.get("/notifiche/_resolve-test", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-var notifiche_resolve_test_default = router45;
+var notifiche_resolve_test_default = router46;
 
 // src/routes/v2/index.ts
-var router46 = (0, import_express46.Router)();
+var router47 = (0, import_express47.Router)();
 var _schemaReady = false;
 async function ensureSchema() {
   if (_schemaReady) return;
@@ -96306,7 +96365,7 @@ async function ensureSchema() {
   console.log("[SCHEMA_GUARD] ensureSchema completed \u2014 _schemaReady=true");
   logger.info("v2: schema ready");
 }
-router46.use(async (_req, _res, next) => {
+router47.use(async (_req, _res, next) => {
   try {
     await ensureSchema();
     next();
@@ -96315,7 +96374,7 @@ router46.use(async (_req, _res, next) => {
     next();
   }
 });
-router46.get("/schema-info", async (_req, res) => {
+router47.get("/schema-info", async (_req, res) => {
   try {
     const check = async (table, col) => {
       const [r] = await pool.execute(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [col]);
@@ -96333,7 +96392,7 @@ router46.get("/schema-info", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router46.get("/_bundle-info", (_req, res) => {
+router47.get("/_bundle-info", (_req, res) => {
   return res.json({
     bundle: "2026-06-04-v24-stable",
     commitSha: process.env.RAILWAY_GIT_COMMIT_SHA || null,
@@ -96344,7 +96403,7 @@ router46.get("/_bundle-info", (_req, res) => {
     startedAt: new Date(Date.now() - process.uptime() * 1e3).toISOString()
   });
 });
-router46.get("/health/ai-key", (_req, res) => {
+router47.get("/health/ai-key", (_req, res) => {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     return res.json({ configured: false, keyLength: null, keyPrefix: null });
@@ -96355,7 +96414,7 @@ router46.get("/health/ai-key", (_req, res) => {
     keyPrefix: key.slice(0, 7) + "..."
   });
 });
-router46.get("/health/schema-budget", async (_req, res) => {
+router47.get("/health/schema-budget", async (_req, res) => {
   try {
     const [cols] = await pool.execute("SHOW COLUMNS FROM `ai_budget_utilizzo`");
     const [idxRows] = await pool.execute("SHOW INDEX FROM `ai_budget_utilizzo`");
@@ -96370,60 +96429,61 @@ router46.get("/health/schema-budget", async (_req, res) => {
     return res.status(500).json({ error: e?.message });
   }
 });
-router46.use(auth_default2);
-router46.use(self_register_default);
-router46.use(society_default);
-router46.use(leve_default);
-router46.use(minors_default);
-router46.use(players_default);
-router46.use(users_default);
-router46.use(events_default);
-router46.use(presenze_default);
-router46.use(comunicazioni_default);
-router46.use(chat_default);
-router46.use(quote_default);
-router46.use(documenti_default);
-router46.use(migrate_default);
-router46.use(stripe_default);
-router46.use(demo_wa_default);
-router46.use(superadmin_default);
-router46.use(account_default);
-router46.use(notification_preferences_default);
-router46.use(allenamenti_default);
-router46.use(ai_allenamenti_default);
-router46.use(ai_tornei_default);
-router46.use(utm_stats_default);
-router46.use(admin_reset_demo_default);
-router46.use(admin_populate_sessioni_default);
-router46.use(select_plan_default);
-router46.use(admin_genitore_debug_default);
-router46.use(admin_push_debug_default);
-router46.use(admin_cleanup_preview_default);
-router46.use(admin_backfill_roles_default);
-router46.use(notifiche_risultato_default);
-router46.use(migrate_polis_default);
-router46.use(matches_default);
-router46.use(stats_default);
-router46.use(admin_backfill_matches_default);
-router46.use(admin_chat_diag_default);
-router46.use(notifiche_resolve_test_default);
-var v2_default = router46;
+router47.use(auth_default2);
+router47.use(self_register_default);
+router47.use(society_default);
+router47.use(leve_default);
+router47.use(minors_default);
+router47.use(players_default);
+router47.use(users_default);
+router47.use(events_default);
+router47.use(presenze_default);
+router47.use(comunicazioni_default);
+router47.use(chat_default);
+router47.use(quote_default);
+router47.use(documenti_default);
+router47.use(convocazioni_default);
+router47.use(migrate_default);
+router47.use(stripe_default);
+router47.use(demo_wa_default);
+router47.use(superadmin_default);
+router47.use(account_default);
+router47.use(notification_preferences_default);
+router47.use(allenamenti_default);
+router47.use(ai_allenamenti_default);
+router47.use(ai_tornei_default);
+router47.use(utm_stats_default);
+router47.use(admin_reset_demo_default);
+router47.use(admin_populate_sessioni_default);
+router47.use(select_plan_default);
+router47.use(admin_genitore_debug_default);
+router47.use(admin_push_debug_default);
+router47.use(admin_cleanup_preview_default);
+router47.use(admin_backfill_roles_default);
+router47.use(notifiche_risultato_default);
+router47.use(migrate_polis_default);
+router47.use(matches_default);
+router47.use(stats_default);
+router47.use(admin_backfill_matches_default);
+router47.use(admin_chat_diag_default);
+router47.use(notifiche_resolve_test_default);
+var v2_default = router47;
 
 // src/routes/index.ts
-var router47 = (0, import_express47.Router)();
-router47.use(health_default);
-router47.use(login_default);
-router47.use(auth_default);
-router47.use(state_default);
-router47.use(assist_default);
-router47.use(push_default);
-router47.use(upload_default);
-router47.use(public_default);
-router47.use("/v2", v2_default);
-var routes_default = router47;
+var router48 = (0, import_express48.Router)();
+router48.use(health_default);
+router48.use(login_default);
+router48.use(auth_default);
+router48.use(state_default);
+router48.use(assist_default);
+router48.use(push_default);
+router48.use(upload_default);
+router48.use(public_default);
+router48.use("/v2", v2_default);
+var routes_default = router48;
 
 // src/app.ts
-var app = (0, import_express48.default)();
+var app = (0, import_express49.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -96444,17 +96504,17 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express48.default.json({
+app.use(import_express49.default.json({
   limit: "10mb",
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(import_express48.default.urlencoded({ extended: true }));
+app.use(import_express49.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 var staticDir = path3.join(process.cwd(), "artifacts", "fieldos", "dist", "public");
 if (existsSync(staticDir)) {
-  app.use(import_express48.default.static(staticDir));
+  app.use(import_express49.default.static(staticDir));
   app.get("*path", (_req, res) => {
     res.sendFile(path3.join(staticDir, "index.html"));
   });

@@ -10597,25 +10597,39 @@ function resendConvocazione(eventId) {
   toast('📤 Notifica reinviata');
   refreshNotificheBadge();
 }
-function notifyConvocazione(ev, conv) {
+async function notifyConvocazione(ev, conv) {
+  // CABLAGGIO RESOLVER (evento 8 convocazione): destinatari risolti BE via
+  // resolveRecipients('convocazione') = tutoriConvocati (tutori dei SOLI player
+  // convocati, NON l'intera leva). Push web + card blob arrivano dal BE.
+  // Title personalizzato per player ("Mario Rossi CONVOCATO/A") mantenuto:
+  // pattern items[] con una entry per ogni convocato, BE itera e risolve
+  // tutori del singolo playerId mantenendo il messaggio specifico.
   const dStr = fmtDateLong(parseYmd(ev.date));
   const oraStr = ev.start ? ' alle '+ev.start : '';
   const ritr = conv.ritrovo ? ` · Ritrovo ${conv.ritrovo}` : '';
   const divi = conv.divisa ? ` · Divisa ${conv.divisa}` : '';
-  conv.playerIds.forEach(pid => {
+  const items = [];
+  (conv.playerIds || []).forEach(pid => {
     const p = players.find(x => x.id === pid);
     if (!p) return;
-    const recipients = recipientsForPlayer(p);
-    recipients.forEach(uid => {
-      pushNotifica(uid, {
-        type: 'convocazione',
-        title: `📋 ${p.nome} ${p.cogn} CONVOCATO/A`,
-        body: `${ev.title || ''} — ${dStr}${oraStr}${ritr}${divi}${ev.luogo ? ' · 📍 '+ev.luogo : ''}${conv.note ? '\n'+conv.note : ''}`,
-        eventId: ev.id,
-        convocazioneId: conv.id
-      });
+    items.push({
+      playerId: p.id,
+      title: `📋 ${p.nome} ${p.cogn} CONVOCATO/A`,
+      body: `${ev.title || ''} — ${dStr}${oraStr}${ritr}${divi}${ev.luogo ? ' · 📍 '+ev.luogo : ''}${conv.note ? '\n'+conv.note : ''}`,
+      eventId: ev.id,
+      convocazioneId: conv.id
     });
   });
+  if (!items.length) return;
+  try {
+    const token = localStorage.getItem('fieldos_token');
+    if (!token) return;
+    await fetch(API_BASE + '/api/v2/convocazioni/notifica', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ convocazioni: items })
+    });
+  } catch (_) { /* silent: il toast UX e' gia' stato mostrato dal caller */ }
 }
 
 // ─── VISIBILITÀ A DUE FASI ────────────────────────────
