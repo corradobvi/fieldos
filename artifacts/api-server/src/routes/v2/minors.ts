@@ -539,7 +539,7 @@ async function syncPlayerFromMysqlToBlob(societyId: number, playerId: number): P
 export async function addNotificaToBlob(
   societyId: number,
   userIds: number[],
-  notifica: { type: string; title: string; body: string; eventId?: any; convocazioneId?: any },
+  notifica: { type: string; title: string; body: string; eventId?: any; convocazioneId?: any; docKey?: string | null; quoteKey?: string | null },
 ): Promise<void> {
   if (!societyId || !userIds.length) return;
   const stateKey = `fieldos_state_soc_${societyId}`;
@@ -557,8 +557,8 @@ export async function addNotificaToBlob(
     body: notifica.body,
     eventId: notifica.eventId ?? null,
     convocazioneId: notifica.convocazioneId ?? null,
-    quoteKey: null,
-    docKey: null,
+    quoteKey: notifica.quoteKey ?? null,
+    docKey:   notifica.docKey   ?? null,
     ts: baseTs,
     read: false,
   }));

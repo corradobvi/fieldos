@@ -17303,12 +17303,18 @@ function certExpiryStatus(playerId) {
   return 'ok';
 }
 
-function checkDocumentiReminders() {
+async function checkDocumentiReminders() {
   const _remSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (!hasCertMedicoFeature(_remSoc)) return;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const todayStr = ymd(today);
-  const admins = USERS_DB.filter(u => u.role === 'admin' || u.role === 'mister_admin');
+  // CABLAGGIO RESOLVER (evento 7 documento): destinatari risolti BE via
+  // resolveRecipients('documento') = tutoriGiocatore + societa (admin/mister_admin
+  // + guardian linkati via player_guardians). Push web + card blob arrivano dal BE.
+  // Il check FE qui calcola SOLO i player con cert in scadenza/scaduto e fa dedup
+  // locale via docKey (le card BE includono docKey → notifiche.some(...) funziona
+  // al login successivo). Niente piu' pushNotifica FE.
+  const items = [];
   players.forEach(p => {
     const certs = documenti.filter(d => d.playerId === p.id && d.tipo === 'cert_medico' && d.dataScadenza);
     if (!certs.length) return;
@@ -17320,9 +17326,18 @@ function checkDocumentiReminders() {
     const name = p.nome + ' ' + p.cogn;
     const title = days < 0 ? '❌ Cert. medico scaduto' : `⚠️ Cert. medico scade tra ${days} giorni`;
     const body  = `${name}: certificato medico ${days < 0 ? 'scaduto il' : 'in scadenza il'} ${fmtDateFull(latest.dataScadenza)}.`;
-    admins.forEach(u => pushNotifica(u.id, { type: 'documento', title, body, docKey: key }));
-    parentUsersForPlayer(p).forEach(u => pushNotifica(u.id, { type: 'documento', title, body, docKey: key + '_p' + u.id }));
+    items.push({ playerId: p.id, title, body, docKey: key });
   });
+  if (!items.length) return;
+  try {
+    const token = localStorage.getItem('fieldos_token');
+    if (!token) return;
+    await fetch(API_BASE + '/api/v2/documenti/notifica', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ documenti: items })
+    });
+  } catch (_) { /* silent: check ricorre al prossimo login */ }
 }
 
 function renderDocumenti() {
