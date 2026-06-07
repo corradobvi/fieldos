@@ -26335,14 +26335,17 @@ function createAdHocChat() {
 // Il PUT server-side valida via SELECT id FROM users WHERE id IN (...) e scarta SILENZIOSAMENTE
 // i blob_id che non corrispondono a users.id MySQL → mister/dirigenti non risultano membri,
 // _resolveChatRecipients li esclude → niente push né badge per quegli utenti.
-// Mappiamo blob_id → MySQL_id via match per email, usando /api/v2/users come Rosetta Stone.
+// Mappiamo blob_id → MySQL_id via match per email, usando /api/v2/users/id-email-map come Rosetta Stone.
+// Endpoint consumer-safe (requireAuth, payload minimo [{id,email}]): accessibile a qualsiasi
+// utente autenticato. Prima usavamo /api/v2/users (admin-only → 403 per genitore/dirigente),
+// ma il fallback memberEmails sotto sopperiva. Ora niente 403 in console.
 async function _persistAdhocMembers(chatId, memberIds) {
   if (!chatId || !Array.isArray(memberIds) || !memberIds.length) return;
   if (!_ensureV2Token()) return;
   try {
     let mysqlIds = memberIds.map(Number).filter(Number.isFinite);
     try {
-      const r0 = await fetch(API_BASE + '/api/v2/users', {
+      const r0 = await fetch(API_BASE + '/api/v2/users/id-email-map', {
         headers: { 'Authorization': 'Bearer ' + _v2Token }
       });
       if (r0.ok) {

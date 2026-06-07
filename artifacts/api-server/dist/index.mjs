@@ -85918,6 +85918,21 @@ router15.get("/users/roles", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
+router15.get("/users/id-email-map", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id, email FROM users WHERE society_id = ?",
+      [societyId]
+    );
+    return res.json(
+      rows.map((r) => ({ id: r.id, email: r.email }))
+    );
+  } catch (e) {
+    logger.error({ err: e }, "GET users/id-email-map error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
 router15.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
   try {

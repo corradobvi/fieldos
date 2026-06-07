@@ -38,6 +38,31 @@ router.get("/users/roles", requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/v2/users/id-email-map
+// "Rosetta Stone" per il remap blob_id → MySQL_id usato da _persistAdhocMembers
+// (FE chat ad-hoc). Restituisce SOLO id+email degli utenti ATTIVI della stessa
+// societa' del JWT. Accessibile a QUALSIASI utente autenticato: l'email e' gia'
+// conosciuta dai membri della stessa societa' (presente nel blob locale USERS_DB)
+// → nessuna nuova esposizione. Niente nome/cognome/ruolo/leva/telefono/permessi/
+// figli/stato (quelli restano admin-only su GET /users).
+// Stesso pattern di /users/roles: route consumer scoped con payload minimo.
+router.get("/users/id-email-map", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser!;
+  try {
+    // Stesso scope di GET /users (society_id del JWT, niente filtro per stato/leva).
+    const [rows] = (await pool.execute(
+      "SELECT id, email FROM users WHERE society_id = ?",
+      [societyId]
+    )) as [any[], any];
+    return res.json(
+      (rows as any[]).map((r: any) => ({ id: r.id, email: r.email }))
+    );
+  } catch (e: any) {
+    logger.error({ err: e }, "GET users/id-email-map error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+
 // GET /api/v2/users
 router.get("/users", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser!;
