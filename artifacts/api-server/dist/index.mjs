@@ -85894,6 +85894,7 @@ async function _famiglieLeva(societyId, leva) {
            JOIN users u ON u.id = pg.user_id
           WHERE p.society_id = ? AND u.stato = 'attivo'
             AND u.ruolo IN ('genitore','nonno')
+            AND p.leva IS NOT NULL
             AND ${sqlOnPLeva}`,
         [societyId, ...lc.params]
       );

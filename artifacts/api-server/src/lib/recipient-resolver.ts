@@ -121,6 +121,11 @@ async function _famiglieLeva(societyId: number, leva: string): Promise<number[]>
     try {
       const lc = _levaMatchClause(leva);
       const sqlOnPLeva = lc.sql.replace(/\bleva\b/g, "p.leva");
+      // p.leva IS NOT NULL: esclude i player non assegnati a nessuna leva.
+      // Senza questo guard, _levaMatchClause include "leva IS NULL" come
+      // catch-all anche per p.leva → i guardian di player senza leva
+      // ricevevano push di QUALSIASI leva. Filtro applicato PRIMA di sqlOnPLeva
+      // per coerenza con la semantica "famiglie DELLA leva richiesta".
       const [rows] = (await pool.execute(
         `SELECT DISTINCT pg.user_id AS id
            FROM player_guardians pg
@@ -128,6 +133,7 @@ async function _famiglieLeva(societyId: number, leva: string): Promise<number[]>
            JOIN users u ON u.id = pg.user_id
           WHERE p.society_id = ? AND u.stato = 'attivo'
             AND u.ruolo IN ('genitore','nonno')
+            AND p.leva IS NOT NULL
             AND ${sqlOnPLeva}`,
         [societyId, ...lc.params]
       )) as [any[], any];
