@@ -21428,6 +21428,61 @@ async function _notifyAllenamentoEliminato(leve, title, body) {
   } catch (_) { /* silent: il toast UX e' gia' stato mostrato dal caller */ }
 }
 function _isAllenType(t) { return t === 'allenamento' || t === 'allenamento_portieri'; }
+// NOTIFICHE DI FASE — partite campionato/amichevole (manuale, BE-driven).
+// Bottoni "📢 Avviso (fase 1)" + "📢 Dettagli (fase 2)" sulle card partita.
+// Stateless e riutilizzabili (re-invio = re-fire, come "reinvia convocazione").
+// Audience BE = solo famiglieLeva (matrice EVENT_AUDIENCE), sender escluso.
+function _notifyMatchFase(source, matchId, phase) {
+  let m = null, leva = null;
+  if (source === 'campionato') {
+    leva = currentLeva;
+    const camp = leva && campionato[leva];
+    m = camp && Array.isArray(camp.partite) ? camp.partite.find(x => String(x.id) === String(matchId)) : null;
+  } else if (source === 'amichevole') {
+    m = (Array.isArray(amichevoli) ? amichevoli : []).find(x => String(x.id) === String(matchId));
+    leva = m ? m.leva : null;
+  }
+  if (!m || !leva) { toast('⚠️ Partita non trovata'); return; }
+
+  const polis = polisName(leva);
+  const dStr = fmtMatchDate(m.data);
+  const oraStr = m.orario ? ' ore ' + m.orario : '';
+  let title, body;
+  if (phase === 1) {
+    title = '⚽ Prossima partita ' + leva;
+    body  = dStr + oraStr;
+  } else {
+    let teamsLine = '';
+    if (source === 'campionato') {
+      teamsLine = (m.casa && m.ospite) ? (m.casa + ' – ' + m.ospite) : '';
+    } else {
+      const isHome = (m.tipo || 'casa') === 'casa';
+      teamsLine = m.avversario ? (isHome ? (polis + ' – ' + m.avversario) : (m.avversario + ' – ' + polis)) : '';
+    }
+    title = teamsLine ? ('⚽ ' + teamsLine) : ('⚽ Partita ' + leva);
+    const parts = [dStr];
+    if (m.orario) parts.push('ore ' + m.orario);
+    if (m.luogo)  parts.push('📍 ' + m.luogo);
+    if (source === 'amichevole') {
+      const isHome = (m.tipo || 'casa') === 'casa';
+      parts.push(isHome ? 'In casa' : 'Trasferta');
+    }
+    if (source === 'campionato' && m.giornata) parts.push('Giornata ' + m.giornata);
+    body = parts.join(' · ');
+  }
+
+  const eventType = 'partita_fase' + phase;
+  const token = localStorage.getItem('fieldos_token');
+  if (!token) { toast('⚠️ Sessione scaduta'); return; }
+  fetch(API_BASE + '/api/v2/eventi/notifica-fase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ eventType, leva, title, body, refId: m.id })
+  }).then(function(r) {
+    if (!r.ok) { toast('⛔ Errore invio notifica'); return; }
+    toast(phase === 1 ? '📢 Avviso inviato' : '📢 Dettagli inviati');
+  }).catch(function() { toast('⛔ Errore di rete'); });
+}
 function deleteCurrentEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
@@ -22220,8 +22275,11 @@ function renderPtAmichevoli() {
     const timeStr = m.orario ? ` <span style="font-size:.65rem;color:var(--text3);">🕐 ${m.orario}</span>` : '';
     const luogoStr = m.luogo ? `<span style="font-size:.65rem;color:var(--text3);margin-left:4px;">📍${escapeHtml(m.luogo)}</span>` : '';
     const risBtn = (!m.annullata && canEnterResult(m.leva)) ? `<button class="btn btn-g btn-sm" onclick="openRisultato('amichevole',${m.id});event.stopPropagation();">✏️ ${m.played?'Modifica':'Inserisci'} risultato</button>` : '';
+    const notifBtns = (!m.annullata && !m.played && canEnterResult(m.leva))
+      ? `<button class="btn btn-g btn-sm" onclick="event.stopPropagation();_notifyMatchFase('amichevole',${m.id},1);">📢 Avviso (fase 1)</button><button class="btn btn-p btn-sm" onclick="event.stopPropagation();_notifyMatchFase('amichevole',${m.id},2);">📢 Dettagli (fase 2)</button>`
+      : '';
     const opacity = m.annullata ? 'opacity:.55;' : '';
-    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchScorersCompact(m,m.leva,[polis])+renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}</div></div>`;
+    return `<div class="mc" style="${opacity}"><div class="mc-date">${fmtMatchDate(m.data)}${timeStr}</div>${tag}${luogoStr}<div class="mc-teams"><span class="mc-team" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(home)}</span>${score}<span class="mc-team away" style="${m.annullata?'text-decoration:line-through;':''}">${escapeHtml(away)}</span></div>${m.played&&!m.annullata?renderMatchScorersCompact(m,m.leva,[polis])+renderMatchEvents(m,m.leva):''}<div class="mc-actions">${risBtn}${notifBtns}</div></div>`;
   };
   const mkAmichMasked = m => `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag" style="background:#ede9fe;color:#7c3aed;font-size:.65rem;">Amichevole</span><div style="font-size:.78rem;color:var(--text2);padding:4px 0;">⏳ Dettagli disponibili a breve</div></div>`;
   let html = '';
@@ -22330,9 +22388,12 @@ function renderPtCampionato() {
       return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div></div>`;
     }).join('');
   } else {
-    polisSchedHtml = polisScheduled.map(m =>
-      `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div></div>`
-    ).join('');
+    polisSchedHtml = polisScheduled.map(m => {
+      const notifBtns = canEnterResult(currentLeva)
+        ? `<div class="mc-actions"><button class="btn btn-g btn-sm" onclick="event.stopPropagation();_notifyMatchFase('campionato',${m.id},1);">📢 Avviso (fase 1)</button><button class="btn btn-p btn-sm" onclick="event.stopPropagation();_notifyMatchFase('campionato',${m.id},2);">📢 Dettagli (fase 2)</button></div>`
+        : '';
+      return `<div class="mc"><div class="mc-date">${fmtMatchDate(m.data)}</div><span class="mc-tag gior">G${m.giornata||'?'}</span><div class="mc-teams"><span class="mc-team">${escapeHtml(m.casa)}</span><span class="mc-score nd">Da giocare</span><span class="mc-team away">${escapeHtml(m.ospite)}</span></div>${notifBtns}</div>`;
+    }).join('');
   }
 
   // ── Scontri tra avversari (con inserimento rapido) — nascosti ai genitori
