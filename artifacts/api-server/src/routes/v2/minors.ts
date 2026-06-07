@@ -402,11 +402,15 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
   if (isNaN(playerId) || isNaN(guardianId)) return res.status(400).json({ error: "invalid_ids" });
 
   try {
+    // Leggo anche `leva`: serve a resolveRecipients per lo scope staffLeva
+    // (cablaggio sgancio_tutore — il task richiede di notificare anche lo
+    // staff della leva del giocatore, oltre al tutore sganciato).
     const [playerRows] = (await pool.execute(
-      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      "SELECT id, leva FROM players WHERE id = ? AND society_id = ?",
       [playerId, societyId]
     )) as [any[], any];
     if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const playerLeva = (playerRows[0] as any).leva ?? null;
 
     const [guardianRows] = (await pool.execute(
       "SELECT id, user_id FROM player_guardians WHERE id = ? AND player_id = ?",
@@ -440,7 +444,10 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
       }
     } catch (_) { /* non-bloccante */ }
 
-    // Push al guardian rimosso
+    // Push: cablaggio resolver unico (sgancio_tutore).
+    // Lo scope = direttiUsers + staffLeva. Notifica al tutore sganciato (diretto)
+    // E allo staff della leva del giocatore (come da matrice). Sender escluso
+    // dentro resolveRecipients.
     try {
       const [playerInfo] = (await pool.execute(
         "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
@@ -449,7 +456,13 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
       const pName = playerInfo[0]
         ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ''}`.trim()
         : 'un giocatore';
-      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
+      const ids = await resolveRecipients("sgancio_tutore", {
+        societyId,
+        leva: playerLeva,
+        directUserIds: [guardianUserId],
+        senderUserId: requesterId,
+      });
+      sendPushToUsers(ids, societyKeyFor(societyId), {
         title: "❌ Tutore sganciato",
         body: `Sei stato sganciato dal profilo di ${pName}. Contatta la società per chiarimenti.`,
         tag: `guardian-removed-${playerId}-${guardianUserId}`,

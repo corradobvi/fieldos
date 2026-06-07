@@ -86321,10 +86321,11 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
   if (isNaN(playerId) || isNaN(guardianId)) return res.status(400).json({ error: "invalid_ids" });
   try {
     const [playerRows] = await pool.execute(
-      "SELECT id FROM players WHERE id = ? AND society_id = ?",
+      "SELECT id, leva FROM players WHERE id = ? AND society_id = ?",
       [playerId, societyId]
     );
     if (!playerRows.length) return res.status(404).json({ error: "player_not_found" });
+    const playerLeva = playerRows[0].leva ?? null;
     const [guardianRows] = await pool.execute(
       "SELECT id, user_id FROM player_guardians WHERE id = ? AND player_id = ?",
       [guardianId, playerId]
@@ -86361,7 +86362,13 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
         [playerId]
       );
       const pName = playerInfo[0] ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ""}`.trim() : "un giocatore";
-      sendPushToUsers([guardianUserId], societyKeyFor(societyId), {
+      const ids = await resolveRecipients("sgancio_tutore", {
+        societyId,
+        leva: playerLeva,
+        directUserIds: [guardianUserId],
+        senderUserId: requesterId
+      });
+      sendPushToUsers(ids, societyKeyFor(societyId), {
         title: "\u274C Tutore sganciato",
         body: `Sei stato sganciato dal profilo di ${pName}. Contatta la societ\xE0 per chiarimenti.`,
         tag: `guardian-removed-${playerId}-${guardianUserId}`
