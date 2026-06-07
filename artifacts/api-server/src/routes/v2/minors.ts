@@ -509,53 +509,101 @@ async function syncPlayerFromMysqlToBlob(societyId: number, playerId: number): P
 }
 
 // Helper: scrive una entry "card notifica" nel blob society_state per ciascun userId destinatario.
-// Usata dai flow API-only (claim, notify-coaches) per generare card visibili al mister
+// Usata dai flow API-only (claim, notify-coaches, risultato-partita) per generare card visibili
 // nel tab Notifiche di Comunicazioni. Frontend filtra per `n.userId === me.id` strict.
+//
+// FIX race condition con saveState FE (ecec450 → questo commit): scrittura
+// version-aware con retry CAS (Compare-And-Set atomico).
+// Prima: SELECT state_json, modifica, UPDATE WHERE key = ? — bumpava NULLA su
+// `version`. Conseguenza: un PUT /api/state FE quasi contemporaneo (state.ts
+// version-guard) trovava version invariata, il check passava, e l'UPDATE FE
+// sovrascriveva `state_json` senza la card. Card persa silenziosamente.
+// Ora: UPDATE SET state_json=?, version=version+1 WHERE key=? AND version=?
+// è atomico in MySQL (single-statement). Se affectedRows=0 → version cambiata
+// sotto (scrittura concorrente da FE o altro BE call): rileggi state_json
+// fresco, riapplica la card, riprova fino a 3 volte. Stesso modello del
+// version-guard di state.ts:160-205, ma applicato direttamente come CAS qui.
 export async function addNotificaToBlob(
   societyId: number,
   userIds: number[],
   notifica: { type: string; title: string; body: string; eventId?: any; convocazioneId?: any },
 ): Promise<void> {
   if (!societyId || !userIds.length) return;
-  try {
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [rows] = (await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey],
-    )) as [any[], any];
-    if (!rows.length) return;
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  const MAX_RETRIES = 3;
 
-    let state: any;
-    try { state = JSON.parse(rows[0].state_json as string); } catch { return; }
-    if (!Array.isArray(state.notifiche)) state.notifiche = [];
+  // Card payload pre-costruito una volta sola: ts + baseId fissi per dedup
+  // se il retry ricapita (la stessa card non viene mai pushata due volte).
+  const baseTs = Date.now();
+  const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+  const newCards = userIds.map(uid => ({
+    id: `${baseId}_${uid}`,
+    userId: Number(uid),
+    type: notifica.type,
+    title: notifica.title,
+    body: notifica.body,
+    eventId: notifica.eventId ?? null,
+    convocazioneId: notifica.convocazioneId ?? null,
+    quoteKey: null,
+    docKey: null,
+    ts: baseTs,
+    read: false,
+  }));
 
-    const baseTs = Date.now();
-    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // 1. Read fresh state_json + version corrente.
+      const [rows] = (await pool.execute(
+        "SELECT state_json, version FROM `society_state` WHERE `key` = ? LIMIT 1",
+        [stateKey],
+      )) as [any[], any];
+      if (!rows.length) return; // società senza blob — niente da fare
 
-    for (const uid of userIds) {
-      state.notifiche.push({
-        id: `${baseId}_${uid}`,
-        userId: Number(uid),
-        type: notifica.type,
-        title: notifica.title,
-        body: notifica.body,
-        eventId: notifica.eventId ?? null,
-        convocazioneId: notifica.convocazioneId ?? null,
-        quoteKey: null,
-        docKey: null,
-        ts: baseTs,
-        read: false,
-      });
+      const currentVersion = Number((rows[0] as any).version) || 0;
+      let state: any;
+      try { state = JSON.parse(rows[0].state_json as string); } catch { return; }
+      if (!Array.isArray(state.notifiche)) state.notifiche = [];
+
+      // 2. Modify in-memory: appendi le card. Idempotente sui retry grazie a id univoco.
+      // Difensivo: se per qualche motivo il read precedente conteneva già le nostre
+      // card (improbabile, ma possibile con replication lag), evitiamo duplicati.
+      const existingIds = new Set(state.notifiche.map((n: any) => n && n.id).filter(Boolean));
+      for (const card of newCards) {
+        if (!existingIds.has(card.id)) state.notifiche.push(card);
+      }
+
+      // 3. CAS atomico: UPDATE solo se version e' rimasta quella che abbiamo letto.
+      const [result] = (await pool.execute(
+        `UPDATE \`society_state\`
+            SET \`state_json\` = ?, \`version\` = \`version\` + 1
+          WHERE \`key\` = ? AND \`version\` = ?`,
+        [JSON.stringify(state), stateKey, currentVersion],
+      )) as [any, any];
+
+      const affectedRows = Number((result as any)?.affectedRows ?? 0);
+      if (affectedRows === 1) {
+        // Successo: version e' stata bumpata atomicamente.
+        return;
+      }
+
+      // 4. affectedRows=0 → scrittura concorrente ha bumpato version sotto di noi.
+      // Loop al prossimo attempt: rileggi, riapplica, riprova.
+      logger.warn(
+        { societyId, attempt: attempt + 1, maxRetries: MAX_RETRIES, currentVersion },
+        "addNotificaToBlob: CAS conflict, retry",
+      );
+    } catch (e: any) {
+      logger.error({ err: e?.message, societyId, attempt }, "addNotificaToBlob attempt failed");
+      // Errore di rete/SQL: non insistere, esci silenziosamente (fire-and-forget).
+      return;
     }
-
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey],
-    );
-  } catch (e: any) {
-    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
-    // Non rilanciare
   }
+
+  // 5. Dopo MAX_RETRIES senza CAS riuscita: log warning, no throw (fire-and-forget).
+  logger.warn(
+    { societyId, userIds, type: notifica.type, maxRetries: MAX_RETRIES },
+    "addNotificaToBlob: CAS failed after max retries, card NOT persisted",
+  );
 }
 
 // Helper: propaga il guardian MySQL → blob USERS_DB. Idempotente, fault-tolerant.

@@ -86474,44 +86474,65 @@ async function syncPlayerFromMysqlToBlob(societyId, playerId) {
 }
 async function addNotificaToBlob(societyId, userIds, notifica) {
   if (!societyId || !userIds.length) return;
-  try {
-    const stateKey = `fieldos_state_soc_${societyId}`;
-    const [rows] = await pool.execute(
-      "SELECT state_json FROM `society_state` WHERE `key` = ? LIMIT 1",
-      [stateKey]
-    );
-    if (!rows.length) return;
-    let state;
+  const stateKey = `fieldos_state_soc_${societyId}`;
+  const MAX_RETRIES = 3;
+  const baseTs = Date.now();
+  const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
+  const newCards = userIds.map((uid) => ({
+    id: `${baseId}_${uid}`,
+    userId: Number(uid),
+    type: notifica.type,
+    title: notifica.title,
+    body: notifica.body,
+    eventId: notifica.eventId ?? null,
+    convocazioneId: notifica.convocazioneId ?? null,
+    quoteKey: null,
+    docKey: null,
+    ts: baseTs,
+    read: false
+  }));
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      state = JSON.parse(rows[0].state_json);
-    } catch {
+      const [rows] = await pool.execute(
+        "SELECT state_json, version FROM `society_state` WHERE `key` = ? LIMIT 1",
+        [stateKey]
+      );
+      if (!rows.length) return;
+      const currentVersion = Number(rows[0].version) || 0;
+      let state;
+      try {
+        state = JSON.parse(rows[0].state_json);
+      } catch {
+        return;
+      }
+      if (!Array.isArray(state.notifiche)) state.notifiche = [];
+      const existingIds = new Set(state.notifiche.map((n) => n && n.id).filter(Boolean));
+      for (const card of newCards) {
+        if (!existingIds.has(card.id)) state.notifiche.push(card);
+      }
+      const [result] = await pool.execute(
+        `UPDATE \`society_state\`
+            SET \`state_json\` = ?, \`version\` = \`version\` + 1
+          WHERE \`key\` = ? AND \`version\` = ?`,
+        [JSON.stringify(state), stateKey, currentVersion]
+      );
+      const affectedRows = Number(result?.affectedRows ?? 0);
+      if (affectedRows === 1) {
+        return;
+      }
+      logger.warn(
+        { societyId, attempt: attempt + 1, maxRetries: MAX_RETRIES, currentVersion },
+        "addNotificaToBlob: CAS conflict, retry"
+      );
+    } catch (e) {
+      logger.error({ err: e?.message, societyId, attempt }, "addNotificaToBlob attempt failed");
       return;
     }
-    if (!Array.isArray(state.notifiche)) state.notifiche = [];
-    const baseTs = Date.now();
-    const baseId = `srv_${baseTs}_${Math.random().toString(36).slice(2, 8)}`;
-    for (const uid of userIds) {
-      state.notifiche.push({
-        id: `${baseId}_${uid}`,
-        userId: Number(uid),
-        type: notifica.type,
-        title: notifica.title,
-        body: notifica.body,
-        eventId: notifica.eventId ?? null,
-        convocazioneId: notifica.convocazioneId ?? null,
-        quoteKey: null,
-        docKey: null,
-        ts: baseTs,
-        read: false
-      });
-    }
-    await pool.execute(
-      "UPDATE `society_state` SET state_json = ? WHERE `key` = ?",
-      [JSON.stringify(state), stateKey]
-    );
-  } catch (e) {
-    logger.error({ err: e?.message, societyId, userIds }, "addNotificaToBlob failed");
   }
+  logger.warn(
+    { societyId, userIds, type: notifica.type, maxRetries: MAX_RETRIES },
+    "addNotificaToBlob: CAS failed after max retries, card NOT persisted"
+  );
 }
 async function syncGuardianToBlob(societyId, userId) {
   if (!societyId || !userId) return;
