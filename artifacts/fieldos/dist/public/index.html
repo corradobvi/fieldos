@@ -17100,18 +17100,45 @@ function deleteQuota() {
   toast('🗑 Quota eliminata');
 }
 
-function sollecitaInsoluti() {
+async function sollecitaInsoluti() {
   const scadute = quotes.filter(q => q.stato === 'scaduto');
   if (!scadute.length) { toast('Nessun insoluto'); return; }
-  scadute.forEach(q => {
-    const par = q.parentUserId ? USERS_DB.find(u => u.id === q.parentUserId) : null;
-    if (!par) return;
-    const p = players.find(x => x.id === q.playerId);
-    const name = p ? p.nome + ' ' + p.cogn : 'giocatore';
-    pushNotifica(par.id, { type: 'quota', title: '📩 Sollecito quota', body: `La quota di ${name} di ${fmtImporto(q.importo)}, scaduta il ${fmtDateFull(q.scadenza)}, è ancora in attesa di pagamento.` });
-  });
-  if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
-  toast(`📩 Sollecito inviato a ${scadute.length} famiglie`);
+  // Cablaggio resolver unico (Opzione B): il FE costruisce la lista quote
+  // scadute con title/body gia' formattati e li manda al BE, che risolve
+  // destinatari via resolveRecipients('quota', {playerId}) e invia push +
+  // card. Il vecchio loop pushNotifica FE e' rimosso: il BE e' ora l'unica
+  // sorgente di push web + card blob.
+  // Il check automatico al login (checkQuoteReminders, riga ~16817) resta FE.
+  const items = scadute
+    .filter(q => Number.isFinite(q.playerId) && q.playerId > 0)
+    .map(q => {
+      const p = players.find(x => x.id === q.playerId);
+      const name = p ? p.nome + ' ' + p.cogn : 'giocatore';
+      return {
+        playerId: q.playerId,
+        title: '📩 Sollecito quota',
+        body: `La quota di ${name} di ${fmtImporto(q.importo)}, scaduta il ${fmtDateFull(q.scadenza)}, è ancora in attesa di pagamento.`,
+      };
+    });
+  if (!items.length) { toast('Nessuna quota valida da sollecitare'); return; }
+  if (!_v2Token) { toast('⛔ Sessione scaduta. Rifai login.'); return; }
+  try {
+    const r = await fetch(API_BASE + '/api/v2/quote/sollecita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ quotes: items }),
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      toast('⛔ Errore sollecito: ' + (d.error || r.status));
+      return;
+    }
+    const data = await r.json().catch(() => ({}));
+    const n = Number(data.sollecitati ?? scadute.length) || scadute.length;
+    toast(`📩 Sollecito inviato a ${n} famiglie`);
+  } catch (e) {
+    toast('❌ Errore di rete');
+  }
 }
 
 function refreshQuotaBadge() {

@@ -88248,6 +88248,54 @@ router20.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), re
     return res.status(500).json({ error: "server_error" });
   }
 });
+router20.post(
+  "/quote/sollecita",
+  requireAuth,
+  requireRole("admin", "dirigente", "mister_admin"),
+  async (req, res) => {
+    const { societyId, userId } = req.jwtUser;
+    const body = req.body;
+    if (!Array.isArray(body?.quotes) || !body.quotes.length) {
+      return res.status(400).json({ error: "quotes_required", detail: "body.quotes deve essere un array non vuoto" });
+    }
+    const items = [];
+    for (const raw of body.quotes) {
+      const pid = Number(raw?.playerId);
+      const title = String(raw?.title || "").slice(0, 200);
+      const bodyTxt = String(raw?.body || "").slice(0, 500);
+      if (!Number.isFinite(pid) || pid <= 0 || !title.trim()) continue;
+      items.push({ playerId: pid, title, body: bodyTxt });
+      if (items.length >= 500) break;
+    }
+    if (!items.length) return res.json({ ok: true, sollecitati: 0 });
+    let sollecitati = 0;
+    for (const q of items) {
+      try {
+        const ids = await resolveRecipients("quota", {
+          societyId,
+          playerId: q.playerId,
+          senderUserId: userId
+        });
+        if (!ids.length) continue;
+        sendPushToUsers(ids, societyKeyFor(societyId), {
+          title: q.title,
+          body: q.body,
+          tag: "quota"
+        }).catch((e) => logger.warn({ err: e?.message, playerId: q.playerId }, "quote/sollecita: push error"));
+        addNotificaToBlob(societyId, ids, {
+          type: "quota",
+          title: q.title,
+          body: q.body
+        }).catch(() => {
+        });
+        sollecitati++;
+      } catch (e) {
+        logger.warn({ err: e?.message, playerId: q.playerId }, "quote/sollecita: item failed");
+      }
+    }
+    return res.json({ ok: true, sollecitati });
+  }
+);
 var quote_default = router20;
 
 // src/routes/v2/migrate.ts

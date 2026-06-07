@@ -2,6 +2,9 @@ import { Router, Request, Response, NextFunction } from "express";
 import { pool } from "@workspace/db";
 import { logger } from "../../lib/logger";
 import { requireAuth, requireRole } from "../../lib/auth";
+import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
+import { resolveRecipients } from "../../lib/recipient-resolver";
+import { addNotificaToBlob } from "./minors";
 
 const router = Router();
 
@@ -101,5 +104,71 @@ router.delete("/quote/:id", requireAuth, requireRole("admin", "dirigente"), requ
     return res.status(500).json({ error: "server_error" });
   }
 });
+
+// POST /api/v2/quote/sollecita — sollecito manuale insoluti.
+//
+// Cablaggio resolver unico per evento quota (Opzione B): le quote vivono nel
+// blob FE (state.quotes[]), non in MySQL. Il FE filtra le quote scadute e
+// passa la lista al BE che risolve i destinatari via resolveRecipients('quota')
+// e invia push web + card blob (addNotificaToBlob con CAS).
+//
+// NIENTE requirePlan: il sollecito esiste anche su piani non-societa (il
+// gating UI lato FE gestisce la visibilita' del bottone). Il cron/check
+// automatico al login resta FE (checkQuoteReminders).
+//
+// Body: { quotes: Array<{ playerId: number, title: string, body: string }> }
+// Risposta: { ok: true, sollecitati: number }
+router.post("/quote/sollecita",
+  requireAuth,
+  requireRole("admin", "dirigente", "mister_admin"),
+  async (req, res) => {
+    const { societyId, userId } = req.jwtUser!;
+    const body = req.body as { quotes?: unknown };
+
+    if (!Array.isArray(body?.quotes) || !body!.quotes!.length) {
+      return res.status(400).json({ error: "quotes_required", detail: "body.quotes deve essere un array non vuoto" });
+    }
+
+    // Sanifica + cap a 500 per evitare abusi
+    const items: Array<{ playerId: number; title: string; body: string }> = [];
+    for (const raw of body!.quotes!) {
+      const pid = Number((raw as any)?.playerId);
+      const title = String((raw as any)?.title || "").slice(0, 200);
+      const bodyTxt = String((raw as any)?.body || "").slice(0, 500);
+      if (!Number.isFinite(pid) || pid <= 0 || !title.trim()) continue;
+      items.push({ playerId: pid, title, body: bodyTxt });
+      if (items.length >= 500) break;
+    }
+    if (!items.length) return res.json({ ok: true, sollecitati: 0 });
+
+    let sollecitati = 0;
+    for (const q of items) {
+      try {
+        const ids = await resolveRecipients("quota", {
+          societyId,
+          playerId: q.playerId,
+          senderUserId: userId,
+        });
+        if (!ids.length) continue;
+        // Push web (fire-and-forget) + card blob (addNotificaToBlob ha CAS+retry).
+        sendPushToUsers(ids, societyKeyFor(societyId), {
+          title: q.title,
+          body:  q.body,
+          tag:   "quota",
+        }).catch((e: any) => logger.warn({ err: e?.message, playerId: q.playerId }, "quote/sollecita: push error"));
+        addNotificaToBlob(societyId, ids, {
+          type:  "quota",
+          title: q.title,
+          body:  q.body,
+        }).catch(() => { /* gia' loggato dentro helper */ });
+        sollecitati++;
+      } catch (e: any) {
+        logger.warn({ err: e?.message, playerId: q.playerId }, "quote/sollecita: item failed");
+      }
+    }
+
+    return res.json({ ok: true, sollecitati });
+  }
+);
 
 export default router;
