@@ -4,6 +4,7 @@ import { logger } from "../../lib/logger";
 import { requireAuth } from "../../lib/auth";
 import { sendPushToUsers, getUsersForPush, societyKeyFor } from "../../lib/push-sender";
 import { _levaMatchClause } from "../../lib/leva-match";
+import { resolveRecipients } from "../../lib/recipient-resolver";
 
 const router = Router();
 
@@ -603,7 +604,18 @@ router.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     // Fire-and-forget per non rallentare la response.
     (async () => {
       try {
-        const recipients = await _resolveChatRecipients(societyId, chatId, userId);
+        // CABLAGGIO RESOLVER (chat_messaggio): UNICO punto d'ingresso e' ora
+        // resolveRecipients('chat_messaggio', ...). Internamente delega a
+        // _resolveChatRecipients (questo file, riga 294) — zero cambio di
+        // comportamento, le regole eta U6-U13/U14+, chat staff e chat ad hoc
+        // restano nella loro fonte unica. Il sender viene escluso 2 volte
+        // (qui dentro _resolveChatRecipients via id != ? + nel resolver via
+        // out.delete(sender)) — idempotente.
+        const recipients = await resolveRecipients("chat_messaggio", {
+          societyId,
+          chatId,
+          senderUserId: userId,
+        });
         // Sender display name per body più chiaro ("Mario Rossi: testo")
         let senderName = "";
         try {

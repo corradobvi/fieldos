@@ -85469,7 +85469,11 @@ router13.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     }
     (async () => {
       try {
-        const recipients = await _resolveChatRecipients(societyId, chatId, userId);
+        const recipients = await resolveRecipients("chat_messaggio", {
+          societyId,
+          chatId,
+          senderUserId: userId
+        });
         let senderName = "";
         try {
           const [sRows] = await pool.query(
