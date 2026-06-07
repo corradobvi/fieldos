@@ -6,6 +6,7 @@ import { requireAuth, requireRole } from "../../lib/auth";
 import { requirePermission } from "../../lib/permissions";
 import { requireLeva } from "../../lib/leva-guard";
 import { sendPushToUsers, societyKeyFor } from "../../lib/push-sender";
+import { resolveRecipients } from "../../lib/recipient-resolver";
 import { addNotificaToBlob } from "./minors";
 
 const router = Router();
@@ -134,23 +135,30 @@ router.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "m
 });
 
 // POST /api/v2/presenze/notify-coaches — web push to coaches of a leva (fire-and-forget)
+// Chiamato dal genitore che segnala assenza/revoca. NON aggiungere requireRole:
+// il chiamante legittimo e' un genitore (no staff).
+//
+// CABLAGGIO RESOLVER UNICO (commit prima cablatura): destinatari risolti via
+// resolveRecipients('avviso_assenza', { societyId, leva, senderUserId }). Lo
+// scope 'avviso_assenza' include SOLO staffLeva (mister/allenatore/preparatore_
+// portieri/dirigente leva-matched via _levaMatchClause). NIENTE admin/mister_admin
+// catch-all (come da matrice). Sender sempre escluso dentro il resolver.
 router.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser!;
   const { leva, title, body, tag } = req.body as Record<string, any>;
   if (!leva || !title) return res.status(400).json({ error: "missing_fields" });
   try {
-    const [rows] = (await pool.execute(
-      `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?
-         AND ruolo IN ('admin','dirigente','allenatore','mister','preparatore_portieri','mister_admin')
-         AND (leva = ? OR ruolo IN ('admin','dirigente','mister_admin'))`,
-      [societyId, userId, leva]
-    )) as [any[], any];
-    const ids = rows.map((r: any) => r.id as number);
+    const ids = await resolveRecipients("avviso_assenza", {
+      societyId,
+      leva: String(leva),
+      senderUserId: userId,
+    });
+
     sendPushToUsers(ids, societyKeyFor(societyId), {
       title, body: body || "", url: "/presenze", tag: tag || "assenza",
     }).catch((e: any) => logger.warn({ err: e }, "notify-coaches push error"));
 
-    // Scrivi anche card blob per gli admin/coach (frontend filtra per userId)
+    // Scrivi anche card blob per i destinatari (frontend filtra per userId)
     addNotificaToBlob(societyId, ids, {
       type: "avviso_assenza",
       title: title || "📩 Avviso assenza",

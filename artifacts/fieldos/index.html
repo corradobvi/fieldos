@@ -9456,16 +9456,12 @@ function saveAvvisoAssenza(){
   });
   // Marca automaticamente il giocatore come "giustificato" per quella data nel registro presenze
   setPresenzaForDate(p, date, 'j');
-  // Notifica al/ai mister e dirigente della leva (NO admin)
+  // Notifica al/ai mister e dirigente della leva — SOLO via BE.
+  // Cablaggio resolver unico: il BE risolve i destinatari con resolveRecipients
+  // ('avviso_assenza') e invia push web + card blob. Le chiamate pushNotifica
+  // FE-side erano doppione (stesso pubblico via _origPushNotifica blob +
+  // bridge window.pushNotifica → /api/push/send) e sono state rimosse.
   const dateLong = fmtDateLong(parseYmd(date));
-  const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
-  coachIds.forEach(uid => {
-    pushNotifica(uid, {
-      type: 'avviso_assenza',
-      title: `📩 Avviso assenza · ${p.nome} ${p.cogn}`,
-      body: `${dateLong} (${p.leva})${motivo ? '\nMotivo: ' + motivo : ''}\nInviato da ${me.nome} ${me.cogn}`,
-    });
-  });
   closeM('mAvvisa');
   if (_v2Token && p.leva) {
     fetch(API_BASE + '/api/v2/presenze/notify-coaches', {
@@ -9496,15 +9492,11 @@ function revocaAssenza(p, dateStr) {
   if (getPresenzaForDate(p, dateStr) === 'j') {
     setPresenzaForDate(p, dateStr, '');
   }
+  // Notifica revoca al mister/dirigente della leva — SOLO via BE (resolver unico).
+  // Le chiamate pushNotifica FE-side erano doppione (stesso pubblico) e sono
+  // state rimosse: il BE risolve via resolveRecipients('avviso_assenza') e
+  // invia push web + card blob.
   const dateLong = fmtDateLong(parseYmd(dateStr));
-  const coachIds = recipientsForCoachesOfLeva(p.leva, isGK(p));
-  coachIds.forEach(uid => {
-    pushNotifica(uid, {
-      type: 'avviso_assenza_revocata',
-      title: `✅ Assenza revocata · ${p.nome} ${p.cogn}`,
-      body: `${dateLong} (${p.leva})\nRevocata da ${me.nome} ${me.cogn}`,
-    });
-  });
   if (typeof window.__fieldosSaveState === 'function') window.__fieldosSaveState();
   closeM('mRevocaAssenza');
   if (_v2Token && p.leva) {

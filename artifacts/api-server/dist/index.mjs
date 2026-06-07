@@ -86817,7 +86817,7 @@ router16.delete("/events/:id", requireAuth, requireRole(...WRITE_ROLES), async (
 var events_default = router16;
 
 // src/routes/v2/presenze.ts
-var import_express17 = __toESM(require_express2(), 1);
+var import_express18 = __toESM(require_express2(), 1);
 
 // src/lib/permissions.ts
 function requirePermission(key) {
@@ -86918,266 +86918,10 @@ function requireLeva(levaResolver) {
   };
 }
 
-// src/routes/v2/presenze.ts
-var router17 = (0, import_express17.Router)();
-async function _levaFromPlayerInBody(req) {
-  const pid = Number(req.body?.playerId);
-  if (!Number.isFinite(pid) || pid <= 0) return null;
-  const [rows] = await pool.execute(
-    "SELECT leva FROM players WHERE id = ? AND society_id = ? LIMIT 1",
-    [pid, req.jwtUser.societyId]
-  );
-  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
-}
-async function _levaFromEventInBody(req) {
-  const eid = Number(req.body?.eventId);
-  if (!Number.isFinite(eid) || eid <= 0) return null;
-  const societyId = req.jwtUser.societyId;
-  const [m2m] = await pool.execute(
-    `SELECT l.nome
-       FROM event_leve el
-       JOIN leve   l ON l.id = el.leva_id
-       JOIN events e ON e.id = el.event_id AND e.society_id = ?
-      WHERE el.event_id = ?
-      ORDER BY l.ordine, l.nome
-      LIMIT 1`,
-    [societyId, eid]
-  );
-  if (m2m.length && m2m[0].nome) return String(m2m[0].nome);
-  const [rows] = await pool.execute(
-    "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
-    [eid, societyId]
-  );
-  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
-}
-router17.get("/presenze", requireAuth, async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { eventId } = req.query;
-  if (!eventId) return res.status(400).json({ error: "eventId_required" });
-  try {
-    const [rows] = await pool.execute(
-      `SELECT pr.id, pr.player_id, pr.event_id, pr.stato, pr.nota, pr.created_at,
-              p.nome, p.cognome, p.numero, p.leva
-       FROM presenze pr
-       JOIN players p ON p.id = pr.player_id
-       JOIN events e ON e.id = pr.event_id AND e.society_id = ?
-       WHERE pr.event_id = ?
-       ORDER BY p.cognome, p.nome`,
-      [societyId, eventId]
-    );
-    return res.json(rows);
-  } catch (e) {
-    logger.error({ err: e }, "GET presenze error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router17.post("/presenze", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { playerId, eventId, stato, nota } = req.body;
-  if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
-  try {
-    const [evCheck] = await pool.execute(
-      "SELECT id FROM events WHERE id = ? AND society_id = ?",
-      [eventId, societyId]
-    );
-    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
-    await pool.execute(
-      `INSERT INTO presenze (player_id, event_id, stato, nota)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
-      [playerId, eventId, stato, nota ?? null]
-    );
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "POST presenza error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router17.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  const { eventId, presenze } = req.body;
-  if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
-  try {
-    const [evCheck] = await pool.execute(
-      "SELECT id FROM events WHERE id = ? AND society_id = ?",
-      [eventId, societyId]
-    );
-    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
-    if (!presenze.length) return res.json({ ok: true, updated: 0 });
-    const values = presenze.map((p) => [p.playerId, eventId, p.stato, p.nota ?? null]);
-    const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
-    const flat = values.flat();
-    await pool.execute(
-      `INSERT INTO presenze (player_id, event_id, stato, nota) VALUES ${placeholders}
-       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
-      flat
-    );
-    return res.json({ ok: true, updated: presenze.length });
-  } catch (e) {
-    logger.error({ err: e }, "POST presenze/bulk error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router17.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const { leva, title, body, tag } = req.body;
-  if (!leva || !title) return res.status(400).json({ error: "missing_fields" });
-  try {
-    const [rows] = await pool.execute(
-      `SELECT id FROM users WHERE society_id = ? AND stato = 'attivo' AND id != ?
-         AND ruolo IN ('admin','dirigente','allenatore','mister','preparatore_portieri','mister_admin')
-         AND (leva = ? OR ruolo IN ('admin','dirigente','mister_admin'))`,
-      [societyId, userId, leva]
-    );
-    const ids = rows.map((r) => r.id);
-    sendPushToUsers(ids, societyKeyFor(societyId), {
-      title,
-      body: body || "",
-      url: "/presenze",
-      tag: tag || "assenza"
-    }).catch((e) => logger.warn({ err: e }, "notify-coaches push error"));
-    addNotificaToBlob(societyId, ids, {
-      type: "avviso_assenza",
-      title: title || "\u{1F4E9} Avviso assenza",
-      body: body || ""
-    }).catch(() => {
-    });
-    return res.json({ ok: true });
-  } catch (e) {
-    logger.error({ err: e }, "POST presenze/notify-coaches error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var presenze_default = router17;
-
-// src/routes/v2/comunicazioni.ts
-var import_express18 = __toESM(require_express2(), 1);
-var router18 = (0, import_express18.Router)();
-function _normCom(s) {
-  if (s == null) return "";
-  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
-}
-async function _checkComLevaScope(req, res, next) {
-  if (!req.jwtUser) {
-    res.status(401).json({ error: "unauthorized" });
-    return;
-  }
-  try {
-    const { userId, societyId, role } = req.jwtUser;
-    const allowed = await getUserLeve(userId, societyId, role);
-    const bodyLeva = req.body?.leva;
-    const isWildcard = allowed === null;
-    const bodyLevaStr = typeof bodyLeva === "string" ? bodyLeva : "";
-    if (!bodyLevaStr.trim()) {
-      if (isWildcard) {
-        next();
-        return;
-      }
-      res.status(403).json({ error: "leva_forbidden" });
-      return;
-    }
-    if (isWildcard) {
-      next();
-      return;
-    }
-    if (!allowed.has(_normCom(bodyLevaStr))) {
-      res.status(403).json({ error: "leva_forbidden", leva: bodyLevaStr });
-      return;
-    }
-    next();
-  } catch {
-    res.status(500).json({ error: "server_error" });
-  }
-}
-router18.get("/comunicazioni", requireAuth, async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const { leva, limit = "50", offset = "0" } = req.query;
-  try {
-    const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
-    const off = Math.max(parseInt(offset) || 0, 0);
-    const [rows] = await pool.execute(
-      `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
-              c.urgente, c.created_at,
-              u.nome AS autore_nome, u.cognome AS autore_cognome,
-              EXISTS(SELECT 1 FROM comunicazioni_reads
-                      WHERE comunicazione_id = c.id AND user_id = ?) AS letto
-       FROM comunicazioni c
-       LEFT JOIN users u ON u.id = c.autore_id
-       WHERE c.society_id = ?
-         ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
-       ORDER BY c.created_at DESC
-       LIMIT ${lim} OFFSET ${off}`,
-      leva ? [userId, societyId, leva] : [userId, societyId]
-    );
-    return res.json(rows);
-  } catch (e) {
-    logger.error({ err: e }, "GET comunicazioni error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router18.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
-  const { societyId, userId } = req.jwtUser;
-  const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
-  if (!testo) return res.status(400).json({ error: "testo_required" });
-  try {
-    const [result] = await pool.execute(
-      "INSERT INTO comunicazioni (society_id, autore_id, tipo, titolo, testo, bacheca, leva, urgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        societyId,
-        userId,
-        tipo ?? "comunicazione",
-        titolo ?? null,
-        testo,
-        bacheca ?? "generale",
-        leva ?? null,
-        urgente ? 1 : 0
-      ]
-    );
-    const _pushTitle = urgente ? `\u{1F6A8} URGENTE: ${titolo || "Comunicazione"}` : `\u{1F4E2} ${titolo || "Nuova comunicazione"}`;
-    const _pushBody = (titolo ? testo : testo).slice(0, 100);
-    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
-      title: _pushTitle,
-      body: _pushBody,
-      url: "/comunicazioni",
-      tag: "comunicazione"
-    }, "notify_comunicazioni")).catch((e) => logger.warn({ err: e }, "comunicazione push error"));
-    return res.status(201).json({ id: result.insertId });
-  } catch (e) {
-    logger.error({ err: e }, "POST comunicazione error");
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router18.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
-  const { userId } = req.jwtUser;
-  try {
-    await pool.execute(
-      "INSERT IGNORE INTO comunicazioni_reads (comunicazione_id, user_id) VALUES (?, ?)",
-      [req.params.id, userId]
-    );
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-router18.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (req, res) => {
-  const { societyId } = req.jwtUser;
-  try {
-    const [result] = await pool.execute(
-      "DELETE FROM comunicazioni WHERE id = ? AND society_id = ?",
-      [req.params.id, societyId]
-    );
-    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
-    return res.json({ ok: true });
-  } catch (e) {
-    return res.status(500).json({ error: "server_error" });
-  }
-});
-var comunicazioni_default = router18;
-
 // src/routes/v2/chat.ts
-var import_express19 = __toESM(require_express2(), 1);
-var router19 = (0, import_express19.Router)();
-router19.get("/chat/push-test", requireAuth, async (req, res) => {
+var import_express17 = __toESM(require_express2(), 1);
+var router17 = (0, import_express17.Router)();
+router17.get("/chat/push-test", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   try {
     const societyKey = societyKeyFor(societyId);
@@ -87209,7 +86953,7 @@ router19.get("/chat/push-test", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.message });
   }
 });
-router19.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
+router17.get("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { limit = "50", before } = req.query;
@@ -87292,7 +87036,7 @@ async function _loadPollDetails(societyId, pollId, viewerId) {
     myOptionIds
   };
 }
-router19.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
+router17.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87314,7 +87058,7 @@ router19.get("/chat/:chatId/polls", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router19.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { question, options } = req.body;
@@ -87361,7 +87105,7 @@ router19.post("/chat/:chatId/polls", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error" });
   }
 });
-router19.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
+router17.post("/chat/polls/:pollId/vote", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const pollId = parseInt(req.params.pollId);
   const { optionId } = req.body;
@@ -87617,7 +87361,7 @@ function _chatPushTitle(chatId, chatNameHint) {
   if (chatId.startsWith("adhoc_")) return "\u{1F4AC} Chat";
   return "\u{1F4AC} Chat";
 }
-router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   const { testo, fotoUrl, chatName } = req.body;
@@ -87696,7 +87440,7 @@ router19.post("/chat/:chatId/messages", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/:chatId/read", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/read", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87720,7 +87464,7 @@ router19.post("/chat/:chatId/read", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/unread", requireAuth, async (req, res) => {
+router17.post("/chat/unread", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const body = req.body;
   const raw = Array.isArray(body?.chatIds) ? body.chatIds : [];
@@ -87792,7 +87536,7 @@ router19.post("/chat/unread", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87816,7 +87560,7 @@ router19.post("/chat/:chatId/archive", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   try {
@@ -87833,7 +87577,7 @@ router19.post("/chat/:chatId/unarchive", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87860,7 +87604,7 @@ router19.post("/chat/:chatId/remove-from-list", requireAuth, async (req, res) =>
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
+router17.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87880,7 +87624,7 @@ router19.post("/chat/:chatId/restore-to-list", requireAuth, async (req, res) => 
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-router19.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
+router17.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
   const { societyId, userId } = req.jwtUser;
   const { chatId } = req.params;
   if (!chatId.startsWith("adhoc_")) {
@@ -87959,7 +87703,460 @@ router19.put("/chat/adhoc/:chatId/members", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "server_error", detail: e?.code || "db_error" });
   }
 });
-var chat_default = router19;
+var chat_default = router17;
+
+// src/lib/recipient-resolver.ts
+function _isUnder14(leva) {
+  if (!leva) return false;
+  const uMatch = String(leva).match(/^U(\d+)/i);
+  return uMatch ? parseInt(uMatch[1], 10) < 14 : false;
+}
+async function _societa(societyId) {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id FROM users
+        WHERE society_id = ? AND stato = 'attivo'
+          AND ruolo IN ('admin','mister_admin')`,
+      [societyId]
+    );
+    return rows.map((r) => Number(r.id));
+  } catch (e) {
+    logger.warn({ err: e?.message, societyId }, "recipient-resolver: societa scope failed");
+    return [];
+  }
+}
+async function _staffLeva(societyId, leva) {
+  if (!leva) return [];
+  try {
+    const lc = _levaMatchClause(leva);
+    const [rows] = await pool.execute(
+      `SELECT id FROM users
+        WHERE society_id = ? AND stato = 'attivo'
+          AND ruolo IN ('allenatore','mister','preparatore_portieri','dirigente')
+          AND ${lc.sql}`,
+      [societyId, ...lc.params]
+    );
+    return rows.map((r) => Number(r.id));
+  } catch (e) {
+    logger.warn({ err: e?.message, societyId, leva }, "recipient-resolver: staffLeva scope failed");
+    return [];
+  }
+}
+async function _famiglieLeva(societyId, leva) {
+  if (!leva) return [];
+  const ids = /* @__PURE__ */ new Set();
+  try {
+    try {
+      const [r1] = await pool.execute(
+        `SELECT DISTINCT pg.user_id AS id
+           FROM player_guardians pg
+           JOIN players p ON p.id = pg.player_id
+           JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'
+            AND u.ruolo IN ('genitore','nonno')`,
+        [societyId, leva]
+      );
+      for (const r of r1) ids.add(Number(r.id));
+    } catch (_) {
+    }
+    const lc = _levaMatchClause(leva);
+    const [r2] = await pool.execute(
+      `SELECT id FROM users
+        WHERE society_id = ? AND stato = 'attivo'
+          AND ruolo IN ('genitore','nonno')
+          AND ${lc.sql}`,
+      [societyId, ...lc.params]
+    );
+    for (const r of r2) ids.add(Number(r.id));
+    if (!_isUnder14(leva)) {
+      try {
+        const [r3] = await pool.execute(
+          `SELECT DISTINCT u.id
+             FROM users u
+             JOIN players p ON p.society_id = u.society_id
+                            AND p.nome = u.nome AND p.cognome = u.cognome
+            WHERE u.society_id = ? AND u.stato = 'attivo'
+              AND u.ruolo = 'giocatore' AND p.leva = ?`,
+          [societyId, leva]
+        );
+        for (const r of r3) ids.add(Number(r.id));
+      } catch (_) {
+      }
+    }
+  } catch (e) {
+    logger.warn({ err: e?.message, societyId, leva }, "recipient-resolver: famiglieLeva scope failed");
+  }
+  return Array.from(ids);
+}
+async function _tutoriGiocatore(playerId) {
+  if (!playerId) return [];
+  const ids = /* @__PURE__ */ new Set();
+  try {
+    const [pRows] = await pool.execute(
+      "SELECT nome, cognome, leva, society_id FROM players WHERE id = ? LIMIT 1",
+      [playerId]
+    );
+    const player = pRows[0];
+    if (!player) return [];
+    const [gRows] = await pool.execute(
+      `SELECT DISTINCT pg.user_id AS id
+         FROM player_guardians pg
+         JOIN users u ON u.id = pg.user_id AND u.stato = 'attivo'
+                      AND u.ruolo IN ('genitore','nonno')
+        WHERE pg.player_id = ?`,
+      [playerId]
+    );
+    for (const r of gRows) ids.add(Number(r.id));
+    if (player.leva && !_isUnder14(player.leva)) {
+      try {
+        const [pgRows] = await pool.execute(
+          `SELECT id FROM users
+            WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'giocatore'
+              AND nome = ? AND cognome = ?`,
+          [player.society_id, player.nome, player.cognome]
+        );
+        for (const r of pgRows) ids.add(Number(r.id));
+      } catch (_) {
+      }
+    }
+  } catch (e) {
+    logger.warn({ err: e?.message, playerId }, "recipient-resolver: tutoriGiocatore scope failed");
+  }
+  return Array.from(ids);
+}
+async function _membriChat(societyId, chatId, senderUserId) {
+  if (!chatId) return [];
+  try {
+    const ids = await _resolveChatRecipients(societyId, chatId, senderUserId);
+    return (ids || []).map((n) => Number(n));
+  } catch (e) {
+    logger.warn({ err: e?.message, societyId, chatId }, "recipient-resolver: membriChat scope failed");
+    return [];
+  }
+}
+function _direttiUsers(directUserIds) {
+  if (!Array.isArray(directUserIds)) return [];
+  return directUserIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+}
+var EVENT_AUDIENCE = {
+  comunicazione: ["famiglieLeva", "staffLeva"],
+  chat_messaggio: ["membriChat"],
+  partita_fase1: ["famiglieLeva"],
+  partita_fase2: ["famiglieLeva"],
+  convocazione: ["tutoriConvocati"],
+  risultato: ["famiglieLeva"],
+  torneo_fase1: ["famiglieLeva"],
+  torneo_fase2: ["famiglieLeva"],
+  allenamento_eliminato: ["famiglieLeva", "staffLeva"],
+  claim: ["staffLeva", "societa"],
+  sgancio_tutore: ["direttiUsers", "staffLeva"],
+  quota: ["tutoriGiocatore", "societa"],
+  documento: ["tutoriGiocatore", "societa"],
+  avviso_assenza: ["staffLeva"]
+};
+async function resolveRecipients(eventType, ctx) {
+  const scopes = EVENT_AUDIENCE[eventType];
+  if (!scopes) {
+    logger.warn({ eventType, ctx }, "recipient-resolver: unknown eventType, returning []");
+    return [];
+  }
+  const { societyId, leva, playerId, chatId, convocatiPlayerIds, directUserIds, senderUserId } = ctx;
+  const sender = Number(senderUserId) || 0;
+  const out = /* @__PURE__ */ new Set();
+  for (const scope of scopes) {
+    let ids = [];
+    try {
+      switch (scope) {
+        case "societa":
+          ids = await _societa(societyId);
+          break;
+        case "staffLeva":
+          if (leva) ids = await _staffLeva(societyId, leva);
+          break;
+        case "famiglieLeva":
+          if (leva) ids = await _famiglieLeva(societyId, leva);
+          break;
+        case "tutoriGiocatore":
+          if (playerId) ids = await _tutoriGiocatore(playerId);
+          break;
+        case "tutoriConvocati":
+          if (Array.isArray(convocatiPlayerIds) && convocatiPlayerIds.length) {
+            for (const pid of convocatiPlayerIds) {
+              const sub = await _tutoriGiocatore(Number(pid));
+              for (const id of sub) out.add(id);
+            }
+          }
+          continue;
+        // ids gia' aggiunti dentro il loop
+        case "membriChat":
+          if (chatId) ids = await _membriChat(societyId, chatId, sender);
+          break;
+        case "direttiUsers":
+          ids = _direttiUsers(directUserIds);
+          break;
+      }
+    } catch (e) {
+      logger.warn({ err: e?.message, eventType, scope }, "recipient-resolver: scope error");
+    }
+    for (const id of ids) out.add(id);
+  }
+  if (sender > 0) out.delete(sender);
+  return Array.from(out);
+}
+
+// src/routes/v2/presenze.ts
+var router18 = (0, import_express18.Router)();
+async function _levaFromPlayerInBody(req) {
+  const pid = Number(req.body?.playerId);
+  if (!Number.isFinite(pid) || pid <= 0) return null;
+  const [rows] = await pool.execute(
+    "SELECT leva FROM players WHERE id = ? AND society_id = ? LIMIT 1",
+    [pid, req.jwtUser.societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+async function _levaFromEventInBody(req) {
+  const eid = Number(req.body?.eventId);
+  if (!Number.isFinite(eid) || eid <= 0) return null;
+  const societyId = req.jwtUser.societyId;
+  const [m2m] = await pool.execute(
+    `SELECT l.nome
+       FROM event_leve el
+       JOIN leve   l ON l.id = el.leva_id
+       JOIN events e ON e.id = el.event_id AND e.society_id = ?
+      WHERE el.event_id = ?
+      ORDER BY l.ordine, l.nome
+      LIMIT 1`,
+    [societyId, eid]
+  );
+  if (m2m.length && m2m[0].nome) return String(m2m[0].nome);
+  const [rows] = await pool.execute(
+    "SELECT leva FROM events WHERE id = ? AND society_id = ? LIMIT 1",
+    [eid, societyId]
+  );
+  return rows.length && rows[0].leva ? String(rows[0].leva) : null;
+}
+router18.get("/presenze", requireAuth, async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { eventId } = req.query;
+  if (!eventId) return res.status(400).json({ error: "eventId_required" });
+  try {
+    const [rows] = await pool.execute(
+      `SELECT pr.id, pr.player_id, pr.event_id, pr.stato, pr.nota, pr.created_at,
+              p.nome, p.cognome, p.numero, p.leva
+       FROM presenze pr
+       JOIN players p ON p.id = pr.player_id
+       JOIN events e ON e.id = pr.event_id AND e.society_id = ?
+       WHERE pr.event_id = ?
+       ORDER BY p.cognome, p.nome`,
+      [societyId, eventId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET presenze error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router18.post("/presenze", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromPlayerInBody), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { playerId, eventId, stato, nota } = req.body;
+  if (!playerId || !eventId || !stato) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [evCheck] = await pool.execute(
+      "SELECT id FROM events WHERE id = ? AND society_id = ?",
+      [eventId, societyId]
+    );
+    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
+    await pool.execute(
+      `INSERT INTO presenze (player_id, event_id, stato, nota)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
+      [playerId, eventId, stato, nota ?? null]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenza error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router18.post("/presenze/bulk", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin", "preparatore_portieri"), requirePermission("gestione_presenze"), requireLeva(_levaFromEventInBody), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  const { eventId, presenze } = req.body;
+  if (!eventId || !Array.isArray(presenze)) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const [evCheck] = await pool.execute(
+      "SELECT id FROM events WHERE id = ? AND society_id = ?",
+      [eventId, societyId]
+    );
+    if (!evCheck.length) return res.status(403).json({ error: "forbidden" });
+    if (!presenze.length) return res.json({ ok: true, updated: 0 });
+    const values = presenze.map((p) => [p.playerId, eventId, p.stato, p.nota ?? null]);
+    const placeholders = values.map(() => "(?, ?, ?, ?)").join(", ");
+    const flat = values.flat();
+    await pool.execute(
+      `INSERT INTO presenze (player_id, event_id, stato, nota) VALUES ${placeholders}
+       ON DUPLICATE KEY UPDATE stato = VALUES(stato), nota = VALUES(nota)`,
+      flat
+    );
+    return res.json({ ok: true, updated: presenze.length });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenze/bulk error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router18.post("/presenze/notify-coaches", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { leva, title, body, tag } = req.body;
+  if (!leva || !title) return res.status(400).json({ error: "missing_fields" });
+  try {
+    const ids = await resolveRecipients("avviso_assenza", {
+      societyId,
+      leva: String(leva),
+      senderUserId: userId
+    });
+    sendPushToUsers(ids, societyKeyFor(societyId), {
+      title,
+      body: body || "",
+      url: "/presenze",
+      tag: tag || "assenza"
+    }).catch((e) => logger.warn({ err: e }, "notify-coaches push error"));
+    addNotificaToBlob(societyId, ids, {
+      type: "avviso_assenza",
+      title: title || "\u{1F4E9} Avviso assenza",
+      body: body || ""
+    }).catch(() => {
+    });
+    return res.json({ ok: true });
+  } catch (e) {
+    logger.error({ err: e }, "POST presenze/notify-coaches error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var presenze_default = router18;
+
+// src/routes/v2/comunicazioni.ts
+var import_express19 = __toESM(require_express2(), 1);
+var router19 = (0, import_express19.Router)();
+function _normCom(s) {
+  if (s == null) return "";
+  return String(s).trim().replace(/\s+/g, " ").toLowerCase();
+}
+async function _checkComLevaScope(req, res, next) {
+  if (!req.jwtUser) {
+    res.status(401).json({ error: "unauthorized" });
+    return;
+  }
+  try {
+    const { userId, societyId, role } = req.jwtUser;
+    const allowed = await getUserLeve(userId, societyId, role);
+    const bodyLeva = req.body?.leva;
+    const isWildcard = allowed === null;
+    const bodyLevaStr = typeof bodyLeva === "string" ? bodyLeva : "";
+    if (!bodyLevaStr.trim()) {
+      if (isWildcard) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: "leva_forbidden" });
+      return;
+    }
+    if (isWildcard) {
+      next();
+      return;
+    }
+    if (!allowed.has(_normCom(bodyLevaStr))) {
+      res.status(403).json({ error: "leva_forbidden", leva: bodyLevaStr });
+      return;
+    }
+    next();
+  } catch {
+    res.status(500).json({ error: "server_error" });
+  }
+}
+router19.get("/comunicazioni", requireAuth, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { leva, limit = "50", offset = "0" } = req.query;
+  try {
+    const lim = Math.min(Math.max(parseInt(limit) || 50, 1), 500);
+    const off = Math.max(parseInt(offset) || 0, 0);
+    const [rows] = await pool.execute(
+      `SELECT c.id, c.autore_id, c.tipo, c.titolo, c.testo, c.bacheca, c.leva,
+              c.urgente, c.created_at,
+              u.nome AS autore_nome, u.cognome AS autore_cognome,
+              EXISTS(SELECT 1 FROM comunicazioni_reads
+                      WHERE comunicazione_id = c.id AND user_id = ?) AS letto
+       FROM comunicazioni c
+       LEFT JOIN users u ON u.id = c.autore_id
+       WHERE c.society_id = ?
+         ${leva ? "AND (c.leva = ? OR c.leva IS NULL)" : ""}
+       ORDER BY c.created_at DESC
+       LIMIT ${lim} OFFSET ${off}`,
+      leva ? [userId, societyId, leva] : [userId, societyId]
+    );
+    return res.json(rows);
+  } catch (e) {
+    logger.error({ err: e }, "GET comunicazioni error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router19.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "mister", "dirigente", "mister_admin"), requirePermission("gestione_comunicazioni_bacheca"), _checkComLevaScope, async (req, res) => {
+  const { societyId, userId } = req.jwtUser;
+  const { tipo, titolo, testo, bacheca, leva, urgente } = req.body;
+  if (!testo) return res.status(400).json({ error: "testo_required" });
+  try {
+    const [result] = await pool.execute(
+      "INSERT INTO comunicazioni (society_id, autore_id, tipo, titolo, testo, bacheca, leva, urgente) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        societyId,
+        userId,
+        tipo ?? "comunicazione",
+        titolo ?? null,
+        testo,
+        bacheca ?? "generale",
+        leva ?? null,
+        urgente ? 1 : 0
+      ]
+    );
+    const _pushTitle = urgente ? `\u{1F6A8} URGENTE: ${titolo || "Comunicazione"}` : `\u{1F4E2} ${titolo || "Nuova comunicazione"}`;
+    const _pushBody = (titolo ? testo : testo).slice(0, 100);
+    getUsersForPush(societyId, { leva: leva ?? null, excludeUserId: userId }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
+      title: _pushTitle,
+      body: _pushBody,
+      url: "/comunicazioni",
+      tag: "comunicazione"
+    }, "notify_comunicazioni")).catch((e) => logger.warn({ err: e }, "comunicazione push error"));
+    return res.status(201).json({ id: result.insertId });
+  } catch (e) {
+    logger.error({ err: e }, "POST comunicazione error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router19.post("/comunicazioni/:id/read", requireAuth, async (req, res) => {
+  const { userId } = req.jwtUser;
+  try {
+    await pool.execute(
+      "INSERT IGNORE INTO comunicazioni_reads (comunicazione_id, user_id) VALUES (?, ?)",
+      [req.params.id, userId]
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router19.delete("/comunicazioni/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { societyId } = req.jwtUser;
+  try {
+    const [result] = await pool.execute(
+      "DELETE FROM comunicazioni WHERE id = ? AND society_id = ?",
+      [req.params.id, societyId]
+    );
+    if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
+    return res.json({ ok: true });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+var comunicazioni_default = router19;
 
 // src/routes/v2/quote.ts
 var import_express20 = __toESM(require_express2(), 1);
@@ -95791,207 +95988,6 @@ var admin_chat_diag_default = router43;
 
 // src/routes/v2/notifiche-resolve-test.ts
 var import_express44 = __toESM(require_express2(), 1);
-
-// src/lib/recipient-resolver.ts
-function _isUnder14(leva) {
-  if (!leva) return false;
-  const uMatch = String(leva).match(/^U(\d+)/i);
-  return uMatch ? parseInt(uMatch[1], 10) < 14 : false;
-}
-async function _societa(societyId) {
-  try {
-    const [rows] = await pool.execute(
-      `SELECT id FROM users
-        WHERE society_id = ? AND stato = 'attivo'
-          AND ruolo IN ('admin','mister_admin')`,
-      [societyId]
-    );
-    return rows.map((r) => Number(r.id));
-  } catch (e) {
-    logger.warn({ err: e?.message, societyId }, "recipient-resolver: societa scope failed");
-    return [];
-  }
-}
-async function _staffLeva(societyId, leva) {
-  if (!leva) return [];
-  try {
-    const lc = _levaMatchClause(leva);
-    const [rows] = await pool.execute(
-      `SELECT id FROM users
-        WHERE society_id = ? AND stato = 'attivo'
-          AND ruolo IN ('allenatore','mister','preparatore_portieri','dirigente')
-          AND ${lc.sql}`,
-      [societyId, ...lc.params]
-    );
-    return rows.map((r) => Number(r.id));
-  } catch (e) {
-    logger.warn({ err: e?.message, societyId, leva }, "recipient-resolver: staffLeva scope failed");
-    return [];
-  }
-}
-async function _famiglieLeva(societyId, leva) {
-  if (!leva) return [];
-  const ids = /* @__PURE__ */ new Set();
-  try {
-    try {
-      const [r1] = await pool.execute(
-        `SELECT DISTINCT pg.user_id AS id
-           FROM player_guardians pg
-           JOIN players p ON p.id = pg.player_id
-           JOIN users u ON u.id = pg.user_id
-          WHERE p.society_id = ? AND p.leva = ? AND u.stato = 'attivo'
-            AND u.ruolo IN ('genitore','nonno')`,
-        [societyId, leva]
-      );
-      for (const r of r1) ids.add(Number(r.id));
-    } catch (_) {
-    }
-    const lc = _levaMatchClause(leva);
-    const [r2] = await pool.execute(
-      `SELECT id FROM users
-        WHERE society_id = ? AND stato = 'attivo'
-          AND ruolo IN ('genitore','nonno')
-          AND ${lc.sql}`,
-      [societyId, ...lc.params]
-    );
-    for (const r of r2) ids.add(Number(r.id));
-    if (!_isUnder14(leva)) {
-      try {
-        const [r3] = await pool.execute(
-          `SELECT DISTINCT u.id
-             FROM users u
-             JOIN players p ON p.society_id = u.society_id
-                            AND p.nome = u.nome AND p.cognome = u.cognome
-            WHERE u.society_id = ? AND u.stato = 'attivo'
-              AND u.ruolo = 'giocatore' AND p.leva = ?`,
-          [societyId, leva]
-        );
-        for (const r of r3) ids.add(Number(r.id));
-      } catch (_) {
-      }
-    }
-  } catch (e) {
-    logger.warn({ err: e?.message, societyId, leva }, "recipient-resolver: famiglieLeva scope failed");
-  }
-  return Array.from(ids);
-}
-async function _tutoriGiocatore(playerId) {
-  if (!playerId) return [];
-  const ids = /* @__PURE__ */ new Set();
-  try {
-    const [pRows] = await pool.execute(
-      "SELECT nome, cognome, leva, society_id FROM players WHERE id = ? LIMIT 1",
-      [playerId]
-    );
-    const player = pRows[0];
-    if (!player) return [];
-    const [gRows] = await pool.execute(
-      `SELECT DISTINCT pg.user_id AS id
-         FROM player_guardians pg
-         JOIN users u ON u.id = pg.user_id AND u.stato = 'attivo'
-                      AND u.ruolo IN ('genitore','nonno')
-        WHERE pg.player_id = ?`,
-      [playerId]
-    );
-    for (const r of gRows) ids.add(Number(r.id));
-    if (player.leva && !_isUnder14(player.leva)) {
-      try {
-        const [pgRows] = await pool.execute(
-          `SELECT id FROM users
-            WHERE society_id = ? AND stato = 'attivo' AND ruolo = 'giocatore'
-              AND nome = ? AND cognome = ?`,
-          [player.society_id, player.nome, player.cognome]
-        );
-        for (const r of pgRows) ids.add(Number(r.id));
-      } catch (_) {
-      }
-    }
-  } catch (e) {
-    logger.warn({ err: e?.message, playerId }, "recipient-resolver: tutoriGiocatore scope failed");
-  }
-  return Array.from(ids);
-}
-async function _membriChat(societyId, chatId, senderUserId) {
-  if (!chatId) return [];
-  try {
-    const ids = await _resolveChatRecipients(societyId, chatId, senderUserId);
-    return (ids || []).map((n) => Number(n));
-  } catch (e) {
-    logger.warn({ err: e?.message, societyId, chatId }, "recipient-resolver: membriChat scope failed");
-    return [];
-  }
-}
-function _direttiUsers(directUserIds) {
-  if (!Array.isArray(directUserIds)) return [];
-  return directUserIds.map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
-}
-var EVENT_AUDIENCE = {
-  comunicazione: ["famiglieLeva", "staffLeva"],
-  chat_messaggio: ["membriChat"],
-  partita_fase1: ["famiglieLeva"],
-  partita_fase2: ["famiglieLeva"],
-  convocazione: ["tutoriConvocati"],
-  risultato: ["famiglieLeva"],
-  torneo_fase1: ["famiglieLeva"],
-  torneo_fase2: ["famiglieLeva"],
-  allenamento_eliminato: ["famiglieLeva", "staffLeva"],
-  claim: ["staffLeva", "societa"],
-  sgancio_tutore: ["direttiUsers", "staffLeva"],
-  quota: ["tutoriGiocatore", "societa"],
-  documento: ["tutoriGiocatore", "societa"],
-  avviso_assenza: ["staffLeva"]
-};
-async function resolveRecipients(eventType, ctx) {
-  const scopes = EVENT_AUDIENCE[eventType];
-  if (!scopes) {
-    logger.warn({ eventType, ctx }, "recipient-resolver: unknown eventType, returning []");
-    return [];
-  }
-  const { societyId, leva, playerId, chatId, convocatiPlayerIds, directUserIds, senderUserId } = ctx;
-  const sender = Number(senderUserId) || 0;
-  const out = /* @__PURE__ */ new Set();
-  for (const scope of scopes) {
-    let ids = [];
-    try {
-      switch (scope) {
-        case "societa":
-          ids = await _societa(societyId);
-          break;
-        case "staffLeva":
-          if (leva) ids = await _staffLeva(societyId, leva);
-          break;
-        case "famiglieLeva":
-          if (leva) ids = await _famiglieLeva(societyId, leva);
-          break;
-        case "tutoriGiocatore":
-          if (playerId) ids = await _tutoriGiocatore(playerId);
-          break;
-        case "tutoriConvocati":
-          if (Array.isArray(convocatiPlayerIds) && convocatiPlayerIds.length) {
-            for (const pid of convocatiPlayerIds) {
-              const sub = await _tutoriGiocatore(Number(pid));
-              for (const id of sub) out.add(id);
-            }
-          }
-          continue;
-        // ids gia' aggiunti dentro il loop
-        case "membriChat":
-          if (chatId) ids = await _membriChat(societyId, chatId, sender);
-          break;
-        case "direttiUsers":
-          ids = _direttiUsers(directUserIds);
-          break;
-      }
-    } catch (e) {
-      logger.warn({ err: e?.message, eventType, scope }, "recipient-resolver: scope error");
-    }
-    for (const id of ids) out.add(id);
-  }
-  if (sender > 0) out.delete(sender);
-  return Array.from(out);
-}
-
-// src/routes/v2/notifiche-resolve-test.ts
 var router44 = (0, import_express44.Router)();
 function _gate2(req, res) {
   const j = req.jwtUser;
