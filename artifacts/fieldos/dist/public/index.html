@@ -21489,6 +21489,41 @@ function _notifyMatchFase(source, matchId, phase) {
     toast(phase === 1 ? '📢 Avviso inviato' : '📢 Dettagli inviati');
   }).catch(function() { toast('⛔ Errore di rete'); });
 }
+// NOTIFICHE DI FASE — tornei (manuale, BE-driven).
+// Bottoni "📢 Avviso (fase 1)" + "📢 Dettagli (fase 2)" a livello torneo (entita
+// padre). UNA SOLA fetch per l'intero torneo, mai una per partita figlia
+// (coerente con tornei.convocazioni_per_partita=false di default).
+// Audience BE = solo famiglieLeva (matrice EVENT_AUDIENCE), sender escluso.
+function _notifyTorneoFase(torneoId, phase) {
+  const t = (Array.isArray(tornei) ? tornei : []).find(x => String(x.id) === String(torneoId));
+  if (!t || !t.leva) { toast('⚠️ Torneo non trovato'); return; }
+  let title, body;
+  if (phase === 1) {
+    title = '🏆 Torneo ' + t.nome;
+    body  = t.dataInizio ? fmtMatchDate(t.dataInizio) : '';
+  } else {
+    title = '🏆 ' + t.nome;
+    const dateRange = t.dataInizio
+      ? (t.dataFine && t.dataFine !== t.dataInizio ? (fmtMatchDate(t.dataInizio) + ' → ' + fmtMatchDate(t.dataFine)) : fmtMatchDate(t.dataInizio))
+      : '';
+    const parts = [];
+    if (dateRange)  parts.push(dateRange);
+    if (t.luogo)    parts.push('📍 ' + t.luogo);
+    if (t.leva)     parts.push('Leva ' + t.leva);
+    body = parts.join(' · ');
+  }
+  const eventType = 'torneo_fase' + phase;
+  const token = localStorage.getItem('fieldos_token');
+  if (!token) { toast('⚠️ Sessione scaduta'); return; }
+  fetch(API_BASE + '/api/v2/eventi/notifica-fase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ eventType, leva: t.leva, title, body, refId: t.id })
+  }).then(function(r) {
+    if (!r.ok) { toast('⛔ Errore invio notifica'); return; }
+    toast(phase === 1 ? '📢 Avviso inviato' : '📢 Dettagli inviati');
+  }).catch(function() { toast('⛔ Errore di rete'); });
+}
 function deleteCurrentEvento(){
   const id = Number(document.getElementById('evId').value);
   const ev = events.find(e => e.id === id);
@@ -22520,7 +22555,10 @@ function renderPtTornei() {
       const p = players.find(x => x.id === s.playerId);
       return `<div class="scorer-row"><span class="scorer-pos">${i+1}</span><span class="scorer-name">${escapeHtml(p?p.nome+' '+p.cogn:'#'+s.playerId)}</span><span class="scorer-stat">⚽ ${s.gol}</span><span class="scorer-stat" style="color:var(--gold);">🅰️ ${s.assist}</span></div>`;
     }).join('');
-    return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}">${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;">Nessuna fase disponibile.</div>'}${scorersHtml}</div></div>`;
+    const notifBtns = (!concluso && !t.archiviato && canEnterResult(t.leva))
+      ? `<div class="mc-actions" style="margin-bottom:10px;"><button class="btn btn-g btn-sm" onclick="event.stopPropagation();_notifyTorneoFase('${t.id}',1);">📢 Avviso (fase 1)</button><button class="btn btn-p btn-sm" onclick="event.stopPropagation();_notifyTorneoFase('${t.id}',2);">📢 Dettagli (fase 2)</button></div>`
+      : '';
+    return `<div class="torneo-card">${hd}<div id="tc-body-${espKey}" class="torneo-body" style="${espanso?'':'display:none;'}">${notifBtns}${fasiHtml||'<div style="color:var(--text3);font-size:.8rem;">Nessuna fase disponibile.</div>'}${scorersHtml}</div></div>`;
   };
 
   const toggleHtml = nascosti.length ? `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;margin-bottom:8px;"><label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.82rem;color:var(--text2);"><input type="checkbox"${_ptMostraArchiviati?' checked':''} onchange="ptToggleArchiviati(this)" style="width:14px;height:14px;"> Mostra passati (${nascosti.length})</label></div>` : '';
