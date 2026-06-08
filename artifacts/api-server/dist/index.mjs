@@ -86428,6 +86428,11 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
         [playerId]
       );
       const pName = playerInfo[0] ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ""}`.trim() : "un giocatore";
+      const [tutInfo] = await pool.execute(
+        "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+        [guardianUserId]
+      );
+      const tName = tutInfo[0] ? `${tutInfo[0].nome || ""} ${tutInfo[0].cognome || ""}`.trim() : "un tutore";
       const ids = await resolveRecipients("sgancio_tutore", {
         societyId,
         leva: playerLeva,
@@ -86435,8 +86440,8 @@ router14.delete("/players/:playerId/guardians/:guardianId", requireAuth, require
         senderUserId: requesterId
       });
       sendPushToUsers(ids, societyKeyFor(societyId), {
-        title: "\u274C Tutore sganciato",
-        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la societ\xE0 per chiarimenti.`,
+        title: "\u{1F513} Collegamento rimosso",
+        body: `Il collegamento tra il tutore ${tName} e il giocatore ${pName} \xE8 stato rimosso.`,
         tag: `guardian-removed-${playerId}-${guardianUserId}`
       }).catch(() => {
       });

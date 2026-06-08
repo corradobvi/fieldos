@@ -448,6 +448,10 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
     // Lo scope = direttiUsers + staffLeva. Notifica al tutore sganciato (diretto)
     // E allo staff della leva del giocatore (come da matrice). Sender escluso
     // dentro resolveRecipients.
+    //
+    // Testo neutro in terza persona: stesso messaggio per tutore e staff
+    // (prima il body era "Sei stato sganciato..." in seconda persona, fuorviante
+    // per lo staff che non era il soggetto dello sgancio).
     try {
       const [playerInfo] = (await pool.execute(
         "SELECT nome, cognome, cognome_iniziale FROM players WHERE id = ? LIMIT 1",
@@ -456,6 +460,13 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
       const pName = playerInfo[0]
         ? `${playerInfo[0].nome} ${playerInfo[0].cognome || playerInfo[0].cognome_iniziale || ''}`.trim()
         : 'un giocatore';
+      const [tutInfo] = (await pool.execute(
+        "SELECT nome, cognome FROM users WHERE id = ? LIMIT 1",
+        [guardianUserId]
+      )) as [any[], any];
+      const tName = tutInfo[0]
+        ? `${tutInfo[0].nome || ''} ${tutInfo[0].cognome || ''}`.trim()
+        : 'un tutore';
       const ids = await resolveRecipients("sgancio_tutore", {
         societyId,
         leva: playerLeva,
@@ -463,8 +474,8 @@ router.delete("/players/:playerId/guardians/:guardianId", requireAuth, requireRo
         senderUserId: requesterId,
       });
       sendPushToUsers(ids, societyKeyFor(societyId), {
-        title: "❌ Tutore sganciato",
-        body: `Sei stato sganciato dal profilo di ${pName}. Contatta la società per chiarimenti.`,
+        title: "🔓 Collegamento rimosso",
+        body: `Il collegamento tra il tutore ${tName} e il giocatore ${pName} è stato rimosso.`,
         tag: `guardian-removed-${playerId}-${guardianUserId}`,
       }).catch(() => {});
     } catch (_) { /* non-bloccante */ }
