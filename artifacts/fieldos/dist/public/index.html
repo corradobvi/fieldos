@@ -21358,10 +21358,10 @@ function saveEvento(){
         if (!r.ok) { toast('⛔ Errore aggiornamento evento'); return; }
         toast('✅ Evento aggiornato');
         if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
-          // Matrice EVENT_AUDIENCE: niente notifica auto per UPDATE allenamento/partita.
-          // Le partite hanno ora bottoni manuali fase1/fase2 (resolver BE).
-          if (!_isTrainType && !_isMatchType(type)) {
-            const _tlE = { torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+          // Matrice EVENT_AUDIENCE: niente notifica auto per UPDATE allenamento/partita/torneo.
+          // Partite e tornei hanno ora bottoni manuali fase1/fase2 (resolver BE).
+          if (!_isTrainType && !_isMatchType(type) && !_isTorneoType(type)) {
+            const _tlE = { altro:'✏️ Evento aggiornato' };
             const _pidsE = new Set();
             USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
             _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
@@ -21374,10 +21374,10 @@ function saveEvento(){
       Object.assign(ev, { title, type, date, start, end, luogo, campoId: campoIdSel||undefined, note, recur, recurUntil, leve: leveSel, visibilitaMode, visibilitaFase1Days, visibilitaFase2Days });
       toast('✅ Evento aggiornato');
       if (_oldDate !== date || (_oldStart||'') !== (start||'') || (_oldLuogo||'') !== (luogo||'')) {
-        // Matrice EVENT_AUDIENCE: niente notifica auto per UPDATE allenamento/partita.
-        // Le partite hanno ora bottoni manuali fase1/fase2 (resolver BE).
-        if (!_isTrainType && !_isMatchType(type)) {
-          const _tlE = { torneo:'✏️ Torneo aggiornato', altro:'✏️ Evento aggiornato' };
+        // Matrice EVENT_AUDIENCE: niente notifica auto per UPDATE allenamento/partita/torneo.
+        // Partite e tornei hanno ora bottoni manuali fase1/fase2 (resolver BE).
+        if (!_isTrainType && !_isMatchType(type) && !_isTorneoType(type)) {
+          const _tlE = { altro:'✏️ Evento aggiornato' };
           const _pidsE = new Set();
           USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pidsE.add(u.id); });
           _pidsE.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tlE[type]||'✏️ Evento aggiornato'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
@@ -21393,10 +21393,10 @@ function saveEvento(){
     if (campoIdSel) { const c=campi.find(x=>x.id===campoIdSel); if(c) c.usageCount=(c.usageCount||0)+1; }
     const _leveIds = leveSel.map(n => _calLeveMap[n]).filter(Boolean);
     // Notifica ai genitori/nonni delle leve coinvolte (ottimistica, prima della risposta API)
-    // Matrice EVENT_AUDIENCE: niente notifica auto per CREATE allenamento/partita.
-    // Le partite hanno ora bottoni manuali fase1/fase2 (resolver BE).
-    if (!_isTrainType && !_isMatchType(type)) (function(){
-      const _tl = { torneo:'🏆 Torneo programmato', altro:'📅 Nuovo evento' };
+    // Matrice EVENT_AUDIENCE: niente notifica auto per CREATE allenamento/partita/torneo.
+    // Partite e tornei hanno ora bottoni manuali fase1/fase2 (resolver BE).
+    if (!_isTrainType && !_isMatchType(type) && !_isTorneoType(type)) (function(){
+      const _tl = { altro:'📅 Nuovo evento' };
       const _pids = new Set();
       USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, leveSel)) _pids.add(u.id); });
       _pids.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:(_tl[type]||'📅 Nuovo evento'), body: (title ? title+'\n' : '')+fmtDateLong(parseYmd(date))+(start?' · '+start:'')+(luogo?' · 📍'+luogo:''), eventId: null }); });
@@ -21434,6 +21434,9 @@ function _isAllenType(t) { return t === 'allenamento' || t === 'allenamento_port
 // Partite calendario: ora hanno bottoni manuali fase1/fase2 (resolver BE).
 // Le notifiche CREATE/UPDATE/DELETE automatiche FE sono spente.
 function _isMatchType(t) { return t === 'partita'; }
+// Tornei calendario: ora hanno bottoni manuali fase1/fase2 a livello torneo
+// (resolver BE). Le notifiche CREATE/UPDATE/DELETE automatiche FE sono spente.
+function _isTorneoType(t) { return t === 'torneo'; }
 // NOTIFICHE DI FASE — partite campionato/amichevole (manuale, BE-driven).
 // Bottoni "📢 Avviso (fase 1)" + "📢 Dettagli (fase 2)" sulle card partita.
 // Stateless e riutilizzabili (re-invio = re-fire, come "reinvia convocazione").
@@ -21550,10 +21553,10 @@ function deleteCurrentEvento(){
     const _body  = (_evSnap.title ? _evSnap.title+'\n' : '')+fmtDateLong(parseYmd(_evSnap.date))+(_evSnap.start?' · '+_evSnap.start:'')+(_evSnap.luogo?' · 📍'+_evSnap.luogo:'');
     // Allenamento eliminato → cablato su resolver unico (famiglieLeva + staffLeva BE).
     if (_isAllenType(_evSnap.type)) { _notifyAllenamentoEliminato(_evSnap.leve, _title, _body); return; }
-    // Partita eliminata: niente notifica auto FE. L'admin decide se/quando
-    // notificare manualmente (passo successivo potra' aggiungere un bottone
-    // "Annulla e avvisa"). Torneo/altro: notifica FE legacy invariata.
-    if (_isMatchType(_evSnap.type)) return;
+    // Partita/torneo eliminati: niente notifica auto FE. L'admin comunica
+    // l'annullamento via bacheca (decisione di prodotto). "Altro" continua
+    // a notificare l'eliminazione (riga sotto).
+    if (_isMatchType(_evSnap.type) || _isTorneoType(_evSnap.type)) return;
     const _pidsD = new Set();
     USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
     _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title:_title, body:_body, eventId: null }); });
@@ -21600,8 +21603,9 @@ function applyDeleteChoice() {
     }
     // Allenamento eliminato (singolo/futuri/serie) → UNA fetch BE (mai una per occorrenza).
     if (_isAllenType(_evSnap.type)) { _notifyAllenamentoEliminato(_evSnap.leve, _t, _b); return; }
-    // Partita eliminata (singolo/futuri/serie): niente notifica auto FE.
-    if (_isMatchType(_evSnap.type)) return;
+    // Partita/torneo eliminati (singolo/futuri/serie): niente notifica auto FE.
+    // L'admin comunica l'annullamento via bacheca. "Altro" continua a notificare.
+    if (_isMatchType(_evSnap.type) || _isTorneoType(_evSnap.type)) return;
     const _pidsD = new Set();
     USERS_DB.forEach(function(u){ if (u.stato && u.stato !== 'attivo') return; if ((u.role==='genitore'||u.role==='nonno') && _userInAnyLeva(u, _evSnap.leve)) _pidsD.add(u.id); });
     _pidsD.forEach(function(uid){ pushNotifica(uid, { type:'evento', title: _t, body: _b, eventId: null }); });
