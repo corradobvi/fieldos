@@ -94198,7 +94198,7 @@ var migrate_polis_default = router43;
 // src/routes/v2/matches.ts
 var import_express44 = __toESM(require_express2(), 1);
 var router44 = (0, import_express44.Router)();
-var WRITE_ROLES2 = ["admin", "allenatore", "mister", "dirigente"];
+var WRITE_ROLES2 = ["admin", "mister_admin", "allenatore", "mister", "dirigente"];
 var DEMO_SOC_IDS2 = /* @__PURE__ */ new Set([0, 99, 99999]);
 function _levaFromBody(req) {
   const v = req.body && req.body.leva;

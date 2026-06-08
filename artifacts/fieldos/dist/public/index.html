@@ -6152,7 +6152,7 @@ function renderModeSwitch(){
 
 function goTo(pgId) {
   if (_mustChangePass) { setTimeout(() => openM('mChangePass'), 50); return; }
-  if (pgId === 'gestcomp' && (!me || !['admin','dirigente','allenatore'].includes(me.role))) pgId = 'partite';
+  if (pgId === 'gestcomp' && (!me || !['admin','mister_admin','dirigente','allenatore'].includes(me.role))) pgId = 'partite';
   // Exit partite-gen focused view when navigating anywhere except pg-partite itself
   if (pgId !== 'partite' && _pgfFromGenitore) {
     _pgfFromGenitore = false;
@@ -22580,7 +22580,7 @@ function renderPtTornei() {
 function renderGestComp() {
   const pg = document.getElementById('pg-gestcomp');
   if (!pg || !pg.classList.contains('on')) return;
-  if (!me || !['admin','dirigente','allenatore'].includes(me.role)) {
+  if (!me || !['admin','mister_admin','dirigente','allenatore'].includes(me.role)) {
     pg.innerHTML = '<div class="empty"><div class="empty-ic">🔒</div><div class="empty-txt">Accesso non autorizzato</div><div class="empty-sub">La Gestione Competizioni è riservata ad Admin, Dirigenti e Mister.</div></div>';
     return;
   }
