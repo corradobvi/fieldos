@@ -85809,6 +85809,64 @@ async function _societa(societyId) {
     return [];
   }
 }
+async function _societaCompleta(societyId) {
+  const ids = /* @__PURE__ */ new Set();
+  try {
+    const admins = await _societa(societyId);
+    for (const id of admins) ids.add(id);
+    try {
+      const [staffRows] = await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('allenatore','mister','preparatore_portieri','dirigente')`,
+        [societyId]
+      );
+      for (const r of staffRows) ids.add(Number(r.id));
+    } catch (e) {
+      logger.warn({ err: e?.message, societyId }, "societaCompleta: staff query failed");
+    }
+    try {
+      const [famRows] = await pool.execute(
+        `SELECT DISTINCT pg.user_id AS id
+           FROM player_guardians pg
+           JOIN players p ON p.id = pg.player_id
+           JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND u.stato = 'attivo'
+            AND u.ruolo IN ('genitore','nonno')
+            AND p.leva IS NOT NULL`,
+        [societyId]
+      );
+      for (const r of famRows) ids.add(Number(r.id));
+    } catch (_) {
+    }
+    try {
+      const [leveRows] = await pool.execute(
+        `SELECT DISTINCT leva FROM players
+          WHERE society_id = ? AND leva IS NOT NULL AND leva <> ''`,
+        [societyId]
+      );
+      const leveU14 = leveRows.map((r) => String(r.leva || "")).filter((lv) => lv && !_isUnder14(lv));
+      if (leveU14.length) {
+        const placeholders = leveU14.map(() => "?").join(",");
+        const [giocRows] = await pool.execute(
+          `SELECT DISTINCT u.id
+             FROM users u
+             JOIN players p ON p.society_id = u.society_id
+                            AND p.nome = u.nome AND p.cognome = u.cognome
+            WHERE u.society_id = ? AND u.stato = 'attivo'
+              AND u.ruolo = 'giocatore'
+              AND p.leva IN (${placeholders})`,
+          [societyId, ...leveU14]
+        );
+        for (const r of giocRows) ids.add(Number(r.id));
+      }
+    } catch (_) {
+    }
+  } catch (e) {
+    logger.warn({ err: e?.message, societyId }, "recipient-resolver: societaCompleta scope failed");
+  }
+  return Array.from(ids);
+}
 async function _staffLeva(societyId, leva) {
   if (!leva) return [];
   try {
@@ -85919,6 +85977,7 @@ function _direttiUsers(directUserIds) {
 }
 var EVENT_AUDIENCE = {
   comunicazione: ["famiglieLeva", "staffLeva"],
+  comunicazione_societa: ["societaCompleta"],
   chat_messaggio: ["membriChat"],
   partita_fase1: ["famiglieLeva"],
   partita_fase2: ["famiglieLeva"],
@@ -85948,6 +86007,9 @@ async function resolveRecipients(eventType, ctx) {
       switch (scope) {
         case "societa":
           ids = await _societa(societyId);
+          break;
+        case "societaCompleta":
+          ids = await _societaCompleta(societyId);
           break;
         case "staffLeva":
           if (leva) ids = await _staffLeva(societyId, leva);
@@ -88094,9 +88156,11 @@ router19.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", 
     );
     const _pushTitle = urgente ? `\u{1F6A8} URGENTE: ${titolo || "Comunicazione"}` : `\u{1F4E2} ${titolo || "Nuova comunicazione"}`;
     const _pushBody = (titolo ? testo : testo).slice(0, 100);
-    resolveRecipients("comunicazione", {
+    const _isSocWide = !(typeof leva === "string" && leva.trim());
+    const _eventType = _isSocWide ? "comunicazione_societa" : "comunicazione";
+    resolveRecipients(_eventType, {
       societyId,
-      leva: leva ?? null,
+      leva: _isSocWide ? null : leva,
       senderUserId: userId
     }).then((ids) => sendPushToUsers(ids, societyKeyFor(societyId), {
       title: _pushTitle,

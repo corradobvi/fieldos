@@ -19,6 +19,7 @@ import { _resolveChatRecipients } from "../routes/v2/chat";
 
 export type RecipientEvent =
   | "comunicazione"
+  | "comunicazione_societa"
   | "chat_messaggio"
   | "partita_fase1"
   | "partita_fase2"
@@ -70,6 +71,88 @@ async function _societa(societyId: number): Promise<number[]> {
     logger.warn({ err: e?.message, societyId }, "recipient-resolver: societa scope failed");
     return [];
   }
+}
+
+// Societa COMPLETA (per comunicazioni societa-wide quando leva e null/vuota).
+// Fix regressione: con leva null gli scope famiglieLeva/staffLeva ritornavano
+// [] perche' hanno guard if (leva). Audience concordata "tutta la societa":
+//   - admin + mister_admin           (riusa _societa)
+//   - tutto lo staff (mister, allenatore, dirigente, preparatore_portieri)
+//     di ogni leva — query unica senza filtro leva
+//   - tutte le famiglie via player_guardians (genitori/nonni di player con
+//     leva non nulla) — pattern famiglieLeva ma senza _levaMatchClause
+//   - giocatori U14+ di tutte le leve della societa (riusa _isUnder14:
+//     leggo le leve distinte da players, filtro JS-side, query IN (...))
+// Sender escluso a livello di resolveRecipients (out.delete(sender)).
+// Giocatori U6-U13 NON inclusi (regola eta coerente con _famiglieLeva).
+async function _societaCompleta(societyId: number): Promise<number[]> {
+  const ids = new Set<number>();
+  try {
+    // (1) admin + mister_admin
+    const admins = await _societa(societyId);
+    for (const id of admins) ids.add(id);
+
+    // (2) tutto lo staff della societa (qualunque leva)
+    try {
+      const [staffRows] = (await pool.execute(
+        `SELECT id FROM users
+          WHERE society_id = ? AND stato = 'attivo'
+            AND ruolo IN ('allenatore','mister','preparatore_portieri','dirigente')`,
+        [societyId]
+      )) as [any[], any];
+      for (const r of (staffRows as any[])) ids.add(Number(r.id));
+    } catch (e: any) {
+      logger.warn({ err: e?.message, societyId }, "societaCompleta: staff query failed");
+    }
+
+    // (3) tutte le famiglie via player_guardians (player con leva non nulla)
+    try {
+      const [famRows] = (await pool.execute(
+        `SELECT DISTINCT pg.user_id AS id
+           FROM player_guardians pg
+           JOIN players p ON p.id = pg.player_id
+           JOIN users u ON u.id = pg.user_id
+          WHERE p.society_id = ? AND u.stato = 'attivo'
+            AND u.ruolo IN ('genitore','nonno')
+            AND p.leva IS NOT NULL`,
+        [societyId]
+      )) as [any[], any];
+      for (const r of (famRows as any[])) ids.add(Number(r.id));
+    } catch (_) { /* player_guardians puo' non esistere (schema legacy) */ }
+
+    // (4) giocatori U14+ di TUTTE le leve U14+ della societa.
+    // Step A: leggo le leve distinte (non nulle) dai players della societa.
+    // Step B: filtro JS-side con _isUnder14 → tengo solo leve U14+.
+    // Step C: query users.ruolo='giocatore' matchato per nome+cognome al
+    //         player.leva IN (lista leve U14+).
+    try {
+      const [leveRows] = (await pool.execute(
+        `SELECT DISTINCT leva FROM players
+          WHERE society_id = ? AND leva IS NOT NULL AND leva <> ''`,
+        [societyId]
+      )) as [any[], any];
+      const leveU14 = (leveRows as any[])
+        .map((r: any) => String(r.leva || ""))
+        .filter((lv: string) => lv && !_isUnder14(lv));
+      if (leveU14.length) {
+        const placeholders = leveU14.map(() => "?").join(",");
+        const [giocRows] = (await pool.execute(
+          `SELECT DISTINCT u.id
+             FROM users u
+             JOIN players p ON p.society_id = u.society_id
+                            AND p.nome = u.nome AND p.cognome = u.cognome
+            WHERE u.society_id = ? AND u.stato = 'attivo'
+              AND u.ruolo = 'giocatore'
+              AND p.leva IN (${placeholders})`,
+          [societyId, ...leveU14]
+        )) as [any[], any];
+        for (const r of (giocRows as any[])) ids.add(Number(r.id));
+      }
+    } catch (_) { /* schema giocatore opzionale */ }
+  } catch (e: any) {
+    logger.warn({ err: e?.message, societyId }, "recipient-resolver: societaCompleta scope failed");
+  }
+  return Array.from(ids);
 }
 
 // Staff leva-scoped: mister, allenatore, preparatore_portieri, dirigente.
@@ -230,6 +313,7 @@ function _direttiUsers(directUserIds: number[] | null | undefined): number[] {
 
 type ScopeName =
   | "societa"
+  | "societaCompleta"  // tutta la societa per comunicazioni societa-wide
   | "staffLeva"
   | "famiglieLeva"
   | "tutoriConvocati" // tutori di tutti i convocatiPlayerIds
@@ -239,6 +323,7 @@ type ScopeName =
 
 const EVENT_AUDIENCE: Record<RecipientEvent, ScopeName[]> = {
   comunicazione:         ["famiglieLeva", "staffLeva"],
+  comunicazione_societa: ["societaCompleta"],
   chat_messaggio:        ["membriChat"],
   partita_fase1:         ["famiglieLeva"],
   partita_fase2:         ["famiglieLeva"],
@@ -277,6 +362,9 @@ export async function resolveRecipients(
       switch (scope) {
         case "societa":
           ids = await _societa(societyId);
+          break;
+        case "societaCompleta":
+          ids = await _societaCompleta(societyId);
           break;
         case "staffLeva":
           if (leva) ids = await _staffLeva(societyId, leva);

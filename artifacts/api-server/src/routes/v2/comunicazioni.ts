@@ -109,27 +109,22 @@ router.post("/comunicazioni", requireAuth, requireRole("admin", "allenatore", "m
 
     // Push notification — fire-and-forget, non blocca la risposta.
     //
-    // CABLAGGIO RESOLVER UNICO (commit cablatura comunicazione): destinatari
-    // risolti via resolveRecipients('comunicazione', { societyId, leva, senderUserId }).
-    // Lo scope 'comunicazione' = famiglieLeva + staffLeva (matrice).
-    // Differenza vs vecchio getUsersForPush: il dirigente riceve la comunicazione
-    // SOLO se assegnato alla leva del messaggio (prima era catch-all su tutte
-    // le leve via admin/mister_admin/dirigente). Sender escluso dal resolver.
-    // Per le comunicazioni "societa-wide" (leva null), resolveRecipients ritorna
-    // [] perche' gli scope staffLeva/famiglieLeva richiedono leva valorizzata;
-    // _checkComLevaScope (riga 20-56) gia' impone che il sender sia wildcard
-    // per pubblicare societa-wide → manteniamo la semantica attuale: niente
-    // push per le societa-wide (era cosi' anche con getUsersForPush quando
-    // leva era null? in realta' include admin/mister_admin/dirigente come
-    // catch-all; questa e' una piccola regressione voluta: niente push per
-    // pubblicazioni societa-wide finche' non aggiungiamo un evento dedicato).
+    // CABLAGGIO RESOLVER UNICO: destinatari risolti via resolveRecipients.
+    // - leva valorizzata → eventType 'comunicazione' = famiglieLeva + staffLeva.
+    // - leva nulla/vuota (societa-wide, consentita solo a sender wildcard via
+    //   _checkComLevaScope) → eventType 'comunicazione_societa' = societaCompleta:
+    //   tutte le famiglie + giocatori U14+ + tutto lo staff + admin/mister_admin
+    //   di TUTTE le leve. Fix regressione "0 destinatari" sui broadcast societa.
+    // Sender sempre escluso. Giocatori U6-U13 esclusi (regola eta).
     const _pushTitle = urgente
       ? `🚨 URGENTE: ${titolo || 'Comunicazione'}`
       : `📢 ${titolo || 'Nuova comunicazione'}`;
     const _pushBody = (titolo ? testo : testo).slice(0, 100);
-    resolveRecipients("comunicazione", {
+    const _isSocWide = !(typeof leva === "string" && leva.trim());
+    const _eventType = _isSocWide ? "comunicazione_societa" : "comunicazione";
+    resolveRecipients(_eventType, {
       societyId,
-      leva: leva ?? null,
+      leva: _isSocWide ? null : leva,
       senderUserId: userId,
     })
       .then(ids => sendPushToUsers(ids, societyKeyFor(societyId), {
