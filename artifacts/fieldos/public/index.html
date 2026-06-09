@@ -7278,6 +7278,12 @@ async function _syncMatchFromMySQL(force) {
         gialli: s.gialli|0, rossi: s.rossi|0,
         golSub: s.gol_sub|0, cs: !!s.cs
       }));
+      // A5 — Cambi/sostituzioni: mappa snake_case BE → camelCase blob FE.
+      const blobCambi = (row.cambi || []).map(c => ({
+        en: Number(c.en_player_id),
+        us: Number(c.us_player_id),
+        min: Number(c.minuto) || 0
+      }));
       const m = {
         id: row.legacy_match_id != null ? row.legacy_match_id : ('mysql_' + row.id),
         leva: row.leva,
@@ -7290,6 +7296,7 @@ async function _syncMatchFromMySQL(force) {
         visibilitaSubito: !!row.visibilita_subito,
         annullata: !!row.annullata,
         stats: blobStats,
+        cambi: blobCambi,
         _mysql_id: row.id, _event_key: row.event_key
       };
       if (row.tipo === 'amichevole') {
@@ -7599,6 +7606,32 @@ async function _postStatsUpsert(matchId, blobStats) {
     return await r.json();
   } catch (e) {
     console.log('[match2] POST stats err', e && e.message);
+    return null;
+  }
+}
+
+// A5 — Persistenza cambi/sostituzioni: stesso pattern di _postStatsUpsert.
+// Mappa blob {en, us, min} → DB snake_case {en_player_id, us_player_id, minuto}.
+// Il BE applica "cancella e riscrivi": array vuoto = nessun cambio (cancella tutti).
+async function _postCambiUpsert(matchId, blobCambi) {
+  if (!_matchSyncGate()) return null;
+  if (!matchId) return null;
+  _matchSyncSkipNext = true; // STEP3 skip-after-save
+  const cambi = (blobCambi || []).map(c => ({
+    en_player_id: Number(c.en),
+    us_player_id: Number(c.us),
+    minuto: Number(c.min) || 0
+  }));
+  try {
+    const r = await fetch(API_BASE + '/api/v2/matches/' + matchId + '/cambi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+      body: JSON.stringify({ cambi })
+    });
+    if (!r.ok) { console.log('[match2] POST cambi HTTP', r.status, matchId); return null; }
+    return await r.json();
+  } catch (e) {
+    console.log('[match2] POST cambi err', e && e.message);
     return null;
   }
 }
@@ -25114,6 +25147,7 @@ async function savePtRisultato() {
           matchUpsertOk = !!(upRes && upRes.ok === true);
           if (upRes && upRes.id) {
             await _postStatsUpsert(upRes.id, freshMatch.stats || []);
+            await _postCambiUpsert(upRes.id, freshMatch.cambi || []);
           }
         }
       }

@@ -79267,6 +79267,20 @@ CREATE TABLE IF NOT EXISTS match_stats (
   FOREIGN KEY (match_id)  REFERENCES matches(id) ON DELETE CASCADE,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS match_cambi (
+  id           BIGINT    NOT NULL AUTO_INCREMENT,
+  match_id     BIGINT    NOT NULL,
+  en_player_id INT       NOT NULL,
+  us_player_id INT       NOT NULL,
+  minuto       INT       DEFAULT 0,
+  ordine       INT       DEFAULT 0,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_match_cambi_match (match_id),
+  FOREIGN KEY (match_id)     REFERENCES matches(id) ON DELETE CASCADE,
+  FOREIGN KEY (en_player_id) REFERENCES players(id) ON DELETE CASCADE,
+  FOREIGN KEY (us_player_id) REFERENCES players(id) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS campionato_settings (
   societa_id   INT          NOT NULL,
   leva         VARCHAR(100) NOT NULL,
@@ -94308,6 +94322,25 @@ router44.get("/matches", requireAuth, async (req, res) => {
         });
       }
       for (const r of rows) r.stats = byMatch[String(r.id)] || [];
+      const [cambiRows] = await pool.execute(
+        `SELECT mc.match_id, mc.en_player_id, mc.us_player_id, mc.minuto, mc.ordine
+           FROM match_cambi mc
+          WHERE mc.match_id IN (${placeholders})
+          ORDER BY mc.match_id, mc.ordine`,
+        [...matchIds]
+      );
+      const byMatchCambi = {};
+      for (const c of cambiRows) {
+        const k = String(c.match_id);
+        if (!byMatchCambi[k]) byMatchCambi[k] = [];
+        byMatchCambi[k].push({
+          en_player_id: Number(c.en_player_id),
+          us_player_id: Number(c.us_player_id),
+          minuto: Number(c.minuto) || 0,
+          ordine: Number(c.ordine) || 0
+        });
+      }
+      for (const r of rows) r.cambi = byMatchCambi[String(r.id)] || [];
     }
     return res.json(rows);
   } catch (e) {
@@ -94505,6 +94538,64 @@ router44.post("/matches/:matchId/stats", requireAuth, requireRole(...WRITE_ROLES
     return res.json({ ok: true, match_id: matchId, upserted, skipped_player_missing });
   } catch (e) {
     logger.error({ err: e?.message }, "POST matches/:id/stats error");
+    return res.status(500).json({ error: "server_error" });
+  }
+});
+router44.post("/matches/:matchId/cambi", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(_levaFromMatchId), async (req, res) => {
+  if (rejectDemo(req, res)) return;
+  const { societyId } = req.jwtUser;
+  const matchId = Number(req.params.matchId);
+  if (!Number.isFinite(matchId) || matchId <= 0) {
+    return res.status(400).json({ error: "invalid_match_id" });
+  }
+  const cambi = Array.isArray(req.body?.cambi) ? req.body.cambi : null;
+  if (!cambi) return res.status(400).json({ error: "cambi_array_required" });
+  try {
+    const [m] = await pool.execute(
+      "SELECT id FROM matches WHERE id = ? AND societa_id = ? LIMIT 1",
+      [matchId, societyId]
+    );
+    if (!m.length) return res.status(404).json({ error: "match_not_found" });
+    const [playerRows] = await pool.execute(
+      "SELECT id FROM players WHERE society_id = ?",
+      [societyId]
+    );
+    const validPlayerIds = new Set(playerRows.map((r) => Number(r.id)));
+    let inserted = 0;
+    let skipped = 0;
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.execute("DELETE FROM match_cambi WHERE match_id = ?", [matchId]);
+      for (let i = 0; i < cambi.length; i++) {
+        const c = cambi[i];
+        const en = Number(c?.en_player_id ?? c?.en);
+        const us = Number(c?.us_player_id ?? c?.us);
+        const minuto = Number(c?.minuto ?? c?.min) || 0;
+        if (!Number.isFinite(en) || !Number.isFinite(us) || !validPlayerIds.has(en) || !validPlayerIds.has(us)) {
+          skipped++;
+          continue;
+        }
+        await conn.execute(
+          `INSERT INTO match_cambi
+             (match_id, en_player_id, us_player_id, minuto, ordine)
+           VALUES (?,?,?,?,?)`,
+          [matchId, en, us, minuto, i]
+        );
+        inserted++;
+      }
+      await conn.commit();
+    } catch (e) {
+      await conn.rollback().catch(() => {
+      });
+      logger.error({ err: e?.message, matchId }, "POST matches/:id/cambi bulk failed");
+      return res.status(500).json({ error: "transaction_failed", detail: e?.message });
+    } finally {
+      conn.release();
+    }
+    return res.json({ ok: true, match_id: matchId, inserted, skipped });
+  } catch (e) {
+    logger.error({ err: e?.message }, "POST matches/:id/cambi error");
     return res.status(500).json({ error: "server_error" });
   }
 });

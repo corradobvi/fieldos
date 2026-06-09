@@ -568,6 +568,20 @@ CREATE TABLE IF NOT EXISTS match_stats (
   FOREIGN KEY (match_id)  REFERENCES matches(id) ON DELETE CASCADE,
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS match_cambi (
+  id           BIGINT    NOT NULL AUTO_INCREMENT,
+  match_id     BIGINT    NOT NULL,
+  en_player_id INT       NOT NULL,
+  us_player_id INT       NOT NULL,
+  minuto       INT       DEFAULT 0,
+  ordine       INT       DEFAULT 0,
+  created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_match_cambi_match (match_id),
+  FOREIGN KEY (match_id)     REFERENCES matches(id) ON DELETE CASCADE,
+  FOREIGN KEY (en_player_id) REFERENCES players(id) ON DELETE CASCADE,
+  FOREIGN KEY (us_player_id) REFERENCES players(id) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS campionato_settings (
   societa_id   INT          NOT NULL,
   leva         VARCHAR(100) NOT NULL,
