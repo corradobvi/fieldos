@@ -23546,6 +23546,9 @@ function saveGcAddMatch() {
   if (!avv) { toast('⚠️ Seleziona l\'avversario'); return; }
   const tipo   = document.getElementById('gcAddMatchTipo').value;
   const polis  = polisName(leva);
+  // Guardia A4: la select avversario può contenere la propria squadra → casa===ospite.
+  // Allinea il check BE (casa_uguale_ospite) ed evita la rete.
+  if (avv.trim() === polis.trim()) { toast('⚠️ L\'avversario non può essere la tua stessa squadra'); return; }
   const casa   = tipo === 'casa' ? polis : avv;
   const ospite = tipo === 'casa' ? avv   : polis;
   const gior   = parseInt(document.getElementById('gcAddMatchGiornata').value) || null;

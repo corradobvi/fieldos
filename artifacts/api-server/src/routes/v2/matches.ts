@@ -202,6 +202,35 @@ router.post("/matches", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_l
     return res.status(400).json({ error: "invalid_tipo" });
   }
   const lato = (b.lato === "casa" || b.lato === "trasferta") ? b.lato : null;
+
+  // ─── Validazioni difensive (A4) ──────────────────────────────────────────────
+  // Condizionate per tipo. NON aggiungere check su `data` (round-robin/bracket/
+  // bozze legittime hanno data null). Endpoint resta idempotente/stateless.
+  if (tipo === "campionato" || tipo === "torneo") {
+    const casaStr   = typeof b.casa === "string" ? b.casa.trim() : "";
+    const ospiteStr = typeof b.ospite === "string" ? b.ospite.trim() : "";
+    if (!casaStr || !ospiteStr) {
+      return res.status(400).json({ error: "casa_ospite_required" });
+    }
+    if (casaStr === ospiteStr) {
+      return res.status(400).json({ error: "casa_uguale_ospite" });
+    }
+  }
+  if (tipo === "torneo") {
+    if (b.fase_id == null || String(b.fase_id).trim() === "") {
+      return res.status(400).json({ error: "fase_id_required" });
+    }
+  }
+  if (tipo === "amichevole") {
+    const avvStr = typeof b.avversario === "string" ? b.avversario.trim() : "";
+    if (!avvStr) {
+      return res.status(400).json({ error: "avversario_required" });
+    }
+    if (lato !== "casa" && lato !== "trasferta") {
+      return res.status(400).json({ error: "lato_invalid" });
+    }
+  }
+
   try {
     const [ins] = (await pool.execute(
       `INSERT INTO matches
@@ -335,6 +364,15 @@ router.post("/tornei", requireAuth, requireRole(...WRITE_ROLES), requireLeva(_le
   const t = (req.body || {}) as Record<string, any>;
   if (!t.id || typeof t.id !== "string") return res.status(400).json({ error: "torneo_id_required" });
   if (!t.nome) return res.status(400).json({ error: "torneo_nome_required" });
+
+  // Validazione difensiva (A4): se ENTRAMBE le date sono valorizzate, data_fine
+  // deve essere >= data_inizio. Le date sono stringhe 'YYYY-MM-DD' (DATE col)
+  // quindi il confronto lessicografico è robusto. Singola data null/vuota: OK.
+  const _di = typeof t.data_inizio === "string" ? t.data_inizio.trim() : "";
+  const _df = typeof t.data_fine   === "string" ? t.data_fine.trim()   : "";
+  if (_di && _df && _df < _di) {
+    return res.status(400).json({ error: "date_torneo_invalid" });
+  }
 
   const conn: PoolConnection = await (pool as any).getConnection();
   try {

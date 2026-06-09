@@ -94361,6 +94361,30 @@ router44.post("/matches", requireAuth, requireRole(...WRITE_ROLES2), requireLeva
     return res.status(400).json({ error: "invalid_tipo" });
   }
   const lato = b.lato === "casa" || b.lato === "trasferta" ? b.lato : null;
+  if (tipo === "campionato" || tipo === "torneo") {
+    const casaStr = typeof b.casa === "string" ? b.casa.trim() : "";
+    const ospiteStr = typeof b.ospite === "string" ? b.ospite.trim() : "";
+    if (!casaStr || !ospiteStr) {
+      return res.status(400).json({ error: "casa_ospite_required" });
+    }
+    if (casaStr === ospiteStr) {
+      return res.status(400).json({ error: "casa_uguale_ospite" });
+    }
+  }
+  if (tipo === "torneo") {
+    if (b.fase_id == null || String(b.fase_id).trim() === "") {
+      return res.status(400).json({ error: "fase_id_required" });
+    }
+  }
+  if (tipo === "amichevole") {
+    const avvStr = typeof b.avversario === "string" ? b.avversario.trim() : "";
+    if (!avvStr) {
+      return res.status(400).json({ error: "avversario_required" });
+    }
+    if (lato !== "casa" && lato !== "trasferta") {
+      return res.status(400).json({ error: "lato_invalid" });
+    }
+  }
   try {
     const [ins] = await pool.execute(
       `INSERT INTO matches
@@ -94490,6 +94514,11 @@ router44.post("/tornei", requireAuth, requireRole(...WRITE_ROLES2), requireLeva(
   const t = req.body || {};
   if (!t.id || typeof t.id !== "string") return res.status(400).json({ error: "torneo_id_required" });
   if (!t.nome) return res.status(400).json({ error: "torneo_nome_required" });
+  const _di = typeof t.data_inizio === "string" ? t.data_inizio.trim() : "";
+  const _df = typeof t.data_fine === "string" ? t.data_fine.trim() : "";
+  if (_di && _df && _df < _di) {
+    return res.status(400).json({ error: "date_torneo_invalid" });
+  }
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
