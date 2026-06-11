@@ -97,6 +97,33 @@ async function ensureSchema() {
     logger.error({ err: e?.message }, "v2: budget_key column guard failed");
   }
 
+  // Guard leve.categoria: aggiunge colonna se mancante e backfill 'senior' per nomi U>=14 in JS
+  // (più portabile di REGEXP_SUBSTR, idempotente: tocca solo righe ancora 'junior' default).
+  try {
+    const [cols] = await pool.execute("SHOW COLUMNS FROM `leve` LIKE 'categoria'") as [any[], any];
+    if (!cols.length) {
+      await pool.execute(
+        "ALTER TABLE `leve` ADD COLUMN `categoria` ENUM('junior','senior') NOT NULL DEFAULT 'junior'"
+      );
+      logger.info("v2: leve.categoria column added via guard");
+    }
+    // Backfill: righe ancora a 'junior' (default) con nome U<num> num>=14 → 'senior'.
+    const [rows] = await pool.execute(
+      "SELECT id, nome FROM `leve` WHERE categoria = 'junior'"
+    ) as [any[], any];
+    let backfilled = 0;
+    for (const r of rows) {
+      const m = String(r.nome || "").match(/[uU](\d+)/);
+      if (m && parseInt(m[1], 10) >= 14) {
+        await pool.execute("UPDATE `leve` SET categoria = 'senior' WHERE id = ?", [r.id]);
+        backfilled++;
+      }
+    }
+    if (backfilled > 0) logger.info({ backfilled }, "v2: leve.categoria backfill (U14+ → senior)");
+  } catch (e: any) {
+    logger.error({ err: e?.message }, "v2: leve.categoria guard failed");
+  }
+
   // Guard: unique index uq_ai_budget_key su ai_budget_utilizzo (con deduplicazione preventiva)
   try {
     const [idxRows] = await pool.execute(

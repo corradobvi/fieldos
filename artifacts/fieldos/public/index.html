@@ -3782,6 +3782,7 @@ src="https://www.facebook.com/tr?id=959452750261179&ev=PageView&noscript=1"/></n
     <div class="mh"><div class="mt" id="mLevaTitle">➕ Nuova leva</div><button class="mx" onclick="closeM('mLeva')">✕</button></div>
     <input type="hidden" id="levaEditTarget" value="">
     <div class="fg"><label class="fl">Nome leva (es. U8, Pulcini, Prima Squadra)</label><input class="fi" id="levaName" placeholder="Es. U18" onkeydown="if(event.key==='Enter')saveLeva()"></div>
+    <div class="fg"><label class="fl">Categoria *</label><select class="fi" id="levaCategoria"><option value="">— scegli —</option><option value="junior">U6–U13 (settore giovanile)</option><option value="senior">U14 e oltre</option></select></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-p" style="flex:1;" id="mLevaSaveBtn" onclick="saveLeva()">Aggiungi</button>
       <button class="btn btn-g" onclick="closeM('mLeva')">Annulla</button>
@@ -4511,6 +4512,9 @@ let nextPlayerId = 1;
 
 // Leve
 let leve = ['U8','U10','U12','U14','U16'];
+// Mappa parallela: { [nomeLeva]: { categoria: 'junior'|'senior' } }
+// Unica fonte di verità per advStats/isSeniorLeva. Default U6-U13 = junior, U14+ = senior.
+let levaMeta = { 'U8':{categoria:'junior'}, 'U10':{categoria:'junior'}, 'U12':{categoria:'junior'}, 'U14':{categoria:'senior'}, 'U16':{categoria:'senior'} };
 let currentLeva = 'U12';
 
 // Logged in user
@@ -6865,6 +6869,7 @@ function openAddLeva() {
   document.getElementById('mLevaSaveBtn').textContent = 'Aggiungi';
   document.getElementById('levaEditTarget').value = '';
   document.getElementById('levaName').value = '';
+  document.getElementById('levaCategoria').value = '';
   openM('mLeva');
   setTimeout(() => document.getElementById('levaName').focus(), 120);
 }
@@ -6875,6 +6880,7 @@ function openEditLeva(idx) {
   document.getElementById('mLevaSaveBtn').textContent = 'Salva';
   document.getElementById('levaEditTarget').value = leva;
   document.getElementById('levaName').value = leva;
+  document.getElementById('levaCategoria').value = (levaMeta[leva] && levaMeta[leva].categoria) || '';
   openM('mLeva');
   setTimeout(() => { const f = document.getElementById('levaName'); f.focus(); f.select(); }, 120);
 }
@@ -6882,14 +6888,18 @@ function openEditLeva(idx) {
 function saveLeva() {
   const target = document.getElementById('levaEditTarget').value;
   const newName = document.getElementById('levaName').value.trim();
+  const cat = document.getElementById('levaCategoria').value;
   if (!newName) { toast('⚠️ Inserisci il nome della leva'); return; }
-  if (target) renameLeva(target, newName);
-  else addLeva(newName);
+  if (cat !== 'junior' && cat !== 'senior') { toast('⚠️ Seleziona la categoria (U6–U13 o U14+)'); return; }
+  if (target) renameLeva(target, newName, cat);
+  else addLeva(newName, cat);
 }
 
-function addLeva(v) {
+function addLeva(v, cat) {
   if (!v) v = document.getElementById('levaName').value.trim();
+  if (!cat) cat = document.getElementById('levaCategoria').value;
   if (!v) return;
+  if (cat !== 'junior' && cat !== 'senior') { toast('⚠️ Seleziona la categoria (U6–U13 o U14+)'); return; }
   if (leve.includes(v)) { toast(`⚠️ La leva "${v}" esiste già`); return; }
   const _alSoc = saSocieties.find(x => x.id === currentSocietaId);
   if (!canAddLeva(_alSoc, leve)) {
@@ -6898,6 +6908,7 @@ function addLeva(v) {
     return;
   }
   leve.push(v);
+  levaMeta[v] = { categoria: cat };
   // Imposta default adminAsMister per la nuova leva (basato sul piano corrente)
   if (me && me.role === 'admin') _seedAdminAsMister();
   closeM('mLeva');
@@ -6911,11 +6922,16 @@ function addLeva(v) {
   toast(`✅ Leva "${v}" aggiunta!`);
 }
 
-function renameLeva(oldName, newName) {
-  if (newName === oldName) { closeM('mLeva'); return; }
-  if (leve.includes(newName)) { toast(`⚠️ Una leva "${newName}" esiste già`); return; }
+function renameLeva(oldName, newName, cat) {
+  const _categoriaCambiata = cat && levaMeta[oldName] && levaMeta[oldName].categoria !== cat;
+  if (newName === oldName && !_categoriaCambiata) { closeM('mLeva'); return; }
+  if (newName !== oldName && leve.includes(newName)) { toast(`⚠️ Una leva "${newName}" esiste già`); return; }
   const idx = leve.indexOf(oldName); if (idx === -1) return;
   leve[idx] = newName;
+  // Sposta entry levaMeta (o crea se mancante) e applica eventuale nuova categoria.
+  const _prevMeta = levaMeta[oldName] || {};
+  delete levaMeta[oldName];
+  levaMeta[newName] = { categoria: cat || _prevMeta.categoria || (isSeniorLeva(newName) ? 'senior' : 'junior') };
   players.forEach(p => { if (p.leva === oldName) p.leva = newName; });
   events.forEach(e => { if (e.leve) e.leve = e.leve.map(l => l === oldName ? newName : l); });
   if (campionato[oldName]) { campionato[newName] = campionato[oldName]; delete campionato[oldName]; }
@@ -6962,7 +6978,7 @@ function renameLeva(oldName, newName) {
       fetch(API_BASE + '/api/v2/leve/' + _leveId, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
-        body: JSON.stringify({ nome: newName })
+        body: JSON.stringify({ nome: newName, categoria: (levaMeta[newName] && levaMeta[newName].categoria) || undefined })
       }).then(r => {
         if (!r.ok) console.warn('[renameLeva] PUT /leve/' + _leveId + ' HTTP ' + r.status);
         else {
@@ -6999,6 +7015,7 @@ function confirmDeleteLeva(idx) {
   if (warns.length) msg += `\n\n⚠️ Attenzione: leva collegata a ${warns.join(', ')}.\nI dati collegati non verranno rimossi.`;
   if (!confirm(msg)) return;
   leve.splice(idx, 1);
+  delete levaMeta[leva];
   if (currentLeva === leva) {
     currentLeva = leve[0] || '';
     document.getElementById('tbLeva').textContent = currentLeva;
@@ -20277,7 +20294,13 @@ function _loadCalEvents() {
   Promise.all([_leveP, _evP]).then(function(res) {
     var leveData = res[0], apiEvents = res[1];
     _calLeveMap = {};
-    (leveData || []).forEach(function(l) { _calLeveMap[l.nome] = l.id; });
+    (leveData || []).forEach(function(l) {
+      _calLeveMap[l.nome] = l.id;
+      // Popola levaMeta dal server (source of truth per categoria), preservando entry FE se backend non la conosce.
+      if (l.categoria === 'junior' || l.categoria === 'senior') {
+        levaMeta[l.nome] = { categoria: l.categoria };
+      }
+    });
     // Mantieni partita/torneo dal blob (gestiti da campionato/tornei/amichevoli)
     var _blobPT = events.filter(function(e) { return !e._fromApi && (e.type === 'partita' || e.type === 'torneo'); });
     events.length = 0;
@@ -22007,7 +22030,16 @@ try { renderCal(); } catch(e) { console.warn('[init] renderCal error:', e); }
 
 // --- Helpers ---
 function levaNum(lv) { const m = String(lv).match(/\d+/); return m ? parseInt(m[0]) : 99; }
-function advStats(lv) { return levaNum(lv) >= 14; }
+// Unica fonte di verità: 1) levaMeta esplicito, 2) fallback regex [uU]<num> >= 14 → senior, default junior.
+// Nomi senza pattern (es. "Pulcini", "Prima Squadra") senza meta esplicito → junior (NON più senior).
+function levaCategoria(lv) {
+  if (levaMeta && levaMeta[lv] && (levaMeta[lv].categoria === 'junior' || levaMeta[lv].categoria === 'senior')) {
+    return levaMeta[lv].categoria;
+  }
+  const m = String(lv).match(/[uU](\d+)/);
+  return (m && parseInt(m[1], 10) >= 14) ? 'senior' : 'junior';
+}
+function advStats(lv) { return levaCategoria(lv) === 'senior'; }
 function isGK(p) { return /portiere|goalkeeper|gk/i.test(p.ruolo || ''); }
 function canEditPt(leva) {
   if (saViewMode) return false;
@@ -25205,10 +25237,7 @@ function renderPMatchStats(p) {
 // ═══════════════════════════════════
 // CHAT — gruppi automatici per leva + staff allenatori
 // ═══════════════════════════════════
-function isSeniorLeva(lv) {
-  const m = String(lv).match(/[uU](\d+)/);
-  return m ? parseInt(m[1], 10) >= 14 : false;
-}
+function isSeniorLeva(lv) { return levaCategoria(lv) === 'senior'; }
 
 // Risolve la leva di una chat (leva-famiglie/squadra l'hanno diretta;
 // torneo passa per tornei[].leva). Null se sconosciuta (staff/adhoc).
@@ -31433,6 +31462,7 @@ async function doRejoinSocieta() {
       nextUserId: nextUserId,
       nextPlayerId: nextPlayerId,
       leve: leve,
+      levaMeta: levaMeta,
       currentLeva: currentLeva,
       ...(_isDemo ? { events: events, nextEventId: nextEventId } : {}),
       eventTypes: eventTypes,
@@ -31737,6 +31767,7 @@ async function doRejoinSocieta() {
       if (typeof s.nextUserId === 'number') nextUserId = s.nextUserId;
       if (typeof s.nextPlayerId === 'number') nextPlayerId = s.nextPlayerId;
       if (Array.isArray(s.leve) && s.leve.length) leve = s.leve;
+      if (s.levaMeta && typeof s.levaMeta === 'object') levaMeta = s.levaMeta;
       if (typeof s.currentLeva === 'string') currentLeva = s.currentLeva;
       // events / nextEventId: rehydrate solo per societa' DEMO (per le reali li ripopola _loadCalEvents da MySQL).
       // eventTypes / nextEventTypeId: rehydrate SEMPRE (tassonomia tipi, nessun equivalente MySQL).
@@ -32096,7 +32127,7 @@ async function doRejoinSocieta() {
     USERS_DB.length = 0;
     players.length = 0;
     nextUserId = 1; nextPlayerId = 1;
-    leve = []; currentLeva = '';
+    leve = []; levaMeta = {}; currentLeva = '';
     events = []; eventTypes = [];
     nextEventId = 1; nextEventTypeId = 1;
     convocazioni = []; nextConvocazioneId = 1;

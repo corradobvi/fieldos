@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS leve (
   society_id  INT          NOT NULL,
   nome        VARCHAR(100) NOT NULL,
   ordine      INT          DEFAULT 0,
+  categoria   ENUM('junior','senior') NOT NULL DEFAULT 'junior',
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_leva (society_id, nome),
   FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
@@ -289,6 +290,7 @@ ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
 ALTER TABLE chat_archives ADD COLUMN removed TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE leve ADD COLUMN categoria ENUM('junior','senior') NOT NULL DEFAULT 'junior';
 CREATE TABLE IF NOT EXISTS chat_reads (
   user_id              INT NOT NULL,
   society_id           INT NOT NULL,

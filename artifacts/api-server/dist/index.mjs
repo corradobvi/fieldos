@@ -78767,6 +78767,7 @@ CREATE TABLE IF NOT EXISTS leve (
   society_id  INT          NOT NULL,
   nome        VARCHAR(100) NOT NULL,
   ordine      INT          DEFAULT 0,
+  categoria   ENUM('junior','senior') NOT NULL DEFAULT 'junior',
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_leva (society_id, nome),
   FOREIGN KEY (society_id) REFERENCES societies(id) ON DELETE CASCADE
@@ -78988,6 +78989,7 @@ ALTER TABLE chat_messages ADD COLUMN tipo VARCHAR(20) NULL DEFAULT NULL;
 ALTER TABLE chat_messages ADD COLUMN meta TEXT NULL DEFAULT NULL;
 ALTER TABLE chat_messages MODIFY COLUMN foto_url MEDIUMTEXT NULL;
 ALTER TABLE chat_archives ADD COLUMN removed TINYINT(1) NOT NULL DEFAULT 0;
+ALTER TABLE leve ADD COLUMN categoria ENUM('junior','senior') NOT NULL DEFAULT 'junior';
 CREATE TABLE IF NOT EXISTS chat_reads (
   user_id              INT NOT NULL,
   society_id           INT NOT NULL,
@@ -84939,11 +84941,12 @@ async function getSocietyLeveLimit(societyId) {
   const norm = PIANO_NORM_L[raw] || raw;
   return LEVE_LIMITS[norm] ?? 1;
 }
+var VALID_CATEGORIE = /* @__PURE__ */ new Set(["junior", "senior"]);
 router12.get("/leve", requireAuth, async (req, res) => {
   const { societyId } = req.jwtUser;
   try {
     const [rows] = await pool.execute(
-      "SELECT id, nome, ordine FROM leve WHERE society_id = ? ORDER BY ordine, nome",
+      "SELECT id, nome, ordine, categoria FROM leve WHERE society_id = ? ORDER BY ordine, nome",
       [societyId]
     );
     return res.json(rows);
@@ -84954,8 +84957,11 @@ router12.get("/leve", requireAuth, async (req, res) => {
 });
 router12.post("/leve", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
-  const { nome, ordine } = req.body;
+  const { nome, ordine, categoria } = req.body;
   if (!nome?.trim()) return res.status(400).json({ error: "nome_required" });
+  if (!categoria || !VALID_CATEGORIE.has(categoria)) {
+    return res.status(400).json({ error: "categoria_required", detail: "must be 'junior' or 'senior'" });
+  }
   try {
     const maxLeve = await getSocietyLeveLimit(societyId);
     if (isFinite(maxLeve)) {
@@ -84965,10 +84971,10 @@ router12.post("/leve", requireAuth, requireRole("admin"), async (req, res) => {
       }
     }
     const [result] = await pool.execute(
-      "INSERT INTO leve (society_id, nome, ordine) VALUES (?, ?, ?)",
-      [societyId, nome.trim(), ordine ?? 0]
+      "INSERT INTO leve (society_id, nome, ordine, categoria) VALUES (?, ?, ?, ?)",
+      [societyId, nome.trim(), ordine ?? 0, categoria]
     );
-    return res.status(201).json({ id: result.insertId, nome: nome.trim(), ordine: ordine ?? 0 });
+    return res.status(201).json({ id: result.insertId, nome: nome.trim(), ordine: ordine ?? 0, categoria });
   } catch (e) {
     if (e?.code === "ER_DUP_ENTRY") return res.status(409).json({ error: "leva_exists" });
     logger.error({ err: e }, "POST leva error");
@@ -84977,11 +84983,14 @@ router12.post("/leve", requireAuth, requireRole("admin"), async (req, res) => {
 });
 router12.put("/leve/:id", requireAuth, requireRole("admin"), async (req, res) => {
   const { societyId } = req.jwtUser;
-  const { nome, ordine } = req.body;
+  const { nome, ordine, categoria } = req.body;
+  if (categoria !== void 0 && !VALID_CATEGORIE.has(categoria)) {
+    return res.status(400).json({ error: "categoria_invalid", detail: "must be 'junior' or 'senior'" });
+  }
   try {
     const [result] = await pool.execute(
-      "UPDATE leve SET nome = COALESCE(?, nome), ordine = COALESCE(?, ordine) WHERE id = ? AND society_id = ?",
-      [nome ?? null, ordine ?? null, req.params.id, societyId]
+      "UPDATE leve SET nome = COALESCE(?, nome), ordine = COALESCE(?, ordine), categoria = COALESCE(?, categoria) WHERE id = ? AND society_id = ?",
+      [nome ?? null, ordine ?? null, categoria ?? null, req.params.id, societyId]
     );
     if (!result.affectedRows) return res.status(404).json({ error: "not_found" });
     return res.json({ ok: true });
@@ -96516,6 +96525,29 @@ async function ensureSchema() {
   } catch (e) {
     console.log(`[SCHEMA_GUARD] budget_key guard FAILED: ${e?.message}`);
     logger.error({ err: e?.message }, "v2: budget_key column guard failed");
+  }
+  try {
+    const [cols] = await pool.execute("SHOW COLUMNS FROM `leve` LIKE 'categoria'");
+    if (!cols.length) {
+      await pool.execute(
+        "ALTER TABLE `leve` ADD COLUMN `categoria` ENUM('junior','senior') NOT NULL DEFAULT 'junior'"
+      );
+      logger.info("v2: leve.categoria column added via guard");
+    }
+    const [rows2] = await pool.execute(
+      "SELECT id, nome FROM `leve` WHERE categoria = 'junior'"
+    );
+    let backfilled = 0;
+    for (const r of rows2) {
+      const m = String(r.nome || "").match(/[uU](\d+)/);
+      if (m && parseInt(m[1], 10) >= 14) {
+        await pool.execute("UPDATE `leve` SET categoria = 'senior' WHERE id = ?", [r.id]);
+        backfilled++;
+      }
+    }
+    if (backfilled > 0) logger.info({ backfilled }, "v2: leve.categoria backfill (U14+ \u2192 senior)");
+  } catch (e) {
+    logger.error({ err: e?.message }, "v2: leve.categoria guard failed");
   }
   try {
     const [idxRows] = await pool.execute(
