@@ -6895,7 +6895,7 @@ function saveLeva() {
   else addLeva(newName, cat);
 }
 
-function addLeva(v, cat) {
+async function addLeva(v, cat) {
   if (!v) v = document.getElementById('levaName').value.trim();
   if (!cat) cat = document.getElementById('levaCategoria').value;
   if (!v) return;
@@ -6906,6 +6906,49 @@ function addLeva(v, cat) {
     closeM('mLeva');
     openPlanLimitModal('leve');
     return;
+  }
+  // FIX BUG-01 (A) — la leva deve nascere anche nella tabella SQL `leve`: _calLeveMap
+  // (validazione allenamenti/calendario) è costruita SOLO da GET /api/v2/leve, quindi
+  // una leva solo-blob risulterebbe "Leva non valida". POST PRIMA della scrittura blob:
+  // se il server rifiuta non si crea nulla, così blob e tabella non divergono mai.
+  // Stesso endpoint già usato da renameLeva (PUT /api/v2/leve/:id).
+  // Società demo: nessun REST v2 (stesso early-return di _loadCalEvents) → solo blob, come prima.
+  const _isDemoSoc = currentSocietaId === DEMO_STELLA_ID || currentSocietaId === DEMO_SOC_ID;
+  if (!_isDemoSoc) {
+    if (!_v2Token) { try { _v2Token = localStorage.getItem('mv_v2_token'); } catch(_) {} }
+    if (!_v2Token) { toast('⛔ Non autenticato. Ricarica la pagina.'); return; }
+    const _saveBtn = document.getElementById('mLevaSaveBtn');
+    if (_saveBtn) _saveBtn.disabled = true;
+    let _resp = null;
+    try {
+      _resp = await fetch(API_BASE + '/api/v2/leve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+        body: JSON.stringify({ nome: v, categoria: cat, ordine: leve.length })
+      });
+    } catch (e) {
+      console.warn('[addLeva] POST /leve err', e && e.message);
+    } finally {
+      if (_saveBtn) _saveBtn.disabled = false;
+    }
+    if (_resp && _resp.status === 201) {
+      try {
+        const _created = await _resp.json();
+        if (_created && _created.id != null) _calLeveMap[v] = _created.id;
+      } catch(_) {}
+    } else if (_resp && _resp.status === 409) {
+      // Già presente in tabella (es. residuo pre-fix): non è un errore, il blob va
+      // riallineato. L'id manca in _calLeveMap: rifetch via _loadCalEvents (async, non blocca).
+      console.warn('[addLeva] leva "' + v + '" già in tabella (409): riallineo il blob');
+      try { _loadCalEvents(); } catch(_) {}
+    } else if (_resp && _resp.status === 403) {
+      closeM('mLeva');
+      openPlanLimitModal('leve');
+      return;
+    } else {
+      toast('⚠️ Leva non creata: server non raggiungibile. Riprova.');
+      return;
+    }
   }
   leve.push(v);
   levaMeta[v] = { categoria: cat };
@@ -20301,6 +20344,27 @@ function _loadCalEvents() {
         levaMeta[l.nome] = { categoria: l.categoria };
       }
     });
+    // FIX BUG-01 (B) — riconciliazione leve fantasma: leve nel blob ma assenti dalla
+    // tabella SQL (create da addLeva pre-fix, che non chiamava POST /api/v2/leve).
+    // Solo admin (il POST richiede requireRole admin lato BE). Idempotente: POSTa solo
+    // le mancanti e il vincolo UNIQUE (society_id, nome) rende innocui i doppi invii
+    // concorrenti (409). Fire-and-forget: un errore logga e NON blocca il calendario.
+    if (me && me.role === 'admin') {
+      (Array.isArray(leve) ? leve : []).forEach(function(nome) {
+        if (_calLeveMap[nome] != null) return;
+        var _cat = (levaMeta[nome] && levaMeta[nome].categoria) || (isSeniorLeva(nome) ? 'senior' : 'junior');
+        fetch(API_BASE + '/api/v2/leve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _v2Token },
+          body: JSON.stringify({ nome: nome, categoria: _cat, ordine: leve.indexOf(nome) })
+        }).then(function(r) {
+          if (r.status === 201) {
+            return r.json().then(function(j) { if (j && j.id != null) _calLeveMap[nome] = j.id; });
+          }
+          if (r.status !== 409) console.warn('[leveReconcile] POST /leve "' + nome + '" HTTP ' + r.status);
+        }).catch(function(e) { console.warn('[leveReconcile] POST /leve "' + nome + '" err', e && e.message); });
+      });
+    }
     // Mantieni partita/torneo dal blob (gestiti da campionato/tornei/amichevoli)
     var _blobPT = events.filter(function(e) { return !e._fromApi && (e.type === 'partita' || e.type === 'torneo'); });
     events.length = 0;
@@ -24140,10 +24204,13 @@ function renderAltriScontri(tipo, matches, leva, torneoId, faseId, readOnly = fa
 // ─── MERGE-RETRY sui salvataggi risultato (versionamento ottimistico) ───
 // Lookup di un match per ID STABILE nello stato corrente. Non usa indici di array:
 // dopo applyServerState gli array sono rimpiazzati e qualunque riferimento è orfano,
-// ma l'id resta stabile (tm<n> per torneo, intero per campionato).
+// ma l'id resta stabile (tm<n> per torneo, intero per campionato e amichevole).
 function _findMatchByRef(tipo, ref) {
   if (tipo === 'campionato') {
     return (campionato[currentLeva] && campionato[currentLeva].partite || []).find(m => m.id === parseInt(ref));
+  }
+  if (tipo === 'amichevole') {
+    return (Array.isArray(amichevoli) ? amichevoli : []).find(m => m.id === parseInt(ref));
   }
   if (tipo === 'torneo') {
     const parts = String(ref).split('__');
