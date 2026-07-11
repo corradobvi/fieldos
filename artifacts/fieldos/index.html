@@ -8077,15 +8077,21 @@ function openPlayerModal(id) {
 
   if (id === null) {
     // NEW — sempre modalità GDPR
-    document.getElementById('mPlayerTitle').textContent = '👶 Nuovo giocatore';
-    document.getElementById('pId').value = '';
-    document.getElementById('btnDelPlayer').style.display  = 'none';
-    document.getElementById('btnArchPlayer').style.display = 'none';
-    document.getElementById('pPhotoArea').style.display    = 'none';
-    document.getElementById('pAnagStats').style.display    = 'none';
-    document.getElementById('pConvStats').style.display    = 'none';
-    document.getElementById('pMatchStats').style.display   = 'none';
-    document.getElementById('pIndispSection').style.display = 'none';
+    const _mTitle = document.getElementById('mPlayerTitle');
+    if (_mTitle) _mTitle.textContent = '👶 Nuovo giocatore';
+    const _pIdEl = document.getElementById('pId');
+    if (_pIdEl) _pIdEl.value = '';
+    // BUG-03: qui c'erano anche pAnagStats / pConvStats / pMatchStats, ma quei div
+    // sono stati spostati nel popup #mPlayerStats (commit c2d7720) e gli id non
+    // esistono più in questo modal: gli accessi .style crashavano "Nuovo giocatore".
+    const _delBtn = document.getElementById('btnDelPlayer');
+    if (_delBtn) _delBtn.style.display = 'none';
+    const _archBtn = document.getElementById('btnArchPlayer');
+    if (_archBtn) _archBtn.style.display = 'none';
+    const _photoArea = document.getElementById('pPhotoArea');
+    if (_photoArea) _photoArea.style.display = 'none';
+    const _indispSec = document.getElementById('pIndispSection');
+    if (_indispSec) _indispSec.style.display = 'none';
     // Mostra solo form GDPR
     if (fullForm)  fullForm.style.display  = 'none';
     if (minorForm) minorForm.style.display = 'block';
@@ -8114,16 +8120,21 @@ function openPlayerModal(id) {
     // EDIT — form completo invariato
     const p = players.find(x => x.id === id);
     if (!p) return;
-    document.getElementById('mPlayerTitle').textContent = '✏️ Modifica giocatore';
-    document.getElementById('pId').value    = p.id;
-    document.getElementById('pNome').value  = p.nome;
-    document.getElementById('pCogn').value  = p.cogn;
-    document.getElementById('pSopr').value  = p.soprannome || '';
-    document.getElementById('pNum').value   = p.num;
-    document.getElementById('pRuolo').value = p.ruolo;
-    document.getElementById('pAnno').value  = p.anno || (p.birth_date ? new Date(p.birth_date).getFullYear() : '');
-    document.getElementById('pTel').value   = p.tel || '';
-    document.getElementById('btnDelPlayer').style.display = 'inline-flex';
+    const _mTitle = document.getElementById('mPlayerTitle');
+    if (_mTitle) _mTitle.textContent = '✏️ Modifica giocatore';
+    // BUG-03: guardia null su tutti i campi (stesso pattern del ramo NEW) — un id
+    // mancante nel markup non deve mai bloccare l'apertura del modal.
+    const _setFld = function(eid, val) { const el = document.getElementById(eid); if (el) el.value = val; };
+    _setFld('pId',    p.id);
+    _setFld('pNome',  p.nome);
+    _setFld('pCogn',  p.cogn);
+    _setFld('pSopr',  p.soprannome || '');
+    _setFld('pNum',   p.num);
+    _setFld('pRuolo', p.ruolo);
+    _setFld('pAnno',  p.anno || (p.birth_date ? new Date(p.birth_date).getFullYear() : ''));
+    _setFld('pTel',   p.tel || '');
+    const _delBtn = document.getElementById('btnDelPlayer');
+    if (_delBtn) _delBtn.style.display = 'inline-flex';
     const _archBtn = document.getElementById('btnArchPlayer');
     if (_archBtn) _archBtn.style.display = (me && (isAdminLike() || me.role === 'allenatore')) ? 'inline-flex' : 'none';
     if (_archBtn) _archBtn.textContent = p.archiviato ? '↩️ Ripristina' : '📦 Archivia';
